@@ -138,10 +138,9 @@ class DatabaseParser:
     def GetHLTRates(self,LSRange):
         self.GetHLTPrescaleMatrix()
         
-        sqlquery = """SELECT SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT)
-        ,SUM(A.PEXCEPT), A.LSNUMBER, (SELECT L.NAME FROM CMS_HLT.PATHS L WHERE L.PATHID=A.PATHID) PATHNAME 
-        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A WHERE RUNNUMBER=%s AND A.LSNUMBER IN %s
-        GROUP BY A.LSNUMBER,A.PATHID"""
+        sqlquery = """SELECT SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT),SUM(A.PEXCEPT), A.LSNUMBER,
+        (SELECT L.NAME FROM CMS_HLT.PATHS L WHERE L.PATHID=A.PATHID) PATHNAME FROM
+        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A WHERE RUNNUMBER=%s AND A.LSNUMBER IN %s GROUP BY A.LSNUMBER,A.PATHID"""
 
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
@@ -158,14 +157,21 @@ class DatabaseParser:
         #print "Getting HLT Rates for LS from %d to %d" % (LSRange[0],LSRange[-1],)
 
         query = sqlquery % (self.RunNumber,LSRangeSTR)
-        self.curs.execute(query)
-
+        print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
+        try:
+            self.curs.execute(query)
+            print 'executed db query successfully'
+        except:
+            print 'failed to execute db query'
+            
         TriggerRates = {}
         for L1Pass,PSPass,HLTPass,HLTExcept,LS ,name in self.curs.fetchall():
-            if not self.HLTSeed.has_key(name):
-                continue 
+
+            #if not self.HLTSeed.has_key(name):
+            #    continue 
             
             rate = HLTPass/23.3
+            #print "Trg Name == ",name," rate == ",rate
             hltps = 0
 
             if not TriggerRates.has_key(name):                
@@ -183,12 +189,15 @@ class DatabaseParser:
                 else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
-                if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
-                    l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
-                else:
-                    AvL1Prescales = self.CalculateAvL1Prescales([LS])
-                    l1ps = self.UnwindORSeed(self.HLTSeed[name],AvL1Prescales)
-
+                try:
+                    if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
+                        l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                    else:
+                        AvL1Prescales = self.CalculateAvL1Prescales([LS])
+                        l1ps = self.UnwindORSeed(self.HLTSeed[name],AvL1Prescales)
+                except:
+                    #print "The path: ",name," does not have a L1 seed"
+                    l1ps =1
                 ps = l1ps*hltps
                 
                 ###if ps < 1: ### want PS=0 too! 
@@ -214,12 +223,16 @@ class DatabaseParser:
                 else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
-                if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
-                    l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
-                else:
-                    AvL1Prescales = self.CalculateAvL1Prescales([LS])
-                    l1ps = self.UnwindORSeed(self.HLTSeed[name],AvL1Prescales)
 
+                try:
+                    if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
+                        l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                    else:
+                        AvL1Prescales = self.CalculateAvL1Prescales([LS])
+                        l1ps = self.UnwindORSeed(self.HLTSeed[name],AvL1Prescales)
+                except:
+                    #print "The path: ",name," does not have a L1 seed"
+                    l1ps =1
                 ps = l1ps*hltps
                 #if ps < 1: ###want PS=0 too!
                     ##print "Oops! somehow ps for "+str(name)+" = "+str(ps)+", where L1 PS = "+str(l1ps)+" and HLT PS = "+str(hltps)
@@ -229,6 +242,7 @@ class DatabaseParser:
                 LSUsed[LS]=True
                 
                     
+
         
         
         ###check if LS is used above, if not and deadtime is 100% add extra lumi for calculation
@@ -257,7 +271,7 @@ class DatabaseParser:
                 ps = avps
                 
             TriggerRates[name] = [avps,ps,rate/n,psrate/n]
-                    
+
         return TriggerRates
 
     def GetAvgTrigRateInLSRange(self,triggerName,LSRange):
@@ -371,7 +385,6 @@ class DatabaseParser:
             pastLSCol=ls
             if ls>self.LastLSParsed:
                 self.LastLSParsed=ls
-                
         self.LumiInfo = [self.PSColumnByLS, self.InstLumiByLS, self.DeliveredLumiByLS, self.LiveLumiByLS, self.DeadTime, self.Physics, self.Active]
 
         return self.LumiInfo
@@ -763,7 +776,6 @@ class DatabaseParser:
         self.GetLumiInfo()
         self.LastLSParsed=-1
         self.GetMoreLumiInfo()
-        self.LastLsParsed=-1
         #self.GetDeadTimeBeamActive()
 
     def UpdateRun(self,LSRange):
@@ -910,6 +922,8 @@ class DatabaseParser:
         return L1Rate
 
     def GetL1RatesALL(self,LSRange):
+
+
         ##ANCIENT COMMANDS THAT DO WHO KNOWS WHAT
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_TCS_TRIGGER WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX=9"
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX IN (9,13, 71)"
@@ -949,6 +963,8 @@ class DatabaseParser:
         for line in self.L1PrescaleTable:
             L1PSdict[counter]=line
             counter=counter+1
+        for LS in LSRange:    
+            self.PSColumnByLS[LS]    
 
         ###av ps dict
         L1PSbits={}    
@@ -957,9 +973,8 @@ class DatabaseParser:
         for bit in L1PSdict.iterkeys():
             for LS in LSRange:
                 L1PSbits[bit]=L1PSbits[bit]+L1PSdict[bit][self.PSColumnByLS[LS]]
-        for bit in L1PSbits.iterkeys():            
+        for bit in L1PSdict.iterkeys():
             L1PSbits[bit]=L1PSbits[bit]/len(LSRange)
-
         
         ###convert dict of L1 bits to dict of L1 names        
         L1RatesNames={}
@@ -1215,8 +1230,13 @@ def ConnectDB(user='trg'):
         print "You may need to copy them from the online machines"
         sys.exit(0)
     magic = line[0].rstrip("\n\r")
+#    hlt_pwd = '***REMOVED***'
+#    trg_pwd = '***REMOVED***'
     connect = 'cms_%s_r/%s@cms_omds_lb' % (user,magic,)
-    orcl = cx_Oracle.connect(connect)
+    try:
+        orcl = cx_Oracle.connect(connect)
+    except:
+        print 'Error connecting to database'
     return orcl.cursor()
     
 
