@@ -32,15 +32,16 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
         if set(parser.InstLumiByLS.values()) == set([None]):
             write(colored("\n\nLUMI INFORMATION NOT BEING SENT!\n",'red',attrs=['reverse']))
             write(colored("Check with Shift Leader if this is expected\n",'red',attrs=['reverse']))
-            write(colored("If not, HFLUMI needs to be red-recycled\n\n\n",'red',attrs=['reverse']))
-            write(colored("If in doubt, call Lumi DOC\n\n\n",'red',attrs=['reverse']))
-                                                                                                                                                                                                                                                                    
+            write(colored("If not, HFLUMI needs to be red-recycled\n",'red',attrs=['reverse']))
+            write(colored("If in doubt, call Lumi DOC\n",'red',attrs=['reverse']))
+
     try:
-        lograte=parser.GetTriggerRatesByLS("HLT_LogMonitor_v3")
+#        lograte=parser.GetTriggerRatesByLS("HLT_LogMonitor_v3")
+        lograte=parser.GetTriggerRatesByLS("HLT_Random_v2")
         if not len(lograte):
             lograte=parser.GetTriggerRatesByLS("HLT_LogMonitor_v4")
 
-        for ls in LumiRange: 
+        for ls in LumiRange:
             current_lograte = lograte.get(ls,0)
             lograte_sum =+ current_lograte
 
@@ -48,7 +49,7 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
         if lograte_average > config.MaxLogMonRate:
             write(bcolors.WARNING)
             print "Post to elog. LogMonitor rate is high: %.2f" % (lograte_average)
-            write(bcolors.ENDC+"\n")              
+            write(bcolors.ENDC+"\n")
 
     except:
         write(bcolors.WARNING)
