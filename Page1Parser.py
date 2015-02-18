@@ -37,6 +37,7 @@ class Page1Parser(HTMLParser):
         self.hyperlinks = []
         try:
             req = urlopen(url)
+            print req
             self.feed(req.read())
         except:
             print "Error Getting page: "+url
