@@ -217,14 +217,15 @@ def main():
     # Now get the most recent run
 
     SaveRun = False
+
     if CompareRunNum=="":  # if no run # specified on the CL, get the most recent run
-        CompareRunNum,isCol,isGood = GetLatestRunNumber()
+        CompareRunNum,collisions,isGood = GetLatestRunNumber()
             
         if not isGood:
             print "NO TRIGGER KEY FOUND for run ",CompareRunNum
             ##sys.exit(0)
 
-        if not isCol:
+        if not collisions:
             print "Most Recent run, "+str(CompareRunNum)+", is NOT collisions"
             print "Monitoring only stream A and Express"
             #if not Force:
@@ -233,21 +234,23 @@ def main():
         else:
             print "Most Recent run is "+str(CompareRunNum)
     else:
-        CompareRunNum,isCol,isGood = GetLatestRunNumber(CompareRunNum)
+        CompareRunNum,collisions,isGood = GetLatestRunNumber(CompareRunNum)
         if not isGood:
             print "NO TRIGGER KEY FOUND for run ", CompareRunNum
             ##sys.exit(0)
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
+    
+    
 #    HeadParser.RunNumber = 234419
 #    HeadParser.RunNumber = 234617#425
 #    HeadParser.RunNumber = 234430 #use as a reference
         
     try:
         HeadParser.ParseRunSetup()
-        HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,isCol)
-        LastGoodLS=HeadParser.GetLastLS(isCol)+1
+        HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)
+        LastGoodLS=HeadParser.GetLastLS(collisions)+1
         tempLastGoodLS=LastGoodLS
         CurrRun=CompareRunNum
 
@@ -257,13 +260,19 @@ def main():
         tempLastGoodLS=LastGoodLS-1
         CurrRun=CompareRunNum
         isGood=0
+
+
+
+    if 'cosmics' in HeadParser.L1_HLT_Key:
+        cosmics = True
+        #print "L1  - HLT - KEY  ===== ", HeadParser.L1_HLT_Key
         
     if len(HeadLumiRange) is 0:
         print "No lumisections that are taking physics data 0"
         HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,False)
         if len(HeadLumiRange)>0:
             isGood=1
-            isCol=0
+            collisions=0
         ##sys.exit(0)
 
     ## This reduces the sensitivity for a rate measurement to cause a warning during the beginning of a run
@@ -294,20 +303,10 @@ def main():
         while True:
             if isGood:
                 tempLastGoodLS=LastGoodLS
-                LastGoodLS=HeadParser.GetLastLS(isCol)
-                print "Last Good=",LastGoodLS, tempLastGoodLS
-                print "head lumi range = ",HeadLumiRange
-                lumiRange = HeadParser.GetLSRange(LastGoodLS,10,isCol)
-                print "head lumi range update = ",lumiRange
-#                 if LastGoodLS < 12:
-#                     print "waiting 23 seconds for next lumi"
-#                     NewRun,isCol,isGood = GetLatestRunNumber(9999999)
-#                     print "current run = ",NewRun
-#                     for iSleep in range(23):
-#                         write(".")
-#                         sys.stdout.flush()
-#                         time.sleep(1)
-#                     continue
+                LastGoodLS=HeadParser.GetLastLS(collisions)
+#                 print "Last Good=",LastGoodLS, tempLastGoodLS
+#                 print "head lumi range = ",HeadLumiRange
+#                 print "head lumi range update = ", HeadParser.GetLSRange(LastGoodLS,10,collisions)
 
                 if LastGoodLS==tempLastGoodLS:
                     write(bcolors.OKBLUE)
@@ -315,25 +314,25 @@ def main():
                     write(bcolors.ENDC+"\n")
                 else:
                     RefMoreLumiArray = HeadParser.GetMoreLumiInfo()
-                    isBeams=True
+                    beams=True
                     for lumisection in HeadLumiRange:
                         try: 
                             if not (RefMoreLumiArray["b1pres"][lumisection] and RefMoreLumiArray["b2pres"][lumisection] and RefMoreLumiArray["b1stab"][lumisection] and RefMoreLumiArray["b2stab"][lumisection]):
-                                isBeams=False
+                                beams=False
                         except:
-                            isBeams=False
+                            beams=False
 
-                    if not (isCol and isBeams):
+                    if not (collisions and beams) and not cosmics:
+                         print "COSMICS = ",cosmics
+                         print "COLLI = ",collisions
+                         if not (cosmics and collisions): print "TITS"
                          MoreTableInfo(HeadParser,HeadLumiRange,Config,False)
 
-                         #this right here
-                         print "before database parser call"
                          if (len(HeadLumiRange)>0):
                              HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)
                          else:
                              print "Not enough lumi sections to update run"
-                         print "after database parser call"
-                    #else:
+                    else:
 #                         if (len(HeadLumiRange)>0):
                          if (len(HeadLumiRange)==10 and HeadLumiRange[0]>1):
                              print "LAST LUMI IN RANGE IS.... ",HeadLumiRange[-1]
@@ -361,13 +360,13 @@ def main():
             write("  Updating\n")
             sys.stdout.flush()
             
-            ##print "\nminLS=",min(HeadLumiRange),"Last LS=",HeadParser.GetLastLS(isCol),"run=",HeadParser.RunNumber
+            ##print "\nminLS=",min(HeadLumiRange),"Last LS=",HeadParser.GetLastLS(collisions),"run=",HeadParser.RunNumber
             ###Get a new run if DAQ stops
             ##print "\nLastGoodLS=",LastGoodLS
 
             ##### NEED PLACEHOLDER TO COMPARE CURRENT RUN TO LATEST RUN #####
             
-            NewRun,isCol,isGood = GetLatestRunNumber(9999999)  ## update to the latest run and lumi range
+            NewRun,collisions,isGood = GetLatestRunNumber(9999999)  ## update to the latest run and lumi range
             
             try:
                 maxLumi=max(HeadLumiRange)
@@ -381,38 +380,46 @@ def main():
                     HeadParser = DatabaseParser()
                     HeadParser.RunNumber = NewRun
                     HeadParser.ParseRunSetup()
-                    CurrRun,isCol,isGood=GetLatestRunNumber(9999999)
+                    CurrRun,collisions,isGood=GetLatestRunNumber(9999999)
+                    if 'cosmics' in HeadParser.L1_HLT_Key:
+                        cosmics=True
+                    else:
+                        cosmics=False
                     FirstLS=9999
-                    HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,isCol)    
+                    HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)    
                     if len(HeadLumiRange) is 0:
                         HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,False)
                         print "No lumisections that are taking physics data 2"
                         if len(HeadLumiRange)>0:
                             isGood=1
-                            isCol=0
+                            collisions=0
                             
                     #tempLastGoodLS=LastGoodLS
-                    #LastGoodLS=HeadParser.GetLastLS(isCol)
-                    ##print CurrRun, isCol, isGood
+                    #LastGoodLS=HeadParser.GetLastLS(collisions)
+                    ##print CurrRun, collisions, isGood
                 except:
                     isGood=0
-                    isCol=0
+                    collisions=0
                     print "failed"
 
             else:
                 try:
                     HeadParser.ParseRunSetup()
-                    HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,isCol)
+                    HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)
+                    if 'cosmics' in HeadParser.L1_HLT_Key:
+                        cosmics=True
+                    else:
+                        cosmics=False
                     if len(HeadLumiRange) is 0:
                         HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,False)
                         print "No lumisections that are taking physics data"
                         if len(HeadLumiRange)>0:
                             isGood=1
-                            isCol=0
-                    #LastGoodLS=HeadParser.GetLastLS(isCol)
+                            collisions=0
+                    #LastGoodLS=HeadParser.GetLastLS(collisions)
                 except:
                     isGood=0
-                    isCol=0
+                    collisions=0
                     clear()
                     print "NO TRIGGER KEY FOUND YET for run", NewRun ,"repeating search"
                 
@@ -425,7 +432,12 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     Data   = []
     Warn   = []
     IgnoredRates=[]
-    
+
+    if 'cosmics' in HeadParser.L1_HLT_Key:
+        cosmics = True
+    else:
+        cosmics = False
+        
     [HeadAvInstLumi,HeadAvLiveLumi,HeadAvDeliveredLumi,HeadAvDeadTime,HeadPSCols] = HeadParser.GetAvLumiInfo(HeadLumiRange)
     ##[HeadUnprescaledRates, HeadTotalPrescales, HeadL1Prescales, HeadTriggerRates] = HeadParser.UpdateRun(HeadLumiRange)
     HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)
@@ -650,12 +662,14 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #                 nBadRates += 1
 #             else:
 #                 Warn.append(False)
+
     ##Loop for L1 seeds of HLT triggers with warnings
     if Config.DoL1:
         for entry in SortedData:
-############## commented out for cosmics ##############
-#             if not entry[0] in core_l1_seeds:
-#                 continue
+
+            if not entry[0] in core_l1_seeds and not cosmics:
+                continue
+
             core_data.append(entry)
             bad_seed_rate = (abs(entry[3]) > AllowedRatePercDiff)
             if bad_seed_rate:
