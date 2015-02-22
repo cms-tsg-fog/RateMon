@@ -52,7 +52,7 @@ class Modes:
 
 def pickYear():
     global thisyear
-    thisyear="2012"
+    thisyear="2015"
     print "Year set to ",thisyear
 
 def main():

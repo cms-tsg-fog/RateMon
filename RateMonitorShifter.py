@@ -296,15 +296,18 @@ def main():
                 tempLastGoodLS=LastGoodLS
                 LastGoodLS=HeadParser.GetLastLS(isCol)
                 print "Last Good=",LastGoodLS, tempLastGoodLS
-                if LastGoodLS < 12:
-                    print "waiting 23 seconds for next lumi"
-                    NewRun,isCol,isGood = GetLatestRunNumber(9999999)
-                    print "current run = ",NewRun
-                    for iSleep in range(23):
-                        write(".")
-                        sys.stdout.flush()
-                        time.sleep(1)
-                    continue
+                print "head lumi range = ",HeadLumiRange
+                lumiRange = HeadParser.GetLSRange(LastGoodLS,10,isCol)
+                print "head lumi range update = ",lumiRange
+#                 if LastGoodLS < 12:
+#                     print "waiting 23 seconds for next lumi"
+#                     NewRun,isCol,isGood = GetLatestRunNumber(9999999)
+#                     print "current run = ",NewRun
+#                     for iSleep in range(23):
+#                         write(".")
+#                         sys.stdout.flush()
+#                         time.sleep(1)
+#                     continue
 
                 if LastGoodLS==tempLastGoodLS:
                     write(bcolors.OKBLUE)
@@ -325,10 +328,15 @@ def main():
 
                          #this right here
                          print "before database parser call"
-                         HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)
+                         if (len(HeadLumiRange)>0):
+                             HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)
+                         else:
+                             print "Not enough lumi sections to update run"
                          print "after database parser call"
                     #else:
-                         if (len(HeadLumiRange)>0):
+#                         if (len(HeadLumiRange)>0):
+                         if (len(HeadLumiRange)==10 and HeadLumiRange[0]>1):
+                             print "LAST LUMI IN RANGE IS.... ",HeadLumiRange[-1]
                              if not isSequential(HeadLumiRange):
                                  print "Some lumisections have been skipped. Averaging over most recent sequential lumisections..."
                                  sequential_chunk = getSequential(HeadLumiRange)
@@ -345,7 +353,7 @@ def main():
                 print "Expert Mode. Quitting."
                 sys.exit(0)
 
-            print "Sleeping for 60 sec before nexy query  "
+            print "Sleeping for 60 sec before next query  "
             for iSleep in range(20):
                 write(".")
                 sys.stdout.flush()
@@ -392,7 +400,6 @@ def main():
                     print "failed"
 
             else:
-                print "new run is current run?"
                 try:
                     HeadParser.ParseRunSetup()
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,isCol)
@@ -433,7 +440,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
         pkl_file = open(Config.FitFileName, 'rb')
         FitInput = pickle.load(pkl_file)
         pkl_file.close()
-        print "fit file name=",Config.FitFileName
+        #        print "fit file name=",Config.FitFileName
         
     except:
         print "No fit file specified", Config.FitFileName," not found"
@@ -517,7 +524,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             VC = PSCorrectedExpectedRate[2]
             try:
                 sigma = PSCorrectedExpectedRate[1]*sqrt(PSCorrectedExpectedRate[0])/(sqrt(len(HeadLumiRange))* HeadUnprescaledRates[HeadName][1])
-                ExpectedRate = round((PSCorrectedExpectedRate[0] / HeadUnprescaledRates[HeadName][1]),2)                
+                ExpectedRate = round((PSCorrectedExpectedRate[0] / HeadUnprescaledRates[HeadName][1]),2)
             except:
                 sigma = 0.0
                 ExpectedRate = 0.0 ##This means we don't have a prediction for this trigger-- gets overwritten to "--" later
@@ -587,6 +594,8 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 
             VC = ""
             Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
+
+    print "path = ", [col[0] for col in Data] 
       
     if not found_ref_rates:
         print '\n*****************************************************************************************************************************************************'
@@ -641,7 +650,6 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #                 nBadRates += 1
 #             else:
 #                 Warn.append(False)
-
     ##Loop for L1 seeds of HLT triggers with warnings
     if Config.DoL1:
         for entry in SortedData:
