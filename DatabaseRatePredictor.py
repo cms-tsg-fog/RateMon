@@ -46,6 +46,7 @@ def usage():
     print "--linear                             Force linear fits"
     print "--inst                               Make fits using instantaneous luminosity instead of delivered"
     print "--write                              Writes fit info into csv, for ranking nonlinear triggers"
+    print "--cosmic                             Enter cosmic mode"
     
 class Modes:
     none,fits,secondary = range(3)
@@ -62,7 +63,7 @@ def main():
         pickYear()
         
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","linear","inst","write","AllTriggers","UsePSCol="])
+            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","linear","inst","write","AllTriggers","UsePSCol=","cosmic"])
             
         except getopt.GetoptError, err:
             print str(err)
@@ -116,6 +117,7 @@ def main():
         DoL1=True
         UsePSCol=-1
         SubSystemOff={'All':False,'Mu':False,'HCal':False,'ECal':False,'Tracker':False,'EndCap':False,'Beam':False}
+        cosmic = False
         for o,a in opt:
             if o == "--makeFits":
                 mode = Modes.fits
@@ -160,6 +162,8 @@ def main():
                 all_triggers=True
             elif o=="--UsePSCol":
                 UsePSCol=int(a)
+            elif o=="--cosmic":
+                cosmic=True
             elif o == "--TriggerList":
                 try:
                     f = open(a)
@@ -326,19 +330,19 @@ def main():
         L1SeedChangeFit=True
         ########  END PARAMETERS - CALL FUNCTIONS ##########
         #[Rates,LumiPageInfo, L1_trig_list,nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit)
-        [Rates, LumiPageInfo, L1_trig_list, nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits)
+        [Rates, LumiPageInfo, L1_trig_list, nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits, cosmic)
         if DoL1:
             trig_list=L1_trig_list
         
-        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
+        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, linear, cosmic, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
 
     except KeyboardInterrupt:
         print "Wait... come back..."
 
 
 #def GetDBRates(run_list,trig_name,trig_list, num_ls, max_dt, physics_active_psi,JSON,debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit):
-def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits):
-    
+def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits, cosmic):
+    nps = 0
     Rates = {}
     LumiPageInfo={}
     ## Save in RefRuns with name dependent on trig_name, num_ls, JSON, and physics_active_psi
@@ -358,8 +362,8 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
     RefRunFile = RefRunNameTemplate % (thisyear,trig_name,num_ls)
     RefRunFileHLT = RefRunNameTemplate % (thisyear,"HLT",num_ls)
 
-    print "RefRun=",RefRunFile
-    print "RefRunFileHLT",RefRunFileHLT
+    print "RefRun: ",RefRunFile
+    print "RefRunFileHLT: ",RefRunFileHLT
     if not force_new:
         try: ##Open an existing RefRun file with the same parameters and trigger name
             pkl_file = open(RefRunFile, 'rb')
@@ -424,14 +428,12 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
         if RefRunNum < 1:
             continue
         ColRunNum,isCol,isGood = GetLatestRunNumber(RefRunNum)
-        if not isGood:
+        if not cosmic and not isGood:
             print "Run ",RefRunNum, " is not Collisions"
-            
             continue
         
-        if not isCol:
+        if not cosmic and not isCol:
             print "Run ",RefRunNum, " is not Collisions"
-            
             continue
         
         print "calculating rates and green lumis for run ",RefRunNum
@@ -487,8 +489,8 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         if not RefLumiArray[0][iterator]==UsePSCol:
                             print "skipping LS",iterator
                             continue
-
-                    if not physics_active_psi or (RefLumiArray[5][iterator] == 1 and RefLumiArray[6][iterator] == 1 and RefMoreLumiArray["b1pres"][iterator]==1 and RefMoreLumiArray["b2pres"][iterator]==1 and RefMoreLumiArray["b1stab"][iterator] and RefMoreLumiArray["b2stab"][iterator]==1):
+                    
+                    if cosmic or not physics_active_psi or (RefLumiArray[5][iterator] == 1 and RefLumiArray[6][iterator] == 1 and RefMoreLumiArray["b1pres"][iterator]==1 and RefMoreLumiArray["b2pres"][iterator]==1 and RefMoreLumiArray["b1stab"][iterator] and RefMoreLumiArray["b2stab"][iterator]==1):
                         if not JSON or RefRunNum in JSON:
                             if not JSON or iterator in JSON[RefRunNum]:
                                 RefLumiRange.append(iterator)
@@ -628,7 +630,7 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
     
     return [Rates,LumiPageInfo,trig_list,nps]
 
-def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, linear,do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
+def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, linear, cosmic, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
     
     [min_run, max_run, priot, InputFit, OutputFit, OutputFitPS, failed_paths, first_trigger, varX, varY, do_fit, save_root, save_png, fit_file, RootNameTemplate, RootFile, InputFitPS]=InitMakePlots(run_list, trig_name, num_ls, plot_properties, nps, L1SeedChangeFit)
     ##modify for No Version and check the trigger list
@@ -691,17 +693,17 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
             if not defgrapass:
                 continue
             if do_fit:
-                [f1a,f1b,f1c,f1d,first_trigger]= Fitter(gr1,VX,VY,sloperate,nlow,Rates,print_trigger, first_trigger, varX, varY,lowrate)
+                [f1a,f1b,f1c,f1d,f1f,first_trigger]= Fitter(gr1,VX,VY,sloperate,nlow,Rates,print_trigger, first_trigger, varX, varY,lowrate)
                         
         
             if print_table or save_fits:
                 ###aditional info from f1 params
-                [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passmorefitinfo]=more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates)
+                [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passmorefitinfo]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
                 if not passmorefitinfo:
                     OutputFit[print_trigger] = ["fit failed","Zero NDF"]
                 ###output fit params
                 else:    
-                    [OutputFit,first_trigger, failed_paths]=output_fit_info(do_fit,f1a,f1b,f1c,f1d,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist)
+                    [OutputFit,first_trigger, failed_paths]=output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist)
             if do_fit:        
                 for PSI in PSColslist:
                     if not OutputFitPS[PSI][print_trigger]:
@@ -723,7 +725,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                 gr3.Draw("P3")
                 c1.Update()
             else:    
-                c1=DrawFittedCurve(f1a, f1b,f1c, f1d, chioffset,do_fit,c1,VX ,VY,print_trigger,Rates)
+                c1=DrawFittedCurve(f1a, f1b,f1c, f1d, f1f, chioffset,do_fit,c1,VX ,VY,print_trigger,Rates)
             
             if save_root:
                 myfile = TFile( RootFile, 'UPDATE' )
@@ -1541,7 +1543,17 @@ def Fitter(gr1, VX, VY, sloperate, nlow, Rates, print_trigger, first_trigger, va
     f1b = 0
     f1c = 0
     f1d = 0
+    f1f = 0
+    
     if "rate" in varY:
+        # flat
+        f1f = TF1("f1f","pol0",0,8000)#linear
+        f1f.SetParameter(0, sum(VY)/len(VY)) ##Set Y-intercept as the mean of the rates
+        f1f.SetLineColor(0)
+        f1f.SetLineWidth(2)
+        gr1.Fit("f1f","QN","rob=0.90")
+        
+        
         f1d = TF1("f1d","pol1",0,8000)#linear
         f1d.SetParameters(0.01,min(sum(VY)/sum(VX),sloperate)) ##Set Y-intercept near 0, slope either mean_rate/mean_lumi or est. slope (may be negative)
         f1d.SetLineColor(4)
@@ -1616,9 +1628,9 @@ def Fitter(gr1, VX, VY, sloperate, nlow, Rates, print_trigger, first_trigger, va
             except:
                 pass
 
-    return [f1a,f1b,f1c,f1d,first_trigger]
+    return [f1a,f1b,f1c,f1d,f1f,first_trigger]
 
-def more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates):
+def more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates):
 
     meanps = median(Rates[print_trigger]["ps"])
     av_rte = mean(VY)
@@ -1629,6 +1641,7 @@ def more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates):
         f1b_Chi2 = f1b.GetChisquare()/f1b.GetNDF()
         f1c_Chi2 = f1c.GetChisquare()/f1c.GetNDF()
         f1d_Chi2 = f1d.GetChisquare()/f1d.GetNDF()
+        f1f_Chi2 = f1f.GetChisquare()/f1f.GetNDF()
     except ZeroDivisionError:
         print "Zero DOF for", print_trigger
         passed=0
@@ -1636,10 +1649,10 @@ def more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates):
     f1b_BadMinimum = (f1b.GetMinimumX(5,7905,10)>2000 and f1b.GetMinimumX(5,7905,10)<7000)                
     f1c_BadMinimum = ((f1c.GetMinimumX(5,7905,10)>2000 and f1c.GetMinimumX(5,7905,10)<7000)) or f1c.GetMaximum(min(VX),max(VX),10)/max(VY) > 2.0
 
-    return [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]
+    return [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]
     
-def output_fit_info(do_fit,f1a,f1b,f1c,f1d,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist):
-    [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte,passed]=more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates)
+def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist):
+    [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte,passed]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
     OutputFit[print_trigger] = {}
 
     if not do_fit:
@@ -1648,12 +1661,12 @@ def output_fit_info(do_fit,f1a,f1b,f1c,f1d,varX,varY,VX,VY,linear,print_trigger,
         failed_paths.append([print_trigger+str(PSColslist),failure_comment])
         OutputFit[print_trigger] = ["fit failed",failure_comment]
         return [OutputFit,first_trigger]
-    if min([f1a_Chi2,f1b_Chi2,f1c_Chi2,f1d_Chi2]) > 500:#require a minimum chi^2/nDOF of 500
+    if min([f1a_Chi2,f1b_Chi2,f1c_Chi2,f1d_Chi2,f1f_Chi2]) > 500:#require a minimum chi^2/nDOF of 500
         failure_comment = "There were events for these paths in the runs specified during the creation of the fit file, but the fit failed to converge"
         failed_paths.append([print_trigger+str(PSColslist),failure_comment])
         OutputFit[print_trigger] = ["fit failed",failure_comment]
         return [OutputFit,first_trigger]
-    if "rate" in varY and not linear:
+    if "rate" in varY and not linear and not cosmic:
         if first_trigger:
             print '\n%-*s | TYPE | %-8s | %-11s |  %-7s | %-10s |  %-7s | %-10s | %-8s | %-10s | %-6s | %-4s |%-7s| %-6s |' % (width,"TRIGGER", "X0","X0 ERROR","X1","X1 ERROR","X2","X2 ERROR","X3","X3 ERROR","CHI^2","DOF","CHI2/DOF","PScols")
             first_trigger = False
@@ -1669,17 +1682,28 @@ def output_fit_info(do_fit,f1a,f1b,f1c,f1d,varX,varY,VX,VY,linear,print_trigger,
             graph_fit_type="quad"
             [f1a,OutputFit]=graph_output_info(f1a,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
             priot(wp_bool,print_trigger,meanps,f1d,f1a,graph_fit_type,av_rte)
-        else:
+        elif (f1d_Chi2 < (f1f_Chi2*chioffset)): # if linear fits better than constant
             graph_fit_type="line"
             [f1d,OutputFit]=graph_output_info(f1d,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
             priot(wp_bool,print_trigger,meanps,f1d,f1d,graph_fit_type,av_rte)
-    elif "rate" in varY and linear:
+        else:
+            graph_fit_type="const"
+            [f1f,OutputFit]=graph_output_info(f1f,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
+            priot(wp_bool,print_trigger,meanps,f1f,f1f,graph_fit_type,av_rte)
+    elif "rate" in varY and linear and not cosmic:
         if first_trigger:
             print '\n%-*s | TYPE | %-8s | %-11s |  %-7s | %-10s |  %-7s | %-10s | %-8s | %-10s | %-6s | %-4s |%-7s| %-6s |' % (width,"TRIGGER", "X0","X0 ERROR","X1","X1 ERROR","X2","X2 ERROR","X3","X3 ERROR","CHI^2","DOF","CHI2/DOF","PScols")
             first_trigger = False        
         graph_fit_type="line"
         [f1d,OutputFit]=graph_output_info(f1d,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
         priot(wp_bool,print_trigger,meanps,f1d,f1d,graph_fit_type,av_rte)            
+    elif "rate" in varY and cosmic:
+        if first_trigger:
+            print '\n%-*s | TYPE | %-8s | %-11s |  %-7s | %-10s |  %-7s | %-10s | %-8s | %-10s | %-6s | %-4s |%-7s| %-6s |' % (width,"TRIGGER", "X0","X0 ERROR","X1","X1 ERROR","X2","X2 ERROR","X3","X3 ERROR","CHI^2","DOF","CHI2/DOF","PScols")
+            first_trigger = False        
+        graph_fit_type="const"
+        [f1f,OutputFit]=graph_output_info(f1d,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
+        priot(wp_bool,print_trigger,meanps,f1f,f1f,graph_fit_type,av_rte)
     else:
         graph_fit_type="quad"
         [f1a,OutputFit]=graph_output_info(f1a,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
@@ -1704,8 +1728,8 @@ def graph_output_info(graph1,graph_fit_type,print_trigger,width,num_ls,VX, VY,me
         
     return [graph1,OutputFit]
 
-def DrawFittedCurve(f1a, f1b,f1c, f1d, chioffset,do_fit,c1,VX,VY,print_trigger,Rates):
-    [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]=more_fit_info(f1a,f1b,f1c,f1d,VX,VY,print_trigger,Rates)
+def DrawFittedCurve(f1a, f1b,f1c, f1d, f1f, chioffset,do_fit,c1,VX,VY,print_trigger,Rates):
+    [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
     
                     
     if do_fit:
@@ -1714,10 +1738,13 @@ def DrawFittedCurve(f1a, f1b,f1c, f1d, chioffset,do_fit,c1,VX,VY,print_trigger,R
                 f1c.Draw("same")
             elif ( (f1b_Chi2 < (f1a_Chi2*chioffset) or f1a_BadMinimum) and not f1b_BadMinimum):
                 f1b.Draw("same")
-            else:
+            elif (f1a_Chi2 < (f1d_Chi2*chioffset)):
                 f1a.Draw("same")
-                
+            elif (f1d_Chi2 < (f1f_Chi2*chioffset)):
                 f1d.Draw("same")
+            else:
+                f1f.Draw("same")
+            
         except:
             True
 
@@ -1823,7 +1850,7 @@ def DefineGraphs(print_trigger,OutputFit,do_fit,varX,varY,x_label,y_label,VX,VY,
 
     return [OutputFit,gr1, gr3, failed_paths, passed]
 
-def DrawSave(save_root, save_png, var, varY, print_trigger, do_fit, gr1, gr3, chioffset, f1a, f1b, f1c, f1d, RootFile):    
+def DrawSave(save_root, save_png, var, varY, print_trigger, do_fit, gr1, gr3, chioffset, f1a, f1b, f1c, f1d, f1f, RootFile):    
     if save_root or save_png:
         c1 = TCanvas(str(varX),str(varY))
         c1.SetName(str(print_trigger)+"_"+str(varY)+"_vs_"+str(varX))
@@ -1832,7 +1859,7 @@ def DrawSave(save_root, save_png, var, varY, print_trigger, do_fit, gr1, gr3, ch
         gr3.Draw("P3")
         c1.Update()
     else:    
-        c1=DrawFittedCurve(f1a, f1b, f1c, f1d, chioffset,do_fit,c1)
+        c1=DrawFittedCurve(f1a, f1b, f1c, f1d, f1f, chioffset,do_fit,c1)
         
     if save_root:
         myfile = TFile( RootFile, 'UPDATE' )
