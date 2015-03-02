@@ -46,7 +46,6 @@ def usage():
     print "--linear                             Force linear fits"
     print "--inst                               Make fits using instantaneous luminosity instead of delivered"
     print "--write                              Writes fit info into csv, for ranking nonlinear triggers"
-    print "--cosmic                             Enter cosmic mode"
     
 class Modes:
     none,fits,secondary = range(3)
@@ -63,7 +62,7 @@ def main():
         pickYear()
         
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","linear","inst","write","AllTriggers","UsePSCol=","cosmic"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","linear","inst","write","AllTriggers","UsePSCol="])
             
         except getopt.GetoptError, err:
             print str(err)
@@ -117,7 +116,6 @@ def main():
         DoL1=True
         UsePSCol=-1
         SubSystemOff={'All':False,'Mu':False,'HCal':False,'ECal':False,'Tracker':False,'EndCap':False,'Beam':False}
-        cosmic = False
         for o,a in opt:
             if o == "--makeFits":
                 mode = Modes.fits
@@ -162,8 +160,6 @@ def main():
                 all_triggers=True
             elif o=="--UsePSCol":
                 UsePSCol=int(a)
-            elif o=="--cosmic":
-                cosmic=True
             elif o == "--TriggerList":
                 try:
                     f = open(a)
@@ -330,18 +326,18 @@ def main():
         L1SeedChangeFit=True
         ########  END PARAMETERS - CALL FUNCTIONS ##########
         #[Rates,LumiPageInfo, L1_trig_list,nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit)
-        [Rates, LumiPageInfo, L1_trig_list, nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits, cosmic)
+        [Rates, LumiPageInfo, L1_trig_list, nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits)
         if DoL1:
             trig_list=L1_trig_list
         
-        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, linear, cosmic, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
+        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
 
     except KeyboardInterrupt:
         print "Wait... come back..."
 
 
 #def GetDBRates(run_list,trig_name,trig_list, num_ls, max_dt, physics_active_psi,JSON,debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit):
-def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits, cosmic):
+def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits):
     nps = 0
     Rates = {}
     LumiPageInfo={}
@@ -428,13 +424,14 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
         if RefRunNum < 1:
             continue
         ColRunNum,isCol,isGood = GetLatestRunNumber(RefRunNum)
-        if not cosmic and not isGood:
-            print "Run ",RefRunNum, " is not Collisions"
-            continue
+
+#         if not isGood:
+#             print "Run ",RefRunNum, " is not Collisions"
+#             continue
         
-        if not cosmic and not isCol:
-            print "Run ",RefRunNum, " is not Collisions"
-            continue
+#         if not isCol:
+#             print "Run ",RefRunNum, " is not Collisions"
+#             continue
         
         print "calculating rates and green lumis for run ",RefRunNum
         
@@ -443,6 +440,14 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                 RefParser = DatabaseParser()
                 RefParser.RunNumber = RefRunNum
                 RefParser.ParseRunSetup()
+                
+                global cosmic
+                if 'cosmic' in RefParser.L1_HLT_Key:
+                    print "COSMICS MODE"
+                    cosmic = True
+                else:
+                    cosmic = False
+                    
                 RefLumiRangePhysicsActive = RefParser.GetLSRange(1,9999) ##Gets array of all LS with physics and active on
                 RefLumiArray = RefParser.GetLumiInfo() ##Gets array of all existing LS and their lumi info
                 RefLumiRange = []
@@ -489,12 +494,12 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         if not RefLumiArray[0][iterator]==UsePSCol:
                             print "skipping LS",iterator
                             continue
-                    
+
                     if cosmic or not physics_active_psi or (RefLumiArray[5][iterator] == 1 and RefLumiArray[6][iterator] == 1 and RefMoreLumiArray["b1pres"][iterator]==1 and RefMoreLumiArray["b2pres"][iterator]==1 and RefMoreLumiArray["b1stab"][iterator] and RefMoreLumiArray["b2stab"][iterator]==1):
                         if not JSON or RefRunNum in JSON:
                             if not JSON or iterator in JSON[RefRunNum]:
                                 RefLumiRange.append(iterator)
-                    
+                                
                 try:
                     nls = RefLumiRange[0]
                     LSRange = {}
@@ -513,8 +518,6 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                             counter += 1
                     nls = LSRange[nls][-1]+1
                 [HLTL1_seedchanges,nps]=checkL1seedChangeALLPScols(trig_list,HLTL1PS) #for L1prescale changes
-                    
-                
                 #print HLTL1_seedchanges
                 #print "nps=",nps
                 #print "Run "+str(RefRunNum)+" contains LS from "+str(min(LSRange))+" to "+str(max(LSRange))
@@ -578,7 +581,7 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                                 trig_list.append(name) ##Only triggers in trig_list have HLTL1_seedchanges filled
                             else:    
                                 continue
-                        
+
                         if not Rates.has_key(name):
                             Rates[name] = {}
                             Rates[name]["run"] = []
@@ -596,6 +599,7 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                             Rates[name]["active"] = []
                             Rates[name]["psi"] = []
                             Rates[name]["L1seedchange"]=[]
+                            
                         [avps, ps, rate, psrate] = TriggerRates[key]
                         Rates[name]["run"].append(RefRunNum)
                         Rates[name]["ls"].append(nls)
@@ -605,7 +609,11 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         Rates[name]["delivered_lumi"].append(delivered)
                         Rates[name]["deadtime"].append(deadtimebeamactive)
                         Rates[name]["rawrate"].append(rate)
-                        Rates[name]["L1seedchange"].append(HLTL1_seedchanges[name])
+                        if name in HLTL1_seedchanges:
+                            print name
+                            print HLTL1_seedchanges[name]
+                            Rates[name]["L1seedchange"].append(HLTL1_seedchanges[name])
+                        
                         if live == 0:
                             Rates[name]["rate"].append(0.0)
                             Rates[name]["rawxsec"].append(0.0)
@@ -630,17 +638,19 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
     
     return [Rates,LumiPageInfo,trig_list,nps]
 
-def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, linear, cosmic, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
+def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
     
     [min_run, max_run, priot, InputFit, OutputFit, OutputFitPS, failed_paths, first_trigger, varX, varY, do_fit, save_root, save_png, fit_file, RootNameTemplate, RootFile, InputFitPS]=InitMakePlots(run_list, trig_name, num_ls, plot_properties, nps, L1SeedChangeFit)
     ##modify for No Version and check the trigger list
     trig_list=InitTrigList(trig_list, save_fits, NoVersion, InputFit)
-
     for print_trigger in sorted(Rates):
         [trig_list, passchecktriglist, meanrawrate] = CheckTrigList(trig_list, print_trigger, all_triggers, masked_triggers, min_rate, Rates, run_list, trig_name, failed_paths)
-        if not passchecktriglist: #failed_paths is modified by CheckTrigList to include output messages explaining why a trigger failed
-            continue
+        print "print_trigger ",print_trigger," mean raw rate = ",meanrawrate
         
+        if not passchecktriglist: #failed_paths is modified by CheckTrigList to include output messages explaining why a trigger failed
+            print print_trigger," Failed passcheckTrigList"
+            continue
+
         [meanrate, meanxsec, meanlumi, sloperate, slopexsec, nlow, nhigh, lowrate, lowxsec, lowlumi, highrate, highxsec, highlumi]=GetMeanRates(Rates, print_trigger, max_dt)
         chioffset=1.0 ##chioffset now a fraction; must be 10% better to use expo rather than quad, quad rather than line
         width = max([len(trigger_name) for trigger_name in trig_list])
@@ -681,11 +691,16 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                 #print print_trigger, "No data for",PSColslist
                 continue
         
-            
             AllPlotArrays=DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger)
             [VX, VXE, x_label, VY, VYE, y_label, VF, VFE] = GetVXVY(plot_properties, fit_file, AllPlotArrays, L1SeedChangeFit)
-        
-        
+
+            if cosmic:
+                OutputFit[print_trigger] = ['line', meanrawrate, 0., 0., 0.0, 0., meanrawrate, 0., 0., 0., 0.0]
+                if do_fit:
+                    for PSI in PSColslist:
+                        if not OutputFitPS[PSI][print_trigger]:
+                            OutputFitPS[PSI][print_trigger]=OutputFit[print_trigger]
+                print OutputFit[print_trigger]
             ####defines gr1 and failure if no graph in OutputFit ####
             defgrapass = False
             if len(VX) > 0:
@@ -694,8 +709,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                 continue
             if do_fit:
                 [f1a,f1b,f1c,f1d,f1f,first_trigger]= Fitter(gr1,VX,VY,sloperate,nlow,Rates,print_trigger, first_trigger, varX, varY,lowrate)
-                        
-        
+
             if print_table or save_fits:
                 ###aditional info from f1 params
                 [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passmorefitinfo]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
@@ -703,7 +717,8 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                     OutputFit[print_trigger] = ["fit failed","Zero NDF"]
                 ###output fit params
                 else:    
-                    [OutputFit,first_trigger, failed_paths]=output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist)
+                    [OutputFit,first_trigger, failed_paths]=output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist)
+                    print "OutputFit == ",OutputFit
             if do_fit:        
                 for PSI in PSColslist:
                     if not OutputFitPS[PSI][print_trigger]:
@@ -736,13 +751,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
             if save_png:
                 c1.SaveAs(str(print_trigger)+"_"+str(varY)+"_vs_"+str(varX)+".png")
         
-
-                
     EndMkrootfile(failed_paths, save_fits, save_root, fit_file, RootFile, OutputFit, OutputFitPS, L1SeedChangeFit)
-    
-
-    
-    
 
   ############# SUPPORTING FUNCTIONS ################
 
@@ -843,6 +852,8 @@ def CheckTrigList(trig_list, print_trigger, all_triggers, masked_triggers, min_r
                 NewTrigger[key].append(Rates[print_trigger][key][iterator])
 
     Rates[print_trigger] = NewTrigger
+#     print "Raw Rates = ",Rates[print_trigger]["rawrate"]
+#     print "Rates ====== ",Rates
     mean_raw_rate = sum(Rates[print_trigger]["rawrate"])/len(Rates[print_trigger]["rawrate"])
     if mean_raw_rate < min_rate:
         failed_paths.append([print_trigger,"The rate of these paths did not exceed the minimum"])        
@@ -1469,6 +1480,7 @@ def checkL1seedChangeALLPScols(trig_list,HLTL1PS):
     HLTL1_seedchanges={}
     
     for HLTkey in trig_list:
+        print "HLTKEY ==== ", HLTkey
         if HLTkey=='HLT_Stream_A':
             continue
         #print HLTkey
@@ -1651,7 +1663,8 @@ def more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates):
 
     return [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]
     
-def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist):
+def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist):
+    print "calling out_fit_info"
     [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte,passed]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
     OutputFit[print_trigger] = {}
 
@@ -1666,6 +1679,7 @@ def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,pri
         failed_paths.append([print_trigger+str(PSColslist),failure_comment])
         OutputFit[print_trigger] = ["fit failed",failure_comment]
         return [OutputFit,first_trigger]
+
     if "rate" in varY and not linear and not cosmic:
         if first_trigger:
             print '\n%-*s | TYPE | %-8s | %-11s |  %-7s | %-10s |  %-7s | %-10s | %-8s | %-10s | %-6s | %-4s |%-7s| %-6s |' % (width,"TRIGGER", "X0","X0 ERROR","X1","X1 ERROR","X2","X2 ERROR","X3","X3 ERROR","CHI^2","DOF","CHI2/DOF","PScols")
@@ -1700,7 +1714,7 @@ def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,cosmic,pri
     elif "rate" in varY and cosmic:
         if first_trigger:
             print '\n%-*s | TYPE | %-8s | %-11s |  %-7s | %-10s |  %-7s | %-10s | %-8s | %-10s | %-6s | %-4s |%-7s| %-6s |' % (width,"TRIGGER", "X0","X0 ERROR","X1","X1 ERROR","X2","X2 ERROR","X3","X3 ERROR","CHI^2","DOF","CHI2/DOF","PScols")
-            first_trigger = False        
+            first_trigger = False
         graph_fit_type="const"
         [f1f,OutputFit]=graph_output_info(f1d,graph_fit_type,print_trigger,width,num_ls,VX,VY,meanrawrate,OutputFit,PSColslist,dummyPSColslist)
         priot(wp_bool,print_trigger,meanps,f1f,f1f,graph_fit_type,av_rte)
@@ -1725,7 +1739,7 @@ def graph_output_info(graph1,graph_fit_type,print_trigger,width,num_ls,VX, VY,me
     do_high_lumi = print_trigger.startswith('HLT_') and ((len(dummyPSColslist)==1 or ( max(PSColslist)>=5 and min(PSColslist)==3) ))
     sigma = CalcSigma(VX, VY, graph1, do_high_lumi)*math.sqrt(num_ls)
     OutputFit[print_trigger] = [graph_fit_type, graph1.GetParameter(0) , graph1.GetParameter(1) , graph1.GetParameter(2) ,graph1.GetParameter(3) , sigma , meanrawrate, graph1.GetParError(0) , graph1.GetParError(1) , graph1.GetParError(2) , graph1.GetParError(3)]
-        
+    print "OutputFit = ",OutputFit
     return [graph1,OutputFit]
 
 def DrawFittedCurve(f1a, f1b,f1c, f1d, f1f, chioffset,do_fit,c1,VX,VY,print_trigger,Rates):
@@ -1779,7 +1793,7 @@ def EndMkrootfile(failed_paths, save_fits, save_root, fit_file, RootFile, Output
         print "Output fit file is "+str(fit_file)
     if save_fits and L1SeedChangeFit:
         PSfitfile=fit_file.replace("HLT_NoV","HLT_NoV_ByPS")
-        print "A corresponding PS fit file has been saved."
+        print "A corresponding PS fit file has been saved. ",PSfitfile 
         if os.path.exists(PSfitfile):
             os.remove(PSfitfile)
         FitOutputFilePS= open(PSfitfile, 'wb')
