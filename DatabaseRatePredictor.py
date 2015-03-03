@@ -613,7 +613,8 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                             print name
                             print HLTL1_seedchanges[name]
                             Rates[name]["L1seedchange"].append(HLTL1_seedchanges[name])
-                        
+                        else:
+                            Rates[name]["L1seedchange"].append([])
                         if live == 0:
                             Rates[name]["rate"].append(0.0)
                             Rates[name]["rawxsec"].append(0.0)
