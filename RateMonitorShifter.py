@@ -322,8 +322,6 @@ def main():
 
                     if not (collisions and beams) and not cosmics:
                          print "COSMICS = ",cosmics
-                         print "COLLI = ",collisions
-                         if not (cosmics and collisions): print "TITS"
                          MoreTableInfo(HeadParser,HeadLumiRange,Config,False)
 
                          if (len(HeadLumiRange)>0):
