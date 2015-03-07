@@ -241,10 +241,8 @@ def main():
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
-    
-    
 #    HeadParser.RunNumber = 234419
-#    HeadParser.RunNumber = 234617#425
+#    HeadParser.RunNumber = 236905#425
 #    HeadParser.RunNumber = 234430 #use as a reference
         
     try:
@@ -533,10 +531,16 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 
         if RefParser.RunNumber == 0:  ## Use rate prediction functions
             PSCorrectedExpectedRate = Config.GetExpectedRate(HeadName,FitInput,FitInputPS,HeadAvLiveLumi,HeadAvDeliveredLumi,deadtimebeamactive,Config.L1SeedChangeFit,HeadLumiRange,PSColumnByLS)
+#             print "ExpectedRate = ",PSCorrectedExpectedRate
+#             print "trigger  = ",HeadName
             VC = PSCorrectedExpectedRate[2]
             try:
                 sigma = PSCorrectedExpectedRate[1]*sqrt(PSCorrectedExpectedRate[0])/(sqrt(len(HeadLumiRange))* HeadUnprescaledRates[HeadName][1])
-                ExpectedRate = round((PSCorrectedExpectedRate[0] / HeadUnprescaledRates[HeadName][1]),2)
+                if cosmics: ExpectedRate = round((PSCorrectedExpectedRate[0]),2)
+                else: ExpectedRate = round((PSCorrectedExpectedRate[0] / HeadUnprescaledRates[HeadName][1]),2)
+#                 print "JSS ",ExpectedRate, PSCorrectedExpectedRate[0],  HeadUnprescaledRates[HeadName][1] 
+#                 print "================================"
+            
             except:
                 sigma = 0.0
                 ExpectedRate = 0.0 ##This means we don't have a prediction for this trigger-- gets overwritten to "--" later

@@ -610,8 +610,6 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         Rates[name]["deadtime"].append(deadtimebeamactive)
                         Rates[name]["rawrate"].append(rate)
                         if name in HLTL1_seedchanges:
-                            print name
-                            print HLTL1_seedchanges[name]
                             Rates[name]["L1seedchange"].append(HLTL1_seedchanges[name])
                         else:
                             Rates[name]["L1seedchange"].append([])
@@ -646,11 +644,12 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
     trig_list=InitTrigList(trig_list, save_fits, NoVersion, InputFit)
     for print_trigger in sorted(Rates):
         [trig_list, passchecktriglist, meanrawrate] = CheckTrigList(trig_list, print_trigger, all_triggers, masked_triggers, min_rate, Rates, run_list, trig_name, failed_paths)
-        print "print_trigger ",print_trigger," mean raw rate = ",meanrawrate
+#         print "\n\n\n\n"
+#         print "print_trigger ",print_trigger," mean raw rate = ",meanrawrate
         
         if not passchecktriglist: #failed_paths is modified by CheckTrigList to include output messages explaining why a trigger failed
             print print_trigger," Failed passcheckTrigList"
-            continue
+#            continue
 
         [meanrate, meanxsec, meanlumi, sloperate, slopexsec, nlow, nhigh, lowrate, lowxsec, lowlumi, highrate, highxsec, highlumi]=GetMeanRates(Rates, print_trigger, max_dt)
         chioffset=1.0 ##chioffset now a fraction; must be 10% better to use expo rather than quad, quad rather than line
@@ -663,7 +662,6 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
         
         if L1SeedChangeFit and do_fit:
             dummyPSColslist=Rates[print_trigger]["L1seedchange"][0]
-            #print print_trigger, dummyPSColslist
             if len(dummyPSColslist)!=1: 
                 dummyPSColslist.append(range(0,nps))
         else:
@@ -695,13 +693,14 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
             AllPlotArrays=DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger)
             [VX, VXE, x_label, VY, VYE, y_label, VF, VFE] = GetVXVY(plot_properties, fit_file, AllPlotArrays, L1SeedChangeFit)
 
+            print "PSColslist = ",PSColslist
             if cosmic:
                 OutputFit[print_trigger] = ['line', meanrawrate, 0., 0., 0.0, 0., meanrawrate, 0., 0., 0., 0.0]
                 if do_fit:
                     for PSI in PSColslist:
                         if not OutputFitPS[PSI][print_trigger]:
                             OutputFitPS[PSI][print_trigger]=OutputFit[print_trigger]
-                print OutputFit[print_trigger]
+                print meanrawrate,OutputFit[print_trigger]
             ####defines gr1 and failure if no graph in OutputFit ####
             defgrapass = False
             if len(VX) > 0:
@@ -1789,6 +1788,7 @@ def EndMkrootfile(failed_paths, save_fits, save_root, fit_file, RootFile, Output
         if os.path.exists(fit_file):
             os.remove(fit_file)
         FitOutputFile = open(fit_file, 'wb')
+        print fit_file," = ",OutputFit
         pickle.dump(OutputFit, FitOutputFile, 2)
         FitOutputFile.close()
         print "Output fit file is "+str(fit_file)
@@ -1798,6 +1798,7 @@ def EndMkrootfile(failed_paths, save_fits, save_root, fit_file, RootFile, Output
         if os.path.exists(PSfitfile):
             os.remove(PSfitfile)
         FitOutputFilePS= open(PSfitfile, 'wb')
+        print PSfitfile," = ",OutputFitPS
         pickle.dump(OutputFitPS,FitOutputFilePS,2)
         FitOutputFilePS.close()
 
