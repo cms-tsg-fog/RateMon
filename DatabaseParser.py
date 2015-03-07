@@ -160,10 +160,8 @@ class DatabaseParser:
         print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
         try:
             self.curs.execute(query)
-            print 'executed db query successfully'
         except:
-            print 'failed to execute db query'
-            
+            print "Unsuccessful db query." 
         TriggerRates = {}
         for L1Pass,PSPass,HLTPass,HLTExcept,LS ,name in self.curs.fetchall():
 
