@@ -157,7 +157,7 @@ class DatabaseParser:
         #print "Getting HLT Rates for LS from %d to %d" % (LSRange[0],LSRange[-1],)
 
         query = sqlquery % (self.RunNumber,LSRangeSTR)
-        print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
+#        print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
         try:
             self.curs.execute(query)
         except:

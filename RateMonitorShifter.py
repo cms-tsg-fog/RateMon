@@ -331,7 +331,6 @@ def main():
                     else:
 #                         if (len(HeadLumiRange)>0):
                          if (len(HeadLumiRange)==10 and HeadLumiRange[0]>1):
-                             print "LAST LUMI IN RANGE IS.... ",HeadLumiRange[-1]
                              if not isSequential(HeadLumiRange):
                                  print "Some lumisections have been skipped. Averaging over most recent sequential lumisections..."
                                  sequential_chunk = getSequential(HeadLumiRange)
@@ -476,8 +475,6 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
         pkl_file.close()
     except:
         RefRatesInput={}
-        print "Didn't open ref file"
-
 
     trig_list=Config.MonitorList
 
