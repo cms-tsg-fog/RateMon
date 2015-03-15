@@ -336,9 +336,9 @@ def main():
                                  print "Some lumisections have been skipped. Averaging over most recent sequential lumisections..."
                                  sequential_chunk = getSequential(HeadLumiRange)
                                  HeadLumiRange = sequential_chunk
-                             print "====Calling RunComaprison function"    
+                             #print "====Calling RunComaprison function"    
                              RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,ShowAllBadRates,MaxBadRates)
-                             print "====DONE Calling RunComaprison function"    
+                             #print "====DONE Calling RunComaprison function"    
                              if FindL1Zeros:
                                  CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
                          else:
@@ -609,7 +609,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             VC = ""
             Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
 
-    print "path = ", [col[0] for col in Data] 
+#    print "path = ", [col[0] for col in Data] 
       
     if not found_ref_rates:
         print '\n*****************************************************************************************************************************************************'
