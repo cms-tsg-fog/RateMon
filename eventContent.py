@@ -28,7 +28,6 @@ requiredEventContent={
       'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'Calibration': [#'drop *_hlt*_*_*',
-      'keep *_hltDTCalibrationRaw_*_*',
       'keep *_hltEcalCalibrationRaw_*_*',
       'keep *_hltHcalCalibrationRaw_*_*',
       'keep edmTriggerResults_*_*_*',
