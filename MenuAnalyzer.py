@@ -51,11 +51,11 @@ class MenuAnalyzer:
             'numberOfPaths' : self.checkNumPaths,
             'numberOfEndPaths' : self.checkNumEndPaths,
             'reqStreamsAndPDs' : self.reqStreamsAndPDs,
-            'checkExpress' : self.checkExpress,
+#            'checkExpress' : self.checkExpress,
             'checkNameFormats' :self.checkNameFormats,
             'checkEventContent':self.checkEventContent,
             'checkL1Unmask':self.checkL1Unmask,
-            'checkDQMStream':self.checkDQMStream,
+#            'checkDQMStream':self.checkDQMStream,
             'checkStreamB':self.checkStreamB
             }
         self.ProblemDescriptions = {
@@ -63,11 +63,11 @@ class MenuAnalyzer:
             'numberOfPaths':'Too many paths',
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
-            'checkExpress' : 'Invalid or missing express stream/PD',
+#            'checkExpress' : 'Invalid or missing express stream/PD',
             'checkNameFormats' : 'Invalid PD or path name format',
             'checkEventContent' : 'Invalid Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
-            'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
+#            'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
             'checkStreamB' : 'Check all parking triggers in stream B'
             }
 
