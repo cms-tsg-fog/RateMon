@@ -42,8 +42,9 @@ def digest(hours,maxRate=35,printAll=False):
         if isCol:
             expressRates = runParser.GetTriggerRatesByLS("ExpressOutput")
         else:
-            expressRates = runParser.GetTriggerRatesByLS("ExpressCosmicsOutput")
-        ExpRate = sum(expressRates.values())/len(expressRates.values())
+            expressRates = runParser.GetTriggerRatesByLS("HLTriggerFinalPath") #ExpressCosmicsOutput
+        print expressRates
+        ExpRate = sum(expressRates.values())/len(expressRates.values()) if len(expressRates.values())>0 else 0
         #for ls in lumiRange:
         #    ExpRate+=expressRates.get(ls,0)
         #ExpRate/=len(lumiRange)
@@ -63,12 +64,20 @@ def sendMail(email,subject,to,fro,msgtxt):
     msg['From'] = fro
     msg['To'] = to
     s = smtplib.SMTP('localhost')
-    s.sendmail("hlt@cern.ch", email, msg.as_string())
+    #s.sendmail("hlt@cern.ch", email, msg.as_string())
+    s.sendmail("a.zucchetta@cern.ch", email, msg.as_string())
     s.quit()
+
+def mailAlert(text):
+    if eList:
+        for email in emailList.emailList:
+            sendMail(email,"[HLTRateMon] Trigger Rate Warning", "HLT", "HLT", text)
+    else:
+        print text
 
 if __name__=='__main__':
     isBad,text = digest(1)
-    sendMail("alex.mott@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
+    sendMail("a.zucchetta@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
     if eList:
         if isBad:
             for email in emailList.emailList:
