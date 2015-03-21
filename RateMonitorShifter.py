@@ -14,6 +14,7 @@ except ImportError:
     sys.stderr.write("Exception of environment variables. try:\nsource set.sh\n")
     sys.exit(2)
     
+from mailAlert import *
 from AddTableInfo_db import MoreTableInfo
 from math import *
 from DatabaseParser import *
@@ -48,6 +49,7 @@ def usage():
     print "--sortBy=<field>                     Sort the triggers by field.  Valid fields are: name, rate, rateDiff"
     print "--force                              Override the check for collisions run"
     print "--write                              Writes rates to .csv file"
+    print "--sendMail                           Send warning email"
     print "--ShowAllBadRates                    Show a list of all triggers (not just those in the monitor list) with bad rates"
     print "--help                               Print this help"
 
@@ -61,7 +63,7 @@ def main():
     try:
         opt, args = getopt.getopt(sys.argv[1:],"",["AllowedPercDiff=","AllowedSigmaDiff=","CompareRun=","FindL1Zeros",\
                                                    "FirstLS=","NumberLS=","IgnoreLowRate=","AllTriggers",\
-                                                   "PrintLumi","RefRun=","ShowPSTriggers","force","sortBy=","write","ShowAllBadRates","help"])
+                                                   "PrintLumi","RefRun=","ShowPSTriggers","force","sortBy=","write","sendMail","ShowAllBadRates","help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -93,6 +95,7 @@ def main():
     ShowPSTriggers    = True
     Force             = False
     writeb            = False
+    sendMail          = False
     SortBy            = "rate"
     ShifterMode       = int(Config.ShifterMode) # get this from the config, but can be overridden by other options
     ShowAllBadRates   = Config.ShowAllBadRates
@@ -133,6 +136,8 @@ def main():
             Force = True
         elif o=="--write":
             writeb = True
+        elif o=="--sendMail":
+            sendMail = True
         elif o=="--ShowAllBadRates":
             ShowAllBadRates=True
         elif o=="--help":
@@ -241,7 +246,7 @@ def main():
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
-#    HeadParser.RunNumber = 234419
+#    HeadParser.RunNumber = 238522
 #    HeadParser.RunNumber = 236905#425
 #    HeadParser.RunNumber = 234430 #use as a reference
         
@@ -336,7 +341,7 @@ def main():
                                  sequential_chunk = getSequential(HeadLumiRange)
                                  HeadLumiRange = sequential_chunk
                              #print "====Calling RunComaprison function"    
-                             RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,ShowAllBadRates,MaxBadRates)
+                             RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,sendMail,ShowAllBadRates,MaxBadRates)
                              #print "====DONE Calling RunComaprison function"    
                              if FindL1Zeros:
                                  CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
@@ -423,7 +428,7 @@ def main():
         print "Quitting. Peace Out."
 
             
-def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,ShowAllBadRates,MaxBadRates):
+def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,sendMail,ShowAllBadRates,MaxBadRates):
     Data   = []
     Warn   = []
     IgnoredRates=[]
@@ -726,7 +731,14 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             print "More instructions at https://twiki.cern.ch/twiki/bin/view/CMS/TriggerShiftHLTGuide"
             write(bcolors.ENDC+"\n")
             break
-        
+    
+    # email notification
+    if sendMail:
+        mail = "Warning: the following trigger paths rates deviate more than %.0f%% from expected:\n" % AllowedRatePercDiff
+        for index,entry in enumerate(core_data):
+            if Warn[index]:
+              mail += " - %s \tmeasured rate: %.2f Hz\texpected rate: %.2f Hz\tdifference: %.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
+        mailAlert(mail)
  
 def CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedPercRateDiff,IgnoreThreshold,Config):
     L1Zeros=[]
