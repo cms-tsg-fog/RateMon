@@ -246,7 +246,7 @@ def main():
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
-#    HeadParser.RunNumber = 238522
+#    HeadParser.RunNumber = 239517
 #    HeadParser.RunNumber = 236905#425
 #    HeadParser.RunNumber = 234430 #use as a reference
         
@@ -264,12 +264,12 @@ def main():
         CurrRun=CompareRunNum
         isGood=0
 
-
-
     if 'cosmics' in HeadParser.L1_HLT_Key:
         cosmics = True
         #print "L1  - HLT - KEY  ===== ", HeadParser.L1_HLT_Key
-        
+    else:
+        cosmics = False
+    
     if len(HeadLumiRange) is 0:
         print "No lumisections that are taking physics data 0"
         HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,False)
@@ -675,7 +675,8 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
                 continue
 
             core_data.append(entry)
-            bad_seed_rate = (abs(entry[3]) > AllowedRatePercDiff)
+            #bad_seed_rate = (abs(entry[3]) > AllowedRatePercDiff)#FIXME
+            bad_seed_rate = entry[1] > 5000
             if bad_seed_rate:
                 Warn.append(True) #Currently, number of bad rates to show refers to bad HLT triggers (no limit on the number of bad L1 seeds to show)
             else:

@@ -182,9 +182,10 @@ class DatabaseParser:
                     psi = 0
                 if psi is None:
                     psi=0
-                if self.HLTPrescaleTable.has_key(name):
+                #if self.HLTPrescaleTable.has_key(name):
+                try:
                     hltps = self.HLTPrescaleTable[name][psi]
-                else:
+                except:#else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
                 try:
