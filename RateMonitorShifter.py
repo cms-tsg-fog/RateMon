@@ -49,7 +49,7 @@ def usage():
     print "--sortBy=<field>                     Sort the triggers by field.  Valid fields are: name, rate, rateDiff"
     print "--force                              Override the check for collisions run"
     print "--write                              Writes rates to .csv file"
-    print "--sendMail                           Send warning email"
+    print "--noMail                             Do not send warning emails"
     print "--ShowAllBadRates                    Show a list of all triggers (not just those in the monitor list) with bad rates"
     print "--help                               Print this help"
 
@@ -63,7 +63,7 @@ def main():
     try:
         opt, args = getopt.getopt(sys.argv[1:],"",["AllowedPercDiff=","AllowedSigmaDiff=","CompareRun=","FindL1Zeros",\
                                                    "FirstLS=","NumberLS=","IgnoreLowRate=","AllTriggers",\
-                                                   "PrintLumi","RefRun=","ShowPSTriggers","force","sortBy=","write","sendMail","ShowAllBadRates","help"])
+                                                   "PrintLumi","RefRun=","ShowPSTriggers","force","sortBy=","write","noMail","ShowAllBadRates","help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -95,7 +95,7 @@ def main():
     ShowPSTriggers    = True
     Force             = False
     writeb            = False
-    sendMail          = False
+    sendMail          = True
     SortBy            = "rate"
     ShifterMode       = int(Config.ShifterMode) # get this from the config, but can be overridden by other options
     ShowAllBadRates   = Config.ShowAllBadRates
@@ -136,8 +136,8 @@ def main():
             Force = True
         elif o=="--write":
             writeb = True
-        elif o=="--sendMail":
-            sendMail = True
+        elif o=="--noMail":
+            sendMail = False
         elif o=="--ShowAllBadRates":
             ShowAllBadRates=True
         elif o=="--help":
@@ -213,7 +213,7 @@ def main():
                 #RefParser.GetAllTriggerRatesByLS()
                 #RefParser.Save( RefRunFile )
             except e:
-                print "PROBLEM GETTING REFERNCE RUN"
+                print "PROBLEM GETTING REFERENCE RUN"
                 raise  
         else:
             RefParser = pickle.load(open(RefRunFile))
@@ -300,7 +300,8 @@ def main():
 
 ### Now actually compare the rates, make tables and look at L1. Loops for ShifterMode
     ###isGood=1##if there is a trigger key
-
+    
+    previousWarning = False
         
     try:
         while True:
@@ -341,7 +342,7 @@ def main():
                                  sequential_chunk = getSequential(HeadLumiRange)
                                  HeadLumiRange = sequential_chunk
                              #print "====Calling RunComaprison function"    
-                             RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,sendMail,ShowAllBadRates,MaxBadRates)
+                             previousWarning = RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,previousWarning,sendMail,ShowAllBadRates,MaxBadRates)
                              #print "====DONE Calling RunComaprison function"    
                              if FindL1Zeros:
                                  CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
@@ -428,7 +429,7 @@ def main():
         print "Quitting. Peace Out."
 
             
-def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,sendMail,ShowAllBadRates,MaxBadRates):
+def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,previousWarning,sendMail,ShowAllBadRates,MaxBadRates):
     Data   = []
     Warn   = []
     IgnoredRates=[]
@@ -734,13 +735,20 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             break
     
     # email notification
-    if sendMail:
-        mail = "Warning: the following trigger paths rates deviate more than %.0f%% from expected:\n" % AllowedRatePercDiff
-        for index,entry in enumerate(core_data):
-            if Warn[index]:
-              mail += " - %s \tmeasured rate: %.2f Hz\texpected rate: %.2f Hz\tdifference: %.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
-        mailAlert(mail)
- 
+    if True in Warn:
+        if not previousWarning and sendMail:
+            mail = "Warning: the following trigger paths rates are deviating from expected:\n" % AllowedRatePercDiff
+            for index,entry in enumerate(core_data):
+                if Warn[index]:
+                  mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
+            mailAlert(mail)
+        
+        return True
+        
+    return False
+
+
+
 def CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedPercRateDiff,IgnoreThreshold,Config):
     L1Zeros=[]
     IgnoreBits = ["L1_PreCollisions","L1_InterBunch_Bsc","L1_BeamHalo","L1_BeamGas_Hf"]
