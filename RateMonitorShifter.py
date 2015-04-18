@@ -264,12 +264,12 @@ def main():
         CurrRun=CompareRunNum
         isGood=0
 
-    if 'cosmics' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
         cosmics = True
         #print "L1  - HLT - KEY  ===== ", HeadParser.L1_HLT_Key
     else:
         cosmics = False
-    
+
     if len(HeadLumiRange) is 0:
         print "No lumisections that are taking physics data 0"
         HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,False)
@@ -382,10 +382,12 @@ def main():
                     HeadParser.RunNumber = NewRun
                     HeadParser.ParseRunSetup()
                     CurrRun,collisions,isGood=GetLatestRunNumber(9999999)
-                    if 'cosmics' in HeadParser.L1_HLT_Key:
+
+                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
+
                     FirstLS=9999
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)    
                     if len(HeadLumiRange) is 0:
@@ -407,7 +409,7 @@ def main():
                 try:
                     HeadParser.ParseRunSetup()
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)
-                    if 'cosmics' in HeadParser.L1_HLT_Key:
+                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
@@ -433,12 +435,11 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     Data   = []
     Warn   = []
     IgnoredRates=[]
-
-    if 'cosmics' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
         cosmics = True
     else:
         cosmics = False
-        
+
     [HeadAvInstLumi,HeadAvLiveLumi,HeadAvDeliveredLumi,HeadAvDeadTime,HeadPSCols] = HeadParser.GetAvLumiInfo(HeadLumiRange)
     ##[HeadUnprescaledRates, HeadTotalPrescales, HeadL1Prescales, HeadTriggerRates] = HeadParser.UpdateRun(HeadLumiRange)
     HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)

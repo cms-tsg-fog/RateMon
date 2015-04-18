@@ -16,6 +16,8 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
     global NHighExpress
     if 'cosmics' in parser.L1_HLT_Key:
         cosmics = True
+    elif 'circulate' in parser.L1_HLT_Key:
+        cosmics = True
     else:
         cosmics = False
     print "Monitoring Run %d" % (parser.RunNumber,)
