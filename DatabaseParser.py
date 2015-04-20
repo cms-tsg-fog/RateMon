@@ -295,7 +295,6 @@ class DatabaseParser:
         WHERE RUNNUMBER=%s AND B.NAME = \'%s\' AND A.PATHID = B.PATHID AND A.LSNUMBER IN %s
         ORDER BY A.LSNUMBER
         """
-
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
         LSRangeSTR = LSRangeSTR.replace("]",")")
@@ -306,6 +305,17 @@ class DatabaseParser:
         for ls,accept in  self.curs.fetchall():
             r[ls] = accept/23.3
         return r
+
+    def GetStreamRate(self,streamName):
+        sqlquery="""SELECT EVT_RATE,UPDATE_TIME FROM CMS_STOMGR.VIEW_SM_STREAMS WHERE RUN_NUMBER = \'%s\' AND
+        STREAM = \'%s\'"""
+
+        query = sqlquery % (self.RunNumber,streamName)
+        self.curs.execute(query)
+        r,t = self.curs.fetchone()
+        r = float(r)
+        return [r,t]
+        
     
     def GetTriggerRatesByLS(self,triggerName):
         sqlquery = """SELECT A.LSNUMBER, A.PACCEPT
@@ -470,7 +480,6 @@ class DatabaseParser:
         RUN_NUMBER=%s and
         LUMI_SECTION in %s and
         SCALER_NAME='DeadtimeBeamActive'"""
-
         
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")

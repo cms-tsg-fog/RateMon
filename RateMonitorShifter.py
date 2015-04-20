@@ -188,7 +188,8 @@ def main():
 #             except:
 #                 print "Failed to get rates from LS "+str(Iterator*10)+" to "+str((Iterator+1)*10)
     
-#     RefRunNum = 234430
+#    RefRunNum = 234430
+#    RefRunNum = 240848
 #     RefRunFile = RefRunNameTemplate % (thisyear,RefRunNum)
 #     RefParser = GetRun(RefRunNum, RefRunFile, True, 10, 175)
 #     print "done parsing"
@@ -249,6 +250,7 @@ def main():
 #    HeadParser.RunNumber = 239517
 #    HeadParser.RunNumber = 236905#425
 #    HeadParser.RunNumber = 234430 #use as a reference
+#    HeadParser.RunNumber = 240848 #use as a reference
         
     try:
         HeadParser.ParseRunSetup()
