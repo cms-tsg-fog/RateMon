@@ -312,9 +312,14 @@ class DatabaseParser:
 
         query = sqlquery % (self.RunNumber,streamName)
         self.curs.execute(query)
-        r,t = self.curs.fetchone()
-        r = float(r)
-        return [r,t]
+        try:
+            r,t = self.curs.fetchone()
+            r = float(r)
+            return [r,t]            
+        except:
+            print "Failed to fetch stream rate from db. "
+            return [0,'UNABLE TO FETCH STREAM RATE FROM DB']
+
         
     
     def GetTriggerRatesByLS(self,triggerName):
@@ -931,12 +936,11 @@ class DatabaseParser:
 
     def GetL1RatesALL(self,LSRange):
 
-
         ##ANCIENT COMMANDS THAT DO WHO KNOWS WHAT
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_TCS_TRIGGER WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX=9"
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX IN (9,13, 71)"
         ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
-        ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
+##        sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
 
         ##NEW VERSION THAT GETS POST-DT RATE (implemented 16/11/2012)
         sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT , TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER, A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C WHERE A.RUNNUMBER = %s AND A.LSNUMBER IN %s )"

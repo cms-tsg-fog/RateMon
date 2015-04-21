@@ -223,10 +223,9 @@ def main():
     # Now get the most recent run
 
     SaveRun = False
-
     if CompareRunNum=="":  # if no run # specified on the CL, get the most recent run
         CompareRunNum,collisions,isGood = GetLatestRunNumber()
-            
+        print CompareRunNum
         if not isGood:
             print "NO TRIGGER KEY FOUND for run ",CompareRunNum
             ##sys.exit(0)
@@ -247,10 +246,7 @@ def main():
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
-#    HeadParser.RunNumber = 239517
-#    HeadParser.RunNumber = 236905#425
-#    HeadParser.RunNumber = 234430 #use as a reference
-#    HeadParser.RunNumber = 240848 #use as a reference
+#    HeadParser.RunNumber = 240937 #use as a reference
         
     try:
         HeadParser.ParseRunSetup()
@@ -349,7 +345,7 @@ def main():
                              if FindL1Zeros:
                                  CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
                          else:
-                             print "No lumisections that are taking physics data 1"
+                             print "Only ",len(HeadLumiRange)," lumisections that are taking physics data so far, need >10"
 
             if not ShifterMode:
                 print "Expert Mode. Quitting."
@@ -389,7 +385,7 @@ def main():
                         cosmics=True
                     else:
                         cosmics=False
-
+                    print "cosmics = ", cosmics
                     FirstLS=9999
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)    
                     if len(HeadLumiRange) is 0:
