@@ -309,10 +309,14 @@ class DatabaseParser:
     def GetStreamRate(self,streamName):
         sqlquery="""SELECT EVT_RATE,UPDATE_TIME FROM CMS_STOMGR.VIEW_SM_STREAMS WHERE RUN_NUMBER = \'%s\' AND
         STREAM = \'%s\'"""
-
+        
         query = sqlquery % (self.RunNumber,streamName)
         self.curs.execute(query)
-        r,t = self.curs.fetchone()
+        r, t = [0, 0]
+        try:
+            r,t = self.curs.fetchone()
+        except:
+            print "Stream", streamName, "rate connot be retrieved"
         r = float(r)
         return [r,t]
         
@@ -929,17 +933,19 @@ class DatabaseParser:
             L1Rate[LS] = [rate,psi,lumi]
         return L1Rate
 
-    def GetL1RatesALL(self,LSRange):
+    def GetL1RatesALL(self,LSRange,isPreDT=False):
 
 
         ##ANCIENT COMMANDS THAT DO WHO KNOWS WHAT
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_TCS_TRIGGER WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX=9"
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX IN (9,13, 71)"
-        ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
-        ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
-
-        ##NEW VERSION THAT GETS POST-DT RATE (implemented 16/11/2012)
-        sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT , TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER, A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C WHERE A.RUNNUMBER = %s AND A.LSNUMBER IN %s )"
+        
+        if isPreDT:
+            ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
+            sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
+        else:
+            ##NEW VERSION THAT GETS POST-DT RATE (implemented 16/11/2012)
+            sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT , TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER, A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C WHERE A.RUNNUMBER = %s AND A.LSNUMBER IN %s )"
         
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
@@ -993,7 +999,7 @@ class DatabaseParser:
             dummy.append(L1RatesBits[self.L1IndexNameMap[name]])
             dummy.append(L1RatesBits[self.L1IndexNameMap[name]]*L1PSbits[self.L1IndexNameMap[name]])
             L1RatesNames[name+'_v1']=dummy
-           
+        
         return L1RatesNames
 
 
