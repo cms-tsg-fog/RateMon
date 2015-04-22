@@ -3,6 +3,7 @@
 from ReadConfig import RateMonConfig
 import sys
 import os
+import copy
 import cPickle as pickle
 import getopt
 import time
@@ -441,10 +442,13 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     [HeadAvInstLumi,HeadAvLiveLumi,HeadAvDeliveredLumi,HeadAvDeadTime,HeadPSCols] = HeadParser.GetAvLumiInfo(HeadLumiRange)
     ##[HeadUnprescaledRates, HeadTotalPrescales, HeadL1Prescales, HeadTriggerRates] = HeadParser.UpdateRun(HeadLumiRange)
     HeadUnprescaledRates = HeadParser.UpdateRun(HeadLumiRange)
+    HeadUnprescaledRates_PreDT = copy.deepcopy( HeadUnprescaledRates )
     if Config.DoL1:
         L1RatesALL=HeadParser.GetL1RatesALL(HeadLumiRange)
+        L1RatesALL_PreDT=HeadParser.GetL1RatesALL(HeadLumiRange, True)
         for L1seed in L1RatesALL.iterkeys():
             HeadUnprescaledRates[L1seed]=L1RatesALL[L1seed]
+            HeadUnprescaledRates_PreDT[L1seed]=L1RatesALL_PreDT[L1seed]
         
     [PSColumnByLS,InstLumiByLS,DeliveredLumiByLS,LiveLumiByLS,DeadTimeByLS,PhysicsByLS,ActiveByLS] = HeadParser.LumiInfo
     deadtimebeamactive=HeadParser.GetDeadTimeBeamActive(HeadLumiRange)
@@ -507,10 +511,11 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             FitInput[StripVersion(trigger)] = FitInput.pop(trigger)
         for trigger in HeadUnprescaledRates:
             HeadUnprescaledRates[StripVersion(trigger)] = HeadUnprescaledRates.pop(trigger)
+            HeadUnprescaledRates_PreDT[StripVersion(trigger)] = HeadUnprescaledRates_PreDT.pop(trigger)
 
     RefAvInstLumi = 0
     found_ref_rates = True
-
+    
     for HeadName in HeadUnprescaledRates:
         if HeadName not in trig_list: continue
 #         if HeadName not in trig_list and not AllTriggers and not ShowAllBadRates:
@@ -528,6 +533,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 
         skipTrig=False
         TriggerRate = round(HeadUnprescaledRates[HeadName][2],2)
+        TriggerRate_PreDT = round(HeadUnprescaledRates_PreDT[HeadName][2],2)
 
         if RefParser.RunNumber == 0:  ## Use rate prediction functions
             PSCorrectedExpectedRate = Config.GetExpectedRate(HeadName,FitInput,FitInputPS,HeadAvLiveLumi,HeadAvDeliveredLumi,deadtimebeamactive,Config.L1SeedChangeFit,HeadLumiRange,PSColumnByLS)
@@ -564,7 +570,8 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             if TriggerRate < IgnoreThreshold and (ExpectedRate < IgnoreThreshold and ExpectedRate!=0):
                 continue
 
-
+            if len(VC)==0:
+                VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
             Data.append([HeadName, TriggerRate, ExpectedRate, PerDiff, SigmaDiff, round(HeadUnprescaledRates[HeadName][1],0),VC])
             #print "length  == ", len(Data)            
             
@@ -608,11 +615,12 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             if TriggerRate < IgnoreThreshold and ScaledRefRate < IgnoreThreshold:
                 continue
 
-            VC = ""
-            Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
+            VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
 
+            Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
+    
 #    print "path = ", [col[0] for col in Data] 
-      
+    
     if not found_ref_rates:
         print '\n*****************************************************************************************************************************************************'
         print 'COULD NOT PARSE REFERENCE RUN! MOST LIKELY THIS IS BECAUSE THE REFERENCE RUN DOES NOT PASS THE QUALITY CUTS (DEADTIME < 100%, PHYSICS DECALRED, ETC.)'
