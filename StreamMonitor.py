@@ -6,7 +6,6 @@ class StreamMonitor:
         prompt_a_rates = parser.GetTrigRatesInLSRange('DQMOutput',ls_list)
         b_rates = parser.GetTrigRatesInLSRange('BOutput',ls_list) # BOutput = Parking trigs ps'd by 20
         ps_columns = parser.GetPSColumnsInLSRange(ls_list)
-
         HLT_Stream_A = {}
         for ls in ls_list:
             a_rate = a_rates.get(ls,0)
