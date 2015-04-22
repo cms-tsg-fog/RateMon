@@ -16,6 +16,8 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
     global NHighExpress
     if 'cosmics' in parser.L1_HLT_Key:
         cosmics = True
+    elif 'circulate' in parser.L1_HLT_Key:
+        cosmics = True
     else:
         cosmics = False
     print "Monitoring Run %d" % (parser.RunNumber,)
@@ -97,30 +99,25 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
     ##########################################
     ## Check if the express stream is too high or low
     ##########################################
-    badExpress = ((ExpRate/len(LumiRange) > config.MaxExpressRate) or (ExpRate/len(LumiRange)<0.1 and isCol)) ## avg express stream rate too high?
-    baseText = "\nCurrent Express Stream rate is: %0.1f Hz" % (ExpRate/len(LumiRange),) ## text to display
-    if badExpress:
-        text = colored(baseText,'red',attrs=['reverse'])  ## bad, make the text white on red
-        NHighExpress+=1  ## increment the bad express counter
-    else:
-        text = baseText 
-        NHighExpress=0
+#     badExpress = ((ExpRate/len(LumiRange) > config.MaxExpressRate) or (ExpRate/len(LumiRange)<0.1 and isCol)) ## avg express stream rate too high?
+#     baseText = "\nCurrent Express Stream rate is: %0.1f Hz" % (ExpRate/len(LumiRange),) ## text to display
+#     if badExpress:
+#         text = colored(baseText,'red',attrs=['reverse'])  ## bad, make the text white on red
+#         NHighExpress+=1  ## increment the bad express counter
+#     else:
+#         text = baseText 
+#         NHighExpress=0
         
-    write(text)
-    if badExpress:
-        if len(LumiRange)>1:
-            if (ExpRate-PeakRate)/(len(LumiRange)-1) <=config.MaxExpressRate: ## one lumisection causes this
-                write("  <<  This appears to be due to a 1 lumisection spike, please monitor\n")
-            else:
-                if NHighExpress > 1:  # big problem, call HLT DOC
-                    write(colored("  <<  WARNING: Current Express rate is too high!",'red',attrs=['reverse']) )
-                    Warn = True
+#     write(text)
+#     if badExpress:
+#         if len(LumiRange)>1:
+#             if (ExpRate-PeakRate)/(len(LumiRange)-1) <=config.MaxExpressRate: ## one lumisection causes this
+#                 write("  <<  This appears to be due to a 1 lumisection spike, please monitor\n")
+#             else:
+#                 if NHighExpress > 1:  # big problem, call HLT DOC
+#                     write(colored("  <<  WARNING: Current Express rate is too high!",'red',attrs=['reverse']) )
+#                     Warn = True
 
-                #    if AvgExpRate > config.MaxExpressRate:
-                #        write( colored("\n\nWARNING: Average Express Stream Rate is too high (%0.1f Hz)  << CALL HLT DOC" % AvgExpRate,'red',attrs=['reverse']) )
-                #        Warn = True
-        
-            
 
 
     #########################################
@@ -129,27 +126,31 @@ def MoreTableInfo(parser,LumiRange,config,isCol=True):
     global NHighStreamA
     stream_mon = StreamMonitor()
     core_a_rates = stream_mon.getStreamACoreRatesByLS(parser,LumiRange,config,isCol).values()
-    a_rates = stream_mon.getStreamARatesByLS(parser,LumiRange).values()
+    #a_rates = stream_mon.getStreamARatesByLS(parser,LumiRange).values()
     peak_core_a_rate = max(core_a_rates)
 
     if len(LumiRange) > 0:
         avg_core_a_rate = sum(core_a_rates)/len(LumiRange)
-        avg_a_rate = sum(a_rates)/len(LumiRange)
+        #avg_a_rate = sum(a_rates)/len(LumiRange)
+        streamArr = parser.GetStreamRate('A')
+        avg_a_rate = streamArr[0]
+        updateTime = streamArr[1]
+        
         badStreamA = stream_mon.compareStreamARate(config, avg_core_a_rate, LumiRange,AvInstLumi,isCol)
 
-        baseTextA= "\nCurrent Stream A Rate is: %0.1f Hz" % (avg_a_rate)
-        baseTextRealA= "\nCurrent PROMPT Stream A Rate is: %0.1f Hz" % (avg_core_a_rate)
+        baseTextA= "\nCurrent Stream A Rate is: %0.1f Hz. Last update @ %s" % (avg_a_rate,updateTime)
+        #baseTextRealA= "\nCurrent PROMPT Stream A Rate is: %0.1f Hz" % (avg_core_a_rate)
 
         if badStreamA:
             textA=colored(baseTextA,'red',attrs=['reverse'])  ## bad, make the text white on red
-            textRealA=colored(baseTextRealA,'red',attrs=['reverse'])  ## bad, make the text white on red
+            #textRealA=colored(baseTextRealA,'red',attrs=['reverse'])  ## bad, make the text white on red
             NHighStreamA+=1
         else:
             textA=baseTextA
-            textRealA=baseTextRealA
+            #textRealA=baseTextRealA
 
         write(textA)
-        write(textRealA)
+        #write(textRealA)
     
         if badStreamA and len(LumiRange) > 1:
             trimmed_core_a_rates = core_a_rates

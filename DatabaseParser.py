@@ -157,7 +157,7 @@ class DatabaseParser:
         #print "Getting HLT Rates for LS from %d to %d" % (LSRange[0],LSRange[-1],)
 
         query = sqlquery % (self.RunNumber,LSRangeSTR)
-        print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
+#        print "RUN NUMBER AND LS RANGE ==",self.RunNumber," ",LSRangeSTR
         try:
             self.curs.execute(query)
         except:
@@ -182,9 +182,10 @@ class DatabaseParser:
                     psi = 0
                 if psi is None:
                     psi=0
-                if self.HLTPrescaleTable.has_key(name):
+                #if self.HLTPrescaleTable.has_key(name):
+                try:
                     hltps = self.HLTPrescaleTable[name][psi]
-                else:
+                except:#else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
                 try:
@@ -294,7 +295,6 @@ class DatabaseParser:
         WHERE RUNNUMBER=%s AND B.NAME = \'%s\' AND A.PATHID = B.PATHID AND A.LSNUMBER IN %s
         ORDER BY A.LSNUMBER
         """
-
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
         LSRangeSTR = LSRangeSTR.replace("]",")")
@@ -305,6 +305,21 @@ class DatabaseParser:
         for ls,accept in  self.curs.fetchall():
             r[ls] = accept/23.3
         return r
+
+    def GetStreamRate(self,streamName):
+        sqlquery="""SELECT EVT_RATE,UPDATE_TIME FROM CMS_STOMGR.VIEW_SM_STREAMS WHERE RUN_NUMBER = \'%s\' AND
+        STREAM = \'%s\'"""
+        
+        query = sqlquery % (self.RunNumber,streamName)
+        self.curs.execute(query)
+        r, t = [0, 0]
+        try:
+            r,t = self.curs.fetchone()
+        except:
+            print "Stream", streamName, "rate connot be retrieved"
+        r = float(r)
+        return [r,t]
+        
     
     def GetTriggerRatesByLS(self,triggerName):
         sqlquery = """SELECT A.LSNUMBER, A.PACCEPT
@@ -469,7 +484,6 @@ class DatabaseParser:
         RUN_NUMBER=%s and
         LUMI_SECTION in %s and
         SCALER_NAME='DeadtimeBeamActive'"""
-
         
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
@@ -919,17 +933,19 @@ class DatabaseParser:
             L1Rate[LS] = [rate,psi,lumi]
         return L1Rate
 
-    def GetL1RatesALL(self,LSRange):
+    def GetL1RatesALL(self,LSRange,isPreDT=False):
 
 
         ##ANCIENT COMMANDS THAT DO WHO KNOWS WHAT
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_TCS_TRIGGER WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX=9"
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX IN (9,13, 71)"
-        ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
-        ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
-
-        ##NEW VERSION THAT GETS POST-DT RATE (implemented 16/11/2012)
-        sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT , TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER, A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C WHERE A.RUNNUMBER = %s AND A.LSNUMBER IN %s )"
+        
+        if isPreDT:
+            ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
+            sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
+        else:
+            ##NEW VERSION THAT GETS POST-DT RATE (implemented 16/11/2012)
+            sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT , TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER, A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C WHERE A.RUNNUMBER = %s AND A.LSNUMBER IN %s )"
         
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
@@ -983,7 +999,7 @@ class DatabaseParser:
             dummy.append(L1RatesBits[self.L1IndexNameMap[name]])
             dummy.append(L1RatesBits[self.L1IndexNameMap[name]]*L1PSbits[self.L1IndexNameMap[name]])
             L1RatesNames[name+'_v1']=dummy
-           
+        
         return L1RatesNames
 
 
