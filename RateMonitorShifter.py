@@ -386,7 +386,7 @@ def main():
                         cosmics=True
                     else:
                         cosmics=False
-                    print "cosmics = ", cosmics
+
                     FirstLS=9999
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)    
                     if len(HeadLumiRange) is 0:
