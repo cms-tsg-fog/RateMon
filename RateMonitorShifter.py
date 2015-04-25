@@ -263,7 +263,7 @@ def main():
         CurrRun=CompareRunNum
         isGood=0
 
-    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
         cosmics = True
         #print "L1  - HLT - KEY  ===== ", HeadParser.L1_HLT_Key
     else:
@@ -382,7 +382,7 @@ def main():
                     HeadParser.ParseRunSetup()
                     CurrRun,collisions,isGood=GetLatestRunNumber(9999999)
 
-                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+                    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
@@ -408,7 +408,7 @@ def main():
                 try:
                     HeadParser.ParseRunSetup()
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)
-                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+                    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
@@ -434,7 +434,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     Data   = []
     Warn   = []
     IgnoredRates=[]
-    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
         cosmics = True
     else:
         cosmics = False
