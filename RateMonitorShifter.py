@@ -523,7 +523,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #         if HeadName not in FitInput.keys() and not AllTriggers and not ShowAllBadRates:
 #             continue                   
 #         print "head names in alltriggers ==== ", HeadName
-        masked_triggers = ["AlCa_", "DST_", "HLT_L1", "HLT_Zero","HLT_BeamHalo"]
+        masked_triggers = ["AlCa_", "DST_", "HLT_Zero","HLT_BeamHalo"] #FIXME "HLT_L1", 
         masked_trig = False
         for mask in masked_triggers:
             if str(mask) in HeadName:
@@ -744,7 +744,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     # email notification
     if True in Warn:
         if not previousWarning and sendMail:
-            mail = "Warning: the following trigger paths rates are deviating from expected:\n"
+            mail = "The following trigger paths rates are deviating from expected:\n"
             for index,entry in enumerate(core_data):
                 if Warn[index]:
                   mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
