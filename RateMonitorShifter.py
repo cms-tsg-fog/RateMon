@@ -248,6 +248,7 @@ def main():
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
 #    HeadParser.RunNumber = 240937 #use as a reference
+#    HeadParser.RunNumber = 243229
         
     try:
         HeadParser.ParseRunSetup()
@@ -523,14 +524,14 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #         if HeadName not in FitInput.keys() and not AllTriggers and not ShowAllBadRates:
 #             continue                   
 #         print "head names in alltriggers ==== ", HeadName
-        masked_triggers = ["AlCa_", "DST_", "HLT_Zero","HLT_BeamHalo"] #FIXME "HLT_L1", 
+        masked_triggers = ["AlCa_", "DST_", "L1_Zero", "HLT_BeamHalo"] #FIXME "HLT_L1", "HLT_Zero",
         masked_trig = False
         for mask in masked_triggers:
             if str(mask) in HeadName:
                 masked_trig = True
         if masked_trig:
             continue
-
+        
         skipTrig=False
         TriggerRate = round(HeadUnprescaledRates[HeadName][2],2)
         TriggerRate_PreDT = round(HeadUnprescaledRates_PreDT[HeadName][2],2)
@@ -572,6 +573,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 
             if len(VC)==0:
                 VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
+            
             Data.append([HeadName, TriggerRate, ExpectedRate, PerDiff, SigmaDiff, round(HeadUnprescaledRates[HeadName][1],0),VC])
             #print "length  == ", len(Data)            
             
@@ -616,11 +618,11 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
                 continue
 
             VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
-
+            
             Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
     
 #    print "path = ", [col[0] for col in Data] 
-    
+
     if not found_ref_rates:
         print '\n*****************************************************************************************************************************************************'
         print 'COULD NOT PARSE REFERENCE RUN! MOST LIKELY THIS IS BECAUSE THE REFERENCE RUN DOES NOT PASS THE QUALITY CUTS (DEADTIME < 100%, PHYSICS DECALRED, ETC.)'
