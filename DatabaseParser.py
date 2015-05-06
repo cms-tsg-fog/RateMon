@@ -312,14 +312,15 @@ class DatabaseParser:
         
         query = sqlquery % (self.RunNumber,streamName)
         self.curs.execute(query)
-        r, t = [0, 0]
+
         try:
             r,t = self.curs.fetchone()
+            r = float(r)
+            return [r,t]            
         except:
-            print "Stream", streamName, "rate connot be retrieved"
-        r = float(r)
-        return [r,t]
-        
+            print "Failed to fetch stream ",streamName," rate from db. "
+            return [0,'UNABLE TO FETCH STREAM RATE FROM DB']
+
     
     def GetTriggerRatesByLS(self,triggerName):
         sqlquery = """SELECT A.LSNUMBER, A.PACCEPT
@@ -935,11 +936,9 @@ class DatabaseParser:
 
     def GetL1RatesALL(self,LSRange,isPreDT=False):
 
-
         ##ANCIENT COMMANDS THAT DO WHO KNOWS WHAT
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_TCS_TRIGGER WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX=9"
         ##sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s and SCALER_INDEX IN (9,13, 71)"
-        
         if isPreDT:
             ##OLD VERSION THAT GETS PRE-DT RATE (used before 16/11/2012)
             sqlquery = "SELECT RUN_NUMBER, LUMI_SECTION, RATE_HZ, SCALER_INDEX FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION IN %s"
