@@ -224,10 +224,9 @@ def main():
     # Now get the most recent run
 
     SaveRun = False
-
     if CompareRunNum=="":  # if no run # specified on the CL, get the most recent run
         CompareRunNum,collisions,isGood = GetLatestRunNumber()
-            
+        print CompareRunNum
         if not isGood:
             print "NO TRIGGER KEY FOUND for run ",CompareRunNum
             ##sys.exit(0)
@@ -248,10 +247,8 @@ def main():
 
     HeadParser = DatabaseParser()
     HeadParser.RunNumber = CompareRunNum
-#    HeadParser.RunNumber = 239517
-#    HeadParser.RunNumber = 236905#425
-#    HeadParser.RunNumber = 234430 #use as a reference
-#    HeadParser.RunNumber = 240848 #use as a reference
+#    HeadParser.RunNumber = 240937 #use as a reference
+#    HeadParser.RunNumber = 243229
         
     try:
         HeadParser.ParseRunSetup()
@@ -267,7 +264,7 @@ def main():
         CurrRun=CompareRunNum
         isGood=0
 
-    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
         cosmics = True
         #print "L1  - HLT - KEY  ===== ", HeadParser.L1_HLT_Key
     else:
@@ -350,7 +347,7 @@ def main():
                              if FindL1Zeros:
                                  CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
                          else:
-                             print "No lumisections that are taking physics data 1"
+                             print "Only ",len(HeadLumiRange)," lumisections that are taking physics data so far, need >10"
 
             if not ShifterMode:
                 print "Expert Mode. Quitting."
@@ -386,7 +383,7 @@ def main():
                     HeadParser.ParseRunSetup()
                     CurrRun,collisions,isGood=GetLatestRunNumber(9999999)
 
-                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+                    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
@@ -412,7 +409,7 @@ def main():
                 try:
                     HeadParser.ParseRunSetup()
                     HeadLumiRange = HeadParser.GetLSRange(FirstLS,NumLS,collisions)
-                    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+                    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
                         cosmics=True
                     else:
                         cosmics=False
@@ -438,7 +435,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     Data   = []
     Warn   = []
     IgnoredRates=[]
-    if 'cosmics' or 'circulate' in HeadParser.L1_HLT_Key:
+    if 'cosmics' or 'circulate' or 'collisions' in HeadParser.L1_HLT_Key:
         cosmics = True
     else:
         cosmics = False
@@ -527,14 +524,14 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #         if HeadName not in FitInput.keys() and not AllTriggers and not ShowAllBadRates:
 #             continue                   
 #         print "head names in alltriggers ==== ", HeadName
-        masked_triggers = ["AlCa_", "DST_", "HLT_L1", "HLT_Zero","HLT_BeamHalo"]
+        masked_triggers = ["AlCa_", "DST_", "L1_Zero", "HLT_BeamHalo"] #FIXME "HLT_L1", "HLT_Zero",
         masked_trig = False
         for mask in masked_triggers:
             if str(mask) in HeadName:
                 masked_trig = True
         if masked_trig:
             continue
-
+        
         skipTrig=False
         TriggerRate = round(HeadUnprescaledRates[HeadName][2],2)
         TriggerRate_PreDT = round(HeadUnprescaledRates_PreDT[HeadName][2],2)
@@ -576,6 +573,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 
             if len(VC)==0:
                 VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
+            
             Data.append([HeadName, TriggerRate, ExpectedRate, PerDiff, SigmaDiff, round(HeadUnprescaledRates[HeadName][1],0),VC])
             #print "length  == ", len(Data)            
             
@@ -620,11 +618,11 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
                 continue
 
             VC = "Pre-deadtime rate: %-5.2f" % TriggerRate_PreDT
-
+            
             Data.append([HeadName,TriggerRate,ScaledRefRate,PerDiff,SigmaDiff,round((HeadUnprescaledRates[HeadName][1]),0),VC])
     
 #    print "path = ", [col[0] for col in Data] 
-    
+
     if not found_ref_rates:
         print '\n*****************************************************************************************************************************************************'
         print 'COULD NOT PARSE REFERENCE RUN! MOST LIKELY THIS IS BECAUSE THE REFERENCE RUN DOES NOT PASS THE QUALITY CUTS (DEADTIME < 100%, PHYSICS DECALRED, ETC.)'
@@ -748,7 +746,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
     # email notification
     if True in Warn:
         if not previousWarning and sendMail:
-            mail = "Warning: the following trigger paths rates are deviating from expected:\n" % AllowedRatePercDiff
+            mail = "The following trigger paths rates are deviating from expected:\n"
             for index,entry in enumerate(core_data):
                 if Warn[index]:
                   mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])

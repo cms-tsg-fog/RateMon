@@ -81,6 +81,7 @@ def mailAlert(text):
 if __name__=='__main__':
     isBad,text = digest(1)
     sendMail("a.zucchetta@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
+    sendMail("charles.mueller@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
     if eList:
         if isBad:
             for email in emailList.emailList:
