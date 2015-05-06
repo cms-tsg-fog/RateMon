@@ -7,11 +7,9 @@ import DatabaseParser
 from datetime import datetime,timedelta
 import sys
 sys.path.append('/nfshome0/hltpro/scripts')
-try:  ## so that we don't publish the list of on-calls in CVS
-    import emailList
-    eList=True
-except:
-    eList=False
+
+emailList = ["cms-tsg-fog@cern.ch"]
+
 def getLastRuns(h=24):
     lastRun,isCol,isGood = DatabaseParser.GetLatestRunNumber()
     
@@ -71,20 +69,20 @@ def sendMail(email,subject,to,fro,msgtxt):
     s.quit()
 
 def mailAlert(text):
-    if eList:
-        for email in emailList.emailList:
+    try:
+        for email in emailList:
             sendMail(email,"[HLTRateMon] Trigger Rate Warning", "HLT", "HLT", text)
-#        print "Mail sent to:", emailList.emailList
-    else:
+            print "Mail sent to:", email
+    except:
+        print "Failed to send mail"
         print text
 
 if __name__=='__main__':
     isBad,text = digest(1)
     sendMail("a.zucchetta@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
     sendMail("charles.mueller@cern.ch","[HLTRateMonDebug] Express Rate Digest","HLTDebug","HLTDebug",text)
-    if eList:
+    try:
         if isBad:
-            for email in emailList.emailList:
-                sendMail(email,"[HLTRateMon] Express Rate Digest","HLT","HLT",text)
-    else:
+            for email in emailList.emailList: sendMail(email,"[HLTRateMon] Express Rate Digest","HLT","HLT",text)
+    except:            
         print text
