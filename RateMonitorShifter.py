@@ -88,7 +88,7 @@ def main():
     CompareRunNum     = ""
     FindL1Zeros       = False
     FirstLS           = 9999
-    NumLS             = -10
+    NumLS             = -3
     IgnoreThreshold   = Config.DefAllowIgnoreThresh
     AllTriggers  = Config.AllTriggers
     PrintLumi         = False
@@ -104,7 +104,6 @@ def main():
     
     if Config.LSWindow > 0:
         NumLS = -1*Config.LSWindow
-
     for o,a in opt: # get options passed on the command line
         if o=="--AllowedPercDiff":
             AllowedRatePercDiff = float(a)
@@ -335,19 +334,18 @@ def main():
                          else:
                              print "Not enough lumi sections to update run"
                     else:
-#                         if (len(HeadLumiRange)>0):
-                         if (len(HeadLumiRange)==10 and HeadLumiRange[0]>1):
-                             if not isSequential(HeadLumiRange):
+                        if (len(HeadLumiRange)==abs(NumLS) and HeadLumiRange[0]>1):
+                            if not isSequential(HeadLumiRange):
                                  print "Some lumisections have been skipped. Averaging over most recent sequential lumisections..."
                                  sequential_chunk = getSequential(HeadLumiRange)
                                  HeadLumiRange = sequential_chunk
                              #print "====Calling RunComaprison function"    
-                             previousWarning = RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,previousWarning,sendMail,ShowAllBadRates,MaxBadRates)
+                            previousWarning = RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config,AllTriggers,SortBy,WarnOnSigmaDiff,ShowSigmaAndPercDiff,writeb,previousWarning,sendMail,ShowAllBadRates,MaxBadRates)
                              #print "====DONE Calling RunComaprison function"    
-                             if FindL1Zeros:
-                                 CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
-                         else:
-                             print "Only ",len(HeadLumiRange)," lumisections that are taking physics data so far, need >10"
+                            if FindL1Zeros:
+                                CheckL1Zeros(HeadParser,RefRunNum,RefRates,RefLumis,LastSuccessfulIterator,ShowPSTriggers,AllowedRatePercDiff,AllowedRateSigmaDiff,IgnoreThreshold,Config)
+                        else:
+                            print "Only ",len(HeadLumiRange)," lumisections that are taking physics data so far, need > ",abs(NumLS)
 
             if not ShifterMode:
                 print "Expert Mode. Quitting."
