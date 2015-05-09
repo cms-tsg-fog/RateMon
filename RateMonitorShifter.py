@@ -751,7 +751,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             for index,entry in enumerate(core_data):
                 if Warn[index]:
                   mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
-                  mailAlert(mail)
+            mailAlert(mail)
                   
         return True
 
