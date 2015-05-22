@@ -662,7 +662,7 @@ class DatabaseParser:
 
     def GetHLTPrescaleMatrix(self):
         tmp_curs = ConnectDB('hlt')
-        configIDQuery = "SELECT CONFIGID FROM CMS_HLT.CONFIGURATIONS WHERE CONFIGDESCRIPTOR='%s'" % (self.HLT_Key)
+        configIDQuery = "SELECT CONFIGID FROM CMS_HLT_GDR.U_CONFVERSIONS WHERE NAME='%s'" % (self.HLT_Key)
         tmp_curs.execute(configIDQuery)                                                                                                                                                
         ConfigId, = tmp_curs.fetchone()
 
