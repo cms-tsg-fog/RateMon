@@ -190,6 +190,7 @@ class DatabaseParser:
                 except:#else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
+                hltps = float(hltps)
                 try:
                     if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
                         l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
@@ -224,7 +225,7 @@ class DatabaseParser:
                 else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
-
+                hltps = float(hltps)
                 try:
                     if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
                         l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
