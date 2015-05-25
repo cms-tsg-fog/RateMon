@@ -121,8 +121,8 @@ class DatabaseParser:
         ## This query gets the L1_HLT Key (A), the associated HLT Key (B) and the Config number for that key (C)
         KeyQuery = """
         SELECT A.TRIGGERMODE, B.HLT_KEY, B.GT_RS_KEY, B.TSC_KEY, C.CONFIGID, D.GT_KEY FROM
-        CMS_WBM.RUNSUMMARY A, CMS_L1_HLT.L1_HLT_CONF B, CMS_HLT.CONFIGURATIONS C, CMS_TRG_L1_CONF.TRIGGERSUP_CONF D WHERE
-        B.ID = A.TRIGGERMODE AND C.CONFIGDESCRIPTOR = B.HLT_KEY AND D.TS_Key = B.TSC_Key AND A.RUNNUMBER=%d
+        CMS_WBM.RUNSUMMARY A, CMS_L1_HLT.L1_HLT_CONF B, CMS_HLT_GDR.U_CONFVERSIONS C, CMS_TRG_L1_CONF.TRIGGERSUP_CONF D WHERE
+        B.ID = A.TRIGGERMODE AND C.NAME = B.HLT_KEY AND D.TS_Key = B.TSC_Key AND A.RUNNUMBER=%d
         """ % (self.RunNumber,)
         try:
             self.curs.execute(KeyQuery)
@@ -138,9 +138,11 @@ class DatabaseParser:
     def GetHLTRates(self,LSRange):
         self.GetHLTPrescaleMatrix()
         
-        sqlquery = """SELECT SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT),SUM(A.PEXCEPT), A.LSNUMBER,
-        (SELECT L.NAME FROM CMS_HLT.PATHS L WHERE L.PATHID=A.PATHID) PATHNAME FROM
-        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A WHERE RUNNUMBER=%s AND A.LSNUMBER IN %s GROUP BY A.LSNUMBER,A.PATHID"""
+        sqlquery = """
+        SELECT SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT),SUM(A.PEXCEPT), A.LSNUMBER,
+        (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM
+        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A WHERE RUNNUMBER=%s AND A.LSNUMBER IN %s GROUP BY A.LSNUMBER,A.PATHID
+        """
 
         LSRangeSTR = str(LSRange)
         LSRangeSTR = LSRangeSTR.replace("[","(")
@@ -274,9 +276,10 @@ class DatabaseParser:
         return TriggerRates
 
     def GetAvgTrigRateInLSRange(self,triggerName,LSRange):
-        sqlquery = """SELECT A.PACCEPT
-        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT.PATHS B
-        WHERE RUNNUMBER=%s AND B.NAME = \'%s\' AND A.PATHID = B.PATHID AND A.LSNUMBER IN %s
+        sqlquery = """
+        SELECT A.PACCEPT
+        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT_GDR.U_PATHS B,CMS_HLT_GDR.U_PATHIDS C
+        WHERE RUNNUMBER=%s AND B.NAME =\'%s\' AND A.PATHID = C.PATHID AND B.ID=C.ID_PATH AND A.LSNUMBER IN %s
         """
 
         LSRangeSTR = str(LSRange)
@@ -290,9 +293,10 @@ class DatabaseParser:
         return avg_rate
 
     def GetTrigRatesInLSRange(self,triggerName,LSRange):
-        sqlquery = """SELECT A.LSNUMBER, A.PACCEPT
-        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT.PATHS B
-        WHERE RUNNUMBER=%s AND B.NAME = \'%s\' AND A.PATHID = B.PATHID AND A.LSNUMBER IN %s
+        sqlquery = """
+        SELECT A.LSNUMBER, A.PACCEPT
+        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT_GDR.U_PATHS B,CMS_HLT_GDR.U_PATHIDS C
+        WHERE RUNNUMBER=%s AND B.NAME =\'%s\' AND A.PATHID = C.PATHID AND B.ID=C.ID_PATH AND A.LSNUMBER IN %s
         ORDER BY A.LSNUMBER
         """
         LSRangeSTR = str(LSRange)
@@ -323,9 +327,11 @@ class DatabaseParser:
 
     
     def GetTriggerRatesByLS(self,triggerName):
-        sqlquery = """SELECT A.LSNUMBER, A.PACCEPT
-        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT.PATHS B
-        WHERE RUNNUMBER=%s AND B.NAME = \'%s\' AND A.PATHID = B.PATHID
+        sqlquery = """
+        SELECT A.LSNUMBER, A.PACCEPT
+        FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A, CMS_HLT_GDR.U_PATHS B,CMS_HLT_GDR.U_PATHIDS C
+        WHERE RUNNUMBER=%s AND B.NAME =\'%s\' AND A.PATHID = C.PATHID AND B.ID=C.ID_PATH
+        ORDER BY A.LSNUMBER
         """ % (self.RunNumber,triggerName,)
 
         self.curs.execute(sqlquery)
@@ -667,31 +673,7 @@ class DatabaseParser:
         ConfigId, = tmp_curs.fetchone()
 
         SequencePathQuery ="""                                                                                                                                                       
-        SELECT F.SEQUENCENB,J.VALUE TRIGGERNAME                                                                                                                                      
-        FROM CMS_HLT.CONFIGURATIONSERVICEASSOC A                                                                                                                                     
-        , CMS_HLT.SERVICES B                                                                                                                                                         
-        , CMS_HLT.SERVICETEMPLATES C                                                                                                                                                 
-        , CMS_HLT.SUPERIDVECPARAMSETASSOC D                                                                                                                                          
-        , CMS_HLT.VECPARAMETERSETS E                                                                                                                                                 
-        , CMS_HLT.SUPERIDPARAMSETASSOC F                                                                                                                                             
-        , CMS_HLT.PARAMETERSETS G                                                                                                                                                    
-        , CMS_HLT.SUPERIDPARAMETERASSOC H                                                                                                                                            
-        , CMS_HLT.PARAMETERS I                                                                                                                                                       
-        , CMS_HLT.STRINGPARAMVALUES J                                                                                                                                                
-        WHERE A.CONFIGID=%d                                                                                                                                                         
-        AND A.SERVICEID=B.SUPERID                                                                                                                                                    
-        AND B.TEMPLATEID=C.SUPERID                                                                                                                                                   
-        AND C.NAME='PrescaleService'                                                                                                                                                 
-        AND B.SUPERID=D.SUPERID                                                                                                                                                      
-        AND D.VPSETID=E.SUPERID                                                                                                                                                      
-        AND E.NAME='prescaleTable'                                                                                                                                                   
-        AND D.VPSETID=F.SUPERID                                                                                                                                                      
-        AND F.PSETID=G.SUPERID                                                                                                                                                       
-        AND G.SUPERID=H.SUPERID                                                                                                                                                      
-        AND I.PARAMID=H.PARAMID                                                                                                                                                      
-        AND I.NAME='pathName'                                                                                                                                                        
-        AND J.PARAMID=H.PARAMID
-        ORDER BY F.SEQUENCENB                                                                                                                                                        
+        SELECT prescale_sequence , triggername FROM ( SELECT J.ID, J.NAME, LAG(J.ORD,1,0) OVER (order by J.ID) PRESCALE_SEQUENCE, J.VALUE TRIGGERNAME, trim('{' from trim('}' from LEAD(J.VALUE,1,0) OVER (order by J.ID))) as PRESCALE_INDEX FROM CMS_HLT_GDR.U_CONFVERSIONS A, CMS_HLT_GDR.U_CONF2SRV S, CMS_HLT_GDR.U_SERVICES B, CMS_HLT_GDR.U_SRVTEMPLATES C, CMS_HLT_GDR.U_SRVELEMENTS J WHERE A.CONFIGID=%s AND A.ID=S.ID_CONFVER AND S.ID_SERVICE=B.ID AND C.ID=B.ID_TEMPLATE AND C.NAME='PrescaleService' AND J.ID_SERVICE=B.ID )Q WHERE NAME='pathName'
         """ % (ConfigId,)
 
         tmp_curs.execute(SequencePathQuery)                                                                                                                                            
@@ -701,31 +683,7 @@ class DatabaseParser:
             HLTSequenceMap[seq]=name                                                                                                                                                 
 
         SequencePrescaleQuery="""                                                                                                                                                    
-        SELECT F.SEQUENCENB,J.SEQUENCENB,J.VALUE                                                                                                                                     
-        FROM CMS_HLT.CONFIGURATIONSERVICEASSOC A                                                                                                                                     
-        , CMS_HLT.SERVICES B                                                                                                                                                         
-        , CMS_HLT.SERVICETEMPLATES C                                                                                                                                                 
-        , CMS_HLT.SUPERIDVECPARAMSETASSOC D                                                                                                                                          
-        , CMS_HLT.VECPARAMETERSETS E                                                                                                                                                 
-        , CMS_HLT.SUPERIDPARAMSETASSOC F                                                                                                                                             
-        , CMS_HLT.PARAMETERSETS G                                                                                                                                                    
-        , CMS_HLT.SUPERIDPARAMETERASSOC H                                                                                                                                            
-        , CMS_HLT.PARAMETERS I                                                                                                                                                       
-        , CMS_HLT.VUINT32PARAMVALUES J                                                                                                                                               
-        WHERE A.CONFIGID=%d                                                                                                                                                          
-        AND A.SERVICEID=B.SUPERID                                                                                                                                                    
-        AND B.TEMPLATEID=C.SUPERID                                                                                                                                                   
-        AND C.NAME='PrescaleService'
-        AND B.SUPERID=D.SUPERID                                                                                                                                                       
-        AND D.VPSETID=E.SUPERID                                                                                                                                                       
-        AND E.NAME='prescaleTable'                                                                                                                                                    
-        AND D.VPSETID=F.SUPERID                                                                                                                                                       
-        AND F.PSETID=G.SUPERID                                                                                                                                                        
-        AND G.SUPERID=H.SUPERID                                                                                                                                                       
-        AND I.PARAMID=H.PARAMID                                                                                                                                                       
-        AND I.NAME='prescales'                                                                                                                                                        
-        AND J.PARAMID=H.PARAMID                                                                                                                                                       
-        ORDER BY F.SEQUENCENB,J.SEQUENCENB                                                                                                                                            
+        with pq as ( SELECT Q.* FROM ( SELECT J.ID, J.NAME, LAG(J.ORD,1,0) OVER (order by J.ID) PRESCALE_SEQUENCE, J.VALUE TRIGGERNAME, trim('{' from trim('}' from LEAD(J.VALUE,1,0) OVER (order by J.ID))) as PRESCALE_INDEX FROM CMS_HLT_GDR.U_CONFVERSIONS A, CMS_HLT_GDR.U_CONF2SRV S, CMS_HLT_GDR.U_SERVICES B, CMS_HLT_GDR.U_SRVTEMPLATES C, CMS_HLT_GDR.U_SRVELEMENTS J WHERE A.CONFIGID=%s AND A.ID=S.ID_CONFVER AND S.ID_SERVICE=B.ID AND C.ID=B.ID_TEMPLATE AND C.NAME='PrescaleService' AND J.ID_SERVICE=B.ID )Q WHERE NAME='pathName' ) select prescale_sequence , MYINDEX , regexp_substr (prescale_index, '[^,]+', 1, rn) mypsnum from pq cross join (select rownum rn, mod(rownum -1, level) MYINDEX from (select max (length (regexp_replace (prescale_index, '[^,]+'))) + 1 mx from pq ) connect by level <= mx ) where regexp_substr (prescale_index, '[^,]+', 1, rn) is not null order by prescale_sequence, myindex
         """ % (ConfigId,)                                                                                                                                                             
 
         tmp_curs.execute(SequencePrescaleQuery)                                                                                                                                         
@@ -749,30 +707,7 @@ class DatabaseParser:
         ## NEED TO BE LOGGED IN AS CMS_HLT_R
         tmpcurs = ConnectDB('hlt')
         sqlquery ="""  
-        SELECT I.NAME,A.VALUE
-        FROM
-        CMS_HLT.STRINGPARAMVALUES A,
-        CMS_HLT.PARAMETERS B,
-        CMS_HLT.SUPERIDPARAMETERASSOC C,
-        CMS_HLT.MODULETEMPLATES D,
-        CMS_HLT.MODULES E,
-        CMS_HLT.PATHMODULEASSOC F,
-        CMS_HLT.CONFIGURATIONPATHASSOC G,
-        CMS_HLT.CONFIGURATIONS H,
-        CMS_HLT.PATHS I
-        WHERE
-        A.PARAMID = C.PARAMID AND
-        B.PARAMID = C.PARAMID AND
-        B.NAME = 'L1SeedsLogicalExpression' AND
-        C.SUPERID = F.MODULEID AND
-        D.NAME = 'HLTLevel1GTSeed' AND
-        E.TEMPLATEID = D.SUPERID AND
-        F.MODULEID = E.SUPERID AND
-        F.PATHID=G.PATHID AND
-        I.PATHID=G.PATHID AND
-        G.CONFIGID=H.CONFIGID AND
-        H.CONFIGDESCRIPTOR='%s' 
-        ORDER BY A.VALUE
+        select s.name, d.value from u_confversions h,u_pathid2conf a,u_pathid2pae n, u_paelements b, u_pae2moe c, u_moelements d, u_mod2templ e,u_moduletemplates f, u_pathids p, u_paths s where h.name='%s' and a.id_confver=h.id and  n.id_pathid=a.id_pathid and b.id=n.id_pae and c.id_pae=b.id and d.id=c.id_moe and d.name='L1SeedsLogicalExpression' and e.id_pae=b.id and f.id=e.id_templ and f.name='HLTLevel1GTSeed' and p.id=n.id_pathid and s.id=p.id_path order by value
         """ % (self.HLT_Key,)
         tmpcurs.execute(sqlquery)
         for HLTPath,L1Seed in tmpcurs.fetchall():
