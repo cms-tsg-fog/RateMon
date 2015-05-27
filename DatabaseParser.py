@@ -708,7 +708,7 @@ class DatabaseParser:
         ## NEED TO BE LOGGED IN AS CMS_HLT_R
         tmpcurs = ConnectDB('hlt')
         sqlquery ="""  
-        select s.name, d.value from u_confversions h,u_pathid2conf a,u_pathid2pae n, u_paelements b, u_pae2moe c, u_moelements d, u_mod2templ e,u_moduletemplates f, u_pathids p, u_paths s where h.name='%s' and a.id_confver=h.id and  n.id_pathid=a.id_pathid and b.id=n.id_pae and c.id_pae=b.id and d.id=c.id_moe and d.name='L1SeedsLogicalExpression' and e.id_pae=b.id and f.id=e.id_templ and f.name='HLTLevel1GTSeed' and p.id=n.id_pathid and s.id=p.id_path order by value
+        select s.name, d.value from cms_hlt_gdr.u_confversions h, cms_hlt_gdr.u_pathid2conf a, cms_hlt_gdr.u_pathid2pae n, cms_hlt_gdr.u_paelements b, cms_hlt_gdr.u_pae2moe c, cms_hlt_gdr.u_moelements d, cms_hlt_gdr.u_mod2templ e,cms_hlt_gdr.u_moduletemplates f, cms_hlt_gdr.u_pathids p, cms_hlt_gdr.u_paths s where h.name='%s' and a.id_confver=h.id and  n.id_pathid=a.id_pathid and b.id=n.id_pae and c.id_pae=b.id and d.id=c.id_moe and d.name='L1SeedsLogicalExpression' and e.id_pae=b.id and f.id=e.id_templ and f.name='HLTLevel1GTSeed' and p.id=n.id_pathid and s.id=p.id_path order by value
         """ % (self.HLT_Key,)
         tmpcurs.execute(sqlquery)
         for HLTPath,L1Seed in tmpcurs.fetchall():

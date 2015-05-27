@@ -225,7 +225,7 @@ def main():
     SaveRun = False
     if CompareRunNum=="":  # if no run # specified on the CL, get the most recent run
         CompareRunNum,collisions,isGood = GetLatestRunNumber()
-        print CompareRunNum
+        #print CompareRunNum
         if not isGood:
             print "NO TRIGGER KEY FOUND for run ",CompareRunNum
             ##sys.exit(0)
@@ -347,9 +347,9 @@ def main():
                         else:
                             print "Only ",len(HeadLumiRange)," lumisections that are taking physics data so far, need > ",abs(NumLS)
 
-            if not ShifterMode:
-                print "Expert Mode. Quitting."
-                sys.exit(0)
+            #if not ShifterMode:
+            #    print "Expert Mode. Quitting."
+            #    sys.exit(0)
 
             print "Sleeping for 60 sec before next query  "
             for iSleep in range(20):
