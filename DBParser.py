@@ -2,7 +2,12 @@
 # DB.py
 # Author: Nathaniel Carl Rupprecht
 # Date: June 11, 2015
-# Last Modified: June 12, 2015
+# Last Modified: June 19, 2015
+#
+# Data Type Key:
+#    { a, b, c, ... }    -- denotes a tuple
+#    [ key ] <object>  -- denotes a dictionary of keys associated with objects
+#    ( object )          -- denotes a list of objects 
 ##################################
 
 # Imports
