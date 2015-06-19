@@ -50,6 +50,7 @@ class RateMoniter:
         self.parser = DBParser() # A database parser
         self.lastRun = 0         # The last run in the run list that will be considered
         self.TriggerList = []    # The list of triggers to consider in plot-making 
+        self.savedAFile = False  # True if we saved at least one file
 
         # self.doFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -168,7 +169,9 @@ class RateMoniter:
             
         errFile.close() # Close the error file
         print "Error file saved to", ErrFile # Info message
-        print "File saved as %s\n" % (self.saveName) # Info message
+        # End message
+        if self.savedAFile: print "File saved as %s\n" % (self.saveName) # Info message
+        else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run"
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
     # Parameters:
@@ -304,6 +307,7 @@ class RateMoniter:
         canvas.Modified()
         canvas.Write()
         file.Close()
+        self.savedAFile = True
         
     # Use: Loads the fit data from the fit file
     # Parameters:
