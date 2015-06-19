@@ -51,6 +51,8 @@ class RateMoniter:
         self.lastRun = 0         # The last run in the run list that will be considered
         self.TriggerList = []    # The list of triggers to consider in plot-making 
         self.savedAFile = False  # True if we saved at least one file
+        self.errFileName = ""    # The name of the error file
+        self.errFile = None      # A file to output errors to
 
         # self.doFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -65,54 +67,53 @@ class RateMoniter:
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
     def setUp(self):
-        pass
+        print ""
         
-    # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
-    # Returns: (void)
-    def run(self):
         length = len(self.runList)
-        
         if self.processAll: offset = 0 # Override any offset
-
+        
         # Make sure we have enough color options
         if len(self.colorList) < self.maxRuns or self.processAll:
             print "Warning: Potentially not enough unique colors for each run."
-
+            
         if self.useTrigList: print "Only using triggers in current trig list." # Info message
-
-        if self.processAll: "\nProcessing all runs in the run list." # Info message
-    
-        # The x and y variable names
-        varX = "instLumi"      # Lumisection
-        varY = "rawrate"       # Raw rate
-        if not self.processAll: self.lastRun = min( [self.offset + self.maxRuns, length] )
-        else: self.lastRun = length
-
+        if self.processAll:
+            print "\nProcessing all runs in the run list." # Info message
+            self.lastRun = length
+        else: self.lastRun = min( [self.offset + self.maxRuns, length] )
+        
         print "Processing %s runs:" % (self.lastRun-self.offset) # Info message
-
+        
         # Info message
         if not self.doFit:
             print "Not plotting a fit."
             if not self.useTrigList:
                 print "Using all possible triggers."
-
+            
         minNum = min(self.runList[ self.offset : self.lastRun ])
         maxNum = max(self.runList[ self.offset : self.lastRun ])
-    
+        
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_cert.root"
-        ErrFile = "rateMoniterNCR_%s_%s.err" % (minNum, maxNum)
+        self.errFileName = "rateGrapher_%s_%s.err" % (minNum, maxNum)
         if self.doFit: fitOpt = "Fitted"
         else: fitOpt = "NoFit"
-        if self.saveName == "": self.saveName = RootNameTemplate % (varX, varY, fitOpt, minNum, maxNum)
+        if self.saveName == "": self.saveName = RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum)
         
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
-        
+
         # Open a file for writing errors
-        try: errFile = open(ErrFile, 'w')
+        try: self.errFile = open(self.errFileName, 'w')
         except: print "Could not open error file."
 
+        
+    # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
+    # Returns: (void)
+    def run(self):
+
+        self.setUp()
+        
         # A dictionary [ trigger name ] [ run number ] { avePS, ( inst lumi's ), ( raw rates ) }
         plottingData = {}
                 
@@ -122,7 +123,7 @@ class RateMoniter:
             if not self.useTrigList: self.TriggerList = sorted(InputFit)
 
         ### Starting the main loop ###
-        print " "  # Print a newline (just for formatting)
+        print ""  # Print a newline (just for formatting)
         counter = 0 # Make sure we process at most MAX runs
         for runNumber in self.runList[self.offset : self.lastRun]:
             print "(",counter+1,") Processing run", runNumber
@@ -135,7 +136,6 @@ class RateMoniter:
                 for triggerName in sorted(Rates):
                     if not triggerName in self.TriggerList:
                         self.TriggerList.append(triggerName)
-                #TriggerList = sorted(Rates)
 
             # Correct Rates for deadtime
             self.correctForDeadtime(Rates, runNumber)
@@ -166,9 +166,13 @@ class RateMoniter:
             if self.doFit: fitparams = self.getFitParams(InputFit, triggerName)
             else: fitparams = None
             self.graphAllData(plottingData[triggerName], fitparams, triggerName)
-            
-        errFile.close() # Close the error file
-        print "Error file saved to", ErrFile # Info message
+        # Try to close the error file
+        try:
+            self.errFile.close() # Close the error file
+            print "Error file saved to", self.errFileName # Info message
+        except:
+            print "Could not save error file."
+            pass
         # End message
         if self.savedAFile: print "File saved as %s\n" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run"
