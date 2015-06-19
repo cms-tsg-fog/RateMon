@@ -103,10 +103,10 @@ class RateMoniter:
         ErrFile = "rateMoniterNCR_%s_%s.err" % (minNum, maxNum)
         if self.doFit: fitOpt = "Fitted"
         else: fitOpt = "NoFit"
-        RootFile = RootNameTemplate % (varX, varY, fitOpt, minNum, maxNum)
+        if self.saveName == "": self.saveName = RootNameTemplate % (varX, varY, fitOpt, minNum, maxNum)
         
         # Remove any root files that already have that name
-        if os.path.exists(RootFile): os.remove(RootFile)
+        if os.path.exists(self.saveName): os.remove(self.saveName)
         
         # Open a file for writing errors
         try: errFile = open(ErrFile, 'w')
@@ -119,8 +119,6 @@ class RateMoniter:
         if self.doFit :
             InputFit = self.loadFit()
             if not self.useTrigList: self.TriggerList = sorted(InputFit)
-
-
 
         ### Starting the main loop ###
         print " "  # Print a newline (just for formatting)
@@ -166,13 +164,11 @@ class RateMoniter:
         for triggerName in sorted(plottingData):
             if self.doFit: fitparams = self.getFitParams(InputFit, triggerName)
             else: fitparams = None
-            self.graphAllData(plottingData[triggerName], fitparams, RootFile, triggerName)
+            self.graphAllData(plottingData[triggerName], fitparams, triggerName)
             
         errFile.close() # Close the error file
-        print "Error file saved to", ErrFile
-        
-        if self.saveName == "": print "File saved as %s\n" % (RootFile)
-        else: print "File saved as %s\n" % (self.saveName)
+        print "Error file saved to", ErrFile # Info message
+        print "File saved as %s\n" % (self.saveName) # Info message
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
     # Parameters:
@@ -235,10 +231,9 @@ class RateMoniter:
     # Parameters:
     # -- plottingData: A dictionary [ run number ] { ( inst lumi's ), ( raw rates ) }
     # -- paramList: An array [ fit type, X0, X1, X2, X3, ...##** ]
-    # -- RootFile: The name of the root file that we want to save our graphs to
     # -- triggerName: The name of the trigger that we are examining
     # Returns: (void)
-    def graphAllData(self, plottingData, paramList, RootFile, triggerName):        
+    def graphAllData(self, plottingData, paramList, triggerName):        
         # Find that max and min values
         maximumRR = array.array('f')
         maximumIL = array.array('f')
@@ -305,8 +300,7 @@ class RateMoniter:
         legend.Draw() 
         canvas.Update()
         # Update root file
-        if self.saveName == "": file = TFile(RootFile, "UPDATE")
-        else: file = TFile(self.saveName, "UPDATE")
+        file = TFile(self.saveName, "UPDATE")
         canvas.Modified()
         canvas.Write()
         file.Close()

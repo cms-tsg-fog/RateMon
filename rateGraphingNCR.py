@@ -32,11 +32,12 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "All", "Raw", "Help", "useList", "noFit"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "All", "Raw", "Help", "useList", "noFit"])
         except:
             print "Error geting options. Exiting."
             return False
-        if len(opt) == 0:
+
+        if len(opt) == 0 and len(args) == 0:
             print "\nWe do need some options to make this program work you know. We can't read your mind."
             print "Use 'python rateMoniterNCR.py --Help' to see options.\n"
             return False
@@ -84,13 +85,15 @@ class MoniterController:
                     else: # Add the runs in the range to the run list
                         try:
                             for r in range(int(rng[0]), int(rng[1])+1):
-                                self.rateMoniter.runList.append(int(r))
+                                if not int(r) in self.rateMoniter.runList:
+                                    self.rateMoniter.runList.append(int(r))
                         except:
                             print "Error: Could not parse run range"
                             return False
                 else: # Not a range, but a single run
                     try:
-                        self.rateMoniter.runList.append(int(item))
+                        if not int(item) in self.rateMoniter.runList:
+                            self.rateMoniter.runList.append(int(item))
                     except:
                         print "Error: Could not parse run arguments."
                         return False
