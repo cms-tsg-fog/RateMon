@@ -199,5 +199,4 @@ class MoniterController:
 
 if __name__ == "__main__":
     controller = MoniterController()
-    if controller.parseArgs():
-        controller.run()
+    controller.run()
