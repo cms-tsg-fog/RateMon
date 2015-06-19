@@ -152,7 +152,7 @@ class RateMoniter:
                 else: # The trigger data was not taken from the DB or does not exist
                     # This should not occur if doFit is false, all triggers should be processed
                     message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
-                    errFile.write(message)
+                    self.errFile.write(message)
 
             # Make sure we only process at most MAX runs
             counter += 1
