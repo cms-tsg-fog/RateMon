@@ -68,7 +68,9 @@ class MoniterController:
                 self.rateMoniter.doFit = False
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
+                self.rateMoniter.useTrigList = False
             elif label == "--useList":
+                # Depreciated (no longer necessary to use this with the --triggerList option)
                 self.rateMoniter.useTrigList = True
             else:
                 print "Unknown option '%s'." % label
@@ -121,7 +123,7 @@ class MoniterController:
         print "--fitFile=<name>      : Loads fit information from the file named <name>."
         print "--runFile=<name>      : Loads a list of runs to consider from the file named <name>."
         print "--runList=<name>      : Same as --runFile (see above)."
-        print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>."
+        print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
         print "--saveName=<name>     : Saves the root output as a file named <name>."
         print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs."
         print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
@@ -196,7 +198,6 @@ class MoniterController:
 ## ----------- End of class MoniterController ------------ #
 
 ## ----------- Main -----------##
-
 if __name__ == "__main__":
     controller = MoniterController()
     controller.run()

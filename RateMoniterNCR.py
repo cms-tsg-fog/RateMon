@@ -45,7 +45,7 @@ class RateMoniter:
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
-        self.varY = "psRate"     # Plot the prescaled rate on the y axis
+        self.varY = "rawRate"     # Plot the prescaled rate on the y axis
         self.saveName = ""       # A name that we save the root file as
         self.parser = DBParser() # A database parser
         self.lastRun = 0         # The last run in the run list that will be considered
@@ -111,7 +111,7 @@ class RateMoniter:
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
     def run(self):
-
+        # Set up parameters and data structures
         self.setUp()
         
         # A dictionary [ trigger name ] [ run number ] { avePS, ( inst lumi's ), ( raw rates ) }
@@ -264,7 +264,7 @@ class RateMoniter:
         nameY = "Raw Rate"
         yunits = "(HZ)"
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
-        canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varX)
+        canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
 
         if self.doFit and not paramList is None:
             # Create the fit function. NOTE: We assume a linear fit was used
