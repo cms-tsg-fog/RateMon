@@ -33,14 +33,14 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "Secondary", "All", "Raw", "Help", "useList", "noFit", "batch"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "noFit", "batch", "overrideBatch"])
         except:
             print "Error geting options. Exiting."
             return False
 
         if len(opt) == 0 and len(args) == 0:
             print "\nWe do need some options to make this program work you know. We can't read your mind."
-            print "Use 'python rateMoniterNCR.py --Help' to see options.\n"
+            print "Use 'python rateGraphingNCR.py --Help' to see options.\n"
             return False
         
         # Process Options
@@ -66,6 +66,8 @@ class MoniterController:
                 self.rateMoniter.maxRuns = int(op)
             elif label == "--maxBatches":
                 self.rateMoniter.maxBatches = int(op)
+            elif label == "--sigmas":
+                self.rateMoniter.sigmas = float(op)
             elif label == "--All":
                 self.rateMoniter.processAll = True
             elif label == "--Raw":
@@ -88,6 +90,8 @@ class MoniterController:
                 self.batchMode = True
                 self.rateMoniter.outputOn = False
                 self.rateMoniter.nameGiven = False # We do not allow a user defined save name in batch mode
+            elif label == "overrideBatch":
+                pass
             else:
                 print "Unknown option '%s'." % label
                 return False
@@ -141,13 +145,13 @@ class MoniterController:
         print "--runList=<name>      : Same as --runFile (see above)."
         print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
         print "--saveName=<name>     : Saves the root output as a file named <name>."
-        print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs."
+        print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
         print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
         print "--Secondary           : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
         print "--All                 : Overrides the maximum number of runs and processes all runs in the run list."
         print "--noFit               : Does not load a fit file. Also, prints all possible triggers."
         print "--batch               : Runs the program over all triggers in the trigger list in batches."
-        print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode"
+        print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
         print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
