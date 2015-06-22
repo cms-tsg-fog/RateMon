@@ -26,6 +26,14 @@ from DBParser import *
 
 ## ----------- End Imports ------------ #
 
+# Class ErrorPrinter:
+# Has member variables representing the runs, triggers, and lumisections that were irregular.
+# Is able to output this information to an error file
+class ErrorPrinter:
+    def __init__(self):
+        pass
+## ----------- End class ErrorPrinter ----------- #
+
 # Class RateMoniter:
 # Analyzes the rate vs instantaneous luminosity behavior of runs (held in a run list called self.runList) and make plots of the data
 # Can also plot a fit from a given pickle file on the plots it produces
@@ -33,8 +41,9 @@ from DBParser import *
 class RateMoniter:
     # Default constructor for RateMoniter class
     def __init__(self):
-        # Use batch mode so plots are not spit out in X11 as we make them
-        gROOT.SetBatch(True)
+        # Set ROOT properties
+        gROOT.SetBatch(True) # Use batch mode so plots are not spit out in X11 as we make them
+        gStyle.SetPadRightMargin(0.2) # Set the canvas right margin so the legend can be bigger
 
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
@@ -58,11 +67,14 @@ class RateMoniter:
         self.mode = False        # False -> Primary mode, True -> Secondary mode
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
+        self.sigmas = 2.0        # How many sigmas the error bars should be
+        self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
+        self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
 
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
-        self.maxBatches = 999    # Then maximum number of batches we will do when using batch mode
+        self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
 
         # self.doFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -70,7 +82,7 @@ class RateMoniter:
         self.doFit = True                                 
 
         # self.useTrigList
-        # If False, modify self.triggerList as neccessary
+        # If False, modify self.triggerList as neccessary to include as many triggers as possible
         # If True, only use triggers in self.triggerList
         self.useTrigList = False
 
@@ -84,7 +96,7 @@ class RateMoniter:
         
         # Make sure we have enough color options
         if len(self.colorList) < self.maxRuns or self.processAll and self.outputOn:
-            print "Warning: Potentially not enough unique colors for each run." # Info message
+            print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
 
         # Info message
         if not self.doFit and self.outputOn:
@@ -92,7 +104,6 @@ class RateMoniter:
             if not self.useTrigList:
                 print "Using all possible triggers."
 
-        if self.mode and self.outputOn: print "Secondary Mode in use"
         if self.useTrigList and self.outputOn: print "Only using triggers in current trig list." # Info message
         if self.processAll:
             if self.outputOn: print "\nProcessing all runs in the run list." # Info message
@@ -124,16 +135,18 @@ class RateMoniter:
             except: print "Could not open error file."
 
     def runBatch(self):
-        self.processAll = False # This should already be false
         total = 0 # How many runs we have processed so far
         count = 1
-        while total < len(self.runList) and count <= self.maxBatches:
+        print "Batch size is %s." % (self.maxRuns) # Info message
+        while total < len(self.runList) and (count <= self.maxBatches or self.processAll):
             print "Processing batch %s:" % (count)
             self.offset = total
             self.run()
             total += self.runsToProcess # Update the count by how many runs we just processed
             count += 1
             print "" # Newline for formatting
+        if self.mode: # Operating in secondary mode, do checks
+            self.doChecks()
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
@@ -206,10 +219,10 @@ class RateMoniter:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
-                    
         # Correct Rates for deadtime
         self.correctForDeadtime(Rates, runNumber)
-
+        self.allRates[runNumber] = Rates
+        # Depending on the mode, we return different pairs of data
         if self.mode == False:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
             return self.combineInfo(Rates, iLumi)
@@ -333,14 +346,13 @@ class RateMoniter:
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
         # Create legend
-        top = 0.9; scaleFactor = 0.04; minimum = 0.1
+        left = 0.8; right = 1.0; top = 0.9; scaleFactor = 0.05; minimum = 0.1
         bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
-        legend = TLegend(0.9,top,1.0,bottom)
+        legend = TLegend(left,top,right,bottom)
 
         # We only load the iLumi info for one of the runs to make the prediction, use the run with the most LS's
         pickRun = 0
         maxLS = 0
-                
         for runNumber in plottingData:
             numLS = len(plottingData[runNumber][0])
             # See if this run has more LS's then the previous runs
@@ -353,7 +365,7 @@ class RateMoniter:
             graphList[-1].SetMarkerSize(1.0)
             graphList[-1].SetLineColor(0)
             graphList[-1].SetFillColor(0)
-            graphList[-1].SetMarkerColor(self.colorList[counter % self.maxRuns]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            graphList[-1].SetMarkerColor(self.colorList[counter % len(self.colorList)]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(minVal, 1.1*maxVal)
             graphList[-1].GetYaxis().SetTitle(nameY+" "+yunits)
@@ -368,16 +380,15 @@ class RateMoniter:
             legend.AddEntry(graphList[-1], "Run %s" %(runNumber))
             counter += 1
 
-
         if self.doFit and not paramList is None:
             if self.mode:
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 iLumi = self.parser.getLumiInfo(pickRun)
                 # iLumi is a list: ( { LS, instLumi } )
-                fitGraph = self.makeFitGraph(fitFunc, minVal, maxVal, maxRR, iLumi)
+                fitGraph = self.makeFitGraph(fitFunc, minVal, maxVal, maxRR, iLumi, triggerName)
                 fitGraph.Draw("P3")
                 canvas.Update()
-                legend.AddEntry(fitGraph)
+                legend.AddEntry(fitGraph, "Fit (%s sigmas)" % (self.sigmas))
             else:
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
@@ -399,21 +410,33 @@ class RateMoniter:
     # -- maxVal: The maximum LS
     # -- maxRR: The maximum raw rate (y value)
     # -- iLumi: A list: ( { LS, instLumi } )
+    # -- triggerName: The name of the trigger we are making a fit for
     # Returns: A TGraph of predicted values
-    def makeFitGraph(self, fitFunc, minVal, maxVal, maxRR, iLumi):
+    def makeFitGraph(self, fitFunc, minVal, maxVal, maxRR, iLumi, triggerName):
         # Initialize our point arrays
         lumisecs = array.array('f')
         predictions = array.array('f')
+        lsError = array.array('f')
+        predError = array.array('f')
         # Create our point arrays
         for LS, ilum in iLumi:
             if not ilum is None:
                 lumisecs.append(LS)
-                predictions.append(fitFunc.Eval( ilum ))
+                rr = fitFunc.Eval( ilum )
+                if rr<0: rr=0 # Make sure prediction is non negative
+                predictions.append(rr)
+                lsError.append(0)
+                predError.append(self.sigmas*math.sqrt(rr))
+        # Record for the purpose of doing checks
+        self.predictionRec[triggerName] = zip(lumisecs, predictions, predError) # Put these lists together into a list of triples
         # Set some graph options
-        fitGraph = TGraph(len(lumisecs), lumisecs, predictions)
-        fitGraph.SetMarkerStyle(7)
-        fitGraph.SetMarkerSize(1.0)
+        fitGraph = TGraphErrors(len(lumisecs), lumisecs, predictions, lsError, predError)
+        fitGraph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
+        fitGraph.SetMarkerStyle(8)
+        fitGraph.SetMarkerSize(0.8)
         fitGraph.SetMarkerColor(2) # Red
+        fitGraph.SetFillColor(4)
+        fitGraph.SetFillStyle(3003)
         fitGraph.GetXaxis().SetLimits(minVal, 1.1*maxVal)
         
         return fitGraph
@@ -434,5 +457,23 @@ class RateMoniter:
             print "ERROR: could not open fit file: %s" % (fitFile)
             exit(2)
         return InputFit
+
+    # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
+    # Returns: (void)
+    def doChecks(self):
+        # Look at all lumisections for each trigger for each run. Check which ones are behaving badly
+        for triggerName in self.TriggerList: # We may want to look at the triggers from somewhere else, but for now I assume this will work
+            for runNumber in self.allRates:
+                if self.predictionRec.has_key(triggerName):
+                    if self.allRates[runNumber].has_key(triggerName): # In case some run did not contain this trigger
+                        data = self.allRates[runNumber][triggerName]
+                        predList = self.predictionRec[triggerName]
+                        for LS, pred, err in predList:
+                            if data.has_key(LS): # In case this LS is missing
+                                if(abs(data[LS][0] - pred) > err):
+                                    if err != 0: errStr = str((data[LS][0]-pred)/err)
+                                    else: errStr = "inf"
+                                    #print "Run %s, Trigger %s, LS %s: %s" % (runNumber, triggerName, LS, errStr)
+                                    pass
         
 ## ----------- End of class RateMoniter ------------ #
