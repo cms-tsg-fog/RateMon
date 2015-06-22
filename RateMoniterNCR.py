@@ -285,6 +285,8 @@ class RateMoniter:
             # Set some stylistic settings for dataGraph
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
+            graphList[-1].SetFillColor(0)
+            graphList[-1].SetLineColor(0)
             graphList[-1].SetMarkerColor(self.colorList[counter % self.maxRuns]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(minIL, 1.1*maxIL)
@@ -304,6 +306,7 @@ class RateMoniter:
             legend.AddEntry(fitFunc, "Fit")
             fitFunc.Draw("same") # Draw the fit function on the same graph
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
+        legend.SetFillColor(0)
         legend.Draw() 
         canvas.Update()
         # Update root file
