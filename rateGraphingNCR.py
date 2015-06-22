@@ -2,7 +2,7 @@
 # File: rateGraphingNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: June 19, 2015 by Nathaniel Rupprecht
+# Last Modified: June 22, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -26,13 +26,14 @@ class MoniterController:
     # Default constructor for Moniter Controller class
     def __init__(self):
         self.rateMoniter = RateMoniter()
+        self.batchMode = False # Will not run rateMoniter in batch mode
 
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "All", "Raw", "Help", "useList", "noFit"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "Secondary", "All", "Raw", "Help", "useList", "noFit", "batch"])
         except:
             print "Error geting options. Exiting."
             return False
@@ -44,7 +45,12 @@ class MoniterController:
         
         # Process Options
         for label, op in opt:
-            if label == "--fitFile":
+            if label == "--Secondary":
+                self.rateMoniter.mode = True # Run in secondary mode
+                self.batchMode = True # Use batch mode
+                self.rateMoniter.outputOn = False
+                self.rateMoniter.maxRuns = 1 # Only do one run at a time
+            elif label == "--fitFile":
                 self.rateMoniter.fitFile = str(op)
                 print "Using fit file:", self.rateMoniter.fitFile
             elif label == "--runList" or label == "--runFile":
@@ -58,20 +64,30 @@ class MoniterController:
                 return False
             elif label == "--maxRuns":
                 self.rateMoniter.maxRuns = int(op)
+            elif label == "--maxBatches":
+                self.rateMoniter.maxBatches = int(op)
             elif label == "--All":
                 self.rateMoniter.processAll = True
             elif label == "--Raw":
                 self.rateMoniter.varY = "rawRate"
             elif label == "--saveName":
-                self.rateMoniter.saveName = str(op)
+                if not self.batchMode: # We do not allow a user defined save name in batch mode
+                    self.rateMoniter.saveName = str(op)
+                    self.rateMoniter.nameGiven = True
+                else:
+                    print "We do not allow a user defined save name while using batch or secondary mode."
             elif label == "--noFit":
                 self.rateMoniter.doFit = False
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
-                self.rateMoniter.useTrigList = False
+                self.rateMoniter.useTrigList = True
             elif label == "--useList":
                 # Depreciated (no longer necessary to use this with the --triggerList option)
                 self.rateMoniter.useTrigList = True
+            elif label == "--batch":
+                self.batchMode = True
+                self.rateMoniter.outputOn = False
+                self.rateMoniter.nameGiven = False # We do not allow a user defined save name in batch mode
             else:
                 print "Unknown option '%s'." % label
                 return False
@@ -114,7 +130,7 @@ class MoniterController:
     # Returns: (void)
     def printOptions(self):
         print ""
-        print "Usage: python rateMoniterNCR.py [Options] <list of runs (optional)>"
+        print "Usage: python rateGraphingNCR.py [Options] <list of runs (optional)>"
         print "<list of runs>        : Either single runs (like '10000') or ranges (like '10001-10003'). If you specified a file with a list of runs"
         print "                        in it, you do not need to specify runs on the command line. If you do both, they will simply be added to the "
         print "                        RateMoniter class's internal list of runs to process"
@@ -127,8 +143,11 @@ class MoniterController:
         print "--saveName=<name>     : Saves the root output as a file named <name>."
         print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs."
         print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
-        print "--All                 : Overrides the maximum number of runs and processes all runs in the run list"
+        print "--Secondary           : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
+        print "--All                 : Overrides the maximum number of runs and processes all runs in the run list."
         print "--noFit               : Does not load a fit file. Also, prints all possible triggers."
+        print "--batch               : Runs the program over all triggers in the trigger list in batches."
+        print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode"
         print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
@@ -193,8 +212,11 @@ class MoniterController:
     # Returns: (void)
     def run(self):
         if self.parseArgs():
-            self.rateMoniter.run()
-        
+            if self.batchMode:
+                self.rateMoniter.runBatch()
+            else:
+                self.rateMoniter.run()
+
 ## ----------- End of class MoniterController ------------ #
 
 ## ----------- Main -----------##

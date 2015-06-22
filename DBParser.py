@@ -71,13 +71,14 @@ class DBParser:
             print "Unable to get L1 and HLT keys for this run"
             pass
 
+    # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
     # -- runNumber: the number of the run that we want data for
-    # Returns: A list of of information for each LS: ( { LS, instLumi, deadTime } )
+    # Returns: A list of of information for each LS: ( { LS, instLumi } )
     def getLumiInfo(self, runNumber):
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
-        sqlquery="""SELECT LUMISECTION,INSTLUMI,DEADTIME
+        sqlquery="""SELECT LUMISECTION,INSTLUMI
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION""" % (runNumber)
 
@@ -165,14 +166,14 @@ class DBParser:
         for LS, L1Pass, PSPass, HLTPass, HLTExcept, triggerName in self.curs.fetchall():
             name = stripVersion(triggerName)
             
-            rate = HLTPass/23.3
-            hltps = 0
+            rate = HLTPass/23.3 # HLTPass is events in this LS, so divide by 23.3s to get rate
+            hltps = 0 # HLT Prescale
             
             if not TriggerRates.has_key(name):
                 TriggerRates[name] = {} # Initialize dictionary
-                
+            # TODO: We can probably come up with a better solution then a try, except here
             try:
-                psi = self.PSColumnByLS[LS]
+                psi = self.PSColumnByLS[LS] # Get the prescale index
             except:
                 psi = 0
             if psi is None: psi=0
