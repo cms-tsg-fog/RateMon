@@ -33,9 +33,9 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "noFit", "batch", "overrideBatch"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit"])
         except:
-            print "Error geting options. Exiting."
+            print "Error geting options: %s unrecognized. Exiting."
             return False
 
         if len(opt) == 0 and len(args) == 0:
@@ -50,6 +50,7 @@ class MoniterController:
                 self.batchMode = True # Use batch mode
                 self.rateMoniter.outputOn = False
                 self.rateMoniter.maxRuns = 1 # Only do one run at a time
+                self.rateMoniter.fit = False # We don't make fits in secondary mode
             elif label == "--fitFile":
                 self.rateMoniter.fitFile = str(op)
                 print "Using fit file:", self.rateMoniter.fitFile
@@ -78,8 +79,6 @@ class MoniterController:
                     self.rateMoniter.nameGiven = True
                 else:
                     print "We do not allow a user defined save name while using batch or secondary mode."
-            elif label == "--noFit":
-                self.rateMoniter.doFit = False
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
                 self.rateMoniter.useTrigList = True
@@ -90,8 +89,9 @@ class MoniterController:
                 self.batchMode = True
                 self.rateMoniter.outputOn = False
                 self.rateMoniter.nameGiven = False # We do not allow a user defined save name in batch mode
-            elif label == "overrideBatch":
-                pass
+            elif label == "--createFit":
+                if not self.rateMoniter.mode: self.rateMoniter.fit = True
+                else: print "We do not create fits in secondary mode"
             else:
                 print "Unknown option '%s'." % label
                 return False
@@ -149,10 +149,10 @@ class MoniterController:
         print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
         print "--Secondary           : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
         print "--All                 : Overrides the maximum number of runs and processes all runs in the run list."
-        print "--noFit               : Does not load a fit file. Also, prints all possible triggers."
         print "--batch               : Runs the program over all triggers in the trigger list in batches."
         print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
         print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
+        print "--createFit                 : Make a linear fit of the data we plot. Only a primary mode feature."
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"

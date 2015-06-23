@@ -57,6 +57,7 @@ class DBParser:
 
 
     # Note: This function is from DatabaseParse.py (with slight modification)
+    # Returns: True if we succeded, false if the run doesn't exist (probably)
     def getRunInfo(self, runNumber):
         ## This query gets the L1_HLT Key (A), the associated HLT Key (B) and the Config number for that key (C)
         KeyQuery = """
@@ -67,9 +68,10 @@ class DBParser:
         try:
             self.curs.execute(KeyQuery)
             self.L1_HLT_Key,self.HLT_Key,self.GTRS_Key,self.TSC_Key,self.ConfigId,self.GT_Key = self.curs.fetchone()
+            return True
         except:
             print "Unable to get L1 and HLT keys for this run"
-            pass
+            return False
 
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
@@ -128,7 +130,8 @@ class DBParser:
     # Returns: A dictionary [triggerName][LS] { raw rate, prescale } 
     def getRawRates(self, runNumber):
         # First we need the HLT and L1 prescale rates and the HLT seed info
-        self.getRunInfo(runNumber)
+        if not self.getRunInfo(runNumber):
+            return {} # The run probably doesn't exist
 
         # Get L1 info
         self.getL1Prescales(runNumber)
