@@ -2,7 +2,7 @@
 # File: rateGraphingNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: June 22, 2015 by Nathaniel Rupprecht
+# Last Modified: June 24, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -33,9 +33,9 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "saveDirectory=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter"])
         except:
-            print "Error geting options: %s unrecognized. Exiting."
+            print "Error geting options: command unrecognized. Exiting."
             return False
 
         if len(opt) == 0 and len(args) == 0:
@@ -79,6 +79,8 @@ class MoniterController:
                     self.rateMoniter.nameGiven = True
                 else:
                     print "We do not allow a user defined save name while using batch or secondary mode."
+            elif label == "--saveDirectory":
+                self.rateMoniter.saveDirectory = str(op)
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
                 self.rateMoniter.useTrigList = True
@@ -92,6 +94,8 @@ class MoniterController:
             elif label == "--createFit":
                 if not self.rateMoniter.mode: self.rateMoniter.fit = True
                 else: print "We do not create fits in secondary mode"
+            elif label == "--debugFitter":
+                self.rateMoniter.fitFinder.saveDebug = True
             else:
                 print "Unknown option '%s'." % label
                 return False
@@ -126,7 +130,7 @@ class MoniterController:
             return False
         # If no fit file was specified, don't try to make a fit
         if self.rateMoniter.fitFile == "":
-            self.rateMoniter.doFit = False
+            self.rateMoniter.useFit = False
 
         return True
 
@@ -145,20 +149,21 @@ class MoniterController:
         print "--runList=<name>      : Same as --runFile (see above)."
         print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
         print "--saveName=<name>     : Saves the root output as a file named <name>."
+        print "--saveDirectory=<name>: The name of a directory that we can save our file in. Useful for batch mode."
         print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
         print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
         print "--Secondary           : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
         print "--All                 : Overrides the maximum number of runs and processes all runs in the run list."
-        print "--batch               : Runs the program over all triggers in the trigger list in batches."
+        print "--batch               : Runs the program over all triggers in the trigger list in batches. Adjust maxRuns to set the number of runs per batch."
         print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
         print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
-        print "--createFit                 : Make a linear fit of the data we plot. Only a primary mode feature."
+        print "--createFit           : Make a linear fit of the data we plot. Only a primary mode feature."
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
         print ""
-        print "Program by Nathaniel Rupprecht, created June 16th 2015. For questions, email nrupprec@nd.edu"
+        print "Program by Nathaniel Rupprecht, created June 16th, 2015. For questions, email nrupprec@nd.edu"
 
     # Use: Opens a file containing a list of runs and adds them to the RateMoniter class's run list
     # Note: We do not clear the run list, this way we could add runs from multiple files to the run list
