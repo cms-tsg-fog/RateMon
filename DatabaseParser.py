@@ -913,7 +913,11 @@ class DatabaseParser:
             L1PSdict[counter]=line
             counter=counter+1
         for LS in LSRange:    
-            self.PSColumnByLS[LS]    
+            #self.PSColumnByLS[LS]    
+            try: #FIXME
+                self.PSColumnByLS[LS]
+            except:
+                print "No prescale column detected for LS", LS
 
         ###av ps dict
         L1PSbits={}    
@@ -921,7 +925,11 @@ class DatabaseParser:
             L1PSbits[bit]=0
         for bit in L1PSdict.iterkeys():
             for LS in LSRange:
-                L1PSbits[bit]=L1PSbits[bit]+L1PSdict[bit][self.PSColumnByLS[LS]]
+                try:
+                    pscol = self.PSColumnByLS[LS]
+                    L1PSbits[bit]=L1PSbits[bit]+L1PSdict[bit][pscol]
+                except:
+                    pass
         for bit in L1PSdict.iterkeys():
             L1PSbits[bit]=L1PSbits[bit]/len(LSRange)
         
