@@ -178,7 +178,10 @@ class RateMonConfig:
         ###L1SeedChangeFit    
         else:
             firstLS=min(HeadLumiRange)
-            psi=PSColumnByLS[firstLS]
+            try:
+                 psi=PSColumnByLS[firstLS]
+            except:
+                 return [0.0,0.0,"Exception error"]
 
             try:
                 sigma = InputPS[psi][TrigName][5]
