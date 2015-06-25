@@ -2,7 +2,7 @@
 # File: rateGraphingNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: June 24, 2015 by Nathaniel Rupprecht
+# Last Modified: June 25, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -27,13 +27,14 @@ class MoniterController:
     def __init__(self):
         self.rateMoniter = RateMoniter()
         self.batchMode = False # Will not run rateMoniter in batch mode
+        self.doAnyways = False # Will run in secondary mode even if there is no fit file
 
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "saveDirectory=", "sigmas=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -51,6 +52,7 @@ class MoniterController:
                 self.rateMoniter.outputOn = False
                 self.rateMoniter.maxRuns = 1 # Only do one run at a time
                 self.rateMoniter.fit = False # We don't make fits in secondary mode
+                self.rateMoniter.useFit = False # We don't plot a function, just a prediction
             elif label == "--fitFile":
                 self.rateMoniter.fitFile = str(op)
                 print "Using fit file:", self.rateMoniter.fitFile
@@ -69,6 +71,8 @@ class MoniterController:
                 self.rateMoniter.maxBatches = int(op)
             elif label == "--sigmas":
                 self.rateMoniter.sigmas = float(op)
+            elif label == "--preferLinear":
+                self.rateMoniter.fitFinder.preferLinear = float(op)
             elif label == "--All":
                 self.rateMoniter.processAll = True
             elif label == "--Raw":
@@ -79,6 +83,11 @@ class MoniterController:
                     self.rateMoniter.nameGiven = True
                 else:
                     print "We do not allow a user defined save name while using batch or secondary mode."
+            elif label == "--fitSaveName":
+                if not self.batchMode: # We do not allow a user defined fit save name in batch mode
+                    self.rateMoniter.outFitFile = str(op)
+                else:
+                    print "We do not allow a user defined fit save name while using batch or secondary mode"
             elif label == "--saveDirectory":
                 self.rateMoniter.saveDirectory = str(op)
             elif label == "--triggerList":
@@ -96,6 +105,14 @@ class MoniterController:
                 else: print "We do not create fits in secondary mode"
             elif label == "--debugFitter":
                 self.rateMoniter.fitFinder.saveDebug = True
+            elif label == "--doAnyways":
+                self.doAnyways = True
+            elif label == "--rawPoints":
+                self.rateMoniter.fitFinder.usePointSelection = False
+            elif label == "--linear":
+                self.rateMoniter.fitFinder.forceLinear
+            elif label == "--aLaMode":
+                self.aLaMode()
             else:
                 print "Unknown option '%s'." % label
                 return False
@@ -130,6 +147,11 @@ class MoniterController:
             return False
         # If no fit file was specified, don't try to make a fit
         if self.rateMoniter.fitFile == "":
+
+            if self.rateMoniter.mode and not self.doAnyways:
+                print "We require a fit file in secondary mode unless the --doAnyways flag is specified. Exiting."
+                exit(0)
+            
             self.rateMoniter.useFit = False
 
         return True
@@ -158,6 +180,9 @@ class MoniterController:
         print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
         print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
         print "--createFit           : Make a linear fit of the data we plot. Only a primary mode feature."
+        print "--debugFitter         : Creates a root file showing all the points labeled as good and bad when doing the fit"
+        print "--rawPoints           : Don't do point selection in making fits"
+        print "--linear              : Forces fits to be linear"
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
@@ -216,6 +241,22 @@ class MoniterController:
                     self.rateMoniter.TriggerList.append(str(triggerName))
             except:
                 print "Error parsing trigger name in file", fileName
+
+    def aLaMode(self):
+        print ""
+        print """        .-"''"-.   """
+        print "       /        \  "
+        print "       |        |  "
+        print "       /'---'--`\  "
+        print "      |          | "
+        print "      \.--.---.-./ "
+        print "      (_.--._.-._) "
+        print "        \=-=-=-/   "
+        print "         \=-=-/    "
+        print "          \=-/     "
+        print "           \/      "
+        print ""
+    
                                     
     # Use: Runs the rateMoniter object using parameters supplied as command line arguments
     # Returns: (void)
