@@ -2,9 +2,9 @@
 # File: RateMoniterNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: June 22, 2015 by Nathaniel Rupprecht
+# Last Modified: June 25, 2015 by Nathaniel Rupprecht
 #
-# Dependencies: DBParser.py
+# Dependencies: DBParser.py, FitFinder.py
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -23,8 +23,10 @@ import os
 import sys
 # Import the DB interface class
 from DBParser import *
+# From the fit finding class
+from FitFinder import *
 
-## ----------- End Imports ------------ #
+## ----------- End Imports ------------ ##
 
 # Class ErrorPrinter:
 # Has member variables representing the runs, triggers, and lumisections that were irregular.
@@ -83,8 +85,11 @@ class RateMoniter:
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the prescaled rate on the y axis
+
         self.saveName = ""       # A name that we save the root file as
+        self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
         self.nameGiven = False   # Whether a user defined name was given as the save name
+
         self.parser = DBParser() # A database parser
         self.lastRun = 0         # The last run in the run list that will be considered
         self.TriggerList = []    # The list of triggers to consider in plot-making 
@@ -92,10 +97,12 @@ class RateMoniter:
         self.makeErrFile = False # If true, we will write an error file
         self.errFileName = ""    # The name of the error file
         self.errFile = None      # A file to output errors to
+
         self.mode = False        # False -> Primary mode, True -> Secondary mode
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
-        self.sigmas = 2.0        # How many sigmas the error bars should be
+        self.sigmas = 3.0        # How many sigmas the error bars should be
+
         self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
         self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
         self.minStatistics = 10  # The minimum number of points that we will allow for a run and still consider it
@@ -103,16 +110,17 @@ class RateMoniter:
         self.InputFit = None     # The fit from the fit file that we open
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
+        self.fitFinder = FitFinder()  # A fit finder object
         
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
 
-        # self.doFit:
+        # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
         # If True, only triggers in the fit file will be considered, and the fit will be plotted
-        self.doFit = True                                 
+        self.useFit = True                                 
 
         # self.useTrigList
         # If False, modify self.triggerList as neccessary to include as many triggers as possible
@@ -132,7 +140,7 @@ class RateMoniter:
             print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
 
         # Info message
-        if not self.doFit and self.outputOn:
+        if not self.useFit and self.outputOn:
             print "Not plotting a fit."
             if not self.useTrigList:
                 print "Using all possible triggers."
@@ -147,26 +155,32 @@ class RateMoniter:
         else: self.lastRun = min( [self.offset + self.maxRuns, length] )
 
         self.runsToProcess = self.lastRun-self.offset
-        if self.runsToProcess > 1: plural = "s"
+        if self.runsToProcess > 1: plural = "s" # Get our grammar right
         else: plural = ""
 
         if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
-                    
+        
         minNum = min(self.runList[ self.offset : self.lastRun ])
         maxNum = max(self.runList[ self.offset : self.lastRun ])
-        
-        # File names and name templates
-        RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%scert.root"
-        self.outFitFile = "OutFit.pkl" ##**
-        if self.doFit: fitOpt = "Fitted"
-        else: fitOpt = "NoFit"
-        if not self.nameGiven: self.saveName = RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
 
         # If we are supposed to, get the fit, a dictionary: [ triggername ] [ ( fit parameters ) ]
-        if self.doFit:
+        if self.useFit or self.mode: # Always try to load a fit in secondary mode
             self.InputFit = self.loadFit()
             if not self.useTrigList: self.TriggerList = sorted(self.InputFit)
         
+        # File names and name templates
+        RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
+        if self.outFitFile=="": self.outFitFile = "HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+        if self.useFit or self.fit or (self.mode and not self.InputFit is None): fitOpt = "Fitted"
+        else: fitOpt = "NoFit"
+        if not self.nameGiven: self.saveName = RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
+
+        if self.saveDirectory != "": # Save in the right directory
+            if not os.path.exists(self.saveDirectory):
+                os.mkdir(self.saveDirectory)
+                print "Created the directory %s as it did not already exist." % (self.saveDirectory)
+            self.saveName = self.saveDirectory + "/" + self.saveName
+
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
 
@@ -176,9 +190,12 @@ class RateMoniter:
             try: self.errFile = open(self.errFileName, 'w')
             except: print "Could not open error file."
 
+        # If we are going to save fit find debug graph, delete any old ones
+        if self.fitFinder.saveDebug and os.path.exists("Debug.root"): os.remove("Debug.root")
+
     def runBatch(self):
         total = 0 # How many runs we have processed so far
-        count = 1
+        count = 1 # Iteration variable
         if not self.processAll: print "Batch size is %s." % (self.maxRuns) # Info message
         while total < len(self.runList) and (count <= self.maxBatches or self.processAll):
             print "Processing batch %s:" % (count)
@@ -219,7 +236,7 @@ class RateMoniter:
                         plottingData[triggerName] = {}
                     plottingData[triggerName][runNumber] = dataList[triggerName]
                 elif self.makeErrFile: # The trigger data was not taken from the DB or does not exist
-                    # This should not occur if doFit is false, all triggers should be processed
+                    # This should not occur if useFit is false, all triggers should be processed
                     message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                     self.errFile.write(message)
 
@@ -228,24 +245,28 @@ class RateMoniter:
             if counter == self.maxRuns and not self.processAll:
                 if self.outputOn: print "Truncating run list, final run:", runNumber,"\n"
                 break # Exit the loop
-
-        if self.outputOn: print "" # Print a newline
-        # We have all our data, now plot it
-        for triggerName in sorted(plottingData):
-            if self.doFit: fitparams = self.getFitParams(triggerName)
-            else: fitparams = None
-            self.graphAllData(plottingData[triggerName], fitparams, triggerName)
+            
         # If we are fitting the data
         if self.fit:
             self.findFit(plottingData)
-
+        if self.outputOn: print "" # Print a newline
+        
+        # We have all our data, now plot it
+        if self.useFit or (self.mode and not self.InputFit is None): fitparams = self.InputFit
+        elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
+        else: fitparams = None
+        for triggerName in sorted(plottingData):
+            if fitparams is None: fit = None
+            else: fit = fitparams[triggerName]
+            self.graphAllData(plottingData[triggerName], fit, triggerName)
         # Try to close the error file
         if self.makeErrFile:
             try:
                 self.errFile.close() # Close the error file
                 print "Error file saved to", self.errFileName # Info message
             except: print "Could not save error file."
-        # End message
+        if self.fitFinder.saveDebug:
+            print "Fit finder debug file saved to Debug.root.\n" # Info message
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run"
         if self.outputOn: print "" # Final newline for formatting
@@ -260,8 +281,8 @@ class RateMoniter:
         if Rates == {}: return {} # The run (probably) doesn't exist
         # If we are in primary mode, we need luminosity info
         if not self.mode: iLumi = self.parser.getLumiInfo(runNumber)
-        # Get the trigger list if doFit is false and we want to see all triggers (self.useTrigList is false)
-        if not self.doFit and not self.useTrigList:
+        # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
+        if not self.useFit and not self.useTrigList:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
@@ -323,39 +344,13 @@ class RateMoniter:
             dataList[triggerName] = [lumisecs, rawRate]
         return dataList
 
-    # Parameters:
-    # -- triggerName: the name of the trigger that we are examining at the moment
-    # Returns: A list of parameters { X0, X1, X2, X3, sigma, X0err }
-    def getFitParams(self, triggerName):
-        InputFit = self.InputFit # Alias
-        # The fit type is the first entry in InputFit
-        if not InputFit.has_key(triggerName):
-            print "Trigger "+triggerName+" not here"
-            return
-
-        FitType = InputFit[triggerName][0]
-
-        if FitType == "fit failed" or FitType == "parse failed" :
-            # We will get no useful fit out of this
-            print "Fit for" + triggerName + "experienced a failure" # Failure message
-            return [FitType, 0, 0, 0, 0, 0, 0]
-    
-        else:
-            X0 = InputFit[triggerName][1]
-            X1 = InputFit[triggerName][2]
-            X2 = InputFit[triggerName][3]
-            X3 = InputFit[triggerName][4]
-            sigma = InputFit[triggerName][5]*3 #Display 3 sigma band to show outliers more clearly
-            X0err= InputFit[triggerName][7]
-            return [FitType, X0, X1, X2, X3, sigma, X0err]
-
     # Use: Graphs the data from all runs and triggers onto graphs and saves them to the root file
     # Parameters:
     # -- plottingData: A dictionary [ run number ] { ( inst lumi's ), ( raw rates ) }
-    # -- paramList: An array [ fit type, X0, X1, X2, X3, ...##** ]
+    # -- paramlist: A tuple: { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err } 
     # -- triggerName: The name of the trigger that we are examining
     # Returns: (void)
-    def graphAllData(self, plottingData, paramList, triggerName):        
+    def graphAllData(self, plottingData, paramlist, triggerName):        
         # Find that max and min values
         maximumRR = array.array('f')
         maximumVals = array.array('f')
@@ -373,7 +368,6 @@ class RateMoniter:
         else: return
         if maxVal==0 or maxRR==0: # No good data
             return
-
         # Set axis names/units, create canvas
         if self.mode:
             xunits = "(LS)"
@@ -386,9 +380,10 @@ class RateMoniter:
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
 
-        if self.doFit and not paramList is None:
+        if (self.useFit or self.fit) and not paramlist is None:
             # Create the fit function. NOTE: We assume a linear fit was used
-            funcStr = "( %s + %s * x )" % (paramList[1], paramList[2])    
+            if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+            else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
             fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, maxVal)
         # Go through all runs and plot them
         counter = 0        
@@ -429,16 +424,16 @@ class RateMoniter:
             legend.AddEntry(graphList[-1], "Run %s" %(runNumber))
             counter += 1
 
-        if self.doFit and not paramList is None:
-            if self.mode:
+        if (self.useFit or self.fit or self.mode) and not paramlist is None:
+            if self.mode: # Secondary Mode
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 iLumi = self.parser.getLumiInfo(pickRun)
                 # iLumi is a list: ( { LS, instLumi } )
-                fitGraph = self.makeFitGraph(fitFunc, minVal, maxVal, maxRR, iLumi, triggerName)
-                fitGraph.Draw("P3")
+                fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName)
+                fitGraph.Draw("PZ3")
                 canvas.Update()
                 legend.AddEntry(fitGraph, "Fit (%s sigmas)" % (self.sigmas))
-            else:
+            else: # Primary Mode
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
@@ -466,18 +461,9 @@ class RateMoniter:
                 # Combine all data
                 instLumis += plottingData[triggerName][runNumber][0]
                 rawRates += plottingData[triggerName][runNumber][1]
-            
-            graph = TGraph(len(instLumis), instLumis, rawRates)
-            linear = TF1("fitFunc", "pol1", 0, 8000)
-            linear.SetParameter(0, 0)
 
-            result = graph.Fit(linear, "QNM", "rob=0.90")
-            # For consistency with the old program
-            sigma = 0
-            meanrawrate = 0
-            # Add fit info to the output fit
-            self.OutputFit[triggerName] = ["line", linear.GetParameter(0), linear.GetParameter(1), 0, 0, sigma, meanrawrate, linear.GetParError(0), linear.GetParError(1), 0, 0]
-
+            self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates)
+        # Save the fit
         self.saveFit()
 
     # Use: Save a fit to a file
@@ -489,28 +475,32 @@ class RateMoniter:
             
     # Use: Creates a graph of predicted raw rate vs lumisection data
     # Parameters:
-    # -- fitFunc: The fit function (a TF1)
+    # -- paramlist: A tuple of parameters { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err } 
     # -- minVal: The minimum LS
     # -- maxVal: The maximum LS
     # -- maxRR: The maximum raw rate (y value)
     # -- iLumi: A list: ( { LS, instLumi } )
     # -- triggerName: The name of the trigger we are making a fit for
     # Returns: A TGraph of predicted values
-    def makeFitGraph(self, fitFunc, minVal, maxVal, maxRR, iLumi, triggerName):
+    def makeFitGraph(self, paramlist, minVal, maxVal, maxRR, iLumi, triggerName):
         # Initialize our point arrays
         lumisecs = array.array('f')
         predictions = array.array('f')
         lsError = array.array('f')
         predError = array.array('f')
+        # Unpack values
+        type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err = paramlist
         # Create our point arrays
         for LS, ilum in iLumi:
             if not ilum is None:
                 lumisecs.append(LS)
-                rr = fitFunc.Eval( ilum )
+                # Either we have an exponential fit, or a polynomial fit
+                if type == "exp": rr = X0 + X1*math.exp(X2+X3*x)
+                else: rr = X0 + ilum*X1 + (ilum**2)*X2 + (ilum**3)*X3 # Maybe save some multiplications
                 if rr<0: rr=0 # Make sure prediction is non negative
                 predictions.append(rr)
                 lsError.append(0)
-                predError.append(self.sigmas*math.sqrt(rr))
+                predError.append(self.sigmas*sigma)
         # Record for the purpose of doing checks
         self.predictionRec[triggerName] = zip(lumisecs, predictions, predError) # Put these lists together into a list of triples
         # Set some graph options
@@ -573,4 +563,4 @@ class RateMoniter:
 
         eprint.outputErrors()
         
-## ----------- End of class RateMoniter ------------ #
+## ----------- End of class RateMoniter ------------ ##
