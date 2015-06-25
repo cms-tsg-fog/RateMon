@@ -2,7 +2,7 @@
 # File: FitFinder.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 23, 2015
-# Last Modified: June 24, 2015 by Nathaniel Rupprecht
+# Last Modified: June 25, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -24,48 +24,59 @@ from ROOT import TFile, TPaveText, TBrowser
 class FitFinder:
     # Default constructor for FitFinder class
     def __init__(self):
-        self.GraphNumber = 0    # How many graphs we have drawn (for debugging purposes)
-        self.lowLimitY = 0      # A guess at what the lower limit on what the y intercept could be
-        self.hightLimitY = 0    # A guess at what the upper limit on what the y intercept could be
-        self.guessY = 0         # Guess at the y intercept
-        self.nBins = 20         # The number of bins that we use in guessing the slope
-        self.nTrys = 15         # Number of y intercepts to try at
-        self.bottomSkim = 0.15  # Portion of points with low y values that get removed
-        self.topSkim = 0.0      # Portion of points with high y values that get removed
-        self.saveDebug = False  # If true, we save a debug plot showing included and excluded points
+        self.GraphNumber = 0          # How many graphs we have drawn (for debugging purposes)
+        self.lowLimitY = 0            # A guess at what the lower limit on what the y intercept could be
+        self.hightLimitY = 0          # A guess at what the upper limit on what the y intercept could be
+        self.guessY = 0               # Guess at the y intercept
+        self.nBins = 20               # The number of bins that we use in guessing the slope
+        self.nTrys = 15               # Number of y intercepts to try at
+        self.bottomSkim = 0.15        # Portion of points with low y values that get removed
+        self.topSkim = 0.0            # Portion of points with high y values that get removed
+        self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
+        self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
+        self.forceLinear = False      # If true, we only try a linear fit
+        self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
+
+        self.goodPoints = None        # List of good points (for debugging
+        self.badPoints = None         # List of bad points (for debugging)
+
+    # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
+    def findFit(self, xVals, yVals):
+        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
+        else: goodX, goodY = xVals, yVals
+
+        if self.forceLinear: self.findLinearFit(xVals, yVals)
+        else: return self.tryFits(goodX, goodY)
 
     # Use: Gets a binning index based on the coordinates of a point
     # Parameters:
-    # --x: An x value
-    # --y: A y value
+    # -- x: An x value
+    # -- y: A y value
     # Returns: An int in the range [0, nBins) 
     def getIndex(self, x, y):
         # The x-0.1 is to ensure that we never get an angle of exactly pi/2 or -pi/2
         return int(self.nBins * (math.atan2((y-self.guessY)/self.yRatio, (x+0.1)/self.xRatio)/math.pi+0.5))
 
-    # Use: Finds a linear fit for the data given to it
-    # Parameters:
-    # --xVals: A list of x values
-    # --yVals: A list of y values
-    # Returns: A tuple representing a fit: ["line", X0, X1, 0, 0, 0, 0, X0err, X1err, 0, 0] 
-    def findFit(self, xVals, yVals):
+    # Use: Determines which points are good and returns them
+    # Returns: A pair, { goodX, goodY }
+    def getGoodPoints(self, xVals, yVals):
         # Find some properties of the values
         length = len(xVals)
         maxX = max(xVals)
         maxY = max(yVals)
         aveY = sum(yVals)/length
-
+        
         # Initialize arrays
+        goodX = array.array('f')
+        goodY = array.array('f')
         if self.saveDebug:
-            goodX = array.array('f')
-            goodY = array.array('f')
             badX = array.array('f')
             badY = array.array('f')
-                
+            
         # Estimate y intercept
         sortY = sorted(zip(yVals,xVals))
         selectY = sortY[int(self.bottomSkim*len(sortY)) : int((1-self.topSkim)*len(sortY))] # Remove bottom 20% and top 10% of points
-
+        
         if self.saveDebug:
             for i in range(0, int(self.bottomSkim*len(sortY))): # Add lower points to badX, badY
                 badX.append(sortY[i][1])
@@ -73,17 +84,17 @@ class FitFinder:
             for i in range(int((1-self.topSkim)*len(sortY)), length): # Add upper points to badX, badY
                 badX.append(sortY[i][1])
                 badY.append(sortY[i][0])
-
+                
         # Reset points
         yVals, xVals = zip(*selectY)
         length = len(xVals)
         self.highLimitY = 1.5*aveY
         self.lowLimitY = -0.2*aveY
-
+        
         # Estimate slope
         self.xRatio = maxX   # x factor
         self.yRatio = 1.5*aveY # y factor
-
+        
         # Guess at a good y intercept and slope
         [bin, maxCount] = self.tryBins(xVals, yVals)
         
@@ -96,56 +107,28 @@ class FitFinder:
                 badX.append(xVals[count])
                 badY.append(yVals[count])
 
-        # The graph of good points that we will fit to
-        goodPoints = TGraph(len(goodX), goodX, goodY)
-
         if self.saveDebug:
-            canvas = TCanvas("Debug%s" % (self.GraphNumber), "y", 600, 600 )
             if len(goodX)>0:
+                goodPoints = TGraph(len(goodX), goodX, goodY)
                 goodPoints.SetMarkerStyle(7)
                 goodPoints.SetMarkerColor(3)
                 goodPoints.SetMaximum(1.2*max(yVals))
                 goodPoints.SetMinimum(0)
-                goodPoints.Draw("AP")
-                canvas.Update()
-                
+                self.goodPoints = goodPoints
             if len(badX)>0:
                 badPoints = TGraph(len(badX), badX, badY)
                 badPoints.SetMarkerStyle(7)
+                badPoints.SetMarkerColor(2)
                 badPoints.SetMaximum(1.2*max(yVals))
                 badPoints.SetMinimum(0)
-                badPoints.Draw("P")
-                canvas.Update()
-        
-        # Do the fit
-        fitFunc = TF1("fit", "pol1", 0, max(xVals)) # First order polynomial (linear)
-        result = goodPoints.Fit(fitFunc, "QNM", "rob=0.90")
-        
-        if self.saveDebug:
-            fitFunc.Draw("same")
-            canvas.Update()
-
-            if os.path.exists("Debug.root") and self.GraphNumber == 0:
-                os.remove("Debug.root")
-            file = TFile("Debug.root", "UPDATE")
-            self.GraphNumber += 1
-            canvas.Write()
-            file.Close()
-            
-        # For consistency with the old program
-        sigma = 0
-        meanrawrate = 0
-        # Add fit info to the output fit
-        OutputFit = ["line"]
-        OutputFit += [fitFunc.GetParameter(0), fitFunc.GetParameter(1), fitFunc.GetParameter(2), fitFunc.GetParameter(3)]
-        OutputFit += [sigma, meanrawrate, fitFunc.GetParError(0), fitFunc.GetParError(1), 0, 0]
-
-        return OutputFit
+                self.badPoints = badPoints
+                
+        return goodX, goodY
 
     # Use: Trys out a number of binnings to see which one captures the most data within a single bin
     # Parameters:
-    # --xVals: A list of x values
-    # --yVals: A list of y values
+    # -- xVals: A list of x values
+    # -- yVals: A list of y values
     # Returns: A tuple [ bin number, counts in that bin ] for the bin with the most counts for the guessY that results in a binning
     #          whose max bin has the most counts out of all max bins in all binnings tried
     def tryBins(self, xVals, yVals):
@@ -164,11 +147,11 @@ class FitFinder:
                 goodGuess = self.guessY
         self.guessY = goodGuess
         return [bin, maxCount]
-
+            
     # Use: Bins points according to their angle from self.guessY, finds which bin has the most points and how many points that is 
     # Parameters:
-    # --xVals: A list of x values
-    # --yVals: A list of y values
+    # -- xVals: A list of x values
+    # -- yVals: A list of y values
     # Returns: A tuple [ bin number, counts in that bin] for the bin in this binning with the most counts
     def binData(self, xVals, yVals):
         # Estimate slope
@@ -186,5 +169,116 @@ class FitFinder:
                 maxCount = binSlopes[i]
                 bin = i
         return [bin, maxCount]
+
+    # Use: Trys to fit the data to quadratic, cubic, and exponential fits
+    # Parameters:
+    # -- xVals: x values
+    # -- yVals: y values
+    # Returns: The best fit
+    def tryFits(self, xVals, yVals):
+        # Set up graph and functions
+        fitGraph = TGraph(len(xVals), xVals, yVals)
+        maxX = max(xVals)
+        linear = TF1("Linear Fit", "pol1", 0, maxX)
+        quad = TF1("Quad Fit", "pol2", 0, maxX)
+        cube = TF1("Cubic Fit", "pol3", 0, maxX)
+        exp = TF1("Exp Fit", "[0]+[1]*expo(2)", 0, maxX) # The syntax of the exponetial I got from DatabaseRatePredictor.py to maintain compatability
+
+        fitGraph = TGraph(len(xVals), xVals, yVals)
+        # Linear Fit
+        fitGraph.Fit(linear, "QNM", "rob=0.90")
+        linearMSE = self.getMSE(linear, xVals, yVals)
+        # Quadratic Fit
+        quad.SetParameters(linear.GetParameter(0), linear.GetParameter(1), 0) # Seed with the parameters from the linear fit
+        fitGraph.Fit(quad, "QNM", "rob=0.90")
+        quadMSE = self.getMSE(quad, xVals, yVals)
+        # Cubic Fit
+        cube.SetParameters(quad.GetParameter(0), quad.GetParameter(1), quad.GetParameter(2), 0) # Seed with the parameters from the quadratic fit
+        fitGraph.Fit(cube, "QNM", "rob=0.90")
+        cubeMSE = self.getMSE(cube, xVals, yVals)
+        # Exponential fit
+        fitGraph.Fit(exp, "QNM", "rob=0.90")
+        expMSE = self.getMSE(exp, xVals, yVals)
+
+        # Define lists for finding best fit
+        fitList = [linear, quad, cube, exp]
+        mseList = [linearMSE, quadMSE, cubeMSE, expMSE]
+        titleList = ["linear", "quad", "cube", "exp"]
+        minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
+
+        if (linearMSE-minMSE)/minMSE < self.preferLinear:
+            OutputFit = ["linear"]
+            OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
+            OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
+            return OutputFit
+
+        pickFit = ""
+        for i in range(0,4):
+            if minMSE == mseList[i]:
+                pickFit = fitList[i]
+                title = titleList[i]
+                break
+
+        # Save info to a debug graph (Debug.root)
+        if self.saveDebug:
+            canvas = TCanvas("Canvas%s" % (self.GraphNumber), "y", 1000, 700)
+            # Add a legend
+            legend = TLegend(0.8, 0.9, 1.0, 0.7)
+            legend.SetHeader("Fits:")
+            # Remove Debug.root if it already exists
+            if os.path.exists("Debug.root") and self.GraphNumber == 0:
+                os.remove("Debug.root")
+            self.GraphNumber += 1
+
+            # Make sure we did point skimming and created goodPoints and badPoints
+            if not self.goodPoints is None: # goodPoints and badPoints are created together, so we only need to check one
+                self.goodPoints.Draw("AP3")
+                self.badPoints.Draw("P3")
+                legend.AddEntry(self.goodPoints, "Good Points")
+                legend.AddEntry(self.badPoints, "Bad Points")
+            else:
+                fitGraph.SetMarkerColor(4)
+                fitGraph.SetMarkerStyle(7)
+                fitGraph.Draw("AP3")
+
+            count = 6 # Counting variable
+            for fit in fitList:  # Draw fits
+                legend.AddEntry(fit, titleList[count-6])
+                fit.SetLineColor(count)
+                fit.Draw("same")
+                canvas.Update()
+                count += 1
+
+            legend.Draw()
+            canvas.Update()
+            file = TFile("Debug.root", "UPDATE")
+            canvas.Write()
+            file.Close()
+        # Set output fit and return
+        OutputFit = [title]
+        OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), pickFit.GetParameter(2), pickFit.GetParameter(3)]
+        OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), pickFit.GetParError(2), pickFit.GetParError(3)]
+
+        return OutputFit
+
+    # Use: Gets the best linear fit of the data
+    # Returns: An output fit tuple
+    def findLinearFit(self, xVals, yVals):
+        linear = TF1("Linear Fit", "pol1", 0, maxX)
+        fitGraph = TGraph(len(xVals), xVals, yVals)
+        fitGraph.Fit(linear, "QNM", "rob=0.90")
+        linearMSE = self.getMSE(linear, xVals, yVals)
+        OutputFit = ["linear"]
+        OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), 0, 0]
+        OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), 0, 0]
+        return OutputFit
+        
+    # Use: Finds the root of the mean squared error of a fit
+    # Returns: The square root of the mean squared error
+    def getMSE(self, fitFunc, xVals, yVals):
+        mse = 0
+        for x,y in zip(xVals, yVals):
+            mse += (fitFunc.Eval(x) - y)**2
+        return math.sqrt(mse/len(xVals))
 
 ## ----------- End of class FitFinder ------------ ## 
