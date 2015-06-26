@@ -2,7 +2,7 @@
 # File: RateMoniterNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: June 25, 2015 by Nathaniel Rupprecht
+# Last Modified: June 26, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py
 #
@@ -462,7 +462,7 @@ class RateMoniter:
                 instLumis += plottingData[triggerName][runNumber][0]
                 rawRates += plottingData[triggerName][runNumber][1]
 
-            self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates)
+            self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates, triggerName)
         # Save the fit
         self.saveFit()
 
