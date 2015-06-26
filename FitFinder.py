@@ -2,7 +2,7 @@
 # File: FitFinder.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 23, 2015
-# Last Modified: June 25, 2015 by Nathaniel Rupprecht
+# Last Modified: June 26, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -41,12 +41,11 @@ class FitFinder:
         self.badPoints = None         # List of bad points (for debugging)
 
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
-    def findFit(self, xVals, yVals):
+    def findFit(self, xVals, yVals, name):
         if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
         else: goodX, goodY = xVals, yVals
-
         if self.forceLinear: self.findLinearFit(xVals, yVals)
-        else: return self.tryFits(goodX, goodY)
+        else: return self.tryFits(goodX, goodY, name)
 
     # Use: Gets a binning index based on the coordinates of a point
     # Parameters:
@@ -96,7 +95,7 @@ class FitFinder:
         self.yRatio = 1.5*aveY # y factor
         
         # Guess at a good y intercept and slope
-        [bin, maxCount] = self.tryBins(xVals, yVals)
+        bin, maxCount = self.tryBins(xVals, yVals)
         
         for count in range(0,length):
             index = self.getIndex(xVals[count], yVals[count])
@@ -175,14 +174,14 @@ class FitFinder:
     # -- xVals: x values
     # -- yVals: y values
     # Returns: The best fit
-    def tryFits(self, xVals, yVals):
+    def tryFits(self, xVals, yVals, name):
         # Set up graph and functions
         fitGraph = TGraph(len(xVals), xVals, yVals)
         maxX = max(xVals)
         linear = TF1("Linear Fit", "pol1", 0, maxX)
         quad = TF1("Quad Fit", "pol2", 0, maxX)
         cube = TF1("Cubic Fit", "pol3", 0, maxX)
-        exp = TF1("Exp Fit", "[0]+[1]*expo(2)", 0, maxX) # The syntax of the exponetial I got from DatabaseRatePredictor.py to maintain compatability
+        exp = TF1("Exp Fit", "[0]+[1]*expo", 0, maxX)
 
         fitGraph = TGraph(len(xVals), xVals, yVals)
         # Linear Fit
@@ -197,6 +196,7 @@ class FitFinder:
         fitGraph.Fit(cube, "QNM", "rob=0.90")
         cubeMSE = self.getMSE(cube, xVals, yVals)
         # Exponential fit
+        
         fitGraph.Fit(exp, "QNM", "rob=0.90")
         expMSE = self.getMSE(exp, xVals, yVals)
 
@@ -205,6 +205,8 @@ class FitFinder:
         mseList = [linearMSE, quadMSE, cubeMSE, expMSE]
         titleList = ["linear", "quad", "cube", "exp"]
         minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
+
+        if self.saveDebug: self.saveDebugGraph(fitList, titleList, name)
 
         if (linearMSE-minMSE)/minMSE < self.preferLinear:
             OutputFit = ["linear"]
@@ -218,42 +220,7 @@ class FitFinder:
                 pickFit = fitList[i]
                 title = titleList[i]
                 break
-
-        # Save info to a debug graph (Debug.root)
-        if self.saveDebug:
-            canvas = TCanvas("Canvas%s" % (self.GraphNumber), "y", 1000, 700)
-            # Add a legend
-            legend = TLegend(0.8, 0.9, 1.0, 0.7)
-            legend.SetHeader("Fits:")
-            # Remove Debug.root if it already exists
-            if os.path.exists("Debug.root") and self.GraphNumber == 0:
-                os.remove("Debug.root")
-            self.GraphNumber += 1
-
-            # Make sure we did point skimming and created goodPoints and badPoints
-            if not self.goodPoints is None: # goodPoints and badPoints are created together, so we only need to check one
-                self.goodPoints.Draw("AP3")
-                self.badPoints.Draw("P3")
-                legend.AddEntry(self.goodPoints, "Good Points")
-                legend.AddEntry(self.badPoints, "Bad Points")
-            else:
-                fitGraph.SetMarkerColor(4)
-                fitGraph.SetMarkerStyle(7)
-                fitGraph.Draw("AP3")
-
-            count = 6 # Counting variable
-            for fit in fitList:  # Draw fits
-                legend.AddEntry(fit, titleList[count-6])
-                fit.SetLineColor(count)
-                fit.Draw("same")
-                canvas.Update()
-                count += 1
-
-            legend.Draw()
-            canvas.Update()
-            file = TFile("Debug.root", "UPDATE")
-            canvas.Write()
-            file.Close()
+        
         # Set output fit and return
         OutputFit = [title]
         OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), pickFit.GetParameter(2), pickFit.GetParameter(3)]
@@ -281,4 +248,39 @@ class FitFinder:
             mse += (fitFunc.Eval(x) - y)**2
         return math.sqrt(mse/len(xVals))
 
+    def saveDebugGraph(self, fitList, titleList, name):
+        canvas = TCanvas("Debug_%s" % (name), "y", 1000, 700)
+        # Add a legend
+        legend = TLegend(0.8, 0.9, 1.0, 0.7)
+        legend.SetHeader("Fits:")
+        # Remove Debug.root if it already exists
+        if os.path.exists("Debug.root") and self.GraphNumber == 0:
+            os.remove("Debug.root")
+            self.GraphNumber += 1
+            
+        # Make sure we did point skimming and created goodPoints and badPoints
+        if not self.goodPoints is None: # goodPoints and badPoints are created together, so we only need to check one
+            self.goodPoints.Draw("AP3")
+            self.badPoints.Draw("P3")
+            legend.AddEntry(self.goodPoints, "Good Points")
+            legend.AddEntry(self.badPoints, "Bad Points")
+        else:
+            fitGraph.SetMarkerColor(4)
+            fitGraph.SetMarkerStyle(7)
+            fitGraph.Draw("AP3")
+            
+        count = 6 # Counting variable
+        for fit in fitList:  # Draw fits
+            legend.AddEntry(fit, titleList[count-6])
+            fit.SetLineColor(count)
+            fit.Draw("same")
+            canvas.Update()
+            count += 1
+            
+        legend.Draw()
+        canvas.Update()
+        file = TFile("Debug.root", "UPDATE")
+        canvas.Write()
+        file.Close()
+            
 ## ----------- End of class FitFinder ------------ ## 
