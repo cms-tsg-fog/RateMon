@@ -1068,9 +1068,9 @@ def DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls
             e_run_t.append(0.0)
             e_ls_t.append(0.0)
             e_ps_t.append(0.0)
-            e_inst_t.append(14.14) #0.05 * Rates[print_trigger]["inst_lumi"][iterator] / nCollidingBunches) #14.14
-            e_live_t.append(14.14) #0.05 * Rates[print_trigger]["live_lumi"][iterator] / nCollidingBunches) #14.14
-            e_delivered_t.append(14.14) #0.05 * Rates[print_trigger]["delivered_lumi"][iterator] / nCollidingBunches) #14.14
+            e_inst_t.append(0.05 * Rates[print_trigger]["inst_lumi"][iterator] / nCollidingBunches) #14.14
+            e_live_t.append(0.05 * Rates[print_trigger]["live_lumi"][iterator] / nCollidingBunches) #14.14
+            e_delivered_t.append(0.05 * Rates[print_trigger]["delivered_lumi"][iterator] / nCollidingBunches) #14.14
             e_deadtime_t.append(0.01)
             e_rawrate_t.append(math.sqrt(Rates[print_trigger]["rawrate"][iterator]/(num_ls*23.3)))
             e_rate_t.append(Rates[print_trigger]["ps"][iterator]*math.sqrt(Rates[print_trigger]["rawrate"][iterator]/(num_ls*23.3)))
