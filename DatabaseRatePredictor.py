@@ -43,6 +43,7 @@ def usage():
     print "--EndCap                             Mask LS with EndCap sys off, used in combination with other subsys"
     print "--Beam                               Mask LS with Beam off"
     print "--UseVersionNumbers                  Don't ignore path version numbers"
+    print "--LumiPerBunch                       Divide the instantaneous luminosity by the number of colliding bunches"
     print "--linear                             Force linear fits"
     print "--inst                               Make fits using instantaneous luminosity instead of delivered"
     print "--write                              Writes fit info into csv, for ranking nonlinear triggers"
@@ -62,7 +63,7 @@ def main():
         pickYear()
         
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","linear","inst","write","AllTriggers","UsePSCol="])
+            opt, args = getopt.getopt(sys.argv[1:],"",["makeFits","secondary","fitFile=","json=","TriggerList=","maxdt=","All","Mu","HCal","Tracker","ECal","EndCap","Beam","UseVersionNumbers","LumiPerBunch","linear","inst","write","AllTriggers","UsePSCol="])
             
         except getopt.GetoptError, err:
             print str(err)
@@ -109,6 +110,7 @@ def main():
         max_dt=-1.0
         subsys=-1.0
         NoVersion=True
+        useLumiPerBunch=False
         linear=False
         do_inst=False
         wp_bool=False
@@ -150,6 +152,8 @@ def main():
                 subsys=1
             elif o=="--UseVersionNumbers":
                 NoVersion=False
+            elif o=="--LumiPerBunch":
+                useLumiPerBunch=True
             elif o=="--linear":
                 linear=True
             elif o=="--inst":
@@ -325,19 +329,19 @@ def main():
         print " "
         L1SeedChangeFit=True
         ########  END PARAMETERS - CALL FUNCTIONS ##########
-        #[Rates,LumiPageInfo, L1_trig_list,nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit)
-        [Rates, LumiPageInfo, L1_trig_list, nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits)
+        #[Rates,LumiPageInfo, L1_trig_list,nps]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff,NoVersion,useLumiPerBunch,all_triggers, DoL1,UsePSCol,L1SeedChangeFit)
+        [Rates, LumiPageInfo, L1_trig_list, nps, nCollidingBunches]= GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, useLumiPerBunch, all_triggers, DoL1,UsePSCol,L1SeedChangeFit, save_fits)
         if DoL1:
             trig_list=L1_trig_list
         
-        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
+        MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print,SubSystemOff, print_info,NoVersion, nCollidingBunches, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps)
 
     except KeyboardInterrupt:
         print "Wait... come back..."
 
 
 #def GetDBRates(run_list,trig_name,trig_list, num_ls, max_dt, physics_active_psi,JSON,debug_print, force_new, SubSystemOff,NoVersion,all_triggers, DoL1,UsePSCol,L1SeedChangeFit):
-def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits):
+def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_psi, JSON, debug_print, force_new, SubSystemOff, NoVersion, useLumiPerBunch, all_triggers, DoL1,UsePSCol, L1SeedChangeFit, save_fits):
     nps = 0
     Rates = {}
     LumiPageInfo={}
@@ -454,6 +458,15 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                 RefMoreLumiArray = RefParser.GetMoreLumiInfo()#dict with keys as bits from lumisections WBM page and values are dicts with key=LS:value=bit
                 L1HLTseeds=RefParser.GetL1HLTseeds()
                 HLTL1PS=RefParser.GetL1PSbyseed()
+                
+                # Get Number of Colliding Bunches
+                nCollidingBunches = 1
+                if useLumiPerBunch:
+                    nCollidingBunches = RefParser.GetNuberCollidingBunches()
+                    print "Number of colliding bunches in run", RefParser.RunNumber, ":", nCollidingBunches
+                    if nCollidingBunches <= 0 or nCollidingBunches!=nCollidingBunches:
+                        nCollidingBunches = 1
+                
                 ###Add all triggers to list if all trigger
                 try:
                     TriggerRatesCheck = RefParser.GetHLTRates([1])##just grab from 1st LS
@@ -521,10 +534,11 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                 #print HLTL1_seedchanges
                 #print "nps=",nps
                 #print "Run "+str(RefRunNum)+" contains LS from "+str(min(LSRange))+" to "+str(max(LSRange))
+                
                 for nls in sorted(LSRange.iterkeys()):
                     TriggerRates = RefParser.GetHLTRates(LSRange[nls])
                     #L1Rate=RefParser.GetDeadTimeBeamActive(LSRange[nls])
-
+                    
                     ## Clumsy way to append Stream A. Should choose correct method for calculating stream a based on ps column used in data taking.
 
                     if ('HLT_Stream_A' in trig_list) or all_triggers:
@@ -564,8 +578,8 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         if RefLumiArray[0][iterator] < psi:
                             psi = RefLumiArray[0][iterator]
 
-                    if inst < 0 or live < 0 or delivered < 0:
-                        print "Run "+str(RefRunNum)+" LS "+str(nls)+" inst lumi = "+str(inst)+" live lumi = "+str(live)+", delivered = "+str(delivered)+", physics = "+str(physics)+", active = "+str(active)
+                    if inst < 0 or live < 0 or delivered < 0 or nCollidingBunches<0:
+                        print "Run "+str(RefRunNum)+" LS "+str(nls)+" inst lumi = "+str(inst)+" live lumi = "+str(live)+", ncollbunches = "+str(nCollidingBunches)+" delivered = "+str(delivered)+", physics = "+str(physics)+", active = "+str(active)
                     
                     LumiPageInfo[nls] = LumiRangeGreens(RefMoreLumiArray,LSRange,nls,RefRunNum,deadtimebeamactive)
 
@@ -601,6 +615,7 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                             Rates[name]["L1seedchange"]=[]
                             
                         [avps, ps, rate, psrate] = TriggerRates[key]
+                        
                         Rates[name]["run"].append(RefRunNum)
                         Rates[name]["ls"].append(nls)
                         Rates[name]["ps"].append(ps)
@@ -628,6 +643,8 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
                         Rates[name]["active"].append(active)
                         Rates[name]["psi"].append(psi)
                         
+                        
+                        
     RateOutput = open(RefRunFile, 'wb') ##Save new Rates[] to RefRuns
     pickle.dump(Rates, RateOutput, 2)
     RateOutput.close()
@@ -635,9 +652,9 @@ def GetDBRates(run_list, trig_name, trig_list, num_ls, max_dt, physics_active_ps
     pickle.dump(LumiPageInfo,LumiOutput, 2)
     LumiOutput.close()
     
-    return [Rates,LumiPageInfo,trig_list,nps]
+    return [Rates,LumiPageInfo,trig_list,nps,nCollidingBunches]
 
-def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
+def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_rate, max_dt, print_table, data_clean, plot_properties, masked_triggers, save_fits, debug_print, SubSystemOff, print_info,NoVersion, nCollidingBunches,linear, do_inst,wp_bool,all_triggers,L1SeedChangeFit,nps):
     
     [min_run, max_run, priot, InputFit, OutputFit, OutputFitPS, failed_paths, first_trigger, varX, varY, do_fit, save_root, save_png, fit_file, RootNameTemplate, RootFile, InputFitPS]=InitMakePlots(run_list, trig_name, num_ls, plot_properties, nps, L1SeedChangeFit)
     ##modify for No Version and check the trigger list
@@ -690,7 +707,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                 #print print_trigger, "No data for",PSColslist
                 continue
         
-            AllPlotArrays=DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger)
+            AllPlotArrays=DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger, nCollidingBunches)
             [VX, VXE, x_label, VY, VYE, y_label, VF, VFE] = GetVXVY(plot_properties, fit_file, AllPlotArrays, L1SeedChangeFit)
 
             print "PSColslist = ",PSColslist
@@ -700,7 +717,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                     for PSI in PSColslist:
                         if not OutputFitPS[PSI][print_trigger]:
                             OutputFitPS[PSI][print_trigger]=OutputFit[print_trigger]
-                print meanrawrate,OutputFit[print_trigger]
+                #print meanrawrate,OutputFit[print_trigger]
             ####defines gr1 and failure if no graph in OutputFit ####
             defgrapass = False
             if len(VX) > 0:
@@ -718,7 +735,7 @@ def MakePlots(Rates, LumiPageInfo, run_list, trig_name, trig_list, num_ls, min_r
                 ###output fit params
                 else:    
                     [OutputFit,first_trigger, failed_paths]=output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist)
-                    print "OutputFit == ",OutputFit
+                    #print "OutputFit == ",OutputFit
             if do_fit:        
                 for PSI in PSColslist:
                     if not OutputFitPS[PSI][print_trigger]:
@@ -997,7 +1014,7 @@ def GetFit(do_fit, InputFit, failed_paths, print_trigger, num_ls, L1SeedChangeFi
     return [fitparams, passed, failed_paths, fitparamsPS]        
 
 ## we are 2 lumis off when we start! -gets worse when we skip lumis
-def DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger):
+def DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls, LumiPageInfo, SubSystemOff, max_dt, print_info, trig_list, do_fit, do_inst, debug_print, fitparams, fitparamsPS, L1SeedChangeFit, PSColslist, first_trigger, nCollidingBunches):
 
     ###init arrays ###
     [run_t,ls_t,ps_t,inst_t,live_t,delivered_t,deadtime_t,rawrate_t,rate_t,rawxsec_t,xsec_t,psi_t,e_run_t,e_ls_t,e_ps_t,e_inst_t,e_live_t,e_delivered_t,e_deadtime_t,e_rawrate_t,e_rate_t,e_rawxsec_t,e_xsec_t,e_psi_t,rawrate_fit_t,rate_fit_t,rawxsec_fit_t,xsec_fit_t,e_rawrate_fit_t,e_rate_fit_t,e_rawxsec_fit_t,e_xsec_fit_t] = MakePlotArrays()
@@ -1038,9 +1055,9 @@ def DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls
             run_t.append(Rates[print_trigger]["run"][iterator])
             ls_t.append(Rates[print_trigger]["ls"][iterator])
             ps_t.append(Rates[print_trigger]["ps"][iterator])
-            inst_t.append(Rates[print_trigger]["inst_lumi"][iterator])
-            live_t.append(Rates[print_trigger]["live_lumi"][iterator])
-            delivered_t.append(Rates[print_trigger]["delivered_lumi"][iterator])
+            inst_t.append(Rates[print_trigger]["inst_lumi"][iterator] / nCollidingBunches)
+            live_t.append(Rates[print_trigger]["live_lumi"][iterator] / nCollidingBunches)
+            delivered_t.append(Rates[print_trigger]["delivered_lumi"][iterator] / nCollidingBunches)
             deadtime_t.append(Rates[print_trigger]["deadtime"][iterator])
             rawrate_t.append(Rates[print_trigger]["rawrate"][iterator])
             rate_t.append(Rates[print_trigger]["rate"][iterator])
@@ -1051,9 +1068,9 @@ def DoAllPlotArrays(Rates, print_trigger, run_list, data_clean, meanxsec, num_ls
             e_run_t.append(0.0)
             e_ls_t.append(0.0)
             e_ps_t.append(0.0)
-            e_inst_t.append(14.14)
-            e_live_t.append(14.14)
-            e_delivered_t.append(14.14)
+            e_inst_t.append(0.05 * Rates[print_trigger]["inst_lumi"][iterator] / nCollidingBunches) #14.14
+            e_live_t.append(0.05 * Rates[print_trigger]["live_lumi"][iterator] / nCollidingBunches) #14.14
+            e_delivered_t.append(0.05 * Rates[print_trigger]["delivered_lumi"][iterator] / nCollidingBunches) #14.14
             e_deadtime_t.append(0.01)
             e_rawrate_t.append(math.sqrt(Rates[print_trigger]["rawrate"][iterator]/(num_ls*23.3)))
             e_rate_t.append(Rates[print_trigger]["ps"][iterator]*math.sqrt(Rates[print_trigger]["rawrate"][iterator]/(num_ls*23.3)))
@@ -1664,7 +1681,7 @@ def more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates):
     return [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte, passed]
     
 def output_fit_info(do_fit,f1a,f1b,f1c,f1d,f1f,varX,varY,VX,VY,linear,print_trigger,first_trigger,Rates,width,chioffset,wp_bool,num_ls,meanrawrate,OutputFit, failed_paths, PSColslist, dummyPSColslist):
-    print "calling out_fit_info"
+    #print "calling out_fit_info"
     [f1a_Chi2, f1b_Chi2, f1c_Chi2,f1d_Chi2,f1f_Chi2, f1a_BadMinimum, f1b_BadMinimum, f1c_BadMinimum, meanps, av_rte,passed]=more_fit_info(f1a,f1b,f1c,f1d,f1f,VX,VY,print_trigger,Rates)
     OutputFit[print_trigger] = {}
 
@@ -1739,7 +1756,7 @@ def graph_output_info(graph1,graph_fit_type,print_trigger,width,num_ls,VX, VY,me
     do_high_lumi = print_trigger.startswith('HLT_') and ((len(dummyPSColslist)==1 or ( max(PSColslist)>=5 and min(PSColslist)==3) ))
     sigma = CalcSigma(VX, VY, graph1, do_high_lumi)*math.sqrt(num_ls)
     OutputFit[print_trigger] = [graph_fit_type, graph1.GetParameter(0) , graph1.GetParameter(1) , graph1.GetParameter(2) ,graph1.GetParameter(3) , sigma , meanrawrate, graph1.GetParError(0) , graph1.GetParError(1) , graph1.GetParError(2) , graph1.GetParError(3)]
-    print "OutputFit = ",OutputFit
+    #print "OutputFit = ",OutputFit
     return [graph1,OutputFit]
 
 def DrawFittedCurve(f1a, f1b,f1c, f1d, f1f, chioffset,do_fit,c1,VX,VY,print_trigger,Rates):
@@ -1798,13 +1815,14 @@ def EndMkrootfile(failed_paths, save_fits, save_root, fit_file, RootFile, Output
         if os.path.exists(PSfitfile):
             os.remove(PSfitfile)
         FitOutputFilePS= open(PSfitfile, 'wb')
-        print PSfitfile," = ",OutputFitPS
+        #print PSfitfile," = ",OutputFitPS
         pickle.dump(OutputFitPS,FitOutputFilePS,2)
         FitOutputFilePS.close()
 
 ##### NEED BETTER gr1 def for failure#####
 def DefineGraphs(print_trigger,OutputFit,do_fit,varX,varY,x_label,y_label,VX,VY,VXE,VYE,VF,VFE,fit_file, failed_paths,PSColslist):
     passed=1
+    
     try:
         gr1 = TGraphErrors(len(VX), VX, VY, VXE, VYE)
         
