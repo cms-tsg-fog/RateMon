@@ -2,7 +2,7 @@
 # File: rateGraphingNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: June 25, 2015 by Nathaniel Rupprecht
+# Last Modified: July 6, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -34,7 +34,7 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "aLaMode"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "lumiPerBunch", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -53,6 +53,7 @@ class MoniterController:
                 self.rateMoniter.maxRuns = 1 # Only do one run at a time
                 self.rateMoniter.fit = False # We don't make fits in secondary mode
                 self.rateMoniter.useFit = False # We don't plot a function, just a prediction
+                self.rateMoniter.divByBunches = False # We don't divide the LS by the # of bunches
             elif label == "--fitFile":
                 self.rateMoniter.fitFile = str(op)
                 print "Using fit file:", self.rateMoniter.fitFile
@@ -111,6 +112,9 @@ class MoniterController:
                 self.rateMoniter.fitFinder.usePointSelection = False
             elif label == "--linear":
                 self.rateMoniter.fitFinder.forceLinear
+            elif label == "--lumiPerBunch":
+                if not self.rateMoniter.mode:
+                    self.rateMoniter.divByBunches = True
             elif label == "--aLaMode":
                 self.aLaMode()
             else:
@@ -183,6 +187,7 @@ class MoniterController:
         print "--debugFitter         : Creates a root file showing all the points labeled as good and bad when doing the fit"
         print "--rawPoints           : Don't do point selection in making fits"
         print "--linear              : Forces fits to be linear"
+        print "--lumiPerBunch        : Divides the instantaneous luminosity by the number of colliding bunches."
         print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
