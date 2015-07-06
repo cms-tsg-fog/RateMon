@@ -28,6 +28,7 @@ class FitFinder:
         self.lowLimitY = 0            # A guess at what the lower limit on what the y intercept could be
         self.hightLimitY = 0          # A guess at what the upper limit on what the y intercept could be
         self.guessY = 0               # Guess at the y intercept
+        self.guessX = 0               # An x value to do the binning at
         self.nBins = 20               # The number of bins that we use in guessing the slope
         self.nTrys = 15               # Number of y intercepts to try at
         self.bottomSkim = 0.15        # Portion of points with low y values that get removed
@@ -54,7 +55,7 @@ class FitFinder:
     # Returns: An int in the range [0, nBins) 
     def getIndex(self, x, y):
         # The x-0.1 is to ensure that we never get an angle of exactly pi/2 or -pi/2
-        return int(self.nBins * (math.atan2((y-self.guessY)/self.yRatio, (x+0.1)/self.xRatio)/math.pi+0.5))
+        return int(self.nBins * (math.atan2((y-self.guessY)/self.yRatio, (x-self.guessX)/self.xRatio)/math.pi+0.5))
 
     # Use: Determines which points are good and returns them
     # Returns: A pair, { goodX, goodY }
@@ -88,11 +89,12 @@ class FitFinder:
         yVals, xVals = zip(*selectY)
         length = len(xVals)
         self.highLimitY = 1.5*aveY
-        self.lowLimitY = -0.2*aveY
+        self.lowLimitY = -0.5*aveY
         
         # Estimate slope
-        self.xRatio = maxX   # x factor
-        self.yRatio = 1.5*aveY # y factor
+        self.xRatio = max([maxX,1])     # x factor
+        self.yRatio = max([1.5*aveY,1]) # y factor
+        self.guessX = min(xVals) - 0.1  # Minimum x value
         
         # Guess at a good y intercept and slope
         bin, maxCount = self.tryBins(xVals, yVals)
@@ -206,9 +208,9 @@ class FitFinder:
         titleList = ["linear", "quad", "cube", "exp"]
         minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
 
-        if self.saveDebug: self.saveDebugGraph(fitList, titleList, name)
+        if self.saveDebug and self.usePointSelection: self.saveDebugGraph(fitList, titleList, name)
 
-        if (linearMSE-minMSE)/minMSE < self.preferLinear:
+        if minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear:
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
             OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
