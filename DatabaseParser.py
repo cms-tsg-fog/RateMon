@@ -1144,7 +1144,23 @@ class DatabaseParser:
                 AvLumiRange = AvLumiRange[1:]
                 AvLumiTable[ls] = sum(AvLumiRange)/NMergeLumis
         return AvLumiTable
+    
+    def GetNuberCollidingBunches(self):
+        # Get Fill number first
+        sqlquery = """SELECT LHCFILL FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER=%s""" % (self.RunNumber,)
+        self.curs.execute(sqlquery)
+        result = self.curs.fetchall()
+        fill = result[0][0]
         
+        # Get the number of colliding bunches
+        sqlquery = """SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s""" % (fill,)
+        self.curs.execute(sqlquery)
+        result = self.curs.fetchall()
+        nb = result[0][1] # FIXME set [0][0]
+        
+        return nb
+    
+    
     def GetTriggerVersion(self,triggerName):
         for key in self.HLTSeed.iterkeys():
             if StripVersion(key)==triggerName:
