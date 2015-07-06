@@ -2,7 +2,7 @@
 # DB.py
 # Author: Nathaniel Carl Rupprecht
 # Date: June 11, 2015
-# Last Modified: June 23, 2015
+# Last Modified: July 6, 2015
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -394,6 +394,23 @@ class DBParser:
             lastSeq=seq
             lastIndex=index
             row.append(val)
+
+    # Note: This is a function from DatabaseParser.py (with slight modification)
+    # Use: Gets the number of colliding bunches during a run
+    def getNumberCollidingBunches(self, runNumber):
+        # Get Fill number first
+        sqlquery = "SELECT LHCFILL FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER=%s" % (runNumber)
+        self.curs.execute(sqlquery)
+        fill = self.curs.fetchall()[0][0]
+        
+        # Get the number of colliding bunches
+        sqlquery = "SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s" % (fill)
+        self.curs.execute(sqlquery)
+        bunches = self.curs.fetchall()[0][1]  # < FIXME set [0][0] > (note is from the origional program
+        if bunches is None:
+            bunches = 1
+            print "Bunches returned None. Setting to 1."
+        return bunches
 
     # Use: Gets the dead time as a function of lumisection
     # Returns: A dictionary: [ LS ] <Deadtime>

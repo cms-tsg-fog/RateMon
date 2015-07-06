@@ -2,7 +2,7 @@
 # File: RateMoniterNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: June 26, 2015 by Nathaniel Rupprecht
+# Last Modified: July 6, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py
 #
@@ -111,6 +111,8 @@ class RateMoniter:
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
         self.fitFinder = FitFinder()  # A fit finder object
+        self.divByBunches = False     # If true, we divide by the number of colliding bunches
+        self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
@@ -134,7 +136,8 @@ class RateMoniter:
         length = len(self.runList)
         if self.mode: self.varX = "LS" # We are in secondary mode
         if self.processAll: offset = 0 # Override any offset
-        
+        # Reset self.savedAFile
+        self.savedAFile = False
         # Make sure we have enough color options
         if len(self.colorList) < self.maxRuns or self.processAll and self.outputOn:
             print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
@@ -227,7 +230,11 @@ class RateMoniter:
                 # The run does not exist (or some other critical error occured)
                 print "Fatal error for run %s, moving on." % (runNumber) # Info message
                 continue
-            
+            # Get number of bunches (if requested)
+            if self.divByBunches:
+                self.bunches = self.parser.getNumberCollidingBunches(runNumber)
+                print "Run %s has %s bunches." % (runNumber, self.bunches)
+                
             # Make plots for each trigger 
             for triggerName in self.TriggerList:
                 if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
@@ -265,7 +272,7 @@ class RateMoniter:
                 self.errFile.close() # Close the error file
                 print "Error file saved to", self.errFileName # Info message
             except: print "Could not save error file."
-        if self.fitFinder.saveDebug:
+        if self.fitFinder.saveDebug and self.fitFinder.usePointSelection:
             print "Fit finder debug file saved to Debug.root.\n" # Info message
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run"
@@ -322,7 +329,8 @@ class RateMoniter:
             rawRate = array.array('f')
             for LS, ilum in iLumi:
                 if Rates[triggerName].has_key(LS) and not ilum is None:
-                    iLuminosity.append(ilum)           # Add the instantaneous luminosity for this LS
+                    # If we want to divide the inst lumi by number of bunches, we do that here
+                    iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
                     rawRate.append(Rates[triggerName][LS][0]) # Add the correspoinding raw rate
                 else: pass
             dataList[triggerName] = [iLuminosity, rawRate]
@@ -357,9 +365,10 @@ class RateMoniter:
         minimumVals = array.array('f')
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
-            maximumRR.append(max(plottingData[runNumber][1]))
-            maximumVals.append(max(plottingData[runNumber][0]))
-            minimumVals.append(min(plottingData[runNumber][0]))
+            if len(plottingData[runNumber][0]) > 0: # It can happen that this is not true, though I'm not sure how
+                maximumRR.append(max(plottingData[runNumber][1]))
+                maximumVals.append(max(plottingData[runNumber][0]))
+                minimumVals.append(min(plottingData[runNumber][0]))
         if len(maximumRR) > 0: maxRR = max(maximumRR)
         else: return
         if len(maximumVals) > 0:
@@ -376,6 +385,8 @@ class RateMoniter:
             xunits = "(10^{30} Hz/cm^{2})"
             nameX = "Instantaneous Luminosity"
         nameY = "Raw Rate"
+        if self.divByBunches :
+            nameX += "/ (num colliding bunches)"
         yunits = "(HZ)"
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
@@ -399,6 +410,9 @@ class RateMoniter:
         maxLS = 0
         for runNumber in plottingData:
             numLS = len(plottingData[runNumber][0])
+
+            if numLS == 0: continue
+            
             # See if this run has more LS's then the previous runs
             if numLS > maxLS:
                 maxLS = numLS
