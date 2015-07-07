@@ -2,7 +2,7 @@
 # File: RateMoniterNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 6, 2015 by Nathaniel Rupprecht
+# Last Modified: July 7, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py
 #
@@ -106,7 +106,7 @@ class RateMoniter:
         self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
         self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
         self.minStatistics = 10  # The minimum number of points that we will allow for a run and still consider it
-        self.fit = False         # If true, we fit the data to a linear fit function
+        self.fit = False         # If true, we fit the data to fit functions
         self.InputFit = None     # The fit from the fit file that we open
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
@@ -118,6 +118,11 @@ class RateMoniter:
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
+
+        # Steam Compair
+        self.steam = True       # If true, we plot a steam prediction
+        self.steamFile = "SteamData.csv"      # The csv file with the steam data
+        self.steamData = {}      # Steam Data, gotten from the steam file
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -142,7 +147,10 @@ class RateMoniter:
         if len(self.colorList) < self.maxRuns or self.processAll and self.outputOn:
             print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
 
-        # Info message
+        # Make a fit of the data
+        if self.steam:
+            self.fit = True
+        
         if not self.useFit and self.outputOn:
             print "Not plotting a fit."
             if not self.useTrigList:
@@ -257,7 +265,10 @@ class RateMoniter:
         if self.fit:
             self.findFit(plottingData)
         if self.outputOn: print "" # Print a newline
-        
+
+        # Get our steam data
+        if self.steam:
+            self.loadSteamData()
         # We have all our data, now plot it
         if self.useFit or (self.mode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
@@ -392,7 +403,7 @@ class RateMoniter:
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
 
         if (self.useFit or self.fit) and not paramlist is None:
-            # Create the fit function. NOTE: We assume a linear fit was used
+            # Create the fit function.
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
             else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
             fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, maxVal)
@@ -410,9 +421,7 @@ class RateMoniter:
         maxLS = 0
         for runNumber in plottingData:
             numLS = len(plottingData[runNumber][0])
-
             if numLS == 0: continue
-            
             # See if this run has more LS's then the previous runs
             if numLS > maxLS:
                 maxLS = numLS
@@ -437,8 +446,20 @@ class RateMoniter:
             canvas.Update()
             legend.AddEntry(graphList[-1], "Run %s" %(runNumber))
             counter += 1
-
-        if (self.useFit or self.fit or self.mode) and not paramlist is None:
+        # There is steam data to use, and we should use it
+        if self.steam and self.steamData and self.steamData.has_key(triggerName):
+            try:
+                Xval = array.array('f'); Xval.append(3000) # Steam data point is at 3E33 Hz/cm^2
+                Yval = array.array('f'); Yval.append(float(self.steamData[triggerName][0]))
+                Xerr = array.array('f'); Xerr.append(0.0)
+                Yerr = array.array('f'); Yerr.append(float(self.steamData[triggerName][1]))
+                steamGraph = TGraphErrors(1, Xval, Yval)
+                steamGraph.SetMarkerStyle(3)
+                steamGraph.SetMarkerSize(3)
+                steamGraph.SetMarkerColor(2)
+                steamGraph.Draw("P")
+            except: pass # Sometimes, this might fail if there are two items seperated by commas in the Group column
+        if (self.useFit or self.fit or self.mode or self.steam) and not paramlist is None:
             if self.mode: # Secondary Mode
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 iLumi = self.parser.getLumiInfo(pickRun)
@@ -450,6 +471,7 @@ class RateMoniter:
             else: # Primary Mode
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
+
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
         legend.SetFillColor(0)
         legend.Draw() 
@@ -542,9 +564,28 @@ class RateMoniter:
             pkl_file.close()
         except:
             # File failed to open
-            print "ERROR: could not open fit file: %s" % (fitFile)
+            print "ERROR: could not open fit file: %s" % (self.fitFile)
             exit(2)
         return InputFit
+
+    # Use: Loads the data from a steam created google doc (downloaded to a .csv file)
+    def loadSteamData(self):
+        try:
+            # Assume the group column has been deleted
+            steam_file = open(self.steamFile, 'rb')
+            count = 0
+            for line in steam_file:
+                if count < 2:
+                    count += 1
+                    continue
+                tuple = line.split(',')
+                triggerName = stripVersion(tuple[0])
+                if not self.steamData.has_key(triggerName):
+                    self.steamData[triggerName] = [tuple[1], tuple[3]]
+            steam_file.close()
+        except:
+            # File failed to open
+            print "ERROR: could not open steam file:", self.steamFile
 
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
     # Returns: (void)
