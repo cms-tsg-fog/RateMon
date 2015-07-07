@@ -2,7 +2,7 @@
 # File: rateGraphingNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: July 6, 2015 by Nathaniel Rupprecht
+# Last Modified: July 7, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -34,7 +34,7 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "lumiPerBunch", "aLaMode"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "lumiPerBunch", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -57,6 +57,9 @@ class MoniterController:
             elif label == "--fitFile":
                 self.rateMoniter.fitFile = str(op)
                 print "Using fit file:", self.rateMoniter.fitFile
+            elif label == "--steamFile":
+                self.rateMoniter.steam = True
+                self.rateMoniter.steamFile = str(op)
             elif label == "--runList" or label == "--runFile":
                 self.rateMoniter.runFile = str(op)
                 print "Using the runs in file", self.rateMoniter.runFile
@@ -173,6 +176,7 @@ class MoniterController:
         print "--fitFile=<name>      : Loads fit information from the file named <name>."
         print "--runFile=<name>      : Loads a list of runs to consider from the file named <name>."
         print "--runList=<name>      : Same as --runFile (see above)."
+        print "--steamFile=<name>    : A .csv file containing steam data estimates to plot on the graph."
         print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
         print "--saveName=<name>     : Saves the root output as a file named <name>."
         print "--saveDirectory=<name>: The name of a directory that we can save our file in. Useful for batch mode."
