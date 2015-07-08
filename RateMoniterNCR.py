@@ -2,7 +2,7 @@
 # File: RateMoniterNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 7, 2015 by Nathaniel Rupprecht
+# Last Modified: July 8, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py
 #
@@ -120,7 +120,7 @@ class RateMoniter:
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
 
         # Steam Compair
-        self.steam = True       # If true, we plot a steam prediction
+        self.steam = False       # If true, we plot a steam prediction
         self.steamFile = "SteamData.csv"      # The csv file with the steam data
         self.steamData = {}      # Steam Data, gotten from the steam file
 
@@ -243,7 +243,7 @@ class RateMoniter:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)
                 print "Run %s has %s bunches." % (runNumber, self.bunches)
                 
-            # Make plots for each trigger 
+            # Make plots for each trigger
             for triggerName in self.TriggerList:
                 if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
                     # Make sure the is an entry for this trigger in plottingData
@@ -380,6 +380,7 @@ class RateMoniter:
                 maximumRR.append(max(plottingData[runNumber][1]))
                 maximumVals.append(max(plottingData[runNumber][0]))
                 minimumVals.append(min(plottingData[runNumber][0]))
+
         if len(maximumRR) > 0: maxRR = max(maximumRR)
         else: return
         if len(maximumVals) > 0:
@@ -401,7 +402,6 @@ class RateMoniter:
         yunits = "(HZ)"
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
-
         if (self.useFit or self.fit) and not paramlist is None:
             # Create the fit function.
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
@@ -439,7 +439,6 @@ class RateMoniter:
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*maxRR)
             graphList[-1].SetTitle(triggerName)
-            
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
 
