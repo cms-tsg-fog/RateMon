@@ -36,13 +36,14 @@ class ErrorPrinter:
     def __init__(self):
         self.run_trig_ls = {} # [ runNumber ] [ triggerName ] ( LS )
         self.run_ls_trig = {} # [ runNumber ] [ LS ] ( triggerName )
-        pass
+        self.steamData = {}   # [ prediction, min predict, max predict, actual, error ]
 
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
         try:
             file = open("OutLSErrors.err", 'w') # come up with a name based on something about the runs
+            print "Opening OutLSErrors.err for LS error dump."
         except:
             print "Error: could not open file to output ls data."
             return
@@ -62,6 +63,50 @@ class ErrorPrinter:
                     
         file.close()
 
+    def outputSteamErrors(self):
+        try:
+            file = open("OutSteamErrors.err", 'w') # come up with a better name for this too sometime
+            print "Opening OutSteamErrors.err for LS error dump."
+        except:
+            print "Error: could non open file to output steam data."
+
+        TriggersInError = []
+
+        file.write("\nTrigger and Prediction Data: \n\n")
+        file.write("***********************************************************\n\n\n")
+
+        # self.steamData -> [ prediction, min predict, max predict, actual, error ]
+        for triggerName in sorted(self.steamData):
+            fitpred = self.steamData[triggerName][0] # The prediction based on the fit function we created
+            steampred = self.steamData[triggerName][3] # The prediction based on the steam .csv file
+            steamerr = self.steamData[triggerName][4]  # The error based on the steam .csv file
+            upper = steampred + steamerr               # The upper error range on the steam data
+            lower = steampred - steamerr               # The lower error range on the steam data
+            high = self.steamData[triggerName][1]      # The upper error prediction based on the uncertainty of our fit
+            low = self.steamData[triggerName][2]       # The lower error prediction based on the uncertainty of our fit  
+
+            file.write("%s: Acceptable range: %s - %s\n" % (triggerName, lower, upper))
+            file.write("     Predicted value (from fit): %s \n" % (str(fitpred)))
+            file.write("     Uncertainty in fit yeilds range: %s - %s\n" % ( str(low), str(high) ) )
+            
+            if self.steamData[triggerName][0] <= upper and lower <= self.steamData[triggerName][0] :
+                file.write("     This is fine.\n\n")
+            else:
+                file.write("     ---> Prediction does not fall within steam uncertainty")
+                if (fitpred < lower and high > lower) or (fitpred > upper and low < upper):
+                    file.write(", but uncertainty in the fit can explain this discrepancy.\n\n")
+                else:
+                    file.write("\n----- ERROR: Not in acceptable range. -----\n\n")
+                    TriggersInError.append(triggerName)
+
+        file.write("\n\n***********************************************************\nSUMMARY:")
+        if len(TriggersInError) == 0:
+            file.write("     No errors. All triggers we could check were good.\n")
+        else: file.write("\n")
+        for triggerName in TriggersInError:
+            file.write("     " + triggerName + "\n")
+        file.close()
+        
 ## ----------- End class ErrorPrinter ----------- #
 
 # Class RateMoniter:
@@ -123,6 +168,7 @@ class RateMoniter:
         self.steam = False       # If true, we plot a steam prediction
         self.steamFile = "SteamData.csv"      # The csv file with the steam data
         self.steamData = {}      # Steam Data, gotten from the steam file
+        self.steamILumi = 1.5    # For what inst lumi the steam prediction is for (currently 10e33)
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -277,6 +323,9 @@ class RateMoniter:
             if fitparams is None: fit = None
             else: fit = fitparams[triggerName]
             self.graphAllData(plottingData[triggerName], fit, triggerName)
+        # Print steam checks
+        if self.steam:
+            self.steamChecks()
         # Try to close the error file
         if self.makeErrFile:
             try:
@@ -448,11 +497,11 @@ class RateMoniter:
         # There is steam data to use, and we should use it
         if self.steam and self.steamData and self.steamData.has_key(triggerName):
             try:
-                Xval = array.array('f'); Xval.append(3000) # Steam data point is at 3E33 Hz/cm^2
+                Xval = array.array('f'); Xval.append(self.steamILumi) # Steam data point
                 Yval = array.array('f'); Yval.append(float(self.steamData[triggerName][0]))
                 Xerr = array.array('f'); Xerr.append(0.0)
                 Yerr = array.array('f'); Yerr.append(float(self.steamData[triggerName][1]))
-                steamGraph = TGraphErrors(1, Xval, Yval)
+                steamGraph = TGraphErrors(1, Xval, Yval, Xerr, Yerr)
                 steamGraph.SetMarkerStyle(3)
                 steamGraph.SetMarkerSize(3)
                 steamGraph.SetMarkerColor(2)
@@ -485,7 +534,7 @@ class RateMoniter:
     # Use: Create a linear fit for the
     # Parameters:
     # -- plottingData: A dictionary [triggerName] [ run number ] { ( inst lumi's ), ( raw rates ) }
-    # Returns: 
+    # Returns: (void)
     def findFit(self, plottingData):
         self.OutputFit = {}
         # Combine data
@@ -580,7 +629,7 @@ class RateMoniter:
                 tuple = line.split(',')
                 triggerName = stripVersion(tuple[0])
                 if not self.steamData.has_key(triggerName):
-                    self.steamData[triggerName] = [tuple[1], tuple[3]]
+                    self.steamData[triggerName] = [float(tuple[1]), float(tuple[3])]
             steam_file.close()
         except:
             # File failed to open
@@ -616,5 +665,30 @@ class RateMoniter:
                                     eprint.run_trig_ls[runNumber][triggerName].append(int(LS))
 
         eprint.outputErrors()
-        
+
+    def steamChecks(self):
+        sprint = ErrorPrinter()
+        for triggerName in self.steamData:
+            if triggerName in self.TriggerList:
+                paramlist = self.OutputFit[triggerName]
+                if paramlist[0]=="exp":
+                    funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                    minFStr = "(%s+%s) + (%s+%s)*expo((%s+%s)+(%s+%s)*x)" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
+                                                                             paramlist[3], paramlist[9], paramlist[4], paramlist[10])
+                    maxFStr = "(%s-%s) + (%s-%s)*expo((%s-%s)+(%s-%s)*x)" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
+                                                                             paramlist[3], paramlist[9], paramlist[4], paramlist[10])
+                else:
+                    funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+                    minFStr = "(%s+%s)+x*((%s+%s) + x*((%s+%s) + x*(%s+%s)))" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
+                                                                                 paramlist[3], paramlist[9], paramlist[4], paramlist[10])
+                    maxFStr = "(%s-%s)+x*((%s-%s) + x*((%s-%s) + x*(%s-%s)))" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
+                                                                                 paramlist[3], paramlist[9], paramlist[4], paramlist[10])
+
+                fitFunc = TF1("Fit_"+triggerName, funcStr, 0, 1.2*self.steamILumi)
+                maxFunc = TF1("Max_"+triggerName, maxFStr, 0, 1.2*self.steamILumi)
+                minFunc = TF1("Min_"+triggerName, minFStr, 0, 1.2*self.steamILumi)
+                ilum = self.steamILumi
+                sprint.steamData[triggerName] = [fitFunc.Eval(ilum), minFunc.Eval(ilum), maxFunc.Eval(ilum),
+                                                 self.steamData[triggerName][0], self.steamData[triggerName][1]] # [ prediction, min predict, max predict, actual, error ]
+        sprint.outputSteamErrors()
 ## ----------- End of class RateMoniter ------------ ##
