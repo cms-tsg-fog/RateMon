@@ -2,7 +2,7 @@
 # File: FitFinder.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 23, 2015
-# Last Modified: June 26, 2015 by Nathaniel Rupprecht
+# Last Modified: July 8, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -62,6 +62,11 @@ class FitFinder:
     def getGoodPoints(self, xVals, yVals):
         # Find some properties of the values
         length = len(xVals)
+
+        if length <= 0:
+            print "No points."
+            return
+
         maxX = max(xVals)
         maxY = max(yVals)
         aveY = sum(yVals)/length

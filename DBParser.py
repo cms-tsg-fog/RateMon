@@ -198,6 +198,7 @@ class DBParser:
 
             ps = l1ps*hltps
             TriggerRates[name][LS]= [ps*rate, ps]
+
         return TriggerRates
 
     # Use: Gets the raw rate of a trigger during a run and the average prescale value of that trigger during the run
