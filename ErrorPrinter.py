@@ -57,7 +57,7 @@ class ErrorPrinter:
     def outputSteamErrors(self):
         try:
             file = open("OutSteamErrors.err", 'w') # come up with a better name for this too sometime
-            print "Opening OutSteamErrors.err for LS error dump."
+            print "Opening OutSteamErrors.err for Steam comparison error dump."
         except:
             print "Error: could non open file to output steam data."
 

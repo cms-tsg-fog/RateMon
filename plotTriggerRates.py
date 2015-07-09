@@ -196,6 +196,7 @@ class MonitorController:
         print "--triggerList=<name>   : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
         print "\nSave Options:"
         print "--saveName=<name>      : Saves the root output as a file named <name>."
+        print "--fitSaveName=<name>   : A name to save the fit file in. Primary mode feature only, not for batch mode."
         print "--saveDirectory=<name> : The name of a directory that we will save all our file in. Useful for batch mode."
         print "\nRun Options:"
         print "--offset=<number>      : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
