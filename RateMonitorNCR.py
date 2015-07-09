@@ -79,6 +79,7 @@ class RateMonitor:
         self.fitFinder = FitFinder()  # A fit finder object
         self.divByBunches = False     # If true, we divide by the number of colliding bunches
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
+        self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
         
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
@@ -106,6 +107,7 @@ class RateMonitor:
     def setUp(self):
         if self.outputOn: print "" # Formatting
         length = len(self.runList)
+        self.bunches = 1 # Reset bunches, just in case
         if self.mode: self.varX = "LS" # We are in secondary mode
         if self.processAll: offset = 0 # Override any offset
         # Reset self.savedAFile
@@ -199,16 +201,21 @@ class RateMonitor:
         counter = 0 # Make sure we process at most MAX runs
         for runNumber in self.runList[self.offset : self.lastRun]:
             print "(",counter+1,") Processing run", runNumber
+
+            # Get number of bunches (if requested)
+            if self.divByBunches:
+                self.bunches = self.parser.getNumberCollidingBunches(runNumber)
+                if self.bunches is None and not self.includeNoneBunches:
+                    print "Cannot get number of bunches for this run: skipping this run.\n"
+                    continue # Skip this run
+                print "Run %s has %s bunches.\n" % (runNumber, self.bunches)
+                
             # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
             dataList = self.getData(runNumber)
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
                 print "Fatal error for run %s, moving on." % (runNumber) # Info message
                 continue
-            # Get number of bunches (if requested)
-            if self.divByBunches:
-                self.bunches = self.parser.getNumberCollidingBunches(runNumber)
-                print "Run %s has %s bunches." % (runNumber, self.bunches)
                 
             # Make plots for each trigger
             for triggerName in self.TriggerList:

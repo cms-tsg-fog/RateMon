@@ -408,9 +408,7 @@ class DBParser:
         sqlquery = "SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s" % (fill)
         self.curs.execute(sqlquery)
         bunches = self.curs.fetchall()[0][1]  # < FIXME set [0][0] > (note is from the origional program
-        if bunches is None:
-            bunches = 1
-            print "Bunches returned None. Setting to 1."
+        # We allow bunches to return even if it is None, we deal with that outside this class
         return bunches
 
     # Use: Gets the dead time as a function of lumisection
