@@ -214,6 +214,7 @@ class RateMonitor:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)
                 if self.bunches is None and not self.includeNoneBunches:
                     print "Cannot get number of bunches for this run: skipping this run.\n"
+                    counter += 1
                     continue # Skip this run
                 print "Run %s has %s bunches.\n" % (runNumber, self.bunches)
                 
@@ -223,6 +224,7 @@ class RateMonitor:
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
                 print "Fatal error for run %s, could not retrieve data. Moving on." % (runNumber) # Info message
+                counter += 1
                 continue
                 
             # Make plots for each trigger
