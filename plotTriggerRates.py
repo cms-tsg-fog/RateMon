@@ -214,7 +214,7 @@ class MonitorController:
         print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
         print "\nCut/Normalization Options:"
         print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
-        print "--rateCut=<num>        : Any lumisection with rate less then <num> will not be plotted or considered in the fit making. By default, this value is 10.0"
+        print "--rateCut=<num>        : Any lumisection with rate less then <num> will not be plotted or considered in the fit making. By default, this value is 0.0"
         print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
         print "--includeNoneBunches   : By default, if we normalize by the number of colliding bunches and we find a run where we cannot retrieve the number of colliding bunches,"
         print "                         we skip that run. This overrides that functionality."
