@@ -1,5 +1,5 @@
 #######################################################
-# File: LumiWizard.py
+# File: rateCalculator.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 9, 2015
 # Last Modified: July 9, 2015 by Nathaniel Rupprecht
@@ -20,7 +20,7 @@ from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gS
 
 ## ----------- End Imports ------------ #
 
-class LumiWizard:
+class RateCalculator:
 
     def __init__(self):
         self.instLumi = 0                   # The instantaneous luminosity
