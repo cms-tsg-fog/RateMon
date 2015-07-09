@@ -95,8 +95,9 @@ class RateMonitor:
         # Cuts
         self.lumiCut = 0.1       # The lumi cut value
         self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
-        self.rateCut = 10        # The rate cut value
+        self.rateCut = 0.0       # The rate cut value
         self.doRateCut = True    # If true, we only plot data points with rate > self.rateCut
+        self.minPointsToFit = 10 # The minimum number of points we need to make a fit
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -255,7 +256,7 @@ class RateMonitor:
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
         for triggerName in sorted(plottingData):
-            if fitparams is None: fit = None
+            if fitparams is None or not fitparams.has_key(triggerName): fit = None
             else: fit = fitparams[triggerName]
             self.graphAllData(plottingData[triggerName], fit, triggerName)
         # Print steam checks
@@ -472,7 +473,7 @@ class RateMonitor:
         file.Close()
         self.savedAFile = True
 
-    # Use: Create a linear fit for the
+    # Use: Get a fit for all the data that we have collected
     # Parameters:
     # -- plottingData: A dictionary [triggerName] [ run number ] { ( inst lumi's ), ( raw rates ) }
     # Returns: (void)
@@ -487,7 +488,10 @@ class RateMonitor:
                 instLumis += plottingData[triggerName][runNumber][0]
                 rawRates += plottingData[triggerName][runNumber][1]
 
-            self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates, triggerName)
+            if len(instLumis) > self.minPointsToFit:
+                self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates, triggerName)
+            else:
+                print "Not enough points to fit %s, we need %s, we have %s" % (triggerName, self.minPointsToFit, len(instLumis))
         # Save the fit
         self.saveFit()
 
