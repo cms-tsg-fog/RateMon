@@ -92,6 +92,12 @@ class RateMonitor:
         self.steamData = {}      # Steam Data, gotten from the steam file
         self.steamILumi = 5000   # For what inst lumi the steam prediction is for (currently 1e33)
 
+        # Cuts
+        self.lumiCut = 0.1       # The lumi cut value
+        self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
+        self.rateCut = 10        # The rate cut value
+        self.doRateCut = True    # If true, we only plot data points with rate > self.rateCut
+
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
         # If True, only triggers in the fit file will be considered, and the fit will be plotted
@@ -212,6 +218,7 @@ class RateMonitor:
                 
             # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
             dataList = self.getData(runNumber)
+
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
                 print "Fatal error for run %s, moving on." % (runNumber) # Info message
@@ -317,11 +324,17 @@ class RateMonitor:
             rawRate = array.array('f')
             for LS, ilum in iLumi:
                 if Rates[triggerName].has_key(LS) and not ilum is None:
-                    # If we want to divide the inst lumi by number of bunches, we do that here
-                    iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
-                    rawRate.append(Rates[triggerName][LS][0]) # Add the correspoinding raw rate
+                    # We apply our cuts here if they are called for
+                    normedILumi = ilum/self.bunches
+                    rate = Rates[triggerName][LS][0]
+                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doRateCut or rate > self.rateCut):
+                        iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
+                        rawRate.append(rate) # Add the correspoinding raw rate
                 else: pass
-            dataList[triggerName] = [iLuminosity, rawRate]
+
+            if len(iLuminosity) > 0:
+                dataList[triggerName] = [iLuminosity, rawRate]
+            else: pass
         return dataList
 
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
@@ -411,7 +424,7 @@ class RateMonitor:
             graphList[-1].SetFillColor(0)
             graphList[-1].SetMarkerColor(self.colorList[counter % len(self.colorList)]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
-            graphList[-1].GetXaxis().SetLimits(minVal, 1.1*maxVal)
+            graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
             graphList[-1].GetYaxis().SetTitle(nameY+" "+yunits)
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*maxRR)
