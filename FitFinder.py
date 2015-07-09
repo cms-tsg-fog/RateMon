@@ -219,6 +219,7 @@ class FitFinder:
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
             OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
+            OutputFit += [linear.GetChisquare()]
             return OutputFit
 
         pickFit = ""
@@ -232,6 +233,7 @@ class FitFinder:
         OutputFit = [title]
         OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), pickFit.GetParameter(2), pickFit.GetParameter(3)]
         OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), pickFit.GetParError(2), pickFit.GetParError(3)]
+        OutputFit += [pickFit.GetChisquare()]
 
         return OutputFit
 
@@ -245,6 +247,7 @@ class FitFinder:
         OutputFit = ["linear"]
         OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), 0, 0]
         OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), 0, 0]
+        OutputFit += [pickFit.GetChiquare()]
         return OutputFit
         
     # Use: Finds the root of the mean squared error of a fit

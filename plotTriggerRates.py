@@ -1,8 +1,8 @@
 #######################################################
-# File: rateGraphingNCR.py
+# File: plotTriggerRates.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: July 7, 2015 by Nathaniel Rupprecht
+# Last Modified: July 9, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMoniter.py
 #
@@ -34,14 +34,14 @@ class MoniterController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "lumiPerBunch", "aLaMode"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "normalizeCollidingBx", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
 
         if len(opt) == 0 and len(args) == 0:
             print "\nWe do need some options to make this program work you know. We can't read your mind."
-            print "Use 'python rateGraphingNCR.py --Help' to see options.\n"
+            print "Use 'python plotTriggerRates.py --Help' to see options.\n"
             return False
         
         # Process Options
@@ -115,7 +115,7 @@ class MoniterController:
                 self.rateMoniter.fitFinder.usePointSelection = False
             elif label == "--linear":
                 self.rateMoniter.fitFinder.forceLinear
-            elif label == "--lumiPerBunch":
+            elif label == "--normalizeCollidingBx":
                 if not self.rateMoniter.mode:
                     self.rateMoniter.divByBunches = True
             elif label == "--aLaMode":
@@ -167,32 +167,33 @@ class MoniterController:
     # Returns: (void)
     def printOptions(self):
         print ""
-        print "Usage: python rateGraphingNCR.py [Options] <list of runs (optional)>"
+        print "Usage: python plotTriggerRates.py [Options] <list of runs (optional)>"
         print "<list of runs>        : Either single runs (like '10000') or ranges (like '10001-10003'). If you specified a file with a list of runs"
         print "                        in it, you do not need to specify runs on the command line. If you do both, they will simply be added to the "
         print "                        RateMoniter class's internal list of runs to process"
         print ""
         print "Options:"
-        print "--fitFile=<name>      : Loads fit information from the file named <name>."
-        print "--runFile=<name>      : Loads a list of runs to consider from the file named <name>."
-        print "--runList=<name>      : Same as --runFile (see above)."
-        print "--steamFile=<name>    : A .csv file containing steam data estimates to plot on the graph."
-        print "--triggerList=<name>  : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
-        print "--saveName=<name>     : Saves the root output as a file named <name>."
-        print "--saveDirectory=<name>: The name of a directory that we can save our file in. Useful for batch mode."
-        print "--offset=<number>     : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
-        print "--maxRuns=<number>    : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
-        print "--Secondary           : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
-        print "--All                 : Overrides the maximum number of runs and processes all runs in the run list."
-        print "--batch               : Runs the program over all triggers in the trigger list in batches. Adjust maxRuns to set the number of runs per batch."
-        print "--maxBatches          : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
-        print "--useList             : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
-        print "--createFit           : Make a linear fit of the data we plot. Only a primary mode feature."
-        print "--debugFitter         : Creates a root file showing all the points labeled as good and bad when doing the fit"
-        print "--rawPoints           : Don't do point selection in making fits"
-        print "--linear              : Forces fits to be linear"
-        print "--lumiPerBunch        : Divides the instantaneous luminosity by the number of colliding bunches."
-        print "--Help                : Prints out the display that you are looking at now. You probably used this option to get here."
+        print "--fitFile=<name>       : Loads fit information from the file named <name>."
+        print "--runFile=<name>       : Loads a list of runs to consider from the file named <name>."
+        print "--steamFile=<name>     : Uses the data from the .csv file <name> to plot steam's predicted rates."
+        print "--runList=<name>       : Same as --runFile (see above)."
+        print "--steamFile=<name>     : A .csv file containing steam data estimates to plot on the graph."
+        print "--triggerList=<name>   : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
+        print "--saveName=<name>      : Saves the root output as a file named <name>."
+        print "--saveDirectory=<name> : The name of a directory that we can save our file in. Useful for batch mode."
+        print "--offset=<number>      : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
+        print "--maxRuns=<number>     : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
+        print "--Secondary            : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
+        print "--All                  : Overrides the maximum number of runs and processes all runs in the run list."
+        print "--batch                : Runs the program over all triggers in the trigger list in batches. Adjust maxRuns to set the number of runs per batch."
+        print "--maxBatches           : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
+        print "--useList              : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
+        print "--createFit            : Make a linear fit of the data we plot. Only a primary mode feature."
+        print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
+        print "--rawPoints            : Don't do point selection in making fits"
+        print "--linear               : Forces fits to be linear"
+        print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
+        print "--Help                 : Prints out the display that you are looking at now. You probably used this option to get here."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
