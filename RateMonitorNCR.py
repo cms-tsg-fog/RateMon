@@ -221,7 +221,7 @@ class RateMonitor:
 
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
-                print "Fatal error for run %s, moving on." % (runNumber) # Info message
+                print "Fatal error for run %s, could not retrieve data. Moving on." % (runNumber) # Info message
                 continue
                 
             # Make plots for each trigger
@@ -610,7 +610,7 @@ class RateMonitor:
     def steamChecks(self):
         sprint = ErrorPrinter()
         for triggerName in self.steamData:
-            if triggerName in self.TriggerList:
+            if triggerName in self.TriggerList and self.OutputFit.has_key(triggerName):
                 paramlist = self.OutputFit[triggerName]
                 if paramlist[0]=="exp":
                     funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
