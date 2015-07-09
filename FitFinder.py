@@ -42,6 +42,7 @@ class FitFinder:
         self.badPoints = None         # List of bad points (for debugging)
 
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
+    # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
         if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
         else: goodX, goodY = xVals, yVals

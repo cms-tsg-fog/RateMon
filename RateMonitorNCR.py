@@ -1,5 +1,5 @@
 #######################################################
-# File: RateMoniterNCR.py
+# File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
 # Last Modified: July 8, 2015 by Nathaniel Rupprecht
@@ -30,12 +30,12 @@ from ErrorPrinter import *
 
 ## ----------- End Imports ------------ ##
 
-# Class RateMoniter:
+# Class RateMonitor:
 # Analyzes the rate vs instantaneous luminosity behavior of runs (held in a run list called self.runList) and make plots of the data
 # Can also plot a fit from a given pickle file on the plots it produces
 # Contains an instance of DBParser to get information from the database
-class RateMoniter:
-    # Default constructor for RateMoniter class
+class RateMonitor:
+    # Default constructor for RateMonitor class
     def __init__(self):
         # Set ROOT properties
         gROOT.SetBatch(True) # Use batch mode so plots are not spit out in X11 as we make them
@@ -612,4 +612,4 @@ class RateMoniter:
                 sprint.steamData[triggerName] = [fitFunc.Eval(ilum), minFunc.Eval(ilum), maxFunc.Eval(ilum),
                                                  self.steamData[triggerName][0], self.steamData[triggerName][1]] # [ prediction, min predict, max predict, actual, error ]
         sprint.outputSteamErrors()
-## ----------- End of class RateMoniter ------------ ##
+## ----------- End of class RateMonitor ------------ ##

@@ -4,7 +4,7 @@
 # Date Created: June 19, 2015
 # Last Modified: July 9, 2015 by Nathaniel Rupprecht
 #
-# Dependencies: RateMoniter.py
+# Dependencies: RateMonitor.py
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -14,19 +14,19 @@
 
 # Imports
 import getopt # For getting command line options
-# Import the RateMoniter object
-from RateMoniterNCR import *
+# Import the RateMonitor object
+from RateMonitorNCR import *
 
 ## ----------- End Imports ------------ #
 
-# Class MoniterController:
-# Parsers command line input and uses it to set the parameters of an instance of RateMoniter which it contains. It then runs rateMoniter.
-class MoniterController:
+# Class MonitorController:
+# Parsers command line input and uses it to set the parameters of an instance of RateMonitor which it contains. It then runs rateMonitor.
+class MonitorController:
 
-    # Default constructor for Moniter Controller class
+    # Default constructor for Monitor Controller class
     def __init__(self):
-        self.rateMoniter = RateMoniter()
-        self.batchMode = False # Will not run rateMoniter in batch mode
+        self.rateMonitor = RateMonitor()
+        self.batchMode = False # Will not run rateMonitor in batch mode
         self.doAnyways = False # Will run in secondary mode even if there is no fit file
 
     # Use: Parses arguments from the command line and sets class variables
@@ -47,77 +47,77 @@ class MoniterController:
         # Process Options
         for label, op in opt:
             if label == "--Secondary":
-                self.rateMoniter.mode = True # Run in secondary mode
+                self.rateMonitor.mode = True # Run in secondary mode
                 self.batchMode = True # Use batch mode
-                self.rateMoniter.outputOn = False
-                self.rateMoniter.maxRuns = 1 # Only do one run at a time
-                self.rateMoniter.fit = False # We don't make fits in secondary mode
-                self.rateMoniter.useFit = False # We don't plot a function, just a prediction
-                self.rateMoniter.divByBunches = False # We don't divide the LS by the # of bunches
+                self.rateMonitor.outputOn = False
+                self.rateMonitor.maxRuns = 1 # Only do one run at a time
+                self.rateMonitor.fit = False # We don't make fits in secondary mode
+                self.rateMonitor.useFit = False # We don't plot a function, just a prediction
+                self.rateMonitor.divByBunches = False # We don't divide the LS by the # of bunches
             elif label == "--fitFile":
-                self.rateMoniter.fitFile = str(op)
-                print "Using fit file:", self.rateMoniter.fitFile
+                self.rateMonitor.fitFile = str(op)
+                print "Using fit file:", self.rateMonitor.fitFile
             elif label == "--steamFile":
-                self.rateMoniter.steam = True
-                self.rateMoniter.steamFile = str(op)
+                self.rateMonitor.steam = True
+                self.rateMonitor.steamFile = str(op)
             elif label == "--runList" or label == "--runFile":
-                self.rateMoniter.runFile = str(op)
-                print "Using the runs in file", self.rateMoniter.runFile
+                self.rateMonitor.runFile = str(op)
+                print "Using the runs in file", self.rateMonitor.runFile
                 self.loadRunsFromFile()
             elif label == "--offset":
-                self.rateMoniter.offset = int(op)
+                self.rateMonitor.offset = int(op)
             elif label == "--Help":
                 self.printOptions()
                 return False
             elif label == "--maxRuns":
-                self.rateMoniter.maxRuns = int(op)
+                self.rateMonitor.maxRuns = int(op)
             elif label == "--maxBatches":
-                self.rateMoniter.maxBatches = int(op)
+                self.rateMonitor.maxBatches = int(op)
             elif label == "--sigmas":
-                self.rateMoniter.sigmas = float(op)
+                self.rateMonitor.sigmas = float(op)
             elif label == "--preferLinear":
-                self.rateMoniter.fitFinder.preferLinear = float(op)
+                self.rateMonitor.fitFinder.preferLinear = float(op)
             elif label == "--All":
-                self.rateMoniter.processAll = True
+                self.rateMonitor.processAll = True
             elif label == "--Raw":
-                self.rateMoniter.varY = "rawRate"
+                self.rateMonitor.varY = "rawRate"
             elif label == "--saveName":
                 if not self.batchMode: # We do not allow a user defined save name in batch mode
-                    self.rateMoniter.saveName = str(op)
-                    self.rateMoniter.nameGiven = True
+                    self.rateMonitor.saveName = str(op)
+                    self.rateMonitor.nameGiven = True
                 else:
                     print "We do not allow a user defined save name while using batch or secondary mode."
             elif label == "--fitSaveName":
                 if not self.batchMode: # We do not allow a user defined fit save name in batch mode
-                    self.rateMoniter.outFitFile = str(op)
+                    self.rateMonitor.outFitFile = str(op)
                 else:
                     print "We do not allow a user defined fit save name while using batch or secondary mode"
             elif label == "--saveDirectory":
-                self.rateMoniter.saveDirectory = str(op)
+                self.rateMonitor.saveDirectory = str(op)
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
-                self.rateMoniter.useTrigList = True
+                self.rateMonitor.useTrigList = True
             elif label == "--useList":
                 # Depreciated (no longer necessary to use this with the --triggerList option)
-                self.rateMoniter.useTrigList = True
+                self.rateMonitor.useTrigList = True
             elif label == "--batch":
                 self.batchMode = True
-                self.rateMoniter.outputOn = False
-                self.rateMoniter.nameGiven = False # We do not allow a user defined save name in batch mode
+                self.rateMonitor.outputOn = False
+                self.rateMonitor.nameGiven = False # We do not allow a user defined save name in batch mode
             elif label == "--createFit":
-                if not self.rateMoniter.mode: self.rateMoniter.fit = True
+                if not self.rateMonitor.mode: self.rateMonitor.fit = True
                 else: print "We do not create fits in secondary mode"
             elif label == "--debugFitter":
-                self.rateMoniter.fitFinder.saveDebug = True
+                self.rateMonitor.fitFinder.saveDebug = True
             elif label == "--doAnyways":
                 self.doAnyways = True
             elif label == "--rawPoints":
-                self.rateMoniter.fitFinder.usePointSelection = False
+                self.rateMonitor.fitFinder.usePointSelection = False
             elif label == "--linear":
-                self.rateMoniter.fitFinder.forceLinear
+                self.rateMonitor.fitFinder.forceLinear
             elif label == "--normalizeCollidingBx":
-                if not self.rateMoniter.mode:
-                    self.rateMoniter.divByBunches = True
+                if not self.rateMonitor.mode:
+                    self.rateMonitor.divByBunches = True
             elif label == "--aLaMode":
                 self.aLaMode()
             else:
@@ -135,31 +135,31 @@ class MoniterController:
                     else: # Add the runs in the range to the run list
                         try:
                             for r in range(int(rng[0]), int(rng[1])+1):
-                                if not int(r) in self.rateMoniter.runList:
-                                    self.rateMoniter.runList.append(int(r))
+                                if not int(r) in self.rateMonitor.runList:
+                                    self.rateMonitor.runList.append(int(r))
                         except:
                             print "Error: Could not parse run range"
                             return False
                 else: # Not a range, but a single run
                     try:
-                        if not int(item) in self.rateMoniter.runList:
-                            self.rateMoniter.runList.append(int(item))
+                        if not int(item) in self.rateMonitor.runList:
+                            self.rateMonitor.runList.append(int(item))
                     except:
                         print "Error: Could not parse run arguments."
                         return False
 
-        # If no runs were specified, we cannot run rate monitering
-        if len(self.rateMoniter.runList) == 0:
+        # If no runs were specified, we cannot run rate monitoring
+        if len(self.rateMonitor.runList) == 0:
             print "Error: No runs were specified."
             return False
         # If no fit file was specified, don't try to make a fit
-        if self.rateMoniter.fitFile == "":
+        if self.rateMonitor.fitFile == "":
 
-            if self.rateMoniter.mode and not self.doAnyways:
+            if self.rateMonitor.mode and not self.doAnyways:
                 print "We require a fit file in secondary mode unless the --doAnyways flag is specified. Exiting."
                 exit(0)
             
-            self.rateMoniter.useFit = False
+            self.rateMonitor.useFit = False
 
         return True
 
@@ -170,7 +170,7 @@ class MoniterController:
         print "Usage: python plotTriggerRates.py [Options] <list of runs (optional)>"
         print "<list of runs>        : Either single runs (like '10000') or ranges (like '10001-10003'). If you specified a file with a list of runs"
         print "                        in it, you do not need to specify runs on the command line. If you do both, they will simply be added to the "
-        print "                        RateMoniter class's internal list of runs to process"
+        print "                        RateMonitor class's internal list of runs to process"
         print ""
         print "Options:"
         print "--fitFile=<name>       : Loads fit information from the file named <name>."
@@ -200,7 +200,7 @@ class MoniterController:
         print ""
         print "Program by Nathaniel Rupprecht, created June 16th, 2015. For questions, email nrupprec@nd.edu"
 
-    # Use: Opens a file containing a list of runs and adds them to the RateMoniter class's run list
+    # Use: Opens a file containing a list of runs and adds them to the RateMonitor class's run list
     # Note: We do not clear the run list, this way we could add runs from multiple files to the run list
     # Arguments:
     # -- fileName (Default=None): The name of the file that runs are contained in
@@ -208,7 +208,7 @@ class MoniterController:
     def loadRunsFromFile(self, fileName = None):
         # Use self.fileName as the default fileName
         if fileName == None:
-            fileName = self.rateMoniter.runFile
+            fileName = self.rateMonitor.runFile
         try:
             file = open(fileName, 'r')
         except:
@@ -222,18 +222,18 @@ class MoniterController:
                 try:
                     start, end = run.split('-')
                     for rn in range(start, end+1):
-                        if not int(run) in self.rateMoniter.runList:
-                            self.rateMoniter.runList.append(int(rn))
+                        if not int(run) in self.rateMonitor.runList:
+                            self.rateMonitor.runList.append(int(rn))
                 except:
                     print "Range specified in file", fileName, "could not be parsed."
             else:
                 try:
-                    if not int(run) in self.rateMoniter.runList:
-                        self.rateMoniter.runList.append(int(run))
+                    if not int(run) in self.rateMonitor.runList:
+                        self.rateMonitor.runList.append(int(run))
                 except:
                     print "Error in parsing run in file", fileName
 
-    # Use: Opens a file containing a list of trigger names and adds them to the RateMoniter class's trigger list
+    # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
     # -- fileName: The name of the file that trigger names are contained in
     # Returns: (void) 
@@ -247,8 +247,8 @@ class MoniterController:
         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
         for triggerName in allTriggerNames:
             try:
-                if not str(triggerName) in self.rateMoniter.TriggerList:
-                    self.rateMoniter.TriggerList.append(str(triggerName))
+                if not str(triggerName) in self.rateMonitor.TriggerList:
+                    self.rateMonitor.TriggerList.append(str(triggerName))
             except:
                 print "Error parsing trigger name in file", fileName
 
@@ -268,18 +268,18 @@ class MoniterController:
         print ""
     
                                     
-    # Use: Runs the rateMoniter object using parameters supplied as command line arguments
+    # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     # Returns: (void)
     def run(self):
         if self.parseArgs():
             if self.batchMode:
-                self.rateMoniter.runBatch()
+                self.rateMonitor.runBatch()
             else:
-                self.rateMoniter.run()
+                self.rateMonitor.run()
 
-## ----------- End of class MoniterController ------------ #
+## ----------- End of class MonitorController ------------ #
 
 ## ----------- Main -----------##
 if __name__ == "__main__":
-    controller = MoniterController()
+    controller = MonitorController()
     controller.run()
