@@ -46,7 +46,7 @@ class FitFinder:
     def findFit(self, xVals, yVals, name):
         if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
         else: goodX, goodY = xVals, yVals
-        if self.forceLinear: self.findLinearFit(xVals, yVals)
+        if self.forceLinear: return self.findLinearFit(xVals, yVals)
         else: return self.tryFits(goodX, goodY, name)
 
     # Use: Gets a binning index based on the coordinates of a point
@@ -216,7 +216,7 @@ class FitFinder:
 
         if self.saveDebug and self.usePointSelection: self.saveDebugGraph(fitList, titleList, name)
 
-        if minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear:
+        if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
             OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
@@ -241,14 +241,15 @@ class FitFinder:
     # Use: Gets the best linear fit of the data
     # Returns: An output fit tuple
     def findLinearFit(self, xVals, yVals):
+        maxX = 1.2*max(xVals)
         linear = TF1("Linear Fit", "pol1", 0, maxX)
         fitGraph = TGraph(len(xVals), xVals, yVals)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
         linearMSE = self.getMSE(linear, xVals, yVals)
         OutputFit = ["linear"]
-        OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), 0, 0]
-        OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), 0, 0]
-        OutputFit += [pickFit.GetChiquare()]
+        OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
+        OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
+        OutputFit += [linear.GetChisquare()]
         return OutputFit
         
     # Use: Finds the root of the mean squared error of a fit

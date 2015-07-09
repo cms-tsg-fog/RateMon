@@ -34,7 +34,7 @@ class MonitorController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "normalizeCollidingBx", "aLaMode"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=", "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit", "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -114,10 +114,12 @@ class MonitorController:
             elif label == "--rawPoints":
                 self.rateMonitor.fitFinder.usePointSelection = False
             elif label == "--linear":
-                self.rateMonitor.fitFinder.forceLinear
+                self.rateMonitor.fitFinder.forceLinear = True
             elif label == "--normalizeCollidingBx":
                 if not self.rateMonitor.mode:
                     self.rateMonitor.divByBunches = True
+            elif label == "--includeNoneBunches":
+                self.rateMonitor.includeNoneBunches = Trues
             elif label == "--aLaMode":
                 self.aLaMode()
             else:
@@ -173,6 +175,7 @@ class MonitorController:
         print "                        RateMonitor class's internal list of runs to process"
         print ""
         print "Options:"
+        print "--Help                 : Prints out the display that you are looking at now. You probably used this option to get here."
         print "--fitFile=<name>       : Loads fit information from the file named <name>."
         print "--runFile=<name>       : Loads a list of runs to consider from the file named <name>."
         print "--steamFile=<name>     : Uses the data from the .csv file <name> to plot steam's predicted rates."
@@ -188,12 +191,13 @@ class MonitorController:
         print "--batch                : Runs the program over all triggers in the trigger list in batches. Adjust maxRuns to set the number of runs per batch."
         print "--maxBatches           : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode."
         print "--useList              : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
-        print "--createFit            : Make a linear fit of the data we plot. Only a primary mode feature."
+        print "--createFit            : Make a fit for the data we plot. Only a primary mode feature."
         print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
         print "--rawPoints            : Don't do point selection in making fits"
         print "--linear               : Forces fits to be linear"
         print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
-        print "--Help                 : Prints out the display that you are looking at now. You probably used this option to get here."
+        print "--includeNoneBunches   : By default, if we normalize by the number of colliding bunches and we find a run where we cannot retrieve the number of colliding bunches,"
+        print "                         we skip that run. This overrides that functionality."
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
