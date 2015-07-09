@@ -76,7 +76,7 @@ class ErrorPrinter:
             high = self.steamData[triggerName][1]      # The upper error prediction based on the uncertainty of our fit
             low = self.steamData[triggerName][2]       # The lower error prediction based on the uncertainty of our fit  
 
-            file.write("%s: Acceptable range: %s - %s\n" % (triggerName, lower, upper))
+            file.write("%s: STEAM prediction range: %s - %s\n" % (triggerName, lower, upper))
             file.write("     Predicted value (from fit): %s \n" % (str(fitpred)))
             file.write("     Uncertainty in fit yeilds range: %s - %s\n" % ( str(low), str(high) ) )
             

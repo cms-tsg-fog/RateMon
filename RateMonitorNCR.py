@@ -18,7 +18,7 @@ import math
 import array
 # Not all these are necessary
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser
+from ROOT import TFile, TPaveText, TBrowser, TLatex
 import os
 import sys
 # Import the DB interface class
@@ -90,7 +90,7 @@ class RateMonitor:
         self.steam = False       # If true, we plot a steam prediction
         self.steamFile = "SteamData.csv"      # The csv file with the steam data
         self.steamData = {}      # Steam Data, gotten from the steam file
-        self.steamILumi = 5000   # For what inst lumi the steam prediction is for (currently 1e33)
+        self.steamILumi = 5000   # For what inst lumi the steam prediction is for (currently 5e33)
 
         # Cuts
         self.lumiCut = 0.1       # The lumi cut value
@@ -395,6 +395,7 @@ class RateMonitor:
         yunits = "(HZ)"
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
+        funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
             # Create the fit function.
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
@@ -463,7 +464,14 @@ class RateMonitor:
             else: # Primary Mode
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
-
+        # Draw function string on the plot
+        if not funcStr == "":
+            funcLeg = TLegend(0.0, 0.06, 0.45, 0.0)
+            funcLeg.SetHeader("f(x) = " + funcStr)
+            funcLeg.SetFillColor(0)
+            funcLeg.Draw()
+            canvas.Update()
+        # Draw Legend
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
         legend.SetFillColor(0)
         legend.Draw() 
@@ -520,7 +528,7 @@ class RateMonitor:
         lsError = array.array('f')
         predError = array.array('f')
         # Unpack values
-        type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err = paramlist
+        type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
         for LS, ilum in iLumi:
             if not ilum is None:
@@ -551,6 +559,8 @@ class RateMonitor:
     # -- fitFile: The file that the fit data is stored in (a pickle file)
     # Returns: The input fit data
     def loadFit(self):
+        if self.fitFile == "":
+            print "No fit file specified."
         InputFit = {} # Initialize InputFit (as an empty dictionary)
         # Try to open the file containing the fit info
         try:
@@ -559,8 +569,7 @@ class RateMonitor:
             pkl_file.close()
         except:
             # File failed to open
-            print "ERROR: could not open fit file: %s" % (self.fitFile)
-            exit(2)
+            print "Error: could not open fit file: %s" % (self.fitFile)
         return InputFit
 
     # Use: Loads the data from a steam created google doc (downloaded to a .csv file)
@@ -613,6 +622,8 @@ class RateMonitor:
 
         eprint.outputErrors()
 
+    # Use: Checks fit predictions against steam predictions given to us in a .csv file
+    # Returns: (void)
     def steamChecks(self):
         sprint = ErrorPrinter()
         for triggerName in self.steamData:
