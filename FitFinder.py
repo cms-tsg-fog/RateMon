@@ -37,6 +37,7 @@ class FitFinder:
         self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
         self.forceLinear = False      # If true, we only try a linear fit
         self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
+        self.fit = None               # The fit function, a TF1
 
         self.goodPoints = None        # List of good points (for debugging
         self.badPoints = None         # List of bad points (for debugging)
@@ -44,8 +45,10 @@ class FitFinder:
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
-        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
+        # Point selectoin
+        if self.usePointSelection: goodX, goodY = self.getGoodPoints2(xVals, yVals)
         else: goodX, goodY = xVals, yVals
+        # Fitting
         if self.forceLinear: return self.findLinearFit(xVals, yVals)
         else: return self.tryFits(goodX, goodY, name)
 
@@ -193,6 +196,13 @@ class FitFinder:
 
         fitGraph = TGraph(len(xVals), xVals, yVals)
         # Linear Fit
+        maxY = max(yVals)
+        minY = min(yVals)
+        maxindex = yVals.index(maxY)
+        minindex = yVals.index(minY)
+        slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
+        
+        linear.SetParameters(0, slopeGuess)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
         linearMSE = self.getMSE(linear, xVals, yVals)
         # Quadratic Fit
@@ -214,13 +224,14 @@ class FitFinder:
         titleList = ["linear", "quad", "cube", "exp"]
         minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
 
-        if self.saveDebug and self.usePointSelection: self.saveDebugGraph(fitList, titleList, name)
+        if self.saveDebug and self.usePointSelection: self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
         if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
             OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
             OutputFit += [linear.GetChisquare()]
+            self.fit = linear
             return OutputFit
 
         pickFit = ""
@@ -231,6 +242,7 @@ class FitFinder:
                 break
         
         # Set output fit and return
+        self.fit = pickFit
         OutputFit = [title]
         OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), pickFit.GetParameter(2), pickFit.GetParameter(3)]
         OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), pickFit.GetParError(2), pickFit.GetParError(3)]
@@ -246,6 +258,7 @@ class FitFinder:
         fitGraph = TGraph(len(xVals), xVals, yVals)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
         linearMSE = self.getMSE(linear, xVals, yVals)
+        self.fit = linear
         OutputFit = ["linear"]
         OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
         OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
@@ -260,7 +273,45 @@ class FitFinder:
             mse += (fitFunc.Eval(x) - y)**2
         return math.sqrt(mse/len(xVals))
 
-    def saveDebugGraph(self, fitList, titleList, name):
+    # Use: Another method of getting good points to make a fit from
+    def getGoodPoints2(self, xVals, yVals):
+        if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals)
+        else: paramlist = self.tryFits(xVals, yVals, "preprocess")
+        minMSE = paramlist[5]
+        goodX = array.array('f')
+        badX = array.array('f')
+        goodY = array.array('f')
+        badY = array.array('f')
+
+        for x,y in zip(xVals,yVals):
+            eval = self.fit.Eval(x)
+            if eval + 1.5*minMSE > y and y > eval - 1.5*minMSE :
+                goodX.append(x)
+                goodY.append(y)
+            elif self.saveDebug: # For Debugging
+                badX.append(x)
+                badY.append(y)
+                    
+        if self.saveDebug:
+            if len(goodX)>0:
+                goodPoints = TGraph(len(goodX), goodX, goodY)
+                goodPoints.SetMarkerStyle(7)
+                goodPoints.SetMarkerColor(3)
+                goodPoints.SetMaximum(1.2*max(yVals))
+                goodPoints.SetMinimum(0)
+                self.goodPoints = goodPoints
+            if len(badX)>0:
+                badPoints = TGraph(len(badX), badX, badY)
+                badPoints.SetMarkerStyle(7)
+                badPoints.SetMarkerColor(2)
+                badPoints.SetMaximum(1.2*max(yVals))
+                badPoints.SetMinimum(0)
+                self.badPoints = badPoints
+
+        return goodX, goodY
+
+                
+    def saveDebugGraph(self, fitList, titleList, name, fitGraph):
         canvas = TCanvas("Debug_%s" % (name), "y", 1000, 700)
         # Add a legend
         legend = TLegend(0.8, 0.9, 1.0, 0.7)
