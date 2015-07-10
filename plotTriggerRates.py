@@ -36,7 +36,7 @@ class MonitorController:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "rateCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
-                                                       "steamFile=", "Secondary", "All", "Raw", "Help", "useList", "batch", "overrideBatch", "createFit",
+                                                       "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
                                                        "aLaMode"])
         except:
@@ -100,9 +100,6 @@ class MonitorController:
                 self.rateMonitor.saveDirectory = str(op)
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
-                self.rateMonitor.useTrigList = True
-            elif label == "--useList":
-                # Depreciated (no longer necessary to use this with the --triggerList option)
                 self.rateMonitor.useTrigList = True
             elif label == "--batch":
                 self.batchMode = True
@@ -206,7 +203,6 @@ class MonitorController:
         print "\nBatch Options:"
         print "--batch                : Runs the program over all triggers in the trigger list in batches. Adjust maxRuns to set the number of runs per batch."
         print "--maxBatches=<num>     : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode. By default 9999."
-        print "--useList              : Only consider triggers specified in the triggerList file. You need to pass in a trigger list file using --triggerList=<name> (see above)."
         print "\nFitting Options:"
         print "--createFit            : Make a fit for the data we plot. Only a primary mode feature."
         print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
