@@ -2,7 +2,7 @@
 # DB.py
 # Author: Nathaniel Carl Rupprecht
 # Date: June 11, 2015
-# Last Modified: July 6, 2015
+# Last Modified: July 10, 2015
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -76,11 +76,11 @@ class DBParser:
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
     # -- runNumber: the number of the run that we want data for
-    # Returns: A list of of information for each LS: ( { LS, instLumi } )
+    # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
     def getLumiInfo(self, runNumber):
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
-        sqlquery="""SELECT LUMISECTION,INSTLUMI
+        sqlquery="""SELECT LUMISECTION,INSTLUMI, PHYSICS_FLAG
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION""" % (runNumber)
 

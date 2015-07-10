@@ -2,7 +2,7 @@
 # File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 8, 2015 by Nathaniel Rupprecht
+# Last Modified: July 10, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -88,7 +88,7 @@ class RateMonitor:
 
         # Steam Compair
         self.steam = False       # If true, we plot a steam prediction
-        self.steamFile = "SteamData.csv"      # The csv file with the steam data
+        self.steamFile = ""      # The csv file with the steam data
         self.steamData = {}      # Steam Data, gotten from the steam file
         self.steamILumi = 5000   # For what inst lumi the steam prediction is for (currently 5e33)
 
@@ -284,8 +284,8 @@ class RateMonitor:
         # Get the raw rate vs iLumi
         Rates = self.parser.getRawRates(runNumber)
         if Rates == {}: return {} # The run (probably) doesn't exist
-        # If we are in primary mode, we need luminosity info
-        if not self.mode: iLumi = self.parser.getLumiInfo(runNumber)
+        # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
+        iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
         if not self.useFit and not self.useTrigList:
             for triggerName in sorted(Rates):
@@ -295,11 +295,11 @@ class RateMonitor:
         self.correctForDeadtime(Rates, runNumber)
         self.allRates[runNumber] = Rates
         # Depending on the mode, we return different pairs of data
-        if self.mode == False:
+        if not self.mode:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
             return self.combineInfo(Rates, iLumi)
         else: # self.mode == True
-            return self.sortRates(Rates)
+            return self.sortRates(Rates, iLumi)
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
     # Parameters:
@@ -316,7 +316,7 @@ class RateMonitor:
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
     # Parameters:
     # -- Rates: A dictionary [ triggerName ] [ LS ] { raw rate, prescale }
-    # -- iLumi: A list ( { LS, instLumi } )
+    # -- iLumi: A list ( { LS, instLumi, cms active } )
     # Returns: A dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
     def combineInfo(self, Rates, iLumi):
         # Create a dictionary [ trigger name ] { ( inst lumi's ), ( raw rates ) }
@@ -325,12 +325,12 @@ class RateMonitor:
         for triggerName in Rates:
             iLuminosity = array.array('f')
             rawRate = array.array('f')
-            for LS, ilum in iLumi:
+            for LS, ilum, phys in iLumi:
                 if Rates[triggerName].has_key(LS) and not ilum is None:
                     # We apply our cuts here if they are called for
                     normedILumi = ilum/self.bunches
                     rate = Rates[triggerName][LS][0]
-                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doRateCut or rate > self.rateCut):
+                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doRateCut or rate > self.rateCut) and phys:
                         iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
                         rawRate.append(rate) # Add the correspoinding raw rate
                 else: pass
@@ -344,15 +344,17 @@ class RateMonitor:
     # Parameters:
     # -- Rates: A dictionary [ triggerName ] [ LS ] { raw rate, prescale }
     # Returns: A dictionary: [ trigger name ] { ( LS ), ( raw rates ) }
-    def sortRates(self, Rates):
+    def sortRates(self, Rates, iLumi):
         # Create a dictionary [ trigger name ] { ( LS ), (raw rates ) }
         dataList = {}
         for triggerName in Rates:
             lumisecs = array.array('f')
             rawRate = array.array('f')
-            for LS in Rates[triggerName]:
-                lumisecs.append(LS)
-                rawRate.append(Rates[triggerName][LS][0])
+
+            for LS, _, phys in iLumi:
+                if phys and Rates[triggerName].has_key(LS):
+                    lumisecs.append(LS)
+                    rawRate.append(Rates[triggerName][LS][0])
             dataList[triggerName] = [lumisecs, rawRate]
         return dataList
 
