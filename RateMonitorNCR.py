@@ -468,7 +468,7 @@ class RateMonitor:
                 fitFunc.Draw("same") # Draw the fit function on the same graph
         # Draw function string on the plot
         if not funcStr == "":
-            funcLeg = TLegend(0.0, 0.06, 0.45, 0.0)
+            funcLeg = TLegend(.146, .71, .57, .769)
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
