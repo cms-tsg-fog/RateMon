@@ -12,6 +12,7 @@
 #    ( object )          -- denotes a list of objects
 #######################################################
 
+# Imports
 from DBParser import *
 from ROOT import TF1
 import cPickle as pickle
@@ -20,7 +21,10 @@ import time
 # For colors
 from termcolor import *
 from colors import *
-import getopt # For getting command line options  
+# For getting command line options
+import getopt
+# For mail alerts
+from mailAlert import *
 
 def stringSegment(strng, tot):
     string = str(strng)
@@ -38,7 +42,7 @@ class CommandLineParser:
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "triggerList=", "AllowedPercDiff=","AllTriggers", "L1Triggers", "run="])
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "triggerList=", "AllowedPercDiff=","AllTriggers", "L1Triggers", "run=", "keepZeros"])
             
         except:
             print "Error getting options. Exiting."
@@ -62,6 +66,8 @@ class CommandLineParser:
                 self.monitor.useAll = True
             if label == "--L1Triggers":
                 self.monitor.useL1 = True
+            if label == "--keepZeros":
+                self.monitor.removeZeros = False
             if label == "--Help":
                 self.printOptions()
 
@@ -80,6 +86,7 @@ class CommandLineParser:
         print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
 
     # Use: Runs the shift monitor
+    # Returns: (void) (Never returns, monitor.run() has an infinite loop)
     def run(self):
         self.monitor.run()
                     
@@ -95,9 +102,7 @@ class CommandLineParser:
             return
         
         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
-
         TriggerList = []
-
         for triggerName in allTriggerNames:
             try:
                 if not str(triggerName) in TriggerList:
@@ -106,6 +111,7 @@ class CommandLineParser:
                 print "Error parsing trigger name in file", fileName
         return TriggerList
 
+    # Use: Parser options from a cfg file
     def parserCFGFile(self):
         pass
 
@@ -142,13 +148,20 @@ class ShiftMonitor:
         self.redoTList = True        # Whether we need to update the trigger lists
         self.useAll = False          # If true, we will plot out the rates for all the triggers
         self.useL1 = False           # If true, we monitor the L1 triggers too
+        self.removeZeros = True      # If true, we don't show triggers that have zero rate
 
         self.percAccept = 50.0       # The percent deviation that is acceptable
 
         self.normal = 0
         self.bad = 0
         self.total = 0
+        
+        self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad , whether last time the trigger was bad }
+        self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+        self.maxCBR = 4              # The maximum consecutive bad runs that we can have in a row
 
+    # Use: Formats the header string
+    # Returns: (void)
     def getHeader(self, haveHLT, haveL1):
         # Define spacing and header
         maxNameHLT = 0
@@ -164,7 +177,9 @@ class ShiftMonitor:
         self.header += stringSegment("* AVE PS", self.spacing[4])
         self.header += stringSegment("* COMMENTS", self.spacing[5])
         self.hlength = sum(self.spacing)
-        
+
+    # Use: Runs the program
+    # Returns: (void)
     def run(self):
         # Load the fit and trigger list
         haveHLT = (self.fitFileHLT != "")
@@ -186,9 +201,7 @@ class ShiftMonitor:
             self.triggerMode = mode[0]
             # Info message
             print "The current run number is %s." % (self.runNumber)
-
         self.getHeader(haveHLT, haveL1)
-        
         # If we are observing a single run from the past
         if self.assignedNum:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
@@ -203,16 +216,20 @@ class ShiftMonitor:
             self.runNumber, isCol, isGood, mode = self.parser.getLatestRunInfo()
             # Run the main functionality
             self.runLoop()      
+            # Check for bad triggers
+            self.checkTriggers()
             # Sleep before re-querying
             self.sleepWait()
         # This loop is infinite, the user must forcefully exit
 
+    # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
+    # Returns: (void)
     def runLoop(self):
         # Reset counting variable
         self.total = 0
         self.normal = 0
         self.bad = 0
-        
+        # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
             redoTList = True # Re-do trigger lists
@@ -241,16 +258,18 @@ class ShiftMonitor:
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
             self.redoTList = False
+            # Reset bad rate records
+            self.badRates = {}           # A dictionary: [ trigger name ] < num consecutive bad >
+            self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+            # Re-make trigger lists
             for trigger in self.HLTRates.keys():
                 if not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger):
                     self.usableHLTTriggers.append(trigger)
-                else:
-                    self.otherHLTTriggers.append(trigger)
+                else: self.otherHLTTriggers.append(trigger)
             for trigger in self.L1Rates.keys():
                 if not self.InputFitL1 is None and self.InputFitL1.has_key(trigger):
                     self.usableL1Triggers.append(trigger)
-                else:
-                    self.otherL1Triggers.append(trigger)
+                else: self.otherL1Triggers.append(trigger)
                     
         # Find the latest LS
         if len(self.HLTRates)>0: Rates = self.HLTRates
@@ -277,15 +296,13 @@ class ShiftMonitor:
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.lastLS+1, self.latestLS)
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
-
+        # Reset variable
         self.total = 0
         self.normal = 0
         self.bad = 0
-        
         # Print the header
         print '*' * self.hlength
         print self.header
-
         # Get the inst lumi
         aveLumi = 0
         if not self.cosmics:
@@ -303,7 +320,6 @@ class ShiftMonitor:
             else: aveLumi /= float(count)
 
         # Print the triggers that we can make predictions for
-
         if len(self.usableHLTTriggers)>0:
             print '*' * self.hlength
             print "Predictable HLT Triggers (ones we have a fit for)"
@@ -318,6 +334,7 @@ class ShiftMonitor:
         for trigger in self.usableL1Triggers:
             self.L1 = True
             self.printTriggerData(trigger, self.mode=="collisions", aveLumi)
+        # Print the triggers that we can't make predictions for
         if self.useAll:
             print '*' * self.hlength
             print "Unpredictable HLT Triggers (ones we have no fit for)"
@@ -333,19 +350,18 @@ class ShiftMonitor:
             for trigger in self.otherL1Triggers:
                 self.printTriggerData(trigger,False)
 
-        #if self.useL1:
-        #    print '*' * self.hlength
-        #    self.printL1TriggerData()
-
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
-        print "Total Triggers: %s   |   Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.total, self.normal, self.bad)
+        print "Total Triggers: %s" % (self.total)
+        if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         print "Ave iLumi: %s" % (aveLumi)
         print '*' * self.hlength
         
     # Use: Prints a table, not making a prediction (Because we are in cosmics mode)
     # Returns: (void)
+    ##** ##**
+    ##** TODO: This function is obselete
     def printCosmicsTable(self):
         # Print the header of the table
         print "\n\n", '*' * self.hlength
@@ -353,12 +369,10 @@ class ShiftMonitor:
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.lastLS+1, self.latestLS)
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
-        
-        # Print the header
+        # Print the column header
         print '*' * self.hlength
         print self.header
         print '*' * self.hlength
-
         # Print all the trigger info
         for trigger in self.TriggerListHLT:
             self.L1 = False
@@ -378,28 +392,30 @@ class ShiftMonitor:
             self.L1 = True
             for trigger in self.otherL1Triggers:
                 self.printTriggerData(trigger,False)
-
+        # Print Closer
         if self.useL1:
             print '*' * self.hlength
             self.printL1TriggerData()
-            
-
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
         print "Total Triggers: %s" % (self.total)
         print '*' * self.hlength
 
-
+    # Use: Prints out a row in the monitor table
+    # Arguments:
+    # -- trigger : The name of the trigger
+    # -- doPred  : Whether we should try to make a prediction
+    # -- aveLumi : The ave lumi for the LS's
+    # Returns: (void)
     def printTriggerData(self, trigger, doPred=True, aveLumi=0):
         # If cosmics, don't do predictions
         if self.cosmics: doPred = False
-
+        # Calculate rate
         if not self.cosmics and doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
             else: expected = None
-             
         # Find the ave rate since the last time we checked
         aveRate = 0
         avePS = 0
@@ -419,19 +435,36 @@ class ShiftMonitor:
             aveRate /= count
             avePS /= count
         else: comment += "Trigger PS to 0"
+
+        # Returns if we are not making predictions for this trigger and we are throwing zeros
+        if not doPred and self.removeZeros and aveRate==0:
+            return
         
         # Find the % diff
         if doPred:
             if expected == 0 or expected == "NONE": perc = "INF"
             else: perc = 100*(aveRate-expected)/expected
-         
+        
         # Print the info for this trigger
         self.total += 1
         if doPred:
             if perc != "INF" and abs(perc) > self.percAccept:
                 write(bcolors.WARNING) # Write colored text
                 self.bad += 1
-            else: self.normal += 1
+                # Record if a trigger was bad
+                if not self.recordAllBadRates.has_key(trigger):
+                    self.recordAllBadRates[trigger] = 0
+                self.recordAllBadRates[trigger] += 1
+                # Record consecutive bad rates
+                if not self.badRates.has_key(trigger):
+                    self.badRates[trigger] = [0, True]
+                last = self.badRates[trigger]
+                self.badRates[trigger] = [ last[0]+1, True ]
+            else:
+                self.normal += 1
+                # Remove warning from badRates
+                if self.badRates.has_key(trigger):
+                    self.badRates[trigger] = [ 0, False ]
 
         info = stringSegment("* "+trigger, self.spacing[0])
         info += stringSegment("* "+"{0:.2f}".format(aveRate), self.spacing[1])
@@ -441,12 +474,8 @@ class ShiftMonitor:
             else: info += stringSegment("* NONE", self.spacing[2])
             if perc != "INF": info += stringSegment("* "+"{0:.2f}".format(perc), self.spacing[3])
             else: info += stringSegment("* INF", self.spacing[3])
-            info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[4])
-        else:
-            info += stringSegment("", sum(self.spacing[2:5]))
-            #info += stringSegment("", self.spacing[3])
-            #info += stringSegment("", self.spacing[4])
-
+        else: info += stringSegment("", sum(self.spacing[2:4]))
+        info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[4])
         info += stringSegment("* "+comment, self.spacing[5])
         print info
         if doPred:
@@ -454,6 +483,8 @@ class ShiftMonitor:
                 write(bcolors.ENDC) # Stop writing colored text
 
     # Use: Gets the L1 raw rate data and prints it out in table form
+    ##** ##**
+    ##** TODO: This function is obsolete
     def printL1TriggerData(self):
         L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
 
@@ -479,6 +510,17 @@ class ShiftMonitor:
 
             print info
         print '*' * self.hlength
+
+    # Use: Checks triggers to make sure none have been bad for to long
+    def checkTriggers(self):
+        for trigger in self.badRates:
+            if self.badRates[trigger][1]:
+                if self.badRates[trigger][1] and self.badRates[trigger][0] >= self.maxCBR:
+                    print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR)
+                elif self.badRates[trigger][0] >= self.maxCBR-1:
+                    print "Warning: Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR-1)
+        ##** TODO: incorporate mailed warnings
+        
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -524,12 +566,21 @@ class ShiftMonitor:
         fitFunc = TF1("Fit_"+triggerName, funcStr)
         return fitFunc.Eval(ilum)
 
+    def sendMail(self):
+        pass
+        #mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
+        #mail += "The following path rate(s) are deviating from expected values: \n"
+        #for index,entry in enumerate(core_data):
+        #    if Warn[index]:
+        #        mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
+        #mailAlert(mail)
+
 ## ----------- End of class ShiftMonitor ------------ ##
 
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.parseArgs()
-    #try:
-    parser.run()
-    #except:
-    #    print "\nExiting. Goodbye..."
+    try:
+        parser.run()
+    except:
+        print "\nExiting. Goodbye..."
