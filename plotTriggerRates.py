@@ -38,7 +38,7 @@ class MonitorController:
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "aLaMode"])
+                                                       "L1Triggers", "AllTriggers", "aLaMode"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -101,6 +101,11 @@ class MonitorController:
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
                 self.rateMonitor.useTrigList = True
+            elif label == "--L1Triggers":
+                self.rateMonitor.L1Triggers = True
+                self.rateMonitor.HLTTriggers = False
+            elif label == "--AllTriggers":
+                self.rateMonitor.L1Triggers = True
             elif label == "--batch":
                 self.batchMode = True
                 self.rateMonitor.outputOn = False
@@ -215,6 +220,9 @@ class MonitorController:
         print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
         print "--includeNoneBunches   : By default, if we normalize by the number of colliding bunches and we find a run where we cannot retrieve the number of colliding bunches,"
         print "                         we skip that run. This overrides that functionality."
+        print "Trigger Options"
+        print "--L1Triggers           : ONLY L1 triggers are monitored for the runs."
+        print "--AllTriggers          : Both L1 and HLT triggers are monitored for the runs."
         print "\nSecret Options"
         print "--???"
         print ""

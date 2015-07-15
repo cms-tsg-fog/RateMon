@@ -77,12 +77,13 @@ class DBParser:
     # Parameters:
     # -- runNumber: the number of the run that we want data for
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
-    def getLumiInfo(self, runNumber):
+    def getLumiInfo(self, runNumber, minLS=-1):
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
         sqlquery="""SELECT LUMISECTION,INSTLUMI, PHYSICS_FLAG
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION""" % (runNumber)
+        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s AND B.LUMI_SECTION>%s
+        """ % (runNumber, minLS, minLS)
 
         try:
             self.curs.execute(sqlquery) # Execute the query
@@ -94,12 +95,12 @@ class DBParser:
     # Use: Get the prescaled rate as a function 
     # Parameters: runNumber: the number of the run that we want data for
     # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
-    def getPSRates(self, runNumber):
+    def getPSRates(self, runNumber, minLS=-1):
         # Note: we find the raw rate by dividing CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS.Accept by 23.3
 
         sqlquery = "SELECT A.LSNUMBER, SUM(A.PACCEPT), (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
-        WHERE RUNNUMBER=%s GROUP BY A.LSNUMBER,A.PATHID" % runNumber
+        WHERE RUNNUMBER=%s AND A.LSNUMBER>%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS)
 
         try:
             self.curs.execute(sqlquery)
@@ -123,12 +124,22 @@ class DBParser:
 
         return TriggerRates
 
+    # Use: Get all the L1 and HLT raw rates
+    # Parameters:
+    # -- runNumber: The number of the run that we are examining
+    # Returns: A dictionary [triggerName][LS] { raw rate, prescale }  
+    def getAllRawRates(self, runNumber, minLS=-1):
+        Rates = getRawRates(runNumber, minLS)
+        L1Rates = getL1RawRates(runNumber, minLS)
+        Rates.update(L1Rates)
+        return Rates
+
     # Note: This function is based on a function from DatabaseParser.py
     # Use: Get the raw rate and prescale factor
     # Parameters:
     # -- runNumber: The number of the run that we are examining
     # Returns: A dictionary [triggerName][LS] { raw rate, prescale } 
-    def getRawRates(self, runNumber):
+    def getRawRates(self, runNumber, minLS=-1):
         # First we need the HLT and L1 prescale rates and the HLT seed info
         if not self.getRunInfo(runNumber):
             return {} # The run probably doesn't exist
@@ -141,13 +152,15 @@ class DBParser:
         self.getHLTPrescales(runNumber)
 
         # Get column prescale info
-        sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
-        FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION ORDER BY A.RUNNUMBER,A.LUMISECTION
-        """ % (runNumber)
-        self.curs.execute(sqlquery)
+        self.getPSColumnByLS(runNumber, minLS)
 
-        self.PSColumnByLS = {} # Reset self.PSColumnByLS
+        #sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
+        #FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
+        #AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s ORDER BY A.RUNNUMBER,A.LUMISECTION
+        #""" % (runNumber, minLS)
+        #self.curs.execute(sqlquery)
+
+        #self.PSColumnByLS = {} # Reset self.PSColumnByLS
 
         # Get the prescale index as a function of LS
         for LS, psi in self.curs.fetchall():
@@ -156,7 +169,7 @@ class DBParser:
         ## A more complex version of the getRates query
         sqlquery = "SELECT A.LSNUMBER, SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT),SUM(A.PEXCEPT), (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
-        WHERE RUNNUMBER=%s GROUP BY A.LSNUMBER,A.PATHID" % runNumber
+        WHERE RUNNUMBER=%s AND A.LSNUMBER>%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS)
         
         try:
             self.curs.execute(sqlquery)
@@ -175,22 +188,19 @@ class DBParser:
             if not TriggerRates.has_key(name):
                 TriggerRates[name] = {} # Initialize dictionary
             # TODO: We can probably come up with a better solution then a try, except here
-            try:
-                psi = self.PSColumnByLS[LS] # Get the prescale index
-            except:
-                psi = 0
+            try: psi = self.PSColumnByLS[LS] # Get the prescale index
+            except: psi = 0
             if psi is None: psi=0
             
             try:
                 hltps = self.HLTPrescales[name][psi]
             except:
-                if PSPass:
-                    hltps = float(L1Pass)/PSPass
+                if PSPass: hltps = float(L1Pass)/PSPass
             hltps = float(hltps)
                     
             try:
                 if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
-                    l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                 else:
                     AvL1Prescales = self.CalculateAvL1Prescales([LS])
                     l1ps = self.UnwindORSeed(self.HLTSeed[name],AvL1Prescales)
@@ -201,6 +211,66 @@ class DBParser:
 
         return TriggerRates
 
+    # Use: Gets data related to L1 trigger rates
+    # Parameters:
+    # -- runNumber: The number of the run to look at
+    # -- minLS: The minimum lumisection to consider
+    # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
+    def getL1RawRates(self, runNumber, minLS=-1):
+        # Get information that we will need to use
+        self.getPSColumnByLS(runNumber, minLS)
+        self.getL1Prescales(runNumber)
+        self.getL1NameIndexAssoc(runNumber)
+        # Formulate query
+        query = """SELECT LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
+        TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
+        A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C
+        WHERE A.RUNNUMBER=%s AND A.LSNUMBER>%s )""" % (runNumber, minLS)
+        self.curs.execute(query)
+        L1RateAll=self.curs.fetchall()
+
+        L1Triggers = {}
+        rmap = {} # Maps bits to trigger names
+        LSRange = []
+        for name in self.L1IndexNameMap:
+            rmap[self.L1IndexNameMap[name]] = name
+        # Create L1 Rates: [ trigger ] [ LS ] <Rate>
+        for LS, rate, bit in L1RateAll:
+            if not rmap.has_key(bit):
+                #print "Cannot find L1 trigger with bit %s" % (bit)
+                continue
+            name = rmap[bit]
+            if not LS in LSRange:
+                LSRange.append(LS)
+            if not L1Triggers.has_key(name):
+                L1Triggers[name] = {}
+            L1Triggers[name][LS] = rate
+                
+        # #total L1 PS table
+        L1PSdict={}
+        counter=0
+        for line in self.L1Prescales:
+            L1PSdict[counter]=line
+            counter=counter+1
+                
+        # av ps dict
+        L1PSbits={}
+        L1Rates = {}
+        for bit in L1PSdict.iterkeys():
+            if not rmap.has_key(bit):
+                continue
+            name = rmap[bit]
+            if not L1Rates.has_key(name):
+                L1Rates[name] = {}
+            for LS in LSRange:
+                try:
+                    pscol = self.PSColumnByLS[LS]
+                    ps = L1PSdict[bit][pscol]
+                    L1Rates[name][LS]= [ L1Triggers[name][LS]*ps , ps ]
+                except: pass
+        # [ trigger ] [ LS ] { raw rate, ps }
+        return L1Rates
+    
     # Use: Gets the raw rate of a trigger during a run and the average prescale value of that trigger during the run
     # Returns: A dictionary: [ trigger name ] { ave ps, [ LS ] [ raw rate ] }
     def getRates_AvePS(self, runNumber):
@@ -222,6 +292,20 @@ class DBParser:
 
         return TriggerRates
 
+    # Use: Gets the ps columns for each ls
+    # Returns: (void)
+    def getPSColumnByLS(self, runNumber, minLS=-1):
+        # Get column prescale info
+        sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
+        FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
+        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s ORDER BY A.RUNNUMBER,A.LUMISECTION
+        """ % (runNumber, minLS)
+        self.curs.execute(sqlquery)
+        # Reset self.PSColumnByLS 
+        self.PSColumnByLS = {} 
+        # Get the prescale index as a function of LS
+        for LS, psi in self.curs.fetchall():
+            self.PSColumnByLS[LS] = psi
 
     # Note: This function is from DatabaseParser.py (with moderate modification)
     # Use: Sets the L1 trigger prescales for this class
@@ -262,7 +346,8 @@ class DBParser:
             psi = self.PSColumnByLS[index]
             if not psi: psi = 0
             for algo in range(self.nAlgoBits):
-                AvgL1Prescales[algo]+=self.L1PrescaleTable[algo][psi]
+                # AvgL1Prescales[algo]+=self.L1PrescaleTable[algo][psi]
+                AvgL1Prescales[algo]+=self.L1Prescales[algo][psi]
         for i in range(len(AvgL1Prescales)):
             try:
                 AvgL1Prescales[i] = AvgL1Prescales[i]/len(LSRange)
@@ -278,7 +363,6 @@ class DBParser:
         Figures out the effective prescale for the OR of several seeds
         we take this to be the *LOWEST* prescale of the included seeds
         """
-        print "Invoking Unwind OR seed." ##**
         if expression.find(" OR ") == -1:
             return -1  # Not an OR of seeds
         seedList = expression.split(" OR ")
@@ -428,5 +512,51 @@ class DBParser:
             deadTime[ls] = dt
             
         return deadTime
-                
+
+    # Use: Returns the number of the latest run to be stored in the DB
+    def getLatestRunInfo(self):
+        query="""SELECT MAX(A.RUNNUMBER)
+        FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0
+        """
+        try:
+            self.curs.execute(query)
+            runNumber = self.curs.fetchone()
+        except:
+            print "Error: Unable to retrieve latest run number."
+            return
+
+        mode = self.getTriggerMode(runNumber)
+        isCol=0
+        isGood=1
+        
+        if mode is None:
+            isGood=0
+        elif mode[0].find('l1_hlt_collisions')!=-1:
+            isCol=1
+                        
+        Tier0xferQuery = "SELECT TIER0_TRANSFER TIER0 FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER = %d" % (runNumber)
+        self.curs.execute(Tier0xferQuery)
+        tier0=1
+        try:
+            tier0 = self.curs.fetchone()
+        except:
+            print "Error: Unable to get tier0 status."
+            
+        if isCol and not tier0:
+            print "WARNING: tier0 transfer is off"
+        elif not tier0:
+            print "Please check if tier0 transfer is supposed to be off."
+            
+        return [runNumber[0], isCol, isGood, mode]
+
+    # Use: Get the trigger mode for the specified run
+    def getTriggerMode(self, runNumber):
+        TrigModeQuery = "SELECT TRIGGERMODE FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER = %d" % (runNumber)
+        self.curs.execute(TrigModeQuery)
+        try:
+            mode = self.curs.fetchone()
+        except:
+            print "Error: Unable to retrieve trigger mode."
+        return mode
+            
 # -------------------- End of class DBParsing -------------------- #
