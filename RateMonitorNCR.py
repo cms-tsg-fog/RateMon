@@ -51,24 +51,30 @@ class RateMonitor:
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the prescaled rate on the y axis
-
+        
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
         self.nameGiven = False   # Whether a user defined name was given as the save name
-
+        
         self.parser = DBParser() # A database parser
         self.lastRun = 0         # The last run in the run list that will be considered
         self.TriggerList = []    # The list of triggers to consider in plot-making 
+
+        # Trigger Options
+        self.L1Triggers = False  # If True, then we get the L1 trigger Data
+        self.HLTTriggers = True  # If True, then we get the HLT trigger Data
         self.savedAFile = False  # True if we saved at least one file
+
+        # Error File Options
         self.makeErrFile = False # If true, we will write an error file
         self.errFileName = ""    # The name of the error file
         self.errFile = None      # A file to output errors to
-
+        
         self.mode = False        # False -> Primary mode, True -> Secondary mode
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
-
+        
         self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
         self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
         self.minStatistics = 10  # The minimum number of points that we will allow for a run and still consider it
@@ -281,8 +287,15 @@ class RateMonitor:
     # -- runNumber: The number of the run we want data from
     # Returns: A dictionary:  [ trigger name ] { ( inst lumi's || LS ), ( raw rates ) }
     def getData(self, runNumber):
-        # Get the raw rate vs iLumi
-        Rates = self.parser.getRawRates(runNumber)
+        Rates = {}
+        # Get the HLT raw rate vs LS
+        if self.HLTTriggers:
+            Rates = self.parser.getRawRates(runNumber)
+        # Get the L1 raw rate vs LS
+        if self.L1Triggers:
+            L1Rates = self.parser.getL1RawRates(runNumber)
+            Rates.update(L1Rates)
+        
         if Rates == {}: return {} # The run (probably) doesn't exist
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
@@ -512,7 +525,24 @@ class RateMonitor:
         outputFile = open(self.outFitFile, "wb")
         pickle.dump(self.OutputFit, outputFile, 2)
         outputFile.close()
+
+        self.sortFit()
+
         print "\nFit file saved to", self.outFitFile # Info message
+
+    # Use: Sorts trigger fits by their chi squared value and writes it to a file
+    def sortFit(self):
+        outputFile = open("SortedChiSqr.txt", "wb")
+
+        chisqrDict = {}
+        for trigger in self.OutputFit:
+            _,_,_,_,_,_,_,_,_,_,_,chisqr = self.OutputFit[trigger]
+            chisqrDict[chisqr] = trigger
+
+        for chisqr in sorted(chisqrDict):
+            outputFile.write(chisqrDict[chisqr] + ": " + str(chisqr) + "\n")
+        outputFile.close
+        print "Sorted chi-square saved to SortedChiSqr.txt"
             
     # Use: Creates a graph of predicted raw rate vs lumisection data
     # Parameters:
@@ -563,6 +593,7 @@ class RateMonitor:
     def loadFit(self):
         if self.fitFile == "":
             print "No fit file specified."
+            return None
         InputFit = {} # Initialize InputFit (as an empty dictionary)
         # Try to open the file containing the fit info
         try:
