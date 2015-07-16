@@ -45,7 +45,11 @@ class ShiftMonitor:
         self.InputFitHLT = None      # The fit information for the HLT triggers
         self.InputFitL1 = None       # The fit information for the L1 triggers
         # DBParser
-        self.parser = DBParser()
+        self.parser = DBParser()     # A database parser
+        # Rates
+        self.HLTRates = None         # HLT rates
+        self.L1Rates = None          # L1 rates
+        self.Rates = None            # Combined L1 and HLT rates
         # Run control
         self.lastRunNumber = -2      # The run number during the last segment
         self.runNumber = -1          # The number of the current run
@@ -64,7 +68,8 @@ class ShiftMonitor:
         # Columns header
         self.header = ""             # The table header
         # Triggers
-        self.useTrigList = False     # Whether we were given a trigger list or not
+        self.useTrigListHLT = False  # Whether we were given an HLT trigger list or not
+        self.useTrigListL1 = False   # Whether we were given an L1 trigger list or not
         self.TriggerListHLT = None   # All the HLT triggers that we want to monitor
         self.TriggerListL1 = None    # All the L1 triggers that we want to monitor
         self.usableHLTTriggers = []  # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -75,7 +80,7 @@ class ShiftMonitor:
         self.useAll = False          # If true, we will plot out the rates for all the triggers
         self.useL1 = False           # If true, we monitor the L1 triggers too
         self.removeZeros = True      # If true, we don't show triggers that have zero rate
-        # Trigger goodness
+        # Trigger behavior
         self.percAccept = 50.0       # The percent deviation that is acceptable
         self.normal = 0
         self.bad = 0
@@ -87,12 +92,15 @@ class ShiftMonitor:
 
     # Use: Formats the header string
     # Returns: (void)
-    def getHeader(self, haveHLT, haveL1):
+    def getHeader(self):
         # Define spacing and header
         maxNameHLT = 0
         maxNameL1 = 0
-        if haveHLT: maxNameHLT = max([len(trigger) for trigger in self.TriggerListHLT])
-        if haveL1 : maxNameL1 = max([len(trigger) for trigger in self.TriggerListL1])
+        if len(self.usableHLTTriggers)>0 or len(self.otherHLTTriggers)>0:
+            maxNameHLT = max([len(trigger) for trigger in self.usableHLTTriggers+self.otherHLTTriggers])
+        if len(self.usableL1Triggers)>0 or len(self.otherL1Triggers)>0:
+            maxNameL1 = max([len(trigger) for trigger in self.usableL1Triggers+self.otherL1Triggers])
+        
         maxName = max([maxNameHLT, maxNameL1])
         if maxName == 0: maxName = 90
         
@@ -116,10 +124,10 @@ class ShiftMonitor:
         if haveHLT: self.InputFitHLT = self.loadFit(self.fitFileHLT)
         if haveL1 : self.InputFitL1 = self.loadFit(self.fitFileL1)
         # If there aren't preset trigger lists, use all the triggers that we can fit
-        if self.useTrigList: pass # Only using triggers in the current trigger list
-        else:
-            if haveHLT: self.TriggerListHLT = self.InputFitHLT.keys()
-            if haveL1 : self.TriggerListL1 = self.InputFitL1.keys()
+        if self.useTrigListHLT: pass # Only using triggers in the current trigger list
+        elif haveHLT: self.TriggerListHLT = self.InputFitHLT.keys()
+        if self.useTrigListL1: pass
+        elif haveL1: self.TriggerListL1 = self.InputFitL1.keys()
 
         if haveHLT and len(self.InputFitHLT)==0: haveHLT = False
         if haveL1 and len(self.InputFitL1)==0: haveL1 = False
@@ -130,7 +138,6 @@ class ShiftMonitor:
             self.triggerMode = mode[0]
             # Info message
             print "The current run number is %s." % (self.runNumber)
-        self.getHeader(haveHLT, haveL1)
         # If we are observing a single run from the past
         if self.assignedNum:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
@@ -182,9 +189,12 @@ class ShiftMonitor:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.latestLS)
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.latestLS)
         else:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0])
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[1])
-
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0]-1)
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0]-1)
+        self.Rates = {}
+        self.Rates.update(self.HLTRates)
+        self.Rates.update(self.L1Rates)
+        
         # Make sure there is info to use
         if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting..."
@@ -207,6 +217,7 @@ class ShiftMonitor:
                 (not self.TriggerListL1 is None and trigger in self.TriggerListL1):
                     self.usableL1Triggers.append(trigger)
                 else: self.otherL1Triggers.append(trigger)
+            self.getHeader()
                     
         # Find the latest LS
         if len(self.HLTRates)>0: Rates = self.HLTRates
@@ -217,7 +228,8 @@ class ShiftMonitor:
         self.latestLS = max(Rates[trig].keys())
 
         if self.useLSRange: # Adjust runs so we only look at those in our range
-            self.lastLS = min( [self.lastLS, self.LSRange[0]] )
+            self.slidingLS = -1 # No sliding LS window
+            self.lastLS = max( [self.lastLS, self.LSRange[0]-1] )
             self.latestLS = min( [self.latestLS, self.LSRange[1] ] )
         
         # TODO: Deal with starting a new run
@@ -267,9 +279,8 @@ class ShiftMonitor:
                 aveLumi = "NONE"
                 expected = "NONE"
             else: aveLumi /= float(count)
-
+        # We only do predictions when there were physics active LS in a collisions run
         doPred = physicsActive and self.mode=="collisions"
-
         # Print the triggers that we can make predictions for
         if len(self.usableHLTTriggers)>0:
             print '*' * self.hlength
@@ -288,14 +299,14 @@ class ShiftMonitor:
         # Print the triggers that we can't make predictions for
         if self.useAll:
             print '*' * self.hlength
-            print "Unpredictable HLT Triggers (ones we have no fit for)"
+            print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
             self.L1 = False
             for trigger in self.otherHLTTriggers:
                 self.printTriggerData(trigger,False)
         if self.useL1:
             print '*' * self.hlength
-            print "Unpredictable L1 Triggers (ones we have no fit for)"
+            print "Unpredictable L1 Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
             self.L1 = True
             for trigger in self.otherL1Triggers:
@@ -329,23 +340,18 @@ class ShiftMonitor:
         count = 0
         comment = "" # A comment
 
-        Rates = {}
-        Rates.update(self.HLTRates)
-        Rates.update(self.L1Rates)
-
-        for LS in Rates[trigger].keys():
-
+        for LS in self.Rates[trigger].keys():
+            # If using a LSRange
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
-
-            if Rates[trigger][LS][1] > 0: # If not prescaled to 0
-                aveRate += Rates[trigger][LS][0]
+            # Average the rate
+            if self.Rates[trigger][LS][1] > 0: # If not prescaled to 0
+                aveRate += self.Rates[trigger][LS][0]
                 count += 1
-                avePS += Rates[trigger][LS][1]
+                avePS += self.Rates[trigger][LS][1]
         if count > 0:
             aveRate /= count
             avePS /= count
         else: comment += "Trigger PS to 0"
-
         # Returns if we are not making predictions for this trigger and we are throwing zeros
         if not doPred and self.removeZeros and aveRate==0:
             return
