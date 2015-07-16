@@ -546,7 +546,7 @@ class RateMonitor:
             
     # Use: Creates a graph of predicted raw rate vs lumisection data
     # Parameters:
-    # -- paramlist: A tuple of parameters { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err } 
+    # -- paramlist: A tuple of parameters { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err, ChiSqr } 
     # -- minVal: The minimum LS
     # -- maxVal: The maximum LS
     # -- maxRR: The maximum raw rate (y value)
