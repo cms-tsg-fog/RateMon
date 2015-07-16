@@ -112,7 +112,7 @@ class CommandLineParser:
         for triggerName in allTriggerNames:
             try:
                 if not str(triggerName) in TriggerList:
-                    TriggerList.append(str(triggerName))
+                    TriggerList.append(stripVersion(str(triggerName)))
             except:
                 print "Error parsing trigger name in file", fileName
         return TriggerList
