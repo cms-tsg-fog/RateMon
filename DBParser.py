@@ -2,7 +2,7 @@
 # DB.py
 # Author: Nathaniel Carl Rupprecht
 # Date: June 11, 2015
-# Last Modified: July 10, 2015
+# Last Modified: July 16, 2015
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -77,13 +77,14 @@ class DBParser:
     # Parameters:
     # -- runNumber: the number of the run that we want data for
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
-    def getLumiInfo(self, runNumber, minLS=-1):
+    def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999):
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
         sqlquery="""SELECT LUMISECTION,INSTLUMI, PHYSICS_FLAG
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s AND B.LUMI_SECTION>%s
-        """ % (runNumber, minLS, minLS)
+        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s
+        AND A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
+        """ % (runNumber, minLS, minLS, maxLS, maxLS)
 
         try:
             self.curs.execute(sqlquery) # Execute the query
@@ -95,12 +96,12 @@ class DBParser:
     # Use: Get the prescaled rate as a function 
     # Parameters: runNumber: the number of the run that we want data for
     # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
-    def getPSRates(self, runNumber, minLS=-1):
+    def getPSRates(self, runNumber, minLS=-1, maxLS=9999999):
         # Note: we find the raw rate by dividing CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS.Accept by 23.3
 
         sqlquery = "SELECT A.LSNUMBER, SUM(A.PACCEPT), (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
-        WHERE RUNNUMBER=%s AND A.LSNUMBER>%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS)
+        WHERE RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS, maxLS)
 
         try:
             self.curs.execute(sqlquery)
@@ -128,7 +129,7 @@ class DBParser:
     # Parameters:
     # -- runNumber: The number of the run that we are examining
     # Returns: A dictionary [triggerName][LS] { raw rate, prescale }  
-    def getAllRawRates(self, runNumber, minLS=-1):
+    def getAllRawRates(self, runNumber, minLS=-1, maxL=9999999):
         Rates = self.getRawRates(runNumber, minLS)
         Rates.update(self.getL1RawRates(runNumber, minLS))
         return Rates
@@ -138,7 +139,7 @@ class DBParser:
     # Parameters:
     # -- runNumber: The number of the run that we are examining
     # Returns: A dictionary [triggerName][LS] { raw rate, prescale } 
-    def getRawRates(self, runNumber, minLS=-1):
+    def getRawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # First we need the HLT and L1 prescale rates and the HLT seed info
         if not self.getRunInfo(runNumber):
             return {} # The run probably doesn't exist
@@ -160,7 +161,7 @@ class DBParser:
         ## A more complex version of the getRates query
         sqlquery = "SELECT A.LSNUMBER, SUM(A.L1PASS),SUM(A.PSPASS),SUM(A.PACCEPT),SUM(A.PEXCEPT), (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
-        WHERE RUNNUMBER=%s AND A.LSNUMBER>%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS)
+        WHERE RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS, maxLS)
         
         try: self.curs.execute(sqlquery)
         except:
@@ -206,7 +207,7 @@ class DBParser:
     # -- runNumber: The number of the run to look at
     # -- minLS: The minimum lumisection to consider
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
-    def getL1RawRates(self, runNumber, minLS=-1):
+    def getL1RawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # Get information that we will need to use
         self.getPSColumnByLS(runNumber, minLS)
         self.getL1Prescales(runNumber)
@@ -215,7 +216,7 @@ class DBParser:
         query = """SELECT LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
         TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
         A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C
-        WHERE A.RUNNUMBER=%s AND A.LSNUMBER>%s )""" % (runNumber, minLS)
+        WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
         self.curs.execute(query)
         L1RateAll=self.curs.fetchall()
 
