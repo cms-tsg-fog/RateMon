@@ -331,6 +331,11 @@ class DBParser:
 
         tmp = self.curs.fetchall()
         self.L1Prescales = []
+
+        if len(tmp) < 1:
+            print "Cannot get L1 Prescales"
+            return
+
         for ps in tmp[0]: #build the prescale table initially
             self.L1Prescales.append([ps])
         for line in tmp[1:]: # now fill it
