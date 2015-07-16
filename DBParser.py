@@ -129,9 +129,8 @@ class DBParser:
     # -- runNumber: The number of the run that we are examining
     # Returns: A dictionary [triggerName][LS] { raw rate, prescale }  
     def getAllRawRates(self, runNumber, minLS=-1):
-        Rates = getRawRates(runNumber, minLS)
-        L1Rates = getL1RawRates(runNumber, minLS)
-        Rates.update(L1Rates)
+        Rates = self.getRawRates(runNumber, minLS)
+        Rates.update(self.getL1RawRates(runNumber, minLS))
         return Rates
 
     # Note: This function is based on a function from DatabaseParser.py
@@ -154,14 +153,6 @@ class DBParser:
         # Get column prescale info
         self.getPSColumnByLS(runNumber, minLS)
 
-        #sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
-        #FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        #AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s ORDER BY A.RUNNUMBER,A.LUMISECTION
-        #""" % (runNumber, minLS)
-        #self.curs.execute(sqlquery)
-
-        #self.PSColumnByLS = {} # Reset self.PSColumnByLS
-
         # Get the prescale index as a function of LS
         for LS, psi in self.curs.fetchall():
             self.PSColumnByLS[LS] = psi
@@ -171,8 +162,7 @@ class DBParser:
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
         WHERE RUNNUMBER=%s AND A.LSNUMBER>%s GROUP BY A.LSNUMBER,A.PATHID" % (runNumber, minLS)
         
-        try:
-            self.curs.execute(sqlquery)
+        try: self.curs.execute(sqlquery)
         except:
             print "Getting rates failed. Exiting."
             exit(2) # Exit with error
@@ -253,7 +243,8 @@ class DBParser:
             L1PSdict[counter]=line
             counter=counter+1
                 
-        # av ps dict
+        if len(LSRange) == 0: return {}
+        
         L1PSbits={}
         L1Rates = {}
         for bit in L1PSdict.iterkeys():
