@@ -29,7 +29,7 @@ class CommandLineParser:
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "LSRange=", "displayBad=", "AllowedPercDiff=", "Window=","AllTriggers", "L1Triggers", "run=", "keepZeros"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "AllowedPercDiff=", "Window=","AllTriggers", "L1Triggers", "run=", "keepZeros"])
             
         except:
             print "Error getting options. Exiting."
@@ -42,15 +42,23 @@ class CommandLineParser:
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFileHLT = str(op)
-            elif label == "--triggerList":
+            elif label == "--triggerList" or label == "--triggerListHLT":
                 self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
-                self.monitor.useTrigList = True
+                self.monitor.useTrigListHLT = True
                 print "Using HLT Trigger list %s" % (str(op))
+            elif label == "--triggerListL1":
+                self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
+                self.monitor.useTrigListL1 = True
+                print "Using L1 Trigger list %s" % (str(op))
             elif label == "--LSRange":
                 start, end = str(op).split("-")
-                self.monitor.LSRange = [start, end]
-                self.useLSRange = True
+                self.monitor.LSRange = [int(start), int(end)]
+                self.monitor.useLSRange = True
                 print "Using only LS in the range %s - %s" % (start, end)
+            elif label == "--singleLS":
+                self.monitor.LSRange = [int(op), int(op)]
+                self.monitor.useLSRange = True
+                print "Only looking at lumisection %s" % (op)
             elif label == "--AllowedPercDiff":
                 self.monitor.percAccept = float(op)
             elif label == "--run":
@@ -80,11 +88,14 @@ class CommandLineParser:
         print "OPTIONS:"
         print "--fitFile=<name>          : The name of the file containing the fit with which we calculate expected rates."
         print "--configFile=<name>       : The name of a configuration file."
-        print "--triggerList=<name>      : The name of a file containing a list of triggers that we want to observe."
+        print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
+        print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
+        print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
         print "--AllowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--Window=<num>            : The window (number of LS) to average over."
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
-        print "--LSRange=<num>-<num>     : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
+        print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
+        print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
@@ -140,7 +151,10 @@ class CommandLineParser:
                     self.monitor.useL1 = True
                 elif label == "TriggerListHLT" or label == "TriggerToMonitorList": # Backwards compatibility
                     self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
-                    self.monitor.useTrigList = True
+                    self.monitor.useTrigListHLT = True
+                elif label == "TriggerListL1":
+                    self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
+                    self.monitor.useTrigListL1 = True
                 elif label == "TriggerListL1":
                     self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
                     self.monitor.useTrigList = True
