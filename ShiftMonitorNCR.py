@@ -58,7 +58,7 @@ class ShiftMonitor:
         self.LSRange = []            # If we want to only look at a range of LS from the run
         # Lumisection control
         self.lastLS = 0              # The last LS that was processed last segment
-        self.latestLS = 0            # The latest LS written to the DB
+        self.currentLS = 0           # The latest LS written to the DB
         self.slidingLS = -1          # The number of LS to average over, use -1 for no sliding LS
         self.useLSRange = False      # Only look at LS in a certain range
         # Mode
@@ -100,9 +100,9 @@ class ShiftMonitor:
             maxNameHLT = max([len(trigger) for trigger in self.usableHLTTriggers+self.otherHLTTriggers])
         if len(self.usableL1Triggers)>0 or len(self.otherL1Triggers)>0:
             maxNameL1 = max([len(trigger) for trigger in self.usableL1Triggers+self.otherL1Triggers])
-        
-        maxName = max([maxNameHLT, maxNameL1])
-        if maxName == 0: maxName = 90
+
+        # Make the name spacing at least 90
+        maxName = max([maxNameHLT, maxNameL1, 90])
         
         self.spacing = [maxName + 5, 14, 14, 14, 14, 0]
         self.spacing[5] = max( [ 181 - sum(self.spacing), 0 ] )
@@ -186,18 +186,18 @@ class ShiftMonitor:
         
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.useLSRange:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.latestLS)
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.latestLS)
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
         else:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0]-1)
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0]-1)
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
         
         # Make sure there is info to use
         if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
-            print "No new information can be retrieved. Waiting..."
+            print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             return
         
         # Construct (or reconstruct) trigger lists
@@ -224,33 +224,33 @@ class ShiftMonitor:
         elif len(self.L1Rates)>0: Rates = self.L1Rates
 
         trig = Rates.keys()[0]
-        self.lastLS = self.latestLS
-        self.latestLS = max(Rates[trig].keys())
+        self.lastLS = self.currentLS
+        self.currentLS = max(Rates[trig].keys())
 
         if self.useLSRange: # Adjust runs so we only look at those in our range
             self.slidingLS = -1 # No sliding LS window
             self.lastLS = max( [self.lastLS, self.LSRange[0]-1] )
-            self.latestLS = min( [self.latestLS, self.LSRange[1] ] )
+            self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
         
         # TODO: Deal with starting a new run
         
         # If there are lumisection to show, print info for them
-        if self.latestLS > self.lastLS:
+        if self.currentLS > self.lastLS:
             self.printTable()
         else:
-            print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.latestLS)
+            print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
                 
     # Use: Retrieves information and prints it in table form
     # Returns: (void)
     def printTable(self):
         if self.slidingLS == -1:
             startLS = self.lastLS
-        else: startLS = max( [0, self.latestLS-self.slidingLS ] )
+        else: startLS = max( [0, self.currentLS-self.slidingLS ] )+1
         # Print the header of the table
         print "\n\n", '*' * self.hlength
         print "INFORMATION:"
         print "Run Number: %s" % (self.runNumber)
-        print "LS Range: %s - %s" % (startLS+1, self.latestLS)
+        print "LS Range: %s - %s" % (startLS, self.currentLS)
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         # Reset variable
         self.total = 0
@@ -263,7 +263,7 @@ class ShiftMonitor:
         aveLumi = 0
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if not self.cosmics:
-            lumiData = self.parser.getLumiInfo(self.runNumber, startLS)
+            lumiData = self.parser.getLumiInfo(self.runNumber, startLS, self.currentLS)
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
