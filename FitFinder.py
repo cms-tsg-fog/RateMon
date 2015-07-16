@@ -49,7 +49,7 @@ class FitFinder:
         if self.usePointSelection: goodX, goodY = self.getGoodPoints2(xVals, yVals)
         else: goodX, goodY = xVals, yVals
         # Fitting
-        if self.forceLinear: return self.findLinearFit(xVals, yVals)
+        if self.forceLinear: return self.findLinearFit(xVals, yVals, name)
         else: return self.tryFits(goodX, goodY, name)
 
     # Use: Gets a binning index based on the coordinates of a point
@@ -224,7 +224,9 @@ class FitFinder:
         titleList = ["linear", "quad", "cube", "exp"]
         minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
 
-        if self.saveDebug and self.usePointSelection: self.saveDebugGraph(fitList, titleList, name, fitGraph)
+        # Save debug graph
+        if self.saveDebug and self.usePointSelection and name != "preprocess":
+            self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
         if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
             OutputFit = ["linear"]
@@ -252,7 +254,7 @@ class FitFinder:
 
     # Use: Gets the best linear fit of the data
     # Returns: An output fit tuple
-    def findLinearFit(self, xVals, yVals):
+    def findLinearFit(self, xVals, yVals, name):
         maxX = 1.2*max(xVals)
         linear = TF1("Linear Fit", "pol1", 0, maxX)
         fitGraph = TGraph(len(xVals), xVals, yVals)
@@ -263,6 +265,13 @@ class FitFinder:
         OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
         OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
         OutputFit += [linear.GetChisquare()]
+
+        fitList = [linear]
+        titleList = ["linear"]
+        # Save debug graph
+        if self.saveDebug and self.usePointSelection and name != "preprocess":
+            self.saveDebugGraph(fitList, titleList, name, fitGraph)
+        
         return OutputFit
         
     # Use: Finds the root of the mean squared error of a fit
@@ -275,7 +284,7 @@ class FitFinder:
 
     # Use: Another method of getting good points to make a fit from
     def getGoodPoints2(self, xVals, yVals):
-        if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals)
+        if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals, "preprocess")
         else: paramlist = self.tryFits(xVals, yVals, "preprocess")
         minMSE = paramlist[5]
         goodX = array.array('f')
@@ -332,14 +341,13 @@ class FitFinder:
             fitGraph.SetMarkerStyle(7)
             fitGraph.Draw("AP3")
             
-        count = 6 # Counting variable
+        count = 0 # Counting variable
         for fit in fitList:  # Draw fits
-            legend.AddEntry(fit, titleList[count-6])
-            fit.SetLineColor(count)
+            legend.AddEntry(fit, titleList[count])
+            fit.SetLineColor(count+6)
             fit.Draw("same")
             canvas.Update()
             count += 1
-            
         legend.Draw()
         canvas.Update()
         file = TFile("Debug.root", "UPDATE")
