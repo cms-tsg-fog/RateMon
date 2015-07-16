@@ -44,6 +44,8 @@ class CommandLineParser:
                 self.monitor.fitFileHLT = str(op)
             elif label == "--triggerList":
                 self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
+                self.monitor.useTrigList = True
+                print "Using HLT Trigger list %s" % (str(op))
             elif label == "--LSRange":
                 start, end = str(op).split("-")
                 self.monitor.LSRange = [start, end]

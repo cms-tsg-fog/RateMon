@@ -115,7 +115,7 @@ class ShiftMonitor:
         haveL1 = (self.fitFileL1 != "")
         if haveHLT: self.InputFitHLT = self.loadFit(self.fitFileHLT)
         if haveL1 : self.InputFitL1 = self.loadFit(self.fitFileL1)
-
+        # If there aren't preset trigger lists, use all the triggers that we can fit
         if self.useTrigList: pass # Only using triggers in the current trigger list
         else:
             if haveHLT: self.TriggerListHLT = self.InputFitHLT.keys()
@@ -185,6 +185,7 @@ class ShiftMonitor:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[1])
 
+        # Make sure there is info to use
         if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting..."
             return
