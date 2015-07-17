@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: July 16, 2015 by Nathaniel Rupprecht
+# Last Modified: July 17, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -29,7 +29,10 @@ class CommandLineParser:
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "AllowedPercDiff=", "Window=","AllTriggers", "L1Triggers", "run=", "keepZeros"])
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
+                                                       "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=",
+                                                       "window=","allTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
+                                                       "requireLumi", "quiet", "noColors", "noMail"])
             
         except:
             print "Error getting options. Exiting."
@@ -59,24 +62,36 @@ class CommandLineParser:
                 self.monitor.LSRange = [int(op), int(op)]
                 self.monitor.useLSRange = True
                 print "Only looking at lumisection %s" % (op)
-            elif label == "--AllowedPercDiff":
+            elif label == "--allowedPercDiff":
                 self.monitor.percAccept = float(op)
             elif label == "--run":
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
+            elif label == "--simulate":
+                self.monitor.runNumber = int(op)
+                self.monitor.simulate = True
+                self.monitor.assignedNum = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
-            elif label == "--AllTriggers":
+            elif label == "--allTriggers":
                 self.monitor.useAll = True
             elif label == "--L1Triggers":
                 self.monitor.useL1 = True
             elif label == "--keepZeros":
                 self.monitor.removeZeros = False
-            elif label == "--Window":
+            elif label == "--window":
                 self.monitor.slidingLS = int(op)
             elif label == "--configFile":
                 self.cfgFile = str(op)
                 self.parseCFGFile()
+            elif label == "--requireLumi":
+                self.monitor.requireLumi = True
+            elif label == "--quiet":
+                self.monitor.quiet = True
+            elif label == "--noColors":
+                self.monitor.forFile = True
+            elif label == "--noMail":
+                self.monitor.noMail = True
             elif label == "--Help":
                 self.printOptions()
 
@@ -86,20 +101,31 @@ class CommandLineParser:
         print "Usage: python ShiftMonitorTool.py [Options]"
         print ""
         print "OPTIONS:"
+        print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
+        print "FILE OPTIONS:"
         print "--fitFile=<name>          : The name of the file containing the fit with which we calculate expected rates."
         print "--configFile=<name>       : The name of a configuration file."
         print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
+        print "ERROR MONITORING OPTIONS:"
         print "--AllowedPercDiff=<num>   : The allowed percent difference for the rate."
+        print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
+        print "--noColors:               : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
         print "--Window=<num>            : The window (number of LS) to average over."
+        print "--noMail                  : Doesn't send mail alerts."
+        print "SECONDARY CAPABILITIES:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
         print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
         print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
-        print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
+        print "--simulates=<num>         : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
+        print "TRIGGER OPTIONS:"
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
-        print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
+        print "FORMAT OPTIONS:"
+        print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
+        print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
+        print "--quiet                   : Prints fewer messages."
         exit()
 
     # Use: Runs the shift monitor
