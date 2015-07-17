@@ -159,7 +159,7 @@ class RateMonitor:
         # If we are supposed to, get the fit, a dictionary: [ triggername ] [ ( fit parameters ) ]
         if self.useFit or self.mode: # Always try to load a fit in secondary mode
             self.InputFit = self.loadFit()
-            if not self.useTrigList: self.TriggerList = sorted(self.InputFit)
+            if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
