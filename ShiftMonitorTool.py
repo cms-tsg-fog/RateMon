@@ -30,10 +30,9 @@ class CommandLineParser:
     def parseArgs(self):
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
-                                                       "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=",
+                                                       "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","allTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "noMail"])
-            
+                                                       "requireLumi", "quiet", "noColors", "noMail", "usePerDiff"])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -64,6 +63,8 @@ class CommandLineParser:
                 print "Only looking at lumisection %s" % (op)
             elif label == "--allowedPercDiff":
                 self.monitor.percAccept = float(op)
+            elif label == "--allowedDev":
+                self.monitor.devAccept = float(op)
             elif label == "--run":
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
@@ -92,6 +93,8 @@ class CommandLineParser:
                 self.monitor.forFile = True
             elif label == "--noMail":
                 self.monitor.noMail = True
+            elif label == "--usePerDiff":
+                self.monitor.usePerDiff = True
             elif label == "--Help":
                 self.printOptions()
 
@@ -109,16 +112,18 @@ class CommandLineParser:
         print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
         print "ERROR MONITORING OPTIONS:"
-        print "--AllowedPercDiff=<num>   : The allowed percent difference for the rate."
+        print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
+        print "--allowedDev=<num>        : The allowed deviation for the rate."
+        print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
-        print "--noColors:               : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
+        print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
         print "--Window=<num>            : The window (number of LS) to average over."
         print "--noMail                  : Doesn't send mail alerts."
         print "SECONDARY CAPABILITIES:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
         print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
         print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
-        print "--simulates=<num>         : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
+        print "--simulate=<num>          : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
         print "TRIGGER OPTIONS:"
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
@@ -126,6 +131,7 @@ class CommandLineParser:
         print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
         print "--quiet                   : Prints fewer messages."
+        print "Program by Nathaniel Rupprecht, created July 13th, 2015. For questions, email nrupprec@nd.edu"
         exit()
 
     # Use: Runs the shift monitor
