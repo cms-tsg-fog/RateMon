@@ -2,7 +2,7 @@
 # File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 10, 2015 by Nathaniel Rupprecht
+# Last Modified: July 23, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -562,7 +562,7 @@ class RateMonitor:
         # Unpack values
         type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
-        for LS, ilum in iLumi:
+        for LS, ilum, phys in iLumi:
             if not ilum is None:
                 lumisecs.append(LS)
                 # Either we have an exponential fit, or a polynomial fit
