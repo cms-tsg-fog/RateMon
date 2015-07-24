@@ -2,7 +2,7 @@
 # File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 23, 2015 by Nathaniel Rupprecht
+# Last Modified: July 24, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -255,7 +255,6 @@ class RateMonitor:
         if self.fit:
             self.findFit(plottingData)
         if self.outputOn: print "" # Print a newline
-
         # Get our steam data
         if self.steam:
             self.loadSteamData()
@@ -450,7 +449,6 @@ class RateMonitor:
             graphList[-1].SetTitle(triggerName)
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
-
             canvas.Update()
             legend.AddEntry(graphList[-1], "Run %s" %(runNumber))
             counter += 1
@@ -563,7 +561,7 @@ class RateMonitor:
         type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
         for LS, ilum, phys in iLumi:
-            if not ilum is None:
+            if not ilum is None and phys:
                 lumisecs.append(LS)
                 # Either we have an exponential fit, or a polynomial fit
                 if type == "exp": rr = X0 + X1*math.exp(X2+X3*x)
