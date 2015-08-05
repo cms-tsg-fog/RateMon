@@ -19,6 +19,22 @@ from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gS
 
 ## ----------- End Imports ------------ ##
 
+#prints bad LS in JSON format
+def formatJSON(lumisection_list):
+    list = "[" 
+    minLS = lumisection_list[0]
+    maxLS = minLS
+    for i in range(1,len(lumisection_list)):
+        if lumisection_list[i] > lumisection_list[i-1] + 1:
+            list = list+"["+str(minLS)+","+str(maxLS)+"], "
+            minLS = lumisection_list[i]
+            maxLS = minLS
+        else:
+            maxLS = lumisection_list[i]
+    if list == "[": list = "[["+str(minLS)+","+str(maxLS)+"]]"
+    else: list = list+"["+str(minLS)+","+str(maxLS)+"]]"
+    return list
+
 # Class ErrorPrinter:
 # Has member variables representing the runs, triggers, and lumisections that were irregular.
 # Is able to output this information to an error file
@@ -28,13 +44,14 @@ class ErrorPrinter:
         self.run_trig_ls = {} # [ runNumber ] [ triggerName ] ( LS )
         self.run_ls_trig = {} # [ runNumber ] [ LS ] ( triggerName )
         self.steamData = {}   # [ prediction, min predict, max predict, actual, error ]
-
+        self.saveDirectory = "" #directory where output txt files are saved
+        
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
         try:
-            file = open("OutLSErrors.err", 'w') # come up with a name based on something about the runs
-            print "Opening OutLSErrors.err for LS error dump."
+            file = open(self.saveDirectory+"/OutLSErrors.err", 'w') # come up with a name based on something about the runs
+            print "Opening "+self.saveDirectory+"/OutLSErrors.err for LS error dump."
         except:
             print "Error: could not open file to output ls data."
             return
@@ -44,10 +61,10 @@ class ErrorPrinter:
             totalErrs = 0
             for triggerName in sorted(self.run_trig_ls[runNumber]):
                 file.write("     %s: " % (triggerName))
-                for LS in sorted(self.run_trig_ls[runNumber][triggerName]):
-                    file.write("%s " % (LS))
-                    totalErrs += 1
-                file.write("\n")
+                list = formatJSON(sorted(self.run_trig_ls[runNumber][triggerName]))
+                file.write(list+"\n")
+                totalErrs += len(self.run_trig_ls[runNumber][triggerName])
+
             file.write("---- Total bad LS: %s \n" % (totalErrs))
             file.write("---- Ave bad LS per trigger: %s \n" % (totalErrs/len(self.run_trig_ls[runNumber])))
             file.write("\n")
@@ -97,5 +114,7 @@ class ErrorPrinter:
         for triggerName in TriggersInError:
             file.write("     " + triggerName + "\n")
         file.close()
+
+        
         
 ## ----------- End class ErrorPrinter ----------- #
