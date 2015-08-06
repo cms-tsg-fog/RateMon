@@ -162,7 +162,7 @@ class RateMonitor:
             self.InputFit = self.loadFit()
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
-        if (self.saveDirectory == "") self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
+        if self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
         if os.path.exists(self.saveDirectory):
             shutil.rmtree(self.saveDirectory)
             print "Removing existing directory %s " % (self.saveDirectory)
