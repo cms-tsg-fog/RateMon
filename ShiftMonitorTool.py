@@ -53,13 +53,13 @@ class CommandLineParser:
                 self.monitor.useTrigListL1 = True
                 print "Using L1 Trigger list %s" % (str(op))
             elif label == "--LSRange":
-                self.monitor.sendMailAlerts = false
+                self.monitor.sendMailAlerts = False
                 start, end = str(op).split("-")
                 self.monitor.LSRange = [int(start), int(end)]
                 self.monitor.useLSRange = True
                 print "Using only LS in the range %s - %s" % (start, end)
             elif label == "--singleLS":
-                self.monitor.sendMailAlerts = false
+                self.monitor.sendMailAlerts = False
                 self.monitor.LSRange = [int(op), int(op)]
                 self.monitor.useLSRange = True
                 print "Only looking at lumisection %s" % (op)
@@ -68,11 +68,11 @@ class CommandLineParser:
             elif label == "--allowedDev":
                 self.monitor.devAccept = float(op)
             elif label == "--run":
-                self.monitor.sendMailAlerts = false
+                self.monitor.sendMailAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
             elif label == "--simulate":
-                self.monitor.sendMailAlerts = false
+                self.monitor.sendMailAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True
                 self.monitor.assignedNum = True
