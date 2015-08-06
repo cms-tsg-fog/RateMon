@@ -32,7 +32,7 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
                                                        "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "noMail", "usePerDiff"])
+                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff"])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -40,11 +40,15 @@ class CommandLineParser:
         if len(opt) == 0 and len(args) == 0:
             print "We need options to run this script."
             print "Use 'python ShiftMonitorTool.py --Help' to see options."
-            
+
+        # Remember if we were told to use all triggers
+        usingAll = false
+        
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFileHLT = str(op)
             elif label == "--triggerList" or label == "--triggerListHLT":
+                if not usingAll: self.monitor.useAll = False
                 self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
                 self.monitor.useTrigListHLT = True
                 print "Using HLT Trigger list %s" % (str(op))
@@ -53,11 +57,13 @@ class CommandLineParser:
                 self.monitor.useTrigListL1 = True
                 print "Using L1 Trigger list %s" % (str(op))
             elif label == "--LSRange":
+                self.monitor.sendMailAlerts = false
                 start, end = str(op).split("-")
                 self.monitor.LSRange = [int(start), int(end)]
                 self.monitor.useLSRange = True
                 print "Using only LS in the range %s - %s" % (start, end)
             elif label == "--singleLS":
+                self.monitor.sendMailAlerts = false
                 self.monitor.LSRange = [int(op), int(op)]
                 self.monitor.useLSRange = True
                 print "Only looking at lumisection %s" % (op)
@@ -66,9 +72,11 @@ class CommandLineParser:
             elif label == "--allowedDev":
                 self.monitor.devAccept = float(op)
             elif label == "--run":
+                self.monitor.sendMailAlerts = false
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
             elif label == "--simulate":
+                self.monitor.sendMailAlerts = false
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True
                 self.monitor.assignedNum = True
@@ -76,6 +84,7 @@ class CommandLineParser:
                 self.monitor.displayBadRates = int(op)
             elif label == "--AllTriggers":
                 self.monitor.useAll = True
+                usingAll = True
             elif label == "--L1Triggers":
                 self.monitor.useL1 = True
             elif label == "--keepZeros":
@@ -91,8 +100,8 @@ class CommandLineParser:
                 self.monitor.quiet = True
             elif label == "--noColors":
                 self.monitor.forFile = True
-            elif label == "--noMail":
-                self.monitor.noMail = True
+            elif label == "--mailAlerts":
+                self.monitor.sendMailAlerts = True
             elif label == "--usePerDiff":
                 self.monitor.usePerDiff = True
             elif label == "--Help":
@@ -236,7 +245,7 @@ class CommandLineParser:
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.parseArgs()
-    #try:
-    parser.run()
-    #except:
-    #print "\nExiting. Goodbye..."
+    try:
+        parser.run()
+    except:
+        print "\nExiting. Goodbye..."
