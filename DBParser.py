@@ -290,7 +290,7 @@ class DBParser:
         # Get column prescale info
         sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>%s ORDER BY A.RUNNUMBER,A.LUMISECTION
+        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s ORDER BY A.RUNNUMBER,A.LUMISECTION
         """ % (runNumber, minLS)
         self.curs.execute(sqlquery)
         # Reset self.PSColumnByLS 
@@ -549,11 +549,33 @@ class DBParser:
     # Use: Get the trigger mode for the specified run
     def getTriggerMode(self, runNumber):
         TrigModeQuery = "SELECT TRIGGERMODE FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER = %d" % (runNumber)
-        self.curs.execute(TrigModeQuery)
         try:
+            self.curs.execute(TrigModeQuery)
             mode = self.curs.fetchone()
         except:
             print "Error: Unable to retrieve trigger mode."
         return mode
+
+    # Use: Retrieves the data from all streams
+    # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
+    def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
+        cursor = self.getTrgCursor()
+        StreamQuery = """select A.lumisection, A.stream, B.nevents/23.3, B.filesize, B.filesize/23.3
+        from CMS_STOMGR.FILES_CREATED A, CMS_STOMGR.FILES_INJECTED B where A.filename = B.filename
+        and A.runnumber=%s and A.lumisection>=%s and A.lumisection<=%s """ % (runNumber, minLS, maxLS)
+
+        try:
+            cursor.execute(StreamQuery)
+            streamData = cursor.fetchall()
+        except:
+            print "Error: Unable to retrieve stream data."
+
+        StreamData = {}
+        for LS, stream, rate, size, bandwidth in streamData:
+            if not StreamData.has_key(stream):
+                StreamData[stream] = []
+            StreamData[stream].append( [LS, rate, size, bandwidth] )
+
+        return StreamData
             
 # -------------------- End of class DBParsing -------------------- #
