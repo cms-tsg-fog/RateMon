@@ -36,13 +36,9 @@ class CommandLineParser:
         except:
             print "Error getting options. Exiting."
             exit(1)
-                                     
-        if len(opt) == 0 and len(args) == 0:
-            print "We need options to run this script."
-            print "Use 'python ShiftMonitorTool.py --Help' to see options."
 
         # Remember if we were told to use all triggers
-        usingAll = false
+        usingAll = False
         
         for label, op in opt:
             if label == "--fitFile":
