@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: July 17, 2015 by Nathaniel Rupprecht
+# Last Modified: August 6, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -31,7 +31,7 @@ class CommandLineParser:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
                                                        "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
-                                                       "window=","allTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
+                                                       "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
                                                        "requireLumi", "quiet", "noColors", "noMail", "usePerDiff"])
         except:
             print "Error getting options. Exiting."
@@ -74,7 +74,7 @@ class CommandLineParser:
                 self.monitor.assignedNum = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
-            elif label == "--allTriggers":
+            elif label == "--AllTriggers":
                 self.monitor.useAll = True
             elif label == "--L1Triggers":
                 self.monitor.useL1 = True
@@ -105,12 +105,14 @@ class CommandLineParser:
         print ""
         print "OPTIONS:"
         print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
+        print ""
         print "FILE OPTIONS:"
         print "--fitFile=<name>          : The name of the file containing the fit with which we calculate expected rates."
         print "--configFile=<name>       : The name of a configuration file."
         print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
+        print ""
         print "ERROR MONITORING OPTIONS:"
         print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
@@ -119,18 +121,22 @@ class CommandLineParser:
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
         print "--Window=<num>            : The window (number of LS) to average over."
         print "--noMail                  : Doesn't send mail alerts."
+        print ""
         print "SECONDARY CAPABILITIES:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
         print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
         print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
         print "--simulate=<num>          : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
+        print ""
         print "TRIGGER OPTIONS:"
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
+        print ""
         print "FORMAT OPTIONS:"
         print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
         print "--quiet                   : Prints fewer messages."
+        print ""
         print "Program by Nathaniel Rupprecht, created July 13th, 2015. For questions, email nrupprec@nd.edu"
         exit()
 
