@@ -21,6 +21,7 @@ from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gS
 from ROOT import TFile, TPaveText, TBrowser, TLatex
 import os
 import sys
+import shutil
 # Import the DB interface class
 from DBParser import *
 # From the fit finding class
@@ -161,18 +162,24 @@ class RateMonitor:
             self.InputFit = self.loadFit()
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
+        self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
+        if os.path.exists(self.saveDirectory):
+            shutil.rmtree(self.saveDirectory)
+            print "Removing existing directory %s " % (self.saveDirectory)
+        os.mkdir(self.saveDirectory)
+        os.chdir(self.saveDirectory)
+        os.mkdir("png")
+        os.chdir("../")
+        print "Created directory %s " % (self.saveDirectory)
+        self.saveName = self.saveDirectory + "/" + self.saveName
+            
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
-        if self.outFitFile=="": self.outFitFile = "HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+        if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
         if self.useFit or self.fit or (self.mode and not self.InputFit is None): fitOpt = "Fitted"
         else: fitOpt = "NoFit"
-        if not self.nameGiven: self.saveName = RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
+        if not self.nameGiven: self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
 
-        if self.saveDirectory != "": # Save in the right directory
-            if not os.path.exists(self.saveDirectory):
-                os.mkdir(self.saveDirectory)
-                print "Created the directory %s as it did not already exist." % (self.saveDirectory)
-            self.saveName = self.saveDirectory + "/" + self.saveName
 
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
@@ -398,15 +405,15 @@ class RateMonitor:
             return
         # Set axis names/units, create canvas
         if self.mode:
-            xunits = "(LS)"
+            xunits = ""
             nameX = "Lumisection"
         else:
-            xunits = "(10^{30} Hz/cm^{2})"
+            xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "Instantaneous Luminosity"
         nameY = "Raw Rate"
         if self.divByBunches :
             nameX += "/ (num colliding bunches)"
-        yunits = "(HZ)"
+        yunits = "[HZ]"
         canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
@@ -492,6 +499,7 @@ class RateMonitor:
         # Update root file
         file = TFile(self.saveName, "UPDATE")
         canvas.Modified()
+        canvas.Print(self.saveDirectory+"/png/"+triggerName+".png")
         canvas.Write()
         file.Close()
         self.savedAFile = True
@@ -530,7 +538,7 @@ class RateMonitor:
 
     # Use: Sorts trigger fits by their chi squared value and writes it to a file
     def sortFit(self):
-        outputFile = open("SortedChiSqr.txt", "wb")
+        outputFile = open(self.saveDirectory+"/sortedChiSqr.txt", "wb")
 
         chisqrDict = {}
         for trigger in self.OutputFit:
@@ -540,7 +548,7 @@ class RateMonitor:
         for chisqr in sorted(chisqrDict):
             outputFile.write(chisqrDict[chisqr] + ": " + str(chisqr) + "\n")
         outputFile.close
-        print "Sorted chi-square saved to SortedChiSqr.txt"
+        print "Sorted chi-square saved to:"+self.saveDirectory+"/sortedChiSqr.txt"
             
     # Use: Creates a graph of predicted raw rate vs lumisection data
     # Parameters:
@@ -626,6 +634,7 @@ class RateMonitor:
     # Returns: (void)
     def doChecks(self):
         eprint = ErrorPrinter()
+        eprint.saveDirectory = self.saveDirectory
         # Look at all lumisections for each trigger for each run. Check which ones are behaving badly
         for triggerName in self.TriggerList: # We may want to look at the triggers from somewhere else, but for now I assume this will work
             for runNumber in self.allRates:
@@ -657,6 +666,7 @@ class RateMonitor:
     # Returns: (void)
     def steamChecks(self):
         sprint = ErrorPrinter()
+        sprint.saveDirectory = self.saveDirectory
         for triggerName in self.steamData:
             if triggerName in self.TriggerList and self.OutputFit.has_key(triggerName):
                 paramlist = self.OutputFit[triggerName]
