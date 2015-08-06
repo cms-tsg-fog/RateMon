@@ -79,7 +79,7 @@ class ShiftMonitor:
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
-        self.useAll = False             # If true, we will print out the rates for all the HLT triggers
+        self.useAll = True              # If true, we will print out the rates for all the HLT triggers
         self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
         # Restrictions
         self.removeZeros = True         # If true, we don't show triggers that have zero rate
@@ -93,11 +93,12 @@ class ShiftMonitor:
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 4                 # The maximum consecutive bad runs that we can have in a row
-        self.displayBadRates = 0        # The number of bad rates we should show in the summary. We use -1 for all
+        self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
 
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
+        self.sendMailAlerts = False     # Whether we should send alert mails
 
     # Use: Formats the header string
     # Returns: (void)
@@ -577,15 +578,18 @@ class ShiftMonitor:
                     break
             print ""
 
+        bad = False
         # Print warnings for triggers that have been repeatedly misbehaving
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][1] and self.badRates[trigger][0] >= self.maxCBR:
                     print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.badRates[trigger][0])
                 elif self.badRates[trigger][0] >= self.maxCBR-1:
+                    bad = True
                     print "Warning: Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR-1)
-        ##** TODO: incorporate mailed warnings
-        
+
+        # Send mail alerts
+        if self.sendMailAlerts and bad: sendMail()    
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -643,12 +647,17 @@ class ShiftMonitor:
 
     # Use: Sends an email alert
     def sendMail(self):
-        pass
-        #mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
-        #mail += "The following path rate(s) are deviating from expected values: \n"
-        #for index,entry in enumerate(core_data):
-        #    if Warn[index]:
-        #        mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
-        #mailAlert(mail)
+        mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
+        mail += "The following path rate(s) are deviating from expected values: \n"
+
+        self.badRates # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
+
+        for triggerName in self.badRates:
+            nb, bad = self.badRates[triggerName]
+            if bad:
+                mail += triggerName + ": Bad for the last " + str(int(nb)) + " runs."
+
+        print "Sending mail:\n"+mail
+        mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
