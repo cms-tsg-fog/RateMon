@@ -230,7 +230,12 @@ class ShiftMonitor:
         if not self.simulate:
             trig = self.Rates.keys()[0]
             self.lastLS = self.currentLS
-            self.currentLS = max(self.Rates[trig].keys())
+
+            try: self.currentLS = max(self.Rates[trig].keys())
+            except:
+                self.lastLS = self.currentLS
+                print "rates table empty"
+
             if self.useLSRange: # Adjust runs so we only look at those in our range
                 self.slidingLS = -1 # No sliding LS window
                 self.lastLS = max( [self.lastLS, self.LSRange[0]] )
