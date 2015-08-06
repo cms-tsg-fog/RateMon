@@ -117,7 +117,7 @@ class CommandLineParser:
         print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
-        print "--Window=<num>            : The window (number of LS) to average over."
+        print "--Window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
         print "--noMail                  : Doesn't send mail alerts."
         print "SECONDARY CAPABILITIES:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
