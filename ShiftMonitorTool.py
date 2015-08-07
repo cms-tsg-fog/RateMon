@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 6, 2015 by Nathaniel Rupprecht
+# Last Modified: August 7, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -32,7 +32,7 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
                                                        "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff"])
+                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams"])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -100,6 +100,8 @@ class CommandLineParser:
                 self.monitor.sendMailAlerts = True
             elif label == "--usePerDiff":
                 self.monitor.usePerDiff = True
+            elif label == "--hideStreams":
+                self.monitor.showStreams = False
             elif label == "--Help":
                 self.printOptions()
 
@@ -109,35 +111,37 @@ class CommandLineParser:
         print "Usage: python ShiftMonitorTool.py [Options]"
         print ""
         print "OPTIONS:"
+        print "Help:"
         print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
         print ""
-        print "FILE OPTIONS:"
+        print "File Options:"
         print "--fitFile=<name>          : The name of the file containing the fit with which we calculate expected rates."
         print "--configFile=<name>       : The name of a configuration file."
         print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
         print ""
-        print "ERROR MONITORING OPTIONS:"
+        print "Error Monitoring Options:"
         print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
         print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
-        print "--Window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
-        print "--noMail                  : Doesn't send mail alerts."
+        print "--hideStreams             : Doesn't print out information about the streams."
+        print "--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
+        print "--mailAlerts              : Send mail alerts when triggers have been in error for a while."
         print ""
-        print "SECONDARY CAPABILITIES:"
+        print "Secondary Capabilities:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
         print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
         print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
         print "--simulate=<num>          : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
         print ""
-        print "TRIGGER OPTIONS:"
+        print "Trigger Options:"
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
         print ""
-        print "FORMAT OPTIONS:"
+        print "Formatt Options:"
         print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
         print "--quiet                   : Prints fewer messages."
@@ -188,9 +192,11 @@ class CommandLineParser:
                 try: label, op = tuple[0].split('=')
                 except: continue
                 
-                if label == "AllTriggers" and int(op)==1:
+                if label == "AllTriggers" and int(op)!=0:
                     self.monitor.doAll = True
-                elif label == "DoL1" and int(op)==1:
+                elif label == "L1Triggers" and int(op)!=0:
+                    self.monitor.useL1 = True
+                elif label == "DoL1" and int(op)!=0:
                     self.monitor.useL1 = True
                 elif label == "TriggerListHLT" or label == "TriggerToMonitorList": # Backwards compatibility
                     self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
@@ -198,9 +204,6 @@ class CommandLineParser:
                 elif label == "TriggerListL1":
                     self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
                     self.monitor.useTrigListL1 = True
-                elif label == "TriggerListL1":
-                    self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
-                    self.monitor.useTrigList = True
                 elif label == "FitFileHLT" or label == "FitFileName":
                     self.monitor.fitFileHLT = str(op)
                 elif label == "FitFileL1":
@@ -213,7 +216,10 @@ class CommandLineParser:
                     else: print "We need a positive number for the max number of bad rates to show."
                 elif label == "ShowAllBadRates":
                     self.monitor.displayBadRates = -1
-
+                elif label=="AllowedStandardDev":
+                    self.monitor.devAccept = float(op)
+                elif label=="AllowedPercentDev":
+                    self.monitor.percAccept = float(op)
                 elif label == "ShowSigmaAndPercDiff": print "ShowSigmaAndPercDiff unimplemented"
                 elif label == "WarnOnSigmaDiff": print "WarnOnSigmaDiff unimplemented"
                 elif label == "ReferenceRun": print "ReferenceRun unimplemented"
@@ -228,7 +234,7 @@ class CommandLineParser:
                 elif label == "MaxExpressRate": print "MaxExpressRate unimplemented"
                 elif label == "ShifterMode": print "ShifterMode unimplemented"
                 elif label == "MaxStreamARate": print "MaxStreamARate unimplemented"
-                elif label == "NoVersion": print "NoVersion unimplemented" # We always strip the version
+                elif label == "NoVersion": print "We always run with no version" # We always strip the version
                 elif label == "ForbiddenColumns": print "ForbiddenColumns unimplemented"
                 elif label == "CirculatingBeamsColumn": print "CirculatingBeamsColumn unimplemented"
                 elif label == "MaxLogMonRate": print "MaxLogMonRate unimplemented"
@@ -241,7 +247,7 @@ class CommandLineParser:
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.parseArgs()
-    try:
-        parser.run()
-    except:
-        print "\nExiting. Goodbye..."
+    #try:
+    parser.run()
+    #except:
+    #print "\nExiting. Goodbye..."
