@@ -99,6 +99,7 @@ class ShiftMonitor:
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
+        self.showStreams = True         # Whether we should print stream information
 
     # Use: Formats the header string
     # Returns: (void)
@@ -213,19 +214,20 @@ class ShiftMonitor:
         self.total = 0
         self.normal = 0
         self.bad = 0
+        
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
             self.lastRunNumber = self.runNumber
-            self.lastLS = 1
-            self.currentLS = 1
+            self.lastLS = 0
+            self.currentLS = 0
             redoTList = True # Re-do trigger lists            
             # Check what mode we are in
             self.setMode()
-        
+
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
-        
+
         # Make sure there is info to use
         if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
@@ -235,25 +237,16 @@ class ShiftMonitor:
         if self.redoTList:
             self.redoTriggerLists()
 
-        # If we are not simulating a previous run. Otherwise, we already se lastLS and currentLS
+        # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
         if not self.simulate:
             lslist = []
             for trig in self.Rates.keys():
                 if len(self.Rates[trig])>0: lslist.append(max(self.Rates[trig]))
             # Update lastLS
             self.lastLS = self.currentLS
-            
+            # Update current LS
             if len(lslist)>0: self.currentLS = max(lslist)
-            
-            #if len(self.Rates[trig].keys())>0:
-            #    self.lastLS = max( [ self.lastLS, min(self.Rates[trig].keys()) ] )
-            #    self.currentLS = max(self.Rates[trig].keys())
-            
-            try: self.currentLS = max(self.Rates[trig].keys())
-            except:
-                self.lastLS = self.currentLS
-                print "rates table empty"
-
+            # If we are using a LS range
             if self.useLSRange: # Adjust runs so we only look at those in our range
                 self.slidingLS = -1 # No sliding LS window
                 self.lastLS = max( [self.lastLS, self.LSRange[0]] )
@@ -287,6 +280,7 @@ class ShiftMonitor:
             (not self.TriggerListHLT is None and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
             else: self.otherHLTTriggers.append(trigger)
+
         for trigger in self.L1Rates.keys():
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (not self.TriggerListL1 is None and trigger in self.TriggerListL1):
@@ -381,43 +375,44 @@ class ShiftMonitor:
             print "\n --- No useable triggers --- \n"
 
         # Print stream data
-        StreamData = self.parser.getStreamData(self.runNumber, self.startLS, self.currentLS)
-        print '*' * self.hlength
-        streamSpacing = [ 50, 20, 25, 25, 25, 25 ]
-        head = stringSegment("* Stream name", streamSpacing[0])
-        head += stringSegment("* NLumis", streamSpacing[1])
-        head += stringSegment("* Events", streamSpacing[2])
-        head += stringSegment("* Stream rate (Hz)", streamSpacing[3])
-        head += stringSegment("* Stream size (GB)", streamSpacing[4])
-        head += stringSegment("* Stream bandwidth (GB/s)", streamSpacing[5])
-        print head
-        print '*' * self.hlength
-        streamTable = ""
-        for name in StreamData.keys():
-            count = 0.0
-            streamsize = 0
-            aveBandwidth = 0
-            aveRate = 0
-            for LS, rate, size, bandwidth in StreamData[name]:
-                streamsize += size
-                aveRate += rate
-                aveBandwidth += bandwidth
-                count += 1
-            if count > 0:
-                aveRate /= count
-                streamsize /= (1000000000.0)
-                aveBandwidth /= (count*1000000000.0)
-                row = stringSegment("* "+name, streamSpacing[0])
-                row += stringSegment("* "+str(int(count)), streamSpacing[1])
-                row += stringSegment("* "+str(int(aveRate*23.3*count)), streamSpacing[2])
-                row += stringSegment("* "+"{0:.2f}".format(aveRate), streamSpacing[3])
-                row += stringSegment("* "+"{0:.2f}".format(streamsize), streamSpacing[4])
-                row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
-                streamTable += (row+"\n")
-            else: pass
-        if len(streamTable) > 0:
-            print streamTable
-        else: print "\n --- No streams to monitor --- \n"
+        if self.showStreams:
+            StreamData = self.parser.getStreamData(self.runNumber, self.startLS, self.currentLS)
+            print '*' * self.hlength
+            streamSpacing = [ 50, 20, 25, 25, 25, 25 ]
+            head = stringSegment("* Stream name", streamSpacing[0])
+            head += stringSegment("* NLumis", streamSpacing[1])
+            head += stringSegment("* Events", streamSpacing[2])
+            head += stringSegment("* Stream rate (Hz)", streamSpacing[3])
+            head += stringSegment("* Stream size (GB)", streamSpacing[4])
+            head += stringSegment("* Stream bandwidth (GB/s)", streamSpacing[5])
+            print head
+            print '*' * self.hlength
+            streamTable = ""
+            for name in StreamData.keys():
+                count = 0.0
+                streamsize = 0
+                aveBandwidth = 0
+                aveRate = 0
+                for LS, rate, size, bandwidth in StreamData[name]:
+                    streamsize += size
+                    aveRate += rate
+                    aveBandwidth += bandwidth
+                    count += 1
+                if count > 0:
+                    aveRate /= count
+                    streamsize /= (1000000000.0)
+                    aveBandwidth /= (count*1000000000.0)
+                    row = stringSegment("* "+name, streamSpacing[0])
+                    row += stringSegment("* "+str(int(count)), streamSpacing[1])
+                    row += stringSegment("* "+str(int(aveRate*23.3*count)), streamSpacing[2])
+                    row += stringSegment("* "+"{0:.2f}".format(aveRate), streamSpacing[3])
+                    row += stringSegment("* "+"{0:.2f}".format(streamsize), streamSpacing[4])
+                    row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
+                    streamTable += (row+"\n")
+                else: pass
+            if len(streamTable) > 0:
+                print streamTable
+            else: print "\n --- No streams to monitor --- \n"
 
         # Closing information
         print '*' * self.hlength
@@ -440,6 +435,7 @@ class ShiftMonitor:
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0):
         self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
+        # Get the trigger data
         for trigger in triggerList:
             self.getTriggerData(trigger, doPred, aveLumi)
         # Sort by % diff if need be
@@ -650,7 +646,7 @@ class ShiftMonitor:
         mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
         mail += "The following path rate(s) are deviating from expected values: \n"
 
-        self.badRates # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
+        #self.badRates: A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
 
         for triggerName in self.badRates:
             nb, bad = self.badRates[triggerName]

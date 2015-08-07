@@ -112,7 +112,7 @@ class DBParser:
 
         for LS, HLTPass, triggerName in self.curs.fetchall():
             
-            rate = HLTPass/23.3 # I'm not sure why this is done
+            rate = HLTPass/23.3 # A lumisection is 23.3 seconds
             name = stripVersion(triggerName)
 
             if not TriggerRates.has_key(name):
