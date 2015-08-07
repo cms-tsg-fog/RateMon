@@ -219,7 +219,7 @@ class ShiftMonitor:
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
             self.lastRunNumber = self.runNumber
-            self.lastLS = 0
+            self.lastLS = 1
             self.currentLS = 0
             redoTList = True # Re-do trigger lists            
             # Check what mode we are in
