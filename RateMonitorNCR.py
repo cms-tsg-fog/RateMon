@@ -236,7 +236,7 @@ class RateMonitor:
 
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
-                print "Fatal error for run %s, could not retrieve data. Moving on." % (runNumber) # Info message
+                print "Fatal error for run %s, could not retrieve data. Probably Lumi was None or physics was not active.\nMoving on." % (runNumber) # Info message
                 counter += 1
                 continue
                 
@@ -285,7 +285,7 @@ class RateMonitor:
         if self.fitFinder.saveDebug and self.fitFinder.usePointSelection:
             print "Fit finder debug file saved to Debug.root.\n" # Info message
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
-        else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run"
+        else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run."
         if self.outputOn: print "" # Final newline for formatting
 
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
@@ -303,6 +303,7 @@ class RateMonitor:
             Rates.update(L1Rates)
         
         if Rates == {}: return {} # The run (probably) doesn't exist
+
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
