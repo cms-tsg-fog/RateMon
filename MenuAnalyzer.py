@@ -115,7 +115,6 @@ class MenuAnalyzer:
             if not self.AnalysisMap.has_key(analysis):
                 print "ERROR: Analysis %s not defined" % (analysis,)
                 continue
-            print "analysis = ", analysis
             self.AnalysisMap[analysis]()
             
 
