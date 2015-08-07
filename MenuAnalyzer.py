@@ -22,7 +22,7 @@ class MenuAnalyzer:
 
         ##required streams
         self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcalDT'],'EcalCalibration' : ['EcalLaser'],
-                                  'TrackerCalibration' : ['TestEnablesTracker'], 'DQM' : 'OnlineMonitor'}
+                                       'DQM' : 'OnlineMonitor'}
         self.ExpressStreamName = 'Express'
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
                                  'ExpressCosmics' : 'Cosmics' }
@@ -51,11 +51,11 @@ class MenuAnalyzer:
             'numberOfPaths' : self.checkNumPaths,
             'numberOfEndPaths' : self.checkNumEndPaths,
             'reqStreamsAndPDs' : self.reqStreamsAndPDs,
-#            'checkExpress' : self.checkExpress,
+            'checkExpress' : self.checkExpress,
             'checkNameFormats' :self.checkNameFormats,
             'checkEventContent':self.checkEventContent,
             'checkL1Unmask':self.checkL1Unmask,
-#            'checkDQMStream':self.checkDQMStream,
+            'checkDQMStream':self.checkDQMStream,
             'checkStreamB':self.checkStreamB
             }
         self.ProblemDescriptions = {
@@ -63,11 +63,11 @@ class MenuAnalyzer:
             'numberOfPaths':'Too many paths',
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
-#            'checkExpress' : 'Invalid or missing express stream/PD',
+            'checkExpress' : 'Invalid or missing express stream/PD',
             'checkNameFormats' : 'Invalid PD or path name format',
             'checkEventContent' : 'Invalid Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
-#            'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
+            'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
             'checkStreamB' : 'Check all parking triggers in stream B'
             }
 
@@ -116,7 +116,7 @@ class MenuAnalyzer:
                 print "ERROR: Analysis %s not defined" % (analysis,)
                 continue
             self.AnalysisMap[analysis]()
-        
+            
 
     def checkModuleLength(self):
         self.Results['moduleLength'] = []
@@ -195,11 +195,13 @@ class MenuAnalyzer:
     def findParkingPDs(self):
         ParkingPDs=[]
         NotParkingPDs=[]
-        for PD in self.perStreamPDList["A"]: # look at PDs only in stream A
-            if PD.find("Parked")!=-1: #look for PDs with Parked in the name
-                ParkingPDs.append(PD)
-            else:
-                NotParkingPDs.append(PD)
+        for key in self.perStreamPDList:
+            if key.startswith("Physics"):             # look at PDs only in streams that start with Physics
+                for PD in self.perStreamPDList[key]:         
+                    if PD.find("Parked")!=-1:         # look for PDs with Parked in the name
+                        ParkingPDs.append(PD)
+                    else:
+                        NotParkingPDs.append(PD)
         return (ParkingPDs,NotParkingPDs)
 
     def findParkingTriggers(self):
@@ -226,25 +228,19 @@ class MenuAnalyzer:
             
     def GetModules(self,cursor):
         sqlquery ="""  
-        SELECT I.NAME,E.NAME,D.NAME,I.ISENDPATH
+        SELECT cms_hlt_gdr.u_paths.name path, cms_hlt_gdr.u_paelements.name  module, cms_hlt_gdr.u_moduletemplates.name template, cms_hlt_gdr.u_pathids.isendpath
         FROM
-        CMS_HLT.PARAMETERS B,
-        CMS_HLT.SUPERIDPARAMETERASSOC C,
-        CMS_HLT.MODULETEMPLATES D,
-        CMS_HLT.MODULES E,
-        CMS_HLT.PATHMODULEASSOC F,
-        CMS_HLT.CONFIGURATIONPATHASSOC G,
-        CMS_HLT.CONFIGURATIONS H,
-        CMS_HLT.PATHS I
+        cms_hlt_gdr.u_pathid2pae,cms_hlt_gdr.u_paelements, cms_hlt_gdr.u_pathid2conf,cms_hlt_gdr.u_confversions, cms_hlt_gdr.u_pathids,cms_hlt_gdr.u_paths, cms_hlt_gdr.u_mod2templ,cms_hlt_gdr.u_moduletemplates
         WHERE
-        B.PARAMID = C.PARAMID AND
-        C.SUPERID = F.MODULEID AND
-        E.TEMPLATEID = D.SUPERID AND
-        F.MODULEID = E.SUPERID AND
-        F.PATHID=G.PATHID AND
-        I.PATHID=G.PATHID AND
-        G.CONFIGID=H.CONFIGID AND
-        H.CONFIGDESCRIPTOR='%s' 
+        cms_hlt_gdr.u_pathid2conf.id_pathid=cms_hlt_gdr.u_pathid2pae.id_pathid and
+        cms_hlt_gdr.u_pathids.id=cms_hlt_gdr.u_pathid2conf.id_pathid and
+        cms_hlt_gdr.u_paths.id=cms_hlt_gdr.u_pathids.id_path and
+        cms_hlt_gdr.u_pathid2pae.id_pae=cms_hlt_gdr.u_paelements.id and
+        cms_hlt_gdr.u_mod2templ.id_pae=cms_hlt_gdr.u_paelements.id and
+        cms_hlt_gdr.u_moduletemplates.id=cms_hlt_gdr.u_mod2templ.id_templ and
+        cms_hlt_gdr.u_paelements.paetype=1 and
+        cms_hlt_gdr.u_pathid2conf.id_confver = cms_hlt_gdr.u_confversions.id and
+        cms_hlt_gdr.u_confversions.name='%s'
         """ % (self.menuName,)
         
         cursor.execute(sqlquery)
@@ -255,28 +251,36 @@ class MenuAnalyzer:
             if not ModuleName in self.ModuleList: self.ModuleList.append(ModuleName)
             if endPath: self.endPathList.add(PathName)
 
-
     def GetStreamsPathsPDs(self,cursor):
         sqlquery= """
-        SELECT A.STREAMLABEL,E.NAME,F.DATASETLABEL
+        SELECT distinct a.name AS stream,
+        b.name AS dataset,
+        c.name AS path
         FROM
-        CMS_HLT.STREAMS A,
-        CMS_HLT.CONFIGURATIONS B,
-        CMS_HLT.CONFIGURATIONPATHASSOC C,
-        CMS_HLT.PATHSTREAMDATASETASSOC D,
-        CMS_HLT.PATHS E,
-        CMS_HLT.PRIMARYDATASETS F
+        cms_hlt_gdr.u_streams a,
+        cms_hlt_gdr.u_datasets b,
+        cms_hlt_gdr.u_paths c,
+        cms_hlt_gdr.u_confversions d,
+        cms_hlt_gdr.u_pathid2strdst e,
+        cms_hlt_gdr.u_streamids f,
+        cms_hlt_gdr.u_datasetids g,
+        cms_hlt_gdr.u_pathids h,
+        cms_hlt_gdr.u_pathid2conf i
         WHERE
-        B.CONFIGDESCRIPTOR='%s' AND
-        C.CONFIGID=B.CONFIGID AND
-        D.PATHID=C.PATHID AND
-        A.STREAMID=D.STREAMID AND
-        E.PATHID = C.PATHID AND
-        F.DATASETID = D.DATASETID
+        d.name = '%s'
+        AND i.id_confver = d.id
+        AND h.id = i.id_pathid
+        AND c.id = h.id_path
+        AND e.id_pathid = h.id
+        AND f.id = e.id_streamid
+        AND a.id = f.id_stream
+        AND g.id = e.id_datasetid
+        AND b.id = g.id_dataset
+        ORDER BY path, dataset, stream
         """ % (self.menuName,)
         
         cursor.execute(sqlquery)
-        for StreamName,PathName,PDName in cursor.fetchall():
+        for StreamName,PDName,PathName in cursor.fetchall():
             if not self.perStreamPDList.has_key(StreamName): self.perStreamPDList[StreamName] = []
             if not PDName in self.perStreamPDList[StreamName]: self.perStreamPDList[StreamName].append(PDName)
             if not self.perPDPathList.has_key(PDName): self.perPDPathList[PDName] = []
@@ -284,42 +288,38 @@ class MenuAnalyzer:
 
     def GetESModules(self,cursor):
         sqlquery = """
-        SELECT UNIQUE(F.NAME)
-        FROM
-        CMS_HLT.ESMODULES F,
-        CMS_HLT.CONFIGURATIONESMODULEASSOC G,
-        CMS_HLT.CONFIGURATIONS H
-        WHERE
-        G.ESMODULEID = F.SUPERID AND
-        G.CONFIGID=H.CONFIGID AND
-        H.CONFIGDESCRIPTOR='%s'
+        SELECT unique a.name
+        FROM cms_hlt_gdr.u_esmodules a,
+        cms_hlt_gdr.u_confversions d,
+        cms_hlt_gdr.u_conf2esm i
+        WHERE d.name = '%s'
+        AND i.id_confver = d.id
+        AND i.id_esmodule=a.id
+        ORDER by name
         """ % (self.menuName,)
-
+        
         cursor.execute(sqlquery)
         for ModuleName, in cursor.fetchall():
             if not ModuleName in self.ESModuleList: self.ESModuleList.append(ModuleName)
 
     def GetEventContent(self,cursor):
         sqlquery = """
-        SELECT A.STREAMLABEL,H.STATEMENTTYPE,H.CLASSN,H.MODULEL,H.EXTRAN,H.PROCESSN
+        SELECT n.name streamlabel, s.statementtype, s.classn, s.modulel,s.extran,s.processn
         FROM
-        CMS_HLT.STREAMS A,
-        CMS_HLT.CONFIGURATIONS B,
-        CMS_HLT.CONFIGURATIONPATHASSOC C,
-        CMS_HLT.PATHSTREAMDATASETASSOC D,
-        CMS_HLT.PATHS E,
-        CMS_HLT.ECSTREAMASSOC F,
-        CMS_HLT.ECSTATEMENTASSOC G,
-        CMS_HLT.EVENTCONTENTSTATEMENTS H
+        cms_hlt_gdr.u_evcostatements s,
+        cms_hlt_gdr.u_eventcontents u,
+        cms_hlt_gdr.u_eventcontentids i,
+        cms_hlt_gdr.u_conf2evco c,
+        cms_hlt_gdr.u_evco2stat e,
+        cms_hlt_gdr.u_confversions  d,
+        cms_hlt_gdr.u_evco2stream t,
+        cms_hlt_gdr.u_streamids l,
+        cms_hlt_gdr.u_streams n
         WHERE
-        B.CONFIGDESCRIPTOR='%s' AND
-        C.CONFIGID=B.CONFIGID AND
-        D.PATHID=C.PATHID AND
-        A.STREAMID=D.STREAMID AND
-        E.PATHID = C.PATHID AND
-        F.STREAMID = D.STREAMID AND
-        G.EVENTCONTENTID=F.EVENTCONTENTID AND
-        H.STATEMENTID=G.STATEMENTID
+        d.name = '%s' and
+        i.id=c.id_evcoid and u.id=i.id_evco and c.id_confver=d.id and e.id_evcoid=i.id and
+        s.id=e.id_stat and t.id_evcoid=i.id and l.id=t.id_streamid and n.id=l.id_stream
+        ORDER BY streamlabel
         """ % (self.menuName,)
 
         cursor.execute(sqlquery)

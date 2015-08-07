@@ -246,7 +246,7 @@ class ShiftMonitor:
             self.lastLS = self.currentLS
             # Update current LS
             if len(lslist)>0: self.currentLS = max(lslist)
-            # If we are using a LS range
+            
             if self.useLSRange: # Adjust runs so we only look at those in our range
                 self.slidingLS = -1 # No sliding LS window
                 self.lastLS = max( [self.lastLS, self.LSRange[0]] )
