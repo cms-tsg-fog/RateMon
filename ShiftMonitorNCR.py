@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 6, 2015 by Nathaniel Rupprecht
+# Last Modified: August 10, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, mailAlert.py
 #
@@ -224,7 +224,6 @@ class ShiftMonitor:
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
-            self.lastRunNumber = self.runNumber
             self.lastLS = 1
             self.currentLS = 0
             redoTList = True # Re-do trigger lists            
@@ -277,6 +276,11 @@ class ShiftMonitor:
     # Use: Remakes the trigger lists
     def redoTriggerLists(self):
         self.redoTList = False
+        # Reset the trigger lists
+        self.usableHLTTriggers = []
+        self.otherHLTTriggers = []
+        self.useableL1Triggers = []
+        self.otherL1Triggers = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] < num consecutive bad >
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
@@ -425,7 +429,8 @@ class ShiftMonitor:
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
-        print "Total Triggers: %s" % (self.total)
+        if self.removeZeros: print "Total (Nonzero rate) Triggers: %s" % (self.total)
+        else: print "Total Triggers: %s" % (self.total)
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         print "Ave iLumi: %s" % (aveLumi)
         print '*' * self.hlength
@@ -444,7 +449,7 @@ class ShiftMonitor:
         
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0):
-        self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
+        self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
         # Get the trigger data
         for trigger in triggerList:
             self.getTriggerData(trigger, doPred, aveLumi)
@@ -485,6 +490,8 @@ class ShiftMonitor:
     # -- aveLumi : The average luminosity during the LS in question
     # Returns: (void)
     def getTriggerData(self, trigger, doPred, aveLumi):
+        # In case of critical error (this shouldn't occur)
+        if not self.Rates.has_key(trigger): return
         # If cosmics, don't do predictions
         if self.cosmics: doPred = False
         # Calculate rate
