@@ -32,7 +32,8 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
                                                        "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams"])
+                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "notEither",
+                                                       "maxStream="])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -102,6 +103,10 @@ class CommandLineParser:
                 self.monitor.usePerDiff = True
             elif label == "--hideStreams":
                 self.monitor.showStreams = False
+            elif label == "--notEither":
+                self.monitor.either = False
+            elif label == "--maxStream":
+                self.monitor.maxStreamRate = float(op)
             elif label == "--Help":
                 self.printOptions()
 
@@ -124,10 +129,12 @@ class CommandLineParser:
         print "Error Monitoring Options:"
         print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
+        print "--notEither               : By default, we only flag rates as bad if they fail both the perc diff and sigma cuts, this allows use to use only one or the other."
         print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
         print "--hideStreams             : Doesn't print out information about the streams."
+        print "--maxStream               : The maximum stream rate for a 'good' stream, streams with a rate greater then this are colored (if colors are on)"
         print "--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
         print "--mailAlerts              : Send mail alerts when triggers have been in error for a while."
         print ""

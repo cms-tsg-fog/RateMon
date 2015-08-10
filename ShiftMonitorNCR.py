@@ -104,6 +104,7 @@ class ShiftMonitor:
         self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
         self.totalStreams = 0           # The total number of streams
+        self.maxStreamRate = 1000       # The maximum rate we allow a "good" stream to have
 
     # Use: Formats the header string
     # Returns: (void)
@@ -395,7 +396,7 @@ class ShiftMonitor:
             head += stringSegment("* Stream bandwidth (GB/s)", streamSpacing[5])
             print head
             print '*' * self.hlength
-            streamTable = ""
+            ##**
             for name in self.streamData.keys():
                 count = 0.0
                 streamsize = 0
@@ -416,12 +417,10 @@ class ShiftMonitor:
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), streamSpacing[3])
                     row += stringSegment("* "+"{0:.2f}".format(streamsize), streamSpacing[4])
                     row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
-                    streamTable += (row+"\n")
+                    if not self.noColors and aveRate > self.maxStreamRate: write(bcolors.WARNING) # Write colored text
+                    print row
+                    if not self.noColors and aveRate > self.maxStreamRate: write(bcolors.ENDC)    # Stop writing colored text 
                 else: pass
-            if len(streamTable) > 0:
-                print streamTable
-            else: print "\n --- No streams to monitor --- \n"
-
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
