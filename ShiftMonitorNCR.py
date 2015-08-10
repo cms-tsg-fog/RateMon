@@ -125,7 +125,7 @@ class ShiftMonitor:
         self.spacing[5] = max( [ 181 - sum(self.spacing), 0 ] )
         
         self.header += stringSegment("* TRIGGER NAME", self.spacing[0])
-        self.header += stringSegment("* ACTUAL", self.spacing[1])
+        self.header += stringSegment("* RAW [Hz]", self.spacing[1])
         self.header += stringSegment("* EXPECTED", self.spacing[2])
         self.header += stringSegment("* % DIFF", self.spacing[3])
         self.header += stringSegment("* DEVIATION", self.spacing[4])
@@ -172,17 +172,21 @@ class ShiftMonitor:
         self.setMode()
         self.redoTList = True
         while True:
-            # Check if we are still in the same run, get trigger mode
-            self.lastRunNumber = self.runNumber
-            self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
-            # Run the main functionality
-            self.runLoop()      
-            # Check for bad triggers
-            self.checkTriggers()
-            # Sleep before re-querying
-            self.sleepWait()
-        # This loop is infinite, the user must forcefully exit
-
+            try:
+                # Check if we are still in the same run, get trigger mode
+                self.lastRunNumber = self.runNumber
+                self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
+                # Run the main functionality
+                self.runLoop()      
+                # Check for bad triggers
+                self.checkTriggers()
+                # Sleep before re-querying
+                self.sleepWait()
+                # This loop is infinite, the user must forcefully exit
+            except KeyboardInterrupt:
+                print "Quitting. Bye."
+                break
+            
     def simulateRun(self):
         modTime = 0
         # Get the rates
