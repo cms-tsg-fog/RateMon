@@ -81,12 +81,15 @@ class ShiftMonitor:
         self.redoTList = True           # Whether we need to update the trigger lists
         self.useAll = True              # If true, we will print out the rates for all the HLT triggers
         self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
+        self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
+        self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         # Restrictions
         self.removeZeros = True         # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
         self.devAccept = 1.5            # The acceptence for deviation
+        self.either = False             # If true, we only label triggers bad if they fail both accepts
         self.normal = 0
         self.bad = 0
         self.total = 0
@@ -100,6 +103,7 @@ class ShiftMonitor:
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
+        self.totalStreams = 0           # The total number of streams
 
     # Use: Formats the header string
     # Returns: (void)
@@ -293,12 +297,17 @@ class ShiftMonitor:
         if not self.useLSRange:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
+            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+        self.totalStreams = len(self.streamData.keys())
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
+        self.totalHLTTriggers = len(self.HLTRates.keys())
+        self.totalL1Triggers = len(self.L1Rates.keys())
                 
     # Use: Retrieves information and prints it in table form
     def printTable(self):
@@ -376,7 +385,6 @@ class ShiftMonitor:
 
         # Print stream data
         if self.showStreams:
-            StreamData = self.parser.getStreamData(self.runNumber, self.startLS, self.currentLS)
             print '*' * self.hlength
             streamSpacing = [ 50, 20, 25, 25, 25, 25 ]
             head = stringSegment("* Stream name", streamSpacing[0])
@@ -388,12 +396,12 @@ class ShiftMonitor:
             print head
             print '*' * self.hlength
             streamTable = ""
-            for name in StreamData.keys():
+            for name in self.streamData.keys():
                 count = 0.0
                 streamsize = 0
                 aveBandwidth = 0
                 aveRate = 0
-                for LS, rate, size, bandwidth in StreamData[name]:
+                for LS, rate, size, bandwidth in self.streamData[name]:
                     streamsize += size
                     aveRate += rate
                     aveBandwidth += bandwidth
@@ -429,6 +437,8 @@ class ShiftMonitor:
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
+        print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
+        print "Number of streams:", self.totalStreams
         print '*' * self.hlength
         print self.header
         
@@ -454,11 +464,15 @@ class ShiftMonitor:
             else: info += stringSegment("", self.spacing[4])
             info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
             info += stringSegment("* "+comment, self.spacing[6])
-            if (self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
-                   or (dev!="INF" and dev!="" and dev>self.devAccept):
-                if not self.noColors: write(bcolors.WARNING) # Write colored text 
+            if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
+                       or (dev!="INF" and dev!="" and dev>self.devAccept)):
+                    if not self.noColors: write(bcolors.WARNING) # Write colored text 
+                    print info
+                    if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
+            elif not self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and dev!="INF" and dev!="" and dev>self.devAccept):
+                if not self.noColors: write(bcolors.WARNING) # Write colored text
                 print info
-                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
+                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text 
             else: print info
 
     # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
