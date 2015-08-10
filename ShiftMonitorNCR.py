@@ -98,6 +98,7 @@ class ShiftMonitor:
         self.maxCBR = 4                 # The maximum consecutive bad runs that we can have in a row
         self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
+        self.sortRates = True           # Whether we should sort triggers by their rates
 
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
@@ -452,6 +453,9 @@ class ShiftMonitor:
             # [4] is % diff, [6] is deviation
             if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4])
             else: self.tableData.sort(key=lambda tup : tup[6])
+        elif self.sortRates:
+            self.tableData.sort(key=lambda tup: tup[1])
+            self.tableData.reverse()
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
             info = stringSegment("* "+trigger, self.spacing[0])
             info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
