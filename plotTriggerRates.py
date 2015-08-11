@@ -2,7 +2,7 @@
 # File: plotTriggerRates.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: July 9, 2015 by Nathaniel Rupprecht
+# Last Modified: August 11, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMonitor.py
 #
@@ -34,11 +34,11 @@ class MonitorController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "rateCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "L1Triggers", "AllTriggers", "aLaMode"])
+                                                       "L1Triggers", "AllTriggers", "aLaMode", "plotStreams", "hideEq", "streamBandwidth", "streamSize"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -129,9 +129,26 @@ class MonitorController:
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)
-            elif label == "--rateCut":
-                self.rateMonitor.doRateCut = True
-                self.rateMonitor.rateCut = float(op)
+            elif label == "--dataCut":
+                self.rateMonitor.doDataCut = True
+                self.rateMonitor.dataCut = float(op)
+            elif label == "--streamRate":
+                self.rateMonitor.labelY = "Stream Rate (Hz)"
+                self.rateMonitor.plotStreams = True
+                self.rateMonitor.dataCol = 0
+                self.rateMonitor.steam = False
+            elif label == "--streamSize":
+                self.rateMonitor.labelY = "Stream Size (bytes)"
+                self.rateMonitor.plotStreams = True
+                self.rateMonitor.dataCol = 1
+                self.rateMonitor.steam = False
+            elif label == "--streamBandwidth":
+                self.rateMonitor.labelY = "Stream Bandwidth (bytes)"
+                self.rateMonitor.dataCol = 2
+                self.rateMonitor.plotStreams = True
+                self.rateMonitor.steam = False
+            elif label == "--hideEq":
+                self.rateMonitor.showEq = False
             elif label == "--aLaMode":
                 self.aLaMode()
             else:
@@ -214,9 +231,15 @@ class MonitorController:
         print "--rawPoints            : Don't do point selection in making fits"
         print "--linear               : Forces fits to be linear"
         print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
+        print "--hideEq               : Doesn't print the fit equation on the plot."
+        print "Other Fitting Options:"
+        print "--streamRate           : Plots the stream rate vs inst lumi."
+        print "--streamSize           : Plots the stream size vs inst lumi."
+        print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
+        print "--fitStreams           : Creates a fit of whatever stream data we are plotting."
         print "\nCut/Normalization Options:"
         print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
-        print "--rateCut=<num>        : Any lumisection with rate less then <num> will not be plotted or considered in the fit making. By default, this value is 0.0"
+        print "--datCut=<num>         : Any lumisection with plottable data (usually rate) less then <num> will not be plotted or considered in the fit making. (Default is 0.0)"
         print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
         print "--includeNoneBunches   : By default, if we normalize by the number of colliding bunches and we find a run where we cannot retrieve the number of colliding bunches,"
         print "                         we skip that run. This overrides that functionality."
