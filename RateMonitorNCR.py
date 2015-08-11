@@ -2,7 +2,7 @@
 # File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: July 24, 2015 by Nathaniel Rupprecht
+# Last Modified: August 11, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -52,6 +52,8 @@ class RateMonitor:
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the prescaled rate on the y axis
+        self.labelX = "Instantaneous lumi"
+        self.labelY = "Raw rate (Hz)"
         
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
@@ -66,6 +68,9 @@ class RateMonitor:
         self.HLTTriggers = True  # If True, then we get the HLT trigger Data
         self.savedAFile = False  # True if we saved at least one file
 
+        # Stream Options
+        self.plotStreams = False # If true, we plot the streams
+
         # Error File Options
         self.makeErrFile = False # If true, we will write an error file
         self.errFileName = ""    # The name of the error file
@@ -75,7 +80,8 @@ class RateMonitor:
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
-        
+
+        # Fitting
         self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
         self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
         self.minStatistics = 10  # The minimum number of points that we will allow for a run and still consider it
@@ -87,6 +93,8 @@ class RateMonitor:
         self.divByBunches = False     # If true, we divide by the number of colliding bunches
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
+        self.showEq = True       # Whether we should show the fit equation on the plot
+        self.dataCol = 0         # The column of the input data that we want to use as our y values
         
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
@@ -102,8 +110,8 @@ class RateMonitor:
         # Cuts
         self.lumiCut = 0.1       # The lumi cut value
         self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
-        self.rateCut = 0.0       # The rate cut value
-        self.doRateCut = True    # If true, we only plot data points with rate > self.rateCut
+        self.dataCut = 0.0       # The rate cut value
+        self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
 
         # self.useFit:
@@ -213,7 +221,7 @@ class RateMonitor:
         # Set up parameters and data structures
         self.setUp()
         
-        # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( raw rates ) }
+        # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
         plottingData = {}
                 
         ### Starting the main loop ###
@@ -241,16 +249,22 @@ class RateMonitor:
                 continue
                 
             # Make plots for each trigger
-            for triggerName in self.TriggerList:
-                if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
-                    # Make sure the is an entry for this trigger in plottingData
-                    if not plottingData.has_key(triggerName):
-                        plottingData[triggerName] = {}
-                    plottingData[triggerName][runNumber] = dataList[triggerName]
-                elif self.makeErrFile: # The trigger data was not taken from the DB or does not exist
-                    # This should not occur if useFit is false, all triggers should be processed
-                    message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
-                    self.errFile.write(message)
+            if not self.plotStreams:
+                for triggerName in self.TriggerList:
+                    if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
+                        # Make sure the is an entry for this trigger in plottingData
+                        if not plottingData.has_key(triggerName):
+                            plottingData[triggerName] = {}
+                        plottingData[triggerName][runNumber] = dataList[triggerName]
+                    elif self.makeErrFile: # The trigger data was not taken from the DB or does not exist
+                        # This should not occur if useFit is false, all triggers should be processed
+                        message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
+                        self.errFile.write(message)
+            else: # Otherwise, make plots for each stream
+                for streamName in dataList:
+                    if not plottingData.has_key(streamName):
+                        plottingData[streamName] = {}
+                    plottingData[streamName][runNumber] = dataList[streamName]
 
             # Make sure we only process at most MAX runs
             counter += 1
@@ -269,10 +283,10 @@ class RateMonitor:
         if self.useFit or (self.mode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
-        for triggerName in sorted(plottingData):
-            if fitparams is None or not fitparams.has_key(triggerName): fit = None
-            else: fit = fitparams[triggerName]
-            self.graphAllData(plottingData[triggerName], fit, triggerName)
+        for name in sorted(plottingData):
+            if fitparams is None or not fitparams.has_key(name): fit = None
+            else: fit = fitparams[name]
+            self.graphAllData(plottingData[name], fit, name)
         # Print steam checks
         if self.steam:
             self.steamChecks()
@@ -291,7 +305,7 @@ class RateMonitor:
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
     # -- runNumber: The number of the run we want data from
-    # Returns: A dictionary:  [ trigger name ] { ( inst lumi's || LS ), ( raw rates ) }
+    # Returns: A dictionary:  [ trigger name ] { ( inst lumi's || LS ), ( data ) }
     def getData(self, runNumber):
         Rates = {}
         # Get the HLT raw rate vs LS
@@ -314,12 +328,24 @@ class RateMonitor:
         # Correct Rates for deadtime
         self.correctForDeadtime(Rates, runNumber)
         self.allRates[runNumber] = Rates
+
+        if self.plotStreams:
+            # Stream Data [ stream name ] { LS, rate, size, bandwidth }
+            streamData = self.parser.getStreamData(runNumber)
+            Data = {}
+            # Format the data correcly: [ stream name ] [ LS ] { rate, size, bandwidth }
+            for name in streamData:
+                Data[name] = {}
+                for LS, rate, size, bandwidth in streamData[name]:
+                    Data[name][LS] = [ rate, size, bandwidth ]
+        else: Data = Rates
+        
         # Depending on the mode, we return different pairs of data
         if not self.mode:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
-            return self.combineInfo(Rates, iLumi)
+            return self.combineInfo(Data, iLumi)
         else: # self.mode == True
-            return self.sortRates(Rates, iLumi)
+            return self.sortData(Data, iLumi)
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
     # Parameters:
@@ -335,47 +361,47 @@ class RateMonitor:
                 
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
     # Parameters:
-    # -- Rates: A dictionary [ triggerName ] [ LS ] { raw rate, prescale }
+    # -- Data: A dictionary [ triggerName ] [ LS ] { col 0, col 1, ... }
     # -- iLumi: A list ( { LS, instLumi, cms active } )
-    # Returns: A dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
-    def combineInfo(self, Rates, iLumi):
-        # Create a dictionary [ trigger name ] { ( inst lumi's ), ( raw rates ) }
+    # Returns: A dictionary: [ name ] { ( inst lumi's ), ( Data[...][col] ) }
+    def combineInfo(self, Data, iLumi, col=0):
+        # Create a dictionary [ trigger name ] { ( inst lumi's ), ( Data[...][col] ) }
         dataList = {}
         # For each trigger in Rates
-        for triggerName in Rates:
+        for name in Data:
             iLuminosity = array.array('f')
-            rawRate = array.array('f')
+            yvals = array.array('f')
             for LS, ilum, phys in iLumi:
-                if Rates[triggerName].has_key(LS) and not ilum is None:
-                    # We apply our cuts here if they are called for
+                if Data[name].has_key(LS) and phys and not ilum is None:
+                    # Normalize ilumi here, if we aren't normalizing, self.bunches is set to 1
                     normedILumi = ilum/self.bunches
-                    rate = Rates[triggerName][LS][0]
-                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doRateCut or rate > self.rateCut) and phys:
+                    # Extract the required data from Data
+                    data = Data[name][LS][self.dataCol]
+                    # We apply our cuts here if they are called for
+                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doDataCut or data > self.dataCut):
                         iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
-                        rawRate.append(rate) # Add the correspoinding raw rate
-                else: pass
-
+                        yvals.append(data) # Add the correspoinding raw rate
             if len(iLuminosity) > 0:
-                dataList[triggerName] = [iLuminosity, rawRate]
+                dataList[name] = [iLuminosity, yvals]
             else: pass
         return dataList
 
-    # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
+    # Use: Combines the Data from an array of the shown format and the instant luminosity data into a form that we can make a graph from
     # Parameters:
-    # -- Rates: A dictionary [ triggerName ] [ LS ] { raw rate, prescale }
-    # Returns: A dictionary: [ trigger name ] { ( LS ), ( raw rates ) }
-    def sortRates(self, Rates, iLumi):
-        # Create a dictionary [ trigger name ] { ( LS ), (raw rates ) }
+    # -- Data: A dictionary [ name ] [ LS ] { col 0, col 1, ... }
+    # Returns: A dictionary: [ name ] { ( LS ), ( Data[LS][col] ) }
+    def sortData(self, Data, iLumi):
+        # Create a dictionary [ trigger name ] { ( LS ), ( Data[LS][col] ) }
         dataList = {}
-        for triggerName in Rates:
+        for name in Data:
             lumisecs = array.array('f')
-            rawRate = array.array('f')
+            yvals = array.array('f')
 
-            for LS, _, phys in iLumi:
-                if phys and Rates[triggerName].has_key(LS):
+            for LS, ilum, phys in iLumi:
+                if phys and not ilum is None and Data[name].has_key(LS):
                     lumisecs.append(LS)
-                    rawRate.append(Rates[triggerName][LS][0])
-            dataList[triggerName] = [lumisecs, rawRate]
+                    yvals.append(Data[name][LS][self.dataCol])
+            dataList[name] = [lumisecs, yvals]
         return dataList
 
     # Use: Graphs the data from all runs and triggers onto graphs and saves them to the root file
@@ -411,11 +437,9 @@ class RateMonitor:
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "Instantaneous Luminosity"
-        nameY = "Raw Rate"
         if self.divByBunches :
-            nameX += "/ (num colliding bunches)"
-        yunits = "[HZ]"
-        canvas = TCanvas((self.varX+" "+xunits), (self.varY+" "+yunits), 1000, 600)
+            nameX += " / (num colliding bunches)"
+        canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
@@ -451,7 +475,7 @@ class RateMonitor:
             graphList[-1].SetMarkerColor(self.colorList[counter % len(self.colorList)]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
-            graphList[-1].GetYaxis().SetTitle(nameY+" "+yunits)
+            graphList[-1].GetYaxis().SetTitle(self.labelY)
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*maxRR)
             graphList[-1].SetTitle(triggerName)
@@ -486,7 +510,7 @@ class RateMonitor:
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
         # Draw function string on the plot
-        if not funcStr == "":
+        if not funcStr == "" and self.showEq:
             funcLeg = TLegend(.146, .71, .57, .769)
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
@@ -512,16 +536,16 @@ class RateMonitor:
     def findFit(self, plottingData):
         self.OutputFit = {}
         # Combine data
-        for triggerName in sorted(plottingData):
+        for name in sorted(plottingData):
             instLumis = array.array('f')
-            rawRates = array.array('f')
-            for runNumber in sorted(plottingData[triggerName]):
+            yvals = array.array('f')
+            for runNumber in sorted(plottingData[name]):
                 # Combine all data
-                instLumis += plottingData[triggerName][runNumber][0]
-                rawRates += plottingData[triggerName][runNumber][1]
+                instLumis += plottingData[name][runNumber][0]
+                yvals += plottingData[name][runNumber][1]
 
             if len(instLumis) > self.minPointsToFit:
-                self.OutputFit[triggerName] = self.fitFinder.findFit(instLumis, rawRates, triggerName)
+                self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
             else:
                 print "Not enough points to fit %s, we need %s, we have %s" % (triggerName, self.minPointsToFit, len(instLumis))
         # Save the fit
