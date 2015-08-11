@@ -38,7 +38,7 @@ class MonitorController:
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "L1Triggers", "AllTriggers", "aLaMode", "plotStreams", "hideEq", "streamBandwidth", "streamSize"])
+                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "streamRate", "streamBandwidth", "streamSize"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
