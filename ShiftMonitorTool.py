@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 7, 2015 by Nathaniel Rupprecht
+# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -29,10 +29,10 @@ class CommandLineParser:
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "L1FitFile=", "configFile=", "triggerList=", "triggerListHLT=",
                                                        "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "notEither",
+                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "cutOnBoth",
                                                        "maxStream="])
         except:
             print "Error getting options. Exiting."
@@ -44,6 +44,8 @@ class CommandLineParser:
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFileHLT = str(op)
+            elif label == "--L1FitFile":
+                self.monitor.fitFileL1 = str(op)
             elif label == "--triggerList" or label == "--triggerListHLT":
                 if not usingAll: self.monitor.useAll = False
                 self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
@@ -103,8 +105,8 @@ class CommandLineParser:
                 self.monitor.usePerDiff = True
             elif label == "--hideStreams":
                 self.monitor.showStreams = False
-            elif label == "--notEither":
-                self.monitor.either = False
+            elif label == "--cutOnBoth":
+                self.monitor.either = True
             elif label == "--maxStream":
                 self.monitor.maxStreamRate = float(op)
             elif label == "--Help":
@@ -120,7 +122,8 @@ class CommandLineParser:
         print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
         print ""
         print "File Options:"
-        print "--fitFile=<name>          : The name of the file containing the fit with which we calculate expected rates."
+        print "--fitFile=<name>          : The name of the file containing the fit for HLT Triggers."
+        print "--L1FitFile=<name>        : The name of the file containing the fit for L1 Triggers."
         print "--configFile=<name>       : The name of a configuration file."
         print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
         print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
@@ -129,7 +132,7 @@ class CommandLineParser:
         print "Error Monitoring Options:"
         print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
-        print "--notEither               : By default, we only flag rates as bad if they fail both the perc diff and sigma cuts, this allows use to use only one or the other."
+        print "--cutOnBoth               : Flag rates only when they exceed both the standard deviation and the percent difference"
         print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
