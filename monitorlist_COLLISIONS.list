@@ -23,8 +23,13 @@ HLT_PFMET170_NoiseCleaned_v2
 HLT_PFMET120_NoiseCleaned_BTagCSV0p72_v2
 HLT_L1SingleMuOpen_v6
 HLT_L1SingleEG5_v1
-HLT_L1SingleEG10_v1
 HLT_L1SingleEG20_v1
-HLT_L1SingleJet16_v1
 HLT_L1SingleJet36_v1
 HLT_L1SingleJet68_v1
+L1_SingleMuOpen
+L1_SingleEG5
+L1_SingleEG20
+L1_SingleEG30
+L1_SingleJet36
+L1_SingleJet68
+L1_SingleJet200
