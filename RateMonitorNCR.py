@@ -475,6 +475,7 @@ class RateMonitor:
             graphList[-1].SetMarkerColor(self.colorList[counter % len(self.colorList)]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
+#            graphList[-1].GetXaxis().SetLimits(0.999*minVal,1.001*maxVal)
             graphList[-1].GetYaxis().SetTitle(self.labelY)
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*maxRR)
