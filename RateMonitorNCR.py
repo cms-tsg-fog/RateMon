@@ -17,6 +17,7 @@ import cPickle as pickle
 import math
 import array
 # Not all these are necessary
+import ROOT
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
 from ROOT import TFile, TPaveText, TBrowser, TLatex
 import os
@@ -41,6 +42,8 @@ class RateMonitor:
         # Set ROOT properties
         gROOT.SetBatch(True) # Use batch mode so plots are not spit out in X11 as we make them
         gStyle.SetPadRightMargin(0.2) # Set the canvas right margin so the legend can be bigger
+        ROOT.gErrorIgnoreLevel = 7000 # Suppress info message from TCanvas.Print
+
 
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
@@ -81,6 +84,8 @@ class RateMonitor:
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
 
+        self.png = True          # If true, create png images of all plots
+
         # Fitting
         self.allRates = {}       # Retain a copy of rates to use for validating lumisections later on: [ runNumber ] [ triggerName ] [ LS ] { rawRate, ps }
         self.predictionRec = {}  # A dictionary used to store predictions and prediction errors: [ triggerName ] { ( LS ), ( prediction ), (error) }
@@ -100,6 +105,7 @@ class RateMonitor:
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
+        self.first = True        # True if we are processing our first batch
 
         # Steam Compair
         self.steam = False       # If true, we plot a steam prediction
@@ -170,16 +176,20 @@ class RateMonitor:
             self.InputFit = self.loadFit()
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
-        if self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
-        if os.path.exists(self.saveDirectory):
-            shutil.rmtree(self.saveDirectory)
-            print "Removing existing directory %s " % (self.saveDirectory)
-        os.mkdir(self.saveDirectory)
-        os.chdir(self.saveDirectory)
-        os.mkdir("png")
-        os.chdir("../")
-        print "Created directory %s " % (self.saveDirectory)
-        self.saveName = self.saveDirectory + "/" + self.saveName
+        if not self.mode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
+        else: self.saveDirectory = "SecondaryModePlots"
+        if not self.mode or self.first:
+            self.first = False
+            if os.path.exists(self.saveDirectory):
+                shutil.rmtree(self.saveDirectory)
+                print "Removing existing directory %s " % (self.saveDirectory)
+            os.mkdir(self.saveDirectory)
+            if self.png:
+                os.chdir(self.saveDirectory)
+                os.mkdir("png")
+                os.chdir("../")
+            print "Created directory %s " % (self.saveDirectory)
+            self.saveName = self.saveDirectory + "/" + self.saveName
             
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
@@ -526,7 +536,7 @@ class RateMonitor:
         # Update root file
         file = TFile(self.saveName, "UPDATE")
         canvas.Modified()
-        canvas.Print(self.saveDirectory+"/png/"+triggerName+".png")
+        if self.png: canvas.Print(self.saveDirectory+"/png/"+triggerName+".png", "png")
         canvas.Write()
         file.Close()
         self.savedAFile = True
