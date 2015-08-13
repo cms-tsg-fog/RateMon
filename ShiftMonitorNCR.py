@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 10, 2015 by Nathaniel Rupprecht
+# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, mailAlert.py
 #
@@ -79,7 +79,7 @@ class ShiftMonitor:
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
-        self.useAll = True              # If true, we will print out the rates for all the HLT triggers
+        self.useAll = False             # If true, we will print out the rates for all the HLT triggers
         self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
@@ -374,7 +374,7 @@ class ShiftMonitor:
         self.L1 = True
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
         # Print the triggers that we can't make predictions for
-        if self.useAll:
+        if self.useAll or self.mode != "collisions":
             print '*' * self.hlength
             print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
@@ -405,7 +405,6 @@ class ShiftMonitor:
             head += stringSegment("* Stream bandwidth (GB/s)", streamSpacing[5])
             print head
             print '*' * self.hlength
-            ##**
             for name in self.streamData.keys():
                 count = 0.0
                 streamsize = 0
@@ -470,18 +469,23 @@ class ShiftMonitor:
             info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
             if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
             else: info += stringSegment("", self.spacing[2])
-            if perdiff!="": info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
-            else: info += stringSegment("", self.spacing[3])
-            if dev!="": info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
-            else: info += stringSegment("", self.spacing[4])
+            if perdiff=="": info += stringSegment("", self.spacing[3])
+            elif perdiff=="INF": info += stringSegment("INF", self.spacing[3])
+            else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
+            if dev=="": info += stringSegment("", self.spacing[4])
+            elif dev=="INF": info += stringSegment("INF", self.spacing[4])
+            else: info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
             info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
             info += stringSegment("* "+comment, self.spacing[6])
+
+            # If not in either mode
             if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
                        or (dev!="INF" and dev!="" and dev>self.devAccept)):
                     if not self.noColors: write(bcolors.WARNING) # Write colored text 
                     print info
                     if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
-            elif not self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and dev!="INF" and dev!="" and dev>self.devAccept):
+            # If in either mode
+            elif self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and dev!="INF" and dev!="" and dev>self.devAccept):
                 if not self.noColors: write(bcolors.WARNING) # Write colored text
                 print info
                 if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text 
@@ -537,7 +541,7 @@ class ShiftMonitor:
         if doPred:
             if expected == 0 or expected == "NONE":
                 perc = "INF"
-                dev = ""
+                dev = "INF"
                 row.append(1)    # Sign of % diff
                 row.append(perc) # abs % diff
                 row.append(1)    # Sign of deviation
@@ -554,7 +558,8 @@ class ShiftMonitor:
                 if mse>0: sign=1
                 else: sign=-1
                 row.append(sign)       # Sign of the deviation
-                row.append(abs(dev))   # abs deviation
+                if dev!="INF": row.append(abs(dev))   # abs deviation
+                else: row.append(dev)
         else:
             row.append("") # No prediction, so no sign of a % diff
             row.append("") # No prediction, so no % diff
@@ -648,7 +653,7 @@ class ShiftMonitor:
         # Make sure we have a fit for the trigger
         if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
             return 0
-        elif self.L1 and ((self.InputFitL1 is None) or self.InputFitL1.has_key(triggerName)):
+        elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
             return 0
         # Get the param list
         if self.L1: paramlist = self.InputFitL1[triggerName]
@@ -663,7 +668,7 @@ class ShiftMonitor:
     def getMSE(self, triggerName):
         if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
             return 0
-        elif self.L1 and ((self.InputFitL1 is None) or self.InputFitL1.has_key(triggerName)):
+        elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
             return 0
         if self.L1: paramlist = self.InputFitL1[triggerName]
         else: paramlist = self.InputFitHLT[triggerName]
