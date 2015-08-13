@@ -265,7 +265,8 @@ class MenuAnalyzer:
         cms_hlt_gdr.u_streamids f,
         cms_hlt_gdr.u_datasetids g,
         cms_hlt_gdr.u_pathids h,
-        cms_hlt_gdr.u_pathid2conf i
+        cms_hlt_gdr.u_pathid2conf i,
+        cms_hlt_gdr.u_conf2strdst j
         WHERE
         d.name = '%s'
         AND i.id_confver = d.id
@@ -276,6 +277,9 @@ class MenuAnalyzer:
         AND a.id = f.id_stream
         AND g.id = e.id_datasetid
         AND b.id = g.id_dataset
+        AND j.id_confver=d.id
+        AND j.id_streamid=e.id_streamid
+        AND j.id_datasetid=e.id_datasetid
         ORDER BY path, dataset, stream
         """ % (self.menuName,)
         
