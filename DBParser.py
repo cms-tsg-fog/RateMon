@@ -97,7 +97,7 @@ class DBParser:
     # Parameters: runNumber: the number of the run that we want data for
     # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
     def getPSRates(self, runNumber, minLS=-1, maxLS=9999999):
-        # Note: we find the raw rate by dividing CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS.Accept by 23.3
+        # Note: we find the raw rate by dividing CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS.Accept by 23.31041
 
         sqlquery = "SELECT A.LSNUMBER, SUM(A.PACCEPT), (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
         WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
@@ -112,7 +112,7 @@ class DBParser:
 
         for LS, HLTPass, triggerName in self.curs.fetchall():
             
-            rate = HLTPass/23.3 # A lumisection is 23.3 seconds
+            rate = HLTPass/23.31041 # A lumisection is 23.31041 seconds
             name = stripVersion(triggerName)
 
             if not TriggerRates.has_key(name):
@@ -173,7 +173,7 @@ class DBParser:
         for LS, L1Pass, PSPass, HLTPass, HLTExcept, triggerName in self.curs.fetchall():
             name = stripVersion(triggerName)
             
-            rate = HLTPass/23.3 # HLTPass is events in this LS, so divide by 23.3s to get rate
+            rate = HLTPass/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
             hltps = 0 # HLT Prescale
             
             if not TriggerRates.has_key(name):
@@ -213,7 +213,7 @@ class DBParser:
         self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)
         # Formulate query
-        query = """SELECT LUMI_SECTION, COUNT/23.3, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
+        query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
         TO_CHAR(A.MODIFICATIONTIME, 'YYYY.MM.DD HH24:MI:SS') TIME, C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
         A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY) C
         WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
@@ -560,7 +560,7 @@ class DBParser:
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
         cursor = self.getTrgCursor()
-        StreamQuery = """select A.lumisection, A.stream, B.nevents/23.3, B.filesize, B.filesize/23.3
+        StreamQuery = """select A.lumisection, A.stream, B.nevents/23.31041, B.filesize, B.filesize/23.31041
         from CMS_STOMGR.FILES_CREATED A, CMS_STOMGR.FILES_INJECTED B where A.filename = B.filename
         and A.runnumber=%s and A.lumisection>=%s and A.lumisection<=%s """ % (runNumber, minLS, maxLS)
 

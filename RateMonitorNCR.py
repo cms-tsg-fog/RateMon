@@ -311,6 +311,8 @@ class RateMonitor:
         # Get the HLT raw rate vs LS
         if self.HLTTriggers:
             Rates = self.parser.getRawRates(runNumber)
+            # Correct HLT Rates for deadtime
+            self.correctForDeadtime(Rates, runNumber)
         # Get the L1 raw rate vs LS
         if self.L1Triggers:
             L1Rates = self.parser.getL1RawRates(runNumber)
@@ -325,10 +327,9 @@ class RateMonitor:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
-        # Correct Rates for deadtime
-        self.correctForDeadtime(Rates, runNumber)
+        # Store Rates for this run
         self.allRates[runNumber] = Rates
-
+        # Get stream data
         if self.plotStreams:
             # Stream Data [ stream name ] { LS, rate, size, bandwidth }
             streamData = self.parser.getStreamData(runNumber)

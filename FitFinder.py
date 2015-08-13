@@ -2,7 +2,7 @@
 # File: FitFinder.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 23, 2015
-# Last Modified: July 8, 2015 by Nathaniel Rupprecht
+# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -200,7 +200,8 @@ class FitFinder:
         minY = min(yVals)
         maxindex = yVals.index(maxY)
         minindex = yVals.index(minY)
-        slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
+        if maxindex!=minindex: slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
+        else: slopeGuess = 0
         
         linear.SetParameters(0, slopeGuess)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
