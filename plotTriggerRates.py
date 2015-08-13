@@ -2,7 +2,7 @@
 # File: plotTriggerRates.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 19, 2015
-# Last Modified: August 11, 2015 by Nathaniel Rupprecht
+# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMonitor.py
 #
@@ -38,7 +38,8 @@ class MonitorController:
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "streamRate", "streamBandwidth", "streamSize"])
+                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "streamRate", "streamBandwidth", "streamSize",
+                                                       "noPNG"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -149,10 +150,12 @@ class MonitorController:
                 self.rateMonitor.steam = False
             elif label == "--hideEq":
                 self.rateMonitor.showEq = False
+            elif label == "--noPNG":
+                self.rateMonitor.png = False
             elif label == "--aLaMode":
                 self.aLaMode()
             else:
-                print "Unknown option '%s'." % label
+                print "Unimplemented option '%s'." % label
                 return False
             
         # Process Arguments
@@ -232,6 +235,7 @@ class MonitorController:
         print "--linear               : Forces fits to be linear"
         print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
         print "--hideEq               : Doesn't print the fit equation on the plot."
+        print "--noPNG                : Won't save png copies of all the fits. Saves a lot of fime."
         print "Other Fitting Options:"
         print "--streamRate           : Plots the stream rate vs inst lumi."
         print "--streamSize           : Plots the stream size vs inst lumi."
