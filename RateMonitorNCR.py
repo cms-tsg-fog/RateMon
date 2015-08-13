@@ -2,7 +2,7 @@
 # File: RateMonitorNCR.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: June 16, 2015
-# Last Modified: August 11, 2015 by Nathaniel Rupprecht
+# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -547,7 +547,7 @@ class RateMonitor:
             if len(instLumis) > self.minPointsToFit:
                 self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
             else:
-                print "Not enough points to fit %s, we need %s, we have %s" % (triggerName, self.minPointsToFit, len(instLumis))
+                print "Not enough points to fit %s, we need %s, we have %s" % (name, self.minPointsToFit, len(instLumis))
         # Save the fit
         self.saveFit()
 
