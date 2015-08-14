@@ -95,7 +95,7 @@ class ShiftMonitor:
         self.total = 0
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-        self.maxCBR = 4                 # The maximum consecutive bad runs that we can have in a row
+        self.maxCBR = 4                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
@@ -105,7 +105,7 @@ class ShiftMonitor:
         self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
         self.totalStreams = 0           # The total number of streams
-        self.maxStreamRate = 1000       # The maximum rate we allow a "good" stream to have
+        self.maxStreamRate = 10000       # The maximum rate we allow a "good" stream to have
 
     # Use: Formats the header string
     # Returns: (void)
@@ -406,7 +406,7 @@ class ShiftMonitor:
             print head
             print '*' * self.hlength
             for name in self.streamData.keys():
-                count = 0.0
+                count = 0
                 streamsize = 0
                 aveBandwidth = 0
                 aveRate = 0
@@ -417,7 +417,7 @@ class ShiftMonitor:
                     count += 1
                 if count > 0:
                     aveRate /= count
-                    streamsize /= (1000000000.0)
+                    streamsize /= (count*1000000000.0)
                     aveBandwidth /= (count*1000000000.0)
                     row = stringSegment("* "+name, streamSpacing[0])
                     row += stringSegment("* "+str(int(count)), streamSpacing[1])
@@ -611,7 +611,7 @@ class ShiftMonitor:
         # Print warnings for triggers that have been repeatedly misbehaving
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
-                if self.badRates[trigger][1] and self.badRates[trigger][0] >= self.maxCBR:
+                if self.badRates[trigger][0] >= self.maxCBR:
                     print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.badRates[trigger][0])
                 elif self.badRates[trigger][0] >= self.maxCBR-1:
                     bad = True
