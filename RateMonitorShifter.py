@@ -676,19 +676,22 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
 #                 Warn.append(False)
 
     ##Loop for L1 seeds of HLT triggers with warnings
-    if Config.DoL1:
-        for entry in SortedData:
+    
+    for entry in SortedData:
+        if not Config.DoL1 and entry[0].startswith('L1'):
+            continue
+        
+        if not entry[0] in core_l1_seeds and not cosmics:
+            continue
 
-            if not entry[0] in core_l1_seeds and not cosmics:
-                continue
-
-            core_data.append(entry)
-            #bad_seed_rate = (abs(entry[3]) > AllowedRatePercDiff)#FIXME
-            bad_seed_rate = entry[1] > 5000 #warm if over 5 kHz 
-            if bad_seed_rate:
-                Warn.append(True) #Currently, number of bad rates to show refers to bad HLT triggers (no limit on the number of bad L1 seeds to show)
-            else:
-                Warn.append(False)
+        core_data.append(entry)
+        #bad_seed_rate = (abs(entry[3]) > AllowedRatePercDiff)#FIXME
+        if 'L1' in entry[0]: bad_seed_rate = entry[1] > 30000
+        else: bad_seed_rate = entry[1] > 200
+        if bad_seed_rate:
+            Warn.append(True) #Currently, number of bad rates to show refers to bad HLT triggers (no limit on the number of bad L1 seeds to show)
+        else:
+            Warn.append(False)
             
     for index,entry in enumerate(core_data): 
         if entry[6] == "No prediction (fit missing)": #Dont show 0s if we don't actually have a prediction; it's confusing
@@ -748,7 +751,7 @@ def RunComparison(HeadParser,RefParser,HeadLumiRange,ShowPSTriggers,AllowedRateP
             mail += "The following path rate(s) are deviating from expected values: \n" 
             for index,entry in enumerate(core_data):
                 if Warn[index]:
-                  mail += " - %-30s \tmeasured rate: %-6.2f Hz, expected rate: %-6.2f Hz, difference: %-4.0f%%\n" % (core_data[index][0], core_data[index][1], core_data[index][2], core_data[index][3])
+                  mail += " - %-30s \tmeasured rate: %s Hz, expected rate: %s Hz, difference: %s%%\n" % (core_data[index][0], str(core_data[index][1]), str(core_data[index][2]), str(core_data[index][3]))
             mailAlert(mail)
                   
         return True
