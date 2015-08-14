@@ -479,10 +479,10 @@ class ShiftMonitor:
             if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
             else: info += stringSegment("", self.spacing[2])
             if perdiff=="": info += stringSegment("", self.spacing[3])
-            elif perdiff=="INF": info += stringSegment("INF", self.spacing[3])
+            elif perdiff=="INF": info += stringSegment("* INF", self.spacing[3])
             else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
             if dev=="": info += stringSegment("", self.spacing[4])
-            elif dev=="INF": info += stringSegment("INF", self.spacing[4])
+            elif dev=="INF" or dev==">1E6": info += stringSegment("* "+dev, self.spacing[4])
             else: info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
             info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
             info += stringSegment("* "+comment, self.spacing[6])
@@ -562,7 +562,9 @@ class ShiftMonitor:
                 diff = aveRate-expected
                 if expected!=0: perc = 100*diff/expected
                 else: perc = "INF"
-                if mse!=0: dev = diff/mse
+                if mse!=0:
+                    dev = diff/mse
+                    if abs(dev)>1000000: dev = ">1E6"
                 else: dev = "INF"
                 if perc>0: sign=1
                 else: sign=-1
@@ -572,8 +574,9 @@ class ShiftMonitor:
                 if mse>0: sign=1
                 else: sign=-1
                 row.append(sign)       # Sign of the deviation
-                if dev!="INF": row.append(abs(dev))   # abs deviation
-                else: row.append("INF")
+                if dev!="INF" and dev!=">1E6":
+                    row.append(abs(dev))   # abs deviation
+                else: row.append(dev)
         else:
             row.append("") # No prediction, so no sign of a % diff
             row.append("") # No prediction, so no % diff

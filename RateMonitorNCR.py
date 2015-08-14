@@ -43,8 +43,6 @@ class RateMonitor:
         gROOT.SetBatch(True) # Use batch mode so plots are not spit out in X11 as we make them
         gStyle.SetPadRightMargin(0.2) # Set the canvas right margin so the legend can be bigger
         ROOT.gErrorIgnoreLevel = 7000 # Suppress info message from TCanvas.Print
-
-
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
