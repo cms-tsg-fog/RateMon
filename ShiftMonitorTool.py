@@ -91,7 +91,7 @@ class CommandLineParser:
             elif label == "--quiet":
                 self.monitor.quiet = True
             elif label == "--noColors":
-                self.monitor.forFile = True
+                self.monitor.noColors = True
             elif label == "--mailAlerts":
                 self.monitor.sendMailAlerts = True
             elif label == "--usePerDiff":

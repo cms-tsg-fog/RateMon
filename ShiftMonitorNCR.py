@@ -1,4 +1,4 @@
-#######################################################
+#######################################################)
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
@@ -25,7 +25,7 @@ from colors import *
 # For getting command line options
 import getopt
 # For mail alerts
-from mailAlert import *
+from mailAlert import mailAlert
 
 # Use: Writes a string in a fixed length margin string (pads with spaces)
 def stringSegment(strng, tot):
@@ -515,6 +515,9 @@ class ShiftMonitor:
         if not self.cosmics and doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
+                # Don't let expected value be negative
+                if expected<0: expected = 0
+                # Get the MSE
                 mse = self.getMSE(trigger)
             else:
                 expected = None
@@ -548,27 +551,29 @@ class ShiftMonitor:
         else: row.append("") # No predicted rate
         # Find the % diff
         if doPred:
-            if expected == 0 or expected == "NONE":
-                perc = "INF"
-                dev = "INF"
+            if expected == "NONE":
+                perc = "UNDEF"
+                dev = "UNDEF"
                 row.append(1)    # Sign of % diff
                 row.append(perc) # abs % diff
                 row.append(1)    # Sign of deviation
                 row.append(dev)  # abs deviation
             else:
                 diff = aveRate-expected
-                perc = 100*diff/expected
-                if mse!=0: dev = diff / mse
+                if expected!=0: perc = 100*diff/expected
+                else: perc = "INF"
+                if mse!=0: dev = diff/mse
                 else: dev = "INF"
                 if perc>0: sign=1
                 else: sign=-1
                 row.append(sign)       # Sign of % diff
-                row.append(abs(perc))  # abs % diff
+                if perc!="INF": row.append(abs(perc))  # abs % diff
+                else: row.append("INF")
                 if mse>0: sign=1
                 else: sign=-1
                 row.append(sign)       # Sign of the deviation
                 if dev!="INF": row.append(abs(dev))   # abs deviation
-                else: row.append(dev)
+                else: row.append("INF")
         else:
             row.append("") # No prediction, so no sign of a % diff
             row.append("") # No prediction, so no % diff
@@ -582,7 +587,9 @@ class ShiftMonitor:
         # Check if the trigger is bad
         self.total += 1
         if doPred:
-            if perc != "INF" and abs(perc) > self.percAccept:
+            # Check for bad rates. NOTE: Does not cover the self.either case
+            if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
+            (not self.usePerDiff and dev!="INF" and dev>self.devAccept):
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
@@ -626,10 +633,10 @@ class ShiftMonitor:
                     print "Warning: Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR-1)
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
                 if self.badRates[trigger][0] == 1:
-                    mailTriggers.append( [trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4]] )
+                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
 
         # Send mail alerts
-        if self.sendMailAlerts and len(mailTriggers)>0: sendMail(mailTriggers)    
+        if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)    
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -690,11 +697,11 @@ class ShiftMonitor:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
     def sendMail(self, mailTriggers):
-        mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
+        mail = "Run: %d, Lumisections: %s - %s \n \n" % (self.runNumber, self.lastLS, self.currentLS)
         mail += "The following path rate(s) are deviating from expected values: \n"
 
         for triggerName, rate, expected, dev in mailTriggers:
-            mail += "\t%s has exited from the acceptable deviation range. Expected: %s, Actual: %s, Abs Deviation: %s" % (triggerName, expected, rate, dev)
+            mail += stringSegment(triggerName, 35) +": Expected: %s, Actual: %s, Abs Deviation: %s\n" % (expected, rate, dev)
 
         print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
         mailAlert(mail)
