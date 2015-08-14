@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
+# Last Modified: August 14, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, mailAlert.py
 #
@@ -41,8 +41,7 @@ class ShiftMonitor:
 
     def __init__(self):
         # Fits and fit files
-        self.fitFileHLT = ""            # The fit file
-        self.fitFileL1 = ""             # The fit file for L1 triggers
+        self.fitFile = ""               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
         # DBParser
@@ -70,8 +69,7 @@ class ShiftMonitor:
         # Columns header
         self.header = ""                # The table header
         # Triggers
-        self.useTrigListHLT = False     # Whether we were given an HLT trigger list or not
-        self.useTrigListL1 = False      # Whether we were given an L1 trigger list or not
+        self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.TriggerListHLT = None      # All the HLT triggers that we want to monitor
         self.TriggerListL1 = None       # All the L1 triggers that we want to monitor
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -137,18 +135,26 @@ class ShiftMonitor:
     # Returns: (void)
     def run(self):
         # Load the fit and trigger list
-        haveHLT = (self.fitFileHLT != "")
-        haveL1 = (self.fitFileL1 != "")
-        if haveHLT: self.InputFitHLT = self.loadFit(self.fitFileHLT)
-        if haveL1 : self.InputFitL1 = self.loadFit(self.fitFileL1)
+        inputFit = self.loadFit(self.fitFile)
+        for triggerName in inputFit:
+            if triggerName[0:2]=="L1":
+                if self.InputFitL1 is None: self.InputFitL1 = {}
+                self.InputFitL1[triggerName] = inputFit[triggerName]
+            else:
+                if self.InputFitHLT is None: self.InputFitHLT = {}
+                self.InputFitHLT[triggerName] = inputFit[triggerName]
+        
+        # Sort trigger list into HLT and L1 trigger lists
+        if self.triggerList!="":
+            for triggerName in self.triggerList:
+                if triggerName[0:1]=="L1":
+                    self.TriggerListL1.append(triggerName)
+                else:
+                    self.TriggerListHLT.append(triggerName)
         # If there aren't preset trigger lists, use all the triggers that we can fit
-        if self.useTrigListHLT: pass # Only using triggers in the current trigger list
-        elif haveHLT: self.TriggerListHLT = self.InputFitHLT.keys()
-        if self.useTrigListL1: pass
-        elif haveL1: self.TriggerListL1 = self.InputFitL1.keys()
-
-        if haveHLT and len(self.InputFitHLT)==0: haveHLT = False
-        if haveL1 and len(self.InputFitL1)==0: haveL1 = False
+        else:
+            if not self.InputFitHLT is None: self.TriggerListHLT = self.InputFitHLT.keys()
+            if not self.InputFitL1 is None: self.TriggerListL1 = self.InputFitL1.keys()
 
         # Get run info: The current run number, if the detector is collecting (?), if the data is good (?), and the trigger mode
         if not self.assignedNum:
