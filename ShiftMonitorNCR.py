@@ -14,6 +14,7 @@
 
 # Imports
 from DBParser import *
+import ROOT
 from ROOT import TF1
 import cPickle as pickle
 import sys
@@ -40,6 +41,8 @@ write = sys.stdout.write
 class ShiftMonitor:
 
     def __init__(self):
+        # Suppress root warnings
+        ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
         self.fitFile = ""               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
@@ -91,7 +94,7 @@ class ShiftMonitor:
         self.normal = 0
         self.bad = 0
         self.total = 0
-        self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
+        self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 4                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
@@ -292,7 +295,7 @@ class ShiftMonitor:
         self.useableL1Triggers = []
         self.otherL1Triggers = []
         # Reset bad rate records
-        self.badRates = {}           # A dictionary: [ trigger name ] < num consecutive bad >
+        self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
@@ -487,9 +490,9 @@ class ShiftMonitor:
             # If not in either mode
             if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
                        or (dev!="INF" and dev!="" and dev>self.devAccept)):
-                    if not self.noColors: write(bcolors.WARNING) # Write colored text 
-                    print info
-                    if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
+                if not self.noColors: write(bcolors.WARNING) # Write colored text 
+                print info
+                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
             # If in either mode
             elif self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and dev!="INF" and dev!="" and dev>self.devAccept):
                 if not self.noColors: write(bcolors.WARNING) # Write colored text
@@ -589,12 +592,12 @@ class ShiftMonitor:
                 if not self.badRates.has_key(trigger):
                     self.badRates[trigger] = [0, True]
                 last = self.badRates[trigger]
-                self.badRates[trigger] = [ last[0]+1, True ]
+                self.badRates[trigger] = [ last[0]+1, True, aveRate, expected, dev ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 0, False ]
+                    self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
 
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
@@ -613,18 +616,20 @@ class ShiftMonitor:
                     break
             print ""
 
-        bad = False
         # Print warnings for triggers that have been repeatedly misbehaving
+        mailTriggers = [] # A list of triggers that we should mail alerts about
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= self.maxCBR:
                     print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.badRates[trigger][0])
                 elif self.badRates[trigger][0] >= self.maxCBR-1:
-                    bad = True
                     print "Warning: Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR-1)
+                # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
+                if self.badRates[trigger][0] == 1:
+                    mailTriggers.append( [trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4]] )
 
         # Send mail alerts
-        if self.sendMailAlerts and bad: sendMail()    
+        if self.sendMailAlerts and len(mailTriggers)>0: sendMail(mailTriggers)    
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -681,18 +686,17 @@ class ShiftMonitor:
         return paramlist[5] # The MSE
 
     # Use: Sends an email alert
-    def sendMail(self):
+    # Parameters:
+    # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
+    # Returns: (void)
+    def sendMail(self, mailTriggers):
         mail = "Run: %d, Lumisections: %s - %s \n \n" %(HeadParser.RunNumber,str(HeadLumiRange[0]),str(HeadLumiRange[-1]))
         mail += "The following path rate(s) are deviating from expected values: \n"
 
-        #self.badRates: A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked }
+        for triggerName, rate, expected, dev in mailTriggers:
+            mail += "\t%s has exited from the acceptable deviation range. Expected: %s, Actual: %s, Abs Deviation: %s" % (triggerName, expected, rate, dev)
 
-        for triggerName in self.badRates:
-            nb, bad = self.badRates[triggerName]
-            if bad:
-                mail += triggerName + ": Bad for the last " + str(int(nb)) + " runs."
-
-        print "Sending mail:\n"+mail
+        print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
