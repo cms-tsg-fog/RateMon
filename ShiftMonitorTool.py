@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
+# Last Modified: August 14, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -29,8 +29,8 @@ class CommandLineParser:
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "L1FitFile=", "configFile=", "triggerList=", "triggerListHLT=",
-                                                       "triggerListL1=", "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
+                                                       "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
                                                        "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "cutOnBoth",
                                                        "maxStream="])
@@ -43,18 +43,11 @@ class CommandLineParser:
         
         for label, op in opt:
             if label == "--fitFile":
-                self.monitor.fitFileHLT = str(op)
-            elif label == "--L1FitFile":
-                self.monitor.fitFileL1 = str(op)
-            elif label == "--triggerList" or label == "--triggerListHLT":
+                self.monitor.fitFile = str(op)
+            elif label == "--triggerList":
                 if not usingAll: self.monitor.useAll = False
-                self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
-                self.monitor.useTrigListHLT = True
-                print "Using HLT Trigger list %s" % (str(op))
-            elif label == "--triggerListL1":
-                self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
-                self.monitor.useTrigListL1 = True
-                print "Using L1 Trigger list %s" % (str(op))
+                self.monitor.triggerList = self.loadTriggersFromFile(str(op))
+                print "Using Trigger list %s" % (str(op))
             elif label == "--LSRange":
                 self.monitor.sendMailAlerts = False
                 start, end = str(op).split("-")
@@ -122,12 +115,9 @@ class CommandLineParser:
         print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
         print ""
         print "File Options:"
-        print "--fitFile=<name>          : The name of the file containing the fit for HLT Triggers."
-        print "--L1FitFile=<name>        : The name of the file containing the fit for L1 Triggers."
+        print "--fitFile=<name>          : The name of the file containing the fit for HLT and L1 Triggers."
         print "--configFile=<name>       : The name of a configuration file."
-        print "--triggerList=<name>      : The name of a file containing a list of HLT triggers that we want to observe."
-        print "--triggerListHLT=<name>   : The name of a file containing a list of HLT triggers that we want to observe."
-        print "--triggerListL1=<name>    : The name of a file containing a list of L1 triggers that we want to observe."
+        print "--triggerList=<name>      : The name of a file containing a list of the HLT and L1 triggers that we want to observe."
         print ""
         print "Error Monitoring Options:"
         print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
