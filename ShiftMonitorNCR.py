@@ -100,7 +100,10 @@ class ShiftMonitor:
         self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-
+        # Trigger Rate
+        self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxL1Rate = 5000           # The maximum prescaled rate we allow an L1 Trigger to have
+        # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
@@ -138,14 +141,15 @@ class ShiftMonitor:
     # Returns: (void)
     def run(self):
         # Load the fit and trigger list
-        inputFit = self.loadFit(self.fitFile)
-        for triggerName in inputFit:
-            if triggerName[0:2]=="L1":
-                if self.InputFitL1 is None: self.InputFitL1 = {}
-                self.InputFitL1[triggerName] = inputFit[triggerName]
-            else:
-                if self.InputFitHLT is None: self.InputFitHLT = {}
-                self.InputFitHLT[triggerName] = inputFit[triggerName]
+        if self.fitFile!="":
+            inputFit = self.loadFit(self.fitFile)
+            for triggerName in inputFit:
+                if triggerName[0:2]=="L1":
+                    if self.InputFitL1 is None: self.InputFitL1 = {}
+                    self.InputFitL1[triggerName] = inputFit[triggerName]
+                else:
+                    if self.InputFitHLT is None: self.InputFitHLT = {}
+                    self.InputFitHLT[triggerName] = inputFit[triggerName]
         
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
@@ -487,18 +491,23 @@ class ShiftMonitor:
             info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
             info += stringSegment("* "+comment, self.spacing[6])
 
-            # If not in either mode
-            if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
-                       or (dev!="INF" and dev!="" and dev>self.devAccept)):
+            # Color the bad triggers with warning colors
+            if self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:2]=="L1"):
                 if not self.noColors: write(bcolors.WARNING) # Write colored text 
                 print info
                 if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
-            # If in either mode
-            elif self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and dev!="INF" and dev!="" and dev>self.devAccept):
-                if not self.noColors: write(bcolors.WARNING) # Write colored text
-                print info
-                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text 
+            # Don't color normal triggers
             else: print info
+
+    # Use: Returns whether a given trigger is bad
+    # Returns: Whether the trigger is bad
+    def isBadTrigger(self, perdiff, dev, psrate, isL1):
+        if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
+                                or (dev!="INF" and dev!="" and (dev==">1E6" or dev>self.devAccept))) or \
+                                (self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and \
+                                dev!="INF" and dev!="" and dev>self.devAccept)) or isL1 and psrate>self.maxL1Rate \
+                                or not isL1 and psrate>self.maxHLTRate: return True
+        return False
 
     # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
     # Parameters:
@@ -591,8 +600,10 @@ class ShiftMonitor:
         self.total += 1
         if doPred:
             # Check for bad rates. NOTE: Does not cover the self.either case
-            if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
-            (not self.usePerDiff and dev!="INF" and dev>self.devAccept):
+            #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
+            #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
+
+            if self.isBadTrigger(perc, dev, aveRate/avePS, trigger[0:2]=="L1"):
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
@@ -600,7 +611,7 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [0, True]
+                    self.badRates[trigger] = [1, True]
                 last = self.badRates[trigger]
                 self.badRates[trigger] = [ last[0]+1, True, aveRate, expected, dev ]
             else:
