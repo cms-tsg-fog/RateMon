@@ -33,7 +33,7 @@ class CommandLineParser:
                                                        "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
                                                        "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "cutOnBoth",
-                                                       "maxStream="])
+                                                       "maxStream=", "maxHLTRate=", "maxL1Rate="])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -102,6 +102,10 @@ class CommandLineParser:
                 self.monitor.either = True
             elif label == "--maxStream":
                 self.monitor.maxStreamRate = float(op)
+            elif label == "--maxHLTRate":
+                self.monitor.maxHLTRate = float(op)
+            elif label == "--maxL1Rate":
+                self.monitor.maxL1Rate = float(op)
             elif label == "--Help":
                 self.printOptions()
 
@@ -124,6 +128,8 @@ class CommandLineParser:
         print "--allowedDev=<num>        : The allowed deviation for the rate."
         print "--cutOnBoth               : Flag rates only when they exceed both the standard deviation and the percent difference"
         print "--usePerDiff              : Cuts on percent difference instead of deviation."
+        print "--maxHLTRate=<num>        : HLT Triggers with prescaled rates above <num> are marked as bad."
+        print "--maxL1Rate=<num>         : L1 Triggers with prescaled rates above <num> are marked as bad."
         print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
         print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
         print "--hideStreams             : Doesn't print out information about the streams."
@@ -247,7 +253,5 @@ class CommandLineParser:
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.parseArgs()
-    #try:
     parser.run()
-    #except:
-    #print "\nExiting. Goodbye..."
+
