@@ -153,6 +153,8 @@ class ShiftMonitor:
         
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
+            self.TriggerListHLT = []
+            self.TriggerListL1 = []
             for triggerName in self.triggerList:
                 if triggerName[0:1]=="L1":
                     self.TriggerListL1.append(triggerName)
