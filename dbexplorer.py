@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Author: Nathaniel Rupprecht
 # Created: June 29, 2015
-# Last Modified: June 29, 2015
+# Last Modified: August 17, 2015
 
 import cx_Oracle
 
@@ -11,17 +11,17 @@ fileName = "out.txt"
 # Use: Prints all the table and column data available to the given cursor to the given file
 def getData(curs, file):
     # Get pairs { table name, column name }
-    curs.execute("select table_name, column_name from all_tab_columns")
+    curs.execute("select owner, table_name, column_name from all_tab_columns")
     
     columns = {} # A dictionary
     
     # Put our data into the dictionary
     count = 0
-    for table_name, column_name in curs.fetchall():
+    for owner, table_name, column_name in curs.fetchall():
         if not columns.has_key(table_name): # Create the entry if it does not exist
-            columns[table_name]=[column_name]
-        else:
-            columns[table_name].append(column_name)
+            columns[table_name]=[owner, [column_name]]
+        elif not column_name in columns[table_name][1]:
+            columns[table_name][1].append(column_name)
         count += 1
 
         # Do some counting
@@ -30,8 +30,10 @@ def getData(curs, file):
     
     # Write DB table info
     for table_name in sorted(columns):
-        file.write(table_name + ":\nThere are %s columns.\n| " % (len(columns[table_name])))
-        for col in columns[table_name]:
+        number = len(columns[table_name][1])
+        owner = columns[table_name][0]
+        file.write(table_name + ":\nThere are %s columns. Table Owner: %s\nFull Name: %s.%s\n| " % (number, owner, owner, table_name))
+        for col in columns[table_name][1]:
             file.write(col+" | ")
         file.write("\n\n")
     return [nTables, nColumns]
