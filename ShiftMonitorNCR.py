@@ -73,8 +73,10 @@ class ShiftMonitor:
         self.header = ""                # The table header
         # Triggers
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
-        self.TriggerListHLT = None      # All the HLT triggers that we want to monitor
-        self.TriggerListL1 = None       # All the L1 triggers that we want to monitor
+#        self.TriggerListHLT = None      # All the HLT triggers that we want to monitor
+#        self.TriggerListL1 = None       # All the L1 triggers that we want to monitor
+        self.TriggerListHLT = []      # All the HLT triggers that we want to monitor
+        self.TriggerListL1 = []       # All the L1 triggers that we want to monitor
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
         self.otherHLTTriggers = []      # HLT Triggers active during the run that are not usable triggers
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
@@ -306,13 +308,13 @@ class ShiftMonitor:
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
-            (not self.TriggerListHLT is None and trigger in self.TriggerListHLT):
+            (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
             else: self.otherHLTTriggers.append(trigger)
 
         for trigger in self.L1Rates.keys():
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
-            (not self.TriggerListL1 is None and trigger in self.TriggerListL1):
+            (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
             else: self.otherL1Triggers.append(trigger)
 
