@@ -303,7 +303,6 @@ class DBParser:
     # Use: Sets the L1 trigger prescales for this class
     # Returns: (void)
     def getL1Prescales(self, runNumber):
-        ### Check
         if self.GTRS_Key == "":
             self.getRunInfo(runNumber)
         # Construct the query in a more concise way then trying to just write it all out
@@ -353,7 +352,7 @@ class DBParser:
         return AvgL1Prescales
 
     # Note: This function is from DatabaseParser.py
-    # Use: Frankly, I'm not sure. I don't think its ever been called
+    # Use: Frankly, I'm not sure. I don't think its ever been called. Read the (origional) info string
     # Returns: The minimum prescale value
     def UnwindORSeed(self,expression,L1Prescales):
         """
@@ -378,7 +377,7 @@ class DBParser:
             return minPS
 
     # Note: This function is from DatabaseParser.py (with slight modifications), double (##) comments are origionals
-    # Use: (?) Sets the L1 seed that each HLT trigger depends on
+    # Use: Sets the L1 seed that each HLT trigger depends on
     # Returns: (void)
     def getHLTSeeds(self, runNumber):
         ### Check

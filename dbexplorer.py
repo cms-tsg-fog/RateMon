@@ -22,7 +22,8 @@ def getData(curs, file):
             columns[table_name]=[owner, [column_name]]
         elif not column_name in columns[table_name][1]:
             columns[table_name][1].append(column_name)
-        count += 1
+        else: continue # Make sure we aren't double counting columns
+        count += 1 
 
         # Do some counting
     nColumns = count
@@ -67,3 +68,4 @@ if __name__ == "__main__":
     file.write("Fun facts: There are %s tables in the system, with a total of %s columns.\n\n\n" % (nTables, nColumns))
     file.write("Thank you for reading. That is all.")
     file.close() # Close file
+    print "Database summary written to %s" % (fileName)
