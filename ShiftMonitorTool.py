@@ -174,6 +174,8 @@ class CommandLineParser:
         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
         TriggerList = []
         for triggerName in allTriggerNames:
+            # Recognize comments
+            if triggerName[0]=='#': continue
             try:
                 if not str(triggerName) in TriggerList:
                     TriggerList.append(stripVersion(str(triggerName)))
