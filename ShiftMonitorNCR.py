@@ -2,7 +2,7 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 14, 2015 by Nathaniel Rupprecht
+# Last Modified: August 17, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, mailAlert.py
 #
@@ -251,7 +251,7 @@ class ShiftMonitor:
         if not self.simulate: self.getRates()
 
         # Make sure there is info to use
-        if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+        if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             return
         
@@ -313,6 +313,7 @@ class ShiftMonitor:
             (not self.TriggerListL1 is None and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
             else: self.otherL1Triggers.append(trigger)
+
         self.getHeader()
 
     # Use: Gets the rates for the lumisections we want
@@ -387,7 +388,7 @@ class ShiftMonitor:
         self.L1 = True
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
         # Print the triggers that we can't make predictions for
-        if self.useAll or self.mode != "collisions":
+        if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
             print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
