@@ -8,11 +8,7 @@ import cx_Oracle
 # FILE NAME
 fileName = "out.txt"
 
-# Create a cursor
-orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn='cms_omds_lb')
-curs = orcl.cursor()
-
-
+# Use: Prints all the table and column data available to the given cursor to the given file
 def getData(curs, file):
     # Get pairs { table name, column name }
     curs.execute("select table_name, column_name from all_tab_columns")
@@ -41,9 +37,11 @@ def getData(curs, file):
     return [nTables, nColumns]
         
 
+# main function
 if __name__ == "__main__":
-    file = open(fileName, "wb")
+    file = open(fileName, "wb") # Open file
 
+    # Get the HLT cursor
     orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn='cms_omds_lb')
     curs = orcl.cursor()
     file.write("***********************************************************************************\n")
@@ -51,6 +49,7 @@ if __name__ == "__main__":
     file.write("***********************************************************************************\n\n\n")
     nHLTTables, nHLTColumns = getData(curs, file)
 
+    # Get the trigger cursor
     orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn='cms_omds_lb')
     curs = orcl.cursor()
     file.write("***********************************************************************************\n")
@@ -58,9 +57,11 @@ if __name__ == "__main__":
     file.write("***********************************************************************************\n\n\n")
     nTrgTables, nTrgColumns = getData(curs, file)
 
+    # Find totals
     nTables = nHLTTables + nTrgTables
     nColumns = nHLTColumns + nTrgColumns
 
+    # Print footer
     file.write("Fun facts: There are %s tables in the system, with a total of %s columns.\n\n\n" % (nTables, nColumns))
     file.write("Thank you for reading. That is all.")
-    file.close()
+    file.close() # Close file
