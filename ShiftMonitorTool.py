@@ -46,7 +46,8 @@ class CommandLineParser:
                 self.monitor.fitFile = str(op)
             elif label == "--triggerList":
                 if not usingAll: self.monitor.useAll = False
-                self.monitor.triggerList = self.loadTriggersFromFile(str(op))
+                self.monitor.triggerList = self.monitor.loadTriggersFromFile(str(op))
+                self.monitor.userSpecTrigList = True
                 print "Using Trigger list %s" % (str(op))
             elif label == "--LSRange":
                 self.monitor.sendMailAlerts = False
@@ -164,24 +165,24 @@ class CommandLineParser:
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
     # -- fileName: The name of the file that trigger names are contained in
     # Returns: (void)
-    def loadTriggersFromFile(self, fileName):
-        try:
-            file = open(fileName, 'r')
-        except:
-            print "File", fileName, "(a trigger list file) failed to open."
-            return
+#     def loadTriggersFromFile(self, fileName):
+#         try:
+#             file = open(fileName, 'r')
+#         except:
+#             print "File", fileName, "(a trigger list file) failed to open."
+#             return
         
-        allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
-        TriggerList = []
-        for triggerName in allTriggerNames:
-            # Recognize comments
-            if triggerName[0]=='#': continue
-            try:
-                if not str(triggerName) in TriggerList:
-                    TriggerList.append(stripVersion(str(triggerName)))
-            except:
-                print "Error parsing trigger name in file", fileName
-        return TriggerList
+#         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
+#         TriggerList = []
+#         for triggerName in allTriggerNames:
+#             # Recognize comments
+#             if triggerName[0]=='#': continue
+#             try:
+#                 if not str(triggerName) in TriggerList:
+#                     TriggerList.append(stripVersion(str(triggerName)))
+#             except:
+#                 print "Error parsing trigger name in file", fileName
+#         return TriggerList
 
     # Use: Parser options from a cfg file
     def parseCFGFile(self):
@@ -207,10 +208,10 @@ class CommandLineParser:
                 elif label == "DoL1" and int(op)!=0:
                     self.monitor.useL1 = True
                 elif label == "TriggerListHLT" or label == "TriggerToMonitorList": # Backwards compatibility
-                    self.monitor.TriggerListHLT = self.loadTriggersFromFile(str(op))
+                    self.monitor.TriggerListHLT = self.monitor.loadTriggersFromFile(str(op))
                     self.monitor.useTrigListHLT = True
                 elif label == "TriggerListL1":
-                    self.monitor.TriggerListL1 = self.loadTriggersFromFile(str(op))
+                    self.monitor.TriggerListL1 = self.monitor.loadTriggersFromFile(str(op))
                     self.monitor.useTrigListL1 = True
                 elif label == "FitFileHLT" or label == "FitFileName":
                     self.monitor.fitFileHLT = str(op)
