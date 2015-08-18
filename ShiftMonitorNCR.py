@@ -100,7 +100,7 @@ class ShiftMonitor:
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 4                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
-        self.displayBadRates = 5        # The number of bad rates we should show in the summary. We use -1 for all
+        self.displayBadRates = -1        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
         # Trigger Rate
@@ -703,7 +703,7 @@ class ShiftMonitor:
         if self.displayBadRates != 0:
             count = 0
             if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates)) 
-            else: write("All bad triggers: ")
+            else: write("All triggers deviating past thresholds: ")
             for trigger in self.badRates:
                 if self.badRates[trigger][1]:
                     count += 1
@@ -713,6 +713,7 @@ class ShiftMonitor:
                 if count == self.displayBadRates:
                     write(".....")
                     break
+            if not len(self.badRates) > 0: print "none"
             print ""
 
         # Print warnings for triggers that have been repeatedly misbehaving
