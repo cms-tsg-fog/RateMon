@@ -149,9 +149,9 @@ class CommandLineParser:
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
         print ""
         print "Formatt Options:"
-        print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
+#        print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
-        print "--quiet                   : Prints fewer messages."
+#        print "--quiet                   : Prints fewer messages."
         print ""
         print "Program by Nathaniel Rupprecht, created July 13th, 2015. For questions, email nrupprec@nd.edu"
         exit()
