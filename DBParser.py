@@ -527,7 +527,7 @@ class DBParser:
         
         if mode is None:
             isGood=0
-        elif mode[0].find('l1_hlt_collisions')!=-1:
+        elif mode[0].find('l1_hlt_collisions') != -1:
             isCol=1
                         
         Tier0xferQuery = "SELECT TIER0_TRANSFER TIER0 FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER = %d" % (runNumber)
@@ -576,5 +576,29 @@ class DBParser:
             StreamData[stream].append( [LS, rate, size, bandwidth] )
 
         return StreamData
+
+    def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
+        cursor = self.getTrgCursor()
+        PDQuery = """select distinct E.NAME, F.LSNUMBER, F.ACCEPT/23.31041 from CMS_HLT_GDR.U_CONFVERSIONS A,
+        CMS_HLT_GDR.U_CONF2STRDST B, CMS_WBM.RUNSUMMARY C, CMS_HLT_GDR.U_DATASETIDS D,
+        CMS_HLT_GDR.U_DATASETS E, CMS_RUNINFO.HLT_SUPERVISOR_DATASETS F WHERE D.ID=B.ID_DATASETID
+        and E.ID=D.ID_DATASET and B.ID_CONFVER=A.ID and D.ID = F.DATASETID AND A.CONFIGID = C.HLTKEY
+        and F.RUNNUMBER = C.RUNNUMBER and C.RUNNUMBER = %s and F.LSNUMBER >=%s and F.LSNUMBER <=%s
+        ORDER BY E.NAME""" % (runNumber,minLS,maxLS)
+
+        try:
+            cursor.execute(PDQuery)
+            pdData = cursor.fetchall()
+        except:
+            print "Error: Unable to retrieve PD data."
+
+        PrimaryDatasets = {}
+        for pd, LS, rate, in pdData:
+            if not PrimaryDatasets.has_key(pd):
+                PrimaryDatasets[pd] = []
+            PrimaryDatasets[pd].append( [LS, rate] )
+
+        return PrimaryDatasets
+
             
 # -------------------- End of class DBParsing -------------------- #
