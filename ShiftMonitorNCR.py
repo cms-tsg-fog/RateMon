@@ -73,6 +73,7 @@ class ShiftMonitor:
         self.header = ""                # The table header
         # Triggers
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
+        self.userSpecTrigList = False   #user specified trigger list 
         self.TriggerListHLT = []        # All the HLT triggers that we want to monitor
         self.TriggerListL1 = []         # All the L1 triggers that we want to monitor
         self.TriggerListHLT = []        # All the HLT triggers that we want to monitor
@@ -103,15 +104,41 @@ class ShiftMonitor:
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
         # Trigger Rate
-        self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 200          # The maximum prescaled rate we allow an HLT Trigger to have
         self.maxL1Rate = 5000           # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
+        self.showPDs = True             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 10000       # The maximum rate we allow a "good" stream to have
+        self.maxPDRate = 10000       # The maximum rate we allow a "good" pd to have        
+
+
+    # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
+    # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
+    # -- fileName: The name of the file that trigger names are contained in
+    # Returns: (void)
+    def loadTriggersFromFile(self, fileName):
+        try:
+            file = open(fileName, 'r')
+        except:
+            print "File", fileName, "(a trigger list file) failed to open."
+            return
+        
+        allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
+        TriggerList = []
+        for triggerName in allTriggerNames:
+            # Recognize comments
+            if triggerName[0]=='#': continue
+            try:
+                if not str(triggerName) in TriggerList:
+                    TriggerList.append(stripVersion(str(triggerName)))
+            except:
+                print "Error parsing trigger name in file", fileName
+        return TriggerList
 
     # Use: Formats the header string
     # Returns: (void)
@@ -239,7 +266,8 @@ class ShiftMonitor:
         self.total = 0
         self.normal = 0
         self.bad = 0
-        
+
+        redoTList = False # Re-do trigger lists            
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
@@ -303,6 +331,23 @@ class ShiftMonitor:
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+
+        #set trigger lists automatically based on mode
+        if not self.useAll and not self.userSpecTrigList:
+            if self.mode == "cosmics" or self.mode == "circulate":
+                self.triggerList = self.loadTriggersFromFile("monitorlist_COSMICS.list")
+                print "monitoring triggers in monitorlist_COSMICS.list"
+            elif self.mode == "collisions":
+                self.triggerList = self.loadTriggersFromFile("monitorlist_COLLISIONS.list")
+                print "monitoring triggers in monitorlist_COLLISIONS.list"            
+            self.TriggerListL1 = []
+            self.TriggerListHLT = []
+            for triggerName in self.triggerList:
+                if triggerName[0:1]=="L1":
+                    self.TriggerListL1.append(triggerName)
+                else:
+                    self.TriggerListHLT.append(triggerName)
+            
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
@@ -324,10 +369,12 @@ class ShiftMonitor:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
             self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.streamData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.pdData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.totalStreams = len(self.streamData.keys())
         self.Rates = {}
         self.Rates.update(self.HLTRates)
@@ -416,9 +463,9 @@ class ShiftMonitor:
             head = stringSegment("* Stream name", streamSpacing[0])
             head += stringSegment("* NLumis", streamSpacing[1])
             head += stringSegment("* Events", streamSpacing[2])
-            head += stringSegment("* Stream rate (Hz)", streamSpacing[3])
-            head += stringSegment("* Stream size (GB)", streamSpacing[4])
-            head += stringSegment("* Stream bandwidth (GB/s)", streamSpacing[5])
+            head += stringSegment("* Stream rate [Hz]", streamSpacing[3])
+            head += stringSegment("* Stream size [GB]", streamSpacing[4])
+            head += stringSegment("* Stream bandwidth [GB/s]", streamSpacing[5])
             print head
             print '*' * self.hlength
             for name in self.streamData.keys():
@@ -445,6 +492,34 @@ class ShiftMonitor:
                     print row
                     if not self.noColors and aveRate > self.maxStreamRate: write(bcolors.ENDC)    # Stop writing colored text 
                 else: pass
+
+        # Print PD data
+        if self.showPDs:
+            print '*' * self.hlength
+            pdSpacing = [ 50, 20, 25, 25]
+            head = stringSegment("* Primary Dataset name", pdSpacing[0])
+            head += stringSegment("* NLumis", pdSpacing[1])
+            head += stringSegment("* Events", pdSpacing[2])
+            head += stringSegment("* Dataset rate [Hz]", pdSpacing[3])
+            print head
+            print '*' * self.hlength
+            for name in self.pdData.keys():
+                count = 0
+                aveRate = 0
+                for LS, rate in self.pdData[name]:
+                    aveRate += rate
+                    count += 1
+                if count > 0:
+                    aveRate /= count
+                    row = stringSegment("* "+name, pdSpacing[0])
+                    row += stringSegment("* "+str(int(count)), pdSpacing[1])
+                    row += stringSegment("* "+str(int(aveRate*23.3*count)), pdSpacing[2])
+                    row += stringSegment("* "+"{0:.2f}".format(aveRate), pdSpacing[3])
+                    if not self.noColors and aveRate > self.maxPDRate: write(bcolors.WARNING) # Write colored text
+                    print row
+                    if not self.noColors and aveRate > self.maxPDRate: write(bcolors.ENDC)    # Stop writing colored text 
+                else: pass
+
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
