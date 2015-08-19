@@ -71,6 +71,7 @@ class ShiftMonitor:
         self.cosmics = False            # Is the trigger in a cosmics mode
         # Columns header
         self.header = ""                # The table header
+        self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in cosmics mode 
@@ -158,7 +159,8 @@ class ShiftMonitor:
         self.spacing[5] = max( [ 181 - sum(self.spacing), 0 ] )
         
         self.header += stringSegment("* TRIGGER NAME", self.spacing[0])
-        self.header += stringSegment("* RAW [Hz]", self.spacing[1])
+        if (self.displayRawRates): self.header += stringSegment("* RAW [Hz]", self.spacing[1])
+        else: self.header += stringSegment("* ACTUAL [Hz]", self.spacing[1])
         self.header += stringSegment("* EXPECTED", self.spacing[2])
         self.header += stringSegment("* % DIFF", self.spacing[3])
         self.header += stringSegment("* DEVIATION", self.spacing[4])
@@ -563,9 +565,14 @@ class ShiftMonitor:
             self.tableData.reverse()
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
             info = stringSegment("* "+trigger, self.spacing[0])
-            info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
-            if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
-            else: info += stringSegment("", self.spacing[2])
+            if (self.displayRawRates):
+                info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
+                if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
+                else: info += stringSegment("", self.spacing[2])
+            else:
+                info += stringSegment("* "+"{0:.2f}".format(rate/avePS), self.spacing[1])
+                if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred/avePS), self.spacing[2])
+                else: info += stringSegment("", self.spacing[2])
             if perdiff=="": info += stringSegment("", self.spacing[3])
             elif perdiff=="INF": info += stringSegment("* INF", self.spacing[3])
             else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
@@ -617,6 +624,7 @@ class ShiftMonitor:
                 mse = None
         # Find the ave rate since the last time we checked
         aveRate = 0
+        properAvePSRate = 0
         avePS = 0
         count = 0
         comment = "" # A comment
@@ -626,12 +634,14 @@ class ShiftMonitor:
             # Average the rate
             if self.Rates[trigger][LS][1] > 0: # If not prescaled to 0
                 aveRate += self.Rates[trigger][LS][0]
+                properAvePSRate += self.Rates[trigger][LS][0]/self.Rates[trigger][LS][1] 
                 count += 1
                 avePS += self.Rates[trigger][LS][1]
         if count > 0:
             # Make note if rate or PS are identically zero
             if aveRate == 0: comment += "Rate=0 "
             aveRate /= count
+            properAvePSRate /= count
             avePS /= count
         else: comment += "PS=0"
         # Returns if we are not making predictions for this trigger and we are throwing zeros
@@ -687,7 +697,8 @@ class ShiftMonitor:
             #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
             #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
 
-            if self.isBadTrigger(perc, dev, aveRate/avePS, trigger[0:2]=="L1"):
+            if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:2]=="L1"):
+            #if self.isBadTrigger(perc, dev, aveRate/avePS, trigger[0:2]=="L1"):
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
