@@ -72,10 +72,10 @@ class ShiftMonitor:
         # Columns header
         self.header = ""                # The table header
         # Triggers
+        self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
+        self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in cosmics mode 
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   #user specified trigger list 
-        self.TriggerListHLT = []        # All the HLT triggers that we want to monitor
-        self.TriggerListL1 = []         # All the L1 triggers that we want to monitor
         self.TriggerListHLT = []        # All the HLT triggers that we want to monitor
         self.TriggerListL1 = []         # All the L1 triggers that we want to monitor
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -88,7 +88,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         # Restrictions
-        self.removeZeros = True         # If true, we don't show triggers that have zero rate
+        self.removeZeros = False         # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
@@ -115,7 +115,7 @@ class ShiftMonitor:
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 10000       # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 10000       # The maximum rate we allow a "good" pd to have        
-
+        
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -308,6 +308,7 @@ class ShiftMonitor:
         else: print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
+        self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
         self.cosmics = False
         if self.triggerMode.find("cosmics") > -1:
             self.cosmics = True
@@ -335,11 +336,14 @@ class ShiftMonitor:
         #set trigger lists automatically based on mode
         if not self.useAll and not self.userSpecTrigList:
             if self.mode == "cosmics" or self.mode == "circulate":
-                self.triggerList = self.loadTriggersFromFile("monitorlist_COSMICS.list")
-                print "monitoring triggers in monitorlist_COSMICS.list"
+                self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
+                print "monitoring triggers in: ", self.cosmics_triggerList
             elif self.mode == "collisions":
-                self.triggerList = self.loadTriggersFromFile("monitorlist_COLLISIONS.list")
-                print "monitoring triggers in monitorlist_COLLISIONS.list"            
+                self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
+                print "monitoring triggers in: ", self.collisions_triggerList
+            else:
+                print "No lists to monitor: trigger mode not recognized"
+
             self.TriggerListL1 = []
             self.TriggerListHLT = []
             for triggerName in self.triggerList:
@@ -347,19 +351,21 @@ class ShiftMonitor:
                     self.TriggerListL1.append(triggerName)
                 else:
                     self.TriggerListHLT.append(triggerName)
-            
+
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
-            elif self.triggerList=="" or trigger in self.TriggerListHLT: self.otherHLTTriggers.append(trigger)
+            elif self.triggerList=="" or trigger in self.TriggerListHLT:
+                self.otherHLTTriggers.append(trigger)
 
         for trigger in self.L1Rates.keys():
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
-            elif self.triggerList=="" or trigger in self.TriggerListL1: self.otherL1Triggers.append(trigger)
+            elif self.triggerList=="" or trigger in self.TriggerListL1:
+                self.otherL1Triggers.append(trigger)
 
         self.getHeader()
 
