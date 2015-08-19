@@ -125,15 +125,6 @@ class DBParser:
 
         return TriggerRates
 
-    # Use: Get all the L1 and HLT raw rates
-    # Parameters:
-    # -- runNumber: The number of the run that we are examining
-    # Returns: A dictionary [triggerName][LS] { raw rate, prescale }  
-    def getAllRawRates(self, runNumber, minLS=-1, maxL=9999999):
-        Rates = self.getRawRates(runNumber, minLS)
-        Rates.update(self.getL1RawRates(runNumber, minLS))
-        return Rates
-
     # Note: This function is based on a function from DatabaseParser.py
     # Use: Get the raw rate and prescale factor
     # Parameters:
