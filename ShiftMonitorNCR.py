@@ -401,6 +401,14 @@ class ShiftMonitor:
         self.bad = 0
         # Get the inst lumi
         aveLumi = 0
+        try:
+            deadTimeData = self.parser.getDeadTime(self.runNumber)
+            aveDeadTime = 0
+        except:
+            deadTimeData = {}
+            aveDeadTime = None
+            print "Error getting deadtime data"
+            
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if not self.cosmics:
             lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
@@ -413,12 +421,15 @@ class ShiftMonitor:
                 # Average our instLumi
                 if not instLumi is None and physics:
                     physicsActive = True
+                    if not aveDeadTime is None: aveDeadTime += deadTimeData[LS]
                     aveLumi += instLumi
                     count += 1
             if count == 0:
                 aveLumi = "NONE"
                 expected = "NONE"
-            else: aveLumi /= float(count)
+            else:
+                aveLumi /= float(count)
+                aveDeadTime /= float(count)
         # If we demand a non NONE ave lumi, check that here
         if self.requireLumi and aveLumi == "NONE":
             if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
@@ -535,6 +546,7 @@ class ShiftMonitor:
         else: print "Total Triggers: %s" % (self.total)
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         print "Ave iLumi: %s" % (aveLumi)
+        print "Ave dead time: %s" % (aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
