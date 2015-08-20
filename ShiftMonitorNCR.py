@@ -101,7 +101,7 @@ class ShiftMonitor:
         self.total = 0
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-        self.maxCBR = 4                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
+        self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1        # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
@@ -216,6 +216,7 @@ class ShiftMonitor:
         # Run as long as we can
         self.setMode()
         self.redoTList = True
+
         while True:
             try:
                 # Check if we are still in the same run, get trigger mode
@@ -350,22 +351,23 @@ class ShiftMonitor:
             self.TriggerListL1 = []
             self.TriggerListHLT = []
             for triggerName in self.triggerList:
-                if triggerName[0:1]=="L1":
+                if triggerName[0:3]=="L1_":
                     self.TriggerListL1.append(triggerName)
                 else:
                     self.TriggerListHLT.append(triggerName)
 
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
-            if (trigger[0:3] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
+            if (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
             elif self.triggerList=="" or trigger in self.TriggerListHLT:
                 self.otherHLTTriggers.append(trigger)
 
+
         for trigger in self.L1Rates.keys():
-            if (trigger[0:2] == "L1_"): self.fullL1HLTMenu.append(trigger) 
+            if (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
@@ -465,6 +467,7 @@ class ShiftMonitor:
             print '*' * self.hlength
             self.L1 = False
             self.printTableSection(self.otherHLTTriggers, False)
+            self.printTableSection(self.otherL1Triggers, False)
             anytriggers = True
         if self.useL1:
             print '*' * self.hlength
@@ -629,6 +632,8 @@ class ShiftMonitor:
         if not self.Rates.has_key(trigger): return
         # If cosmics, don't do predictions
         if self.cosmics: doPred = False
+        #set doPred to true no matter what for testing
+        #doPred = True
         # Calculate rate
         if not self.cosmics and doPred:
             if not aveLumi is None:
