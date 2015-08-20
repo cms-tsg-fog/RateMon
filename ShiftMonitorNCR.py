@@ -98,7 +98,6 @@ class ShiftMonitor:
         self.either = False             # If true, we only label triggers bad if they fail both accepts
         self.normal = 0
         self.bad = 0
-        self.total = 0
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
@@ -267,7 +266,6 @@ class ShiftMonitor:
     # Returns: (void)
     def runLoop(self):
         # Reset counting variable
-        self.total = 0
         self.normal = 0
         self.bad = 0
 
@@ -401,7 +399,6 @@ class ShiftMonitor:
             self.startLS = self.lastLS
         else: self.startLS = max( [0, self.currentLS-self.slidingLS ] )+1
         # Reset variable
-        self.total = 0
         self.normal = 0
         self.bad = 0
         # Get the inst lumi
@@ -548,11 +545,9 @@ class ShiftMonitor:
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
-        if self.removeZeros: print "Total (Nonzero rate) Triggers: %s" % (self.total)
-        else: print "Number of (L1+HLT) triggers monitored: %s" % (self.total)
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
-        print "Ave iLumi: %s" % (aveLumi)
-        print "Ave dead time: %s" % (aveDeadTime)
+        print "Average inst. lumi: %s" % (aveLumi)
+        print "Average dead time: %s" % (aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
@@ -714,7 +709,6 @@ class ShiftMonitor:
         # Add row to the table data
         self.tableData.append(row)
         # Check if the trigger is bad
-        self.total += 1
         if doPred:
             # Check for bad rates. NOTE: Does not cover the self.either case
             #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
@@ -743,7 +737,7 @@ class ShiftMonitor:
         if self.displayBadRates != 0:
             count = 0
             if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates)) 
-            else: write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
+            elif len(self.badRates) > 0 : write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
             for trigger in self.badRates:
                 if self.badRates[trigger][1]:
                     count += 1
@@ -753,7 +747,6 @@ class ShiftMonitor:
                 if count == self.displayBadRates:
                     write(".....")
                     break
-            if not len(self.badRates) > 0: print "none"
             print ""
 
         # Print warnings for triggers that have been repeatedly misbehaving
