@@ -549,7 +549,7 @@ class ShiftMonitor:
         print '*' * self.hlength
         print "SUMMARY:"
         if self.removeZeros: print "Total (Nonzero rate) Triggers: %s" % (self.total)
-        else: print "Total Triggers: %s" % (self.total)
+        else: print "Number of (L1+HLT) triggers monitored: %s" % (self.total)
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         print "Ave iLumi: %s" % (aveLumi)
         print "Ave dead time: %s" % (aveDeadTime)
@@ -743,7 +743,7 @@ class ShiftMonitor:
         if self.displayBadRates != 0:
             count = 0
             if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates)) 
-            else: write("All triggers deviating past thresholds: ")
+            else: write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
             for trigger in self.badRates:
                 if self.badRates[trigger][1]:
                     count += 1
