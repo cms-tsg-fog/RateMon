@@ -8,7 +8,8 @@ from datetime import datetime,timedelta
 import sys
 sys.path.append('/nfshome0/hltpro/scripts')
 
-emailList = ["cms-tsg-fog@cern.ch"]
+#emailList = ["cms-tsg-fog@cern.ch"]
+emailList = ["charles.mueller@cern.ch","david.michael.sperka@cern.ch","a.zucchetta@cern.ch"]
 
 def getLastRuns(h=24):
     lastRun,isCol,isGood = DatabaseParser.GetLatestRunNumber()

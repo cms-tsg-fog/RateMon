@@ -88,6 +88,7 @@ class ShiftMonitor:
         self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
+        self.fullL1HLTMenu = []
         # Restrictions
         self.removeZeros = False         # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
@@ -106,13 +107,13 @@ class ShiftMonitor:
         self.sortRates = True           # Whether we should sort triggers by their rates
         # Trigger Rate
         self.maxHLTRate = 200          # The maximum prescaled rate we allow an HLT Trigger to have
-        self.maxL1Rate = 5000           # The maximum prescaled rate we allow an L1 Trigger to have
+        self.maxL1Rate = 30000           # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = False     # Whether we should send alert mails
-        self.showStreams = True         # Whether we should print stream information
-        self.showPDs = True             # Whether we should print pd information
+        self.sendMailAlerts = True     # Whether we should send alert mails
+        self.showStreams = False         # Whether we should print stream information
+        self.showPDs = False             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 10000       # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 10000       # The maximum rate we allow a "good" pd to have        
@@ -356,6 +357,7 @@ class ShiftMonitor:
 
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
+            if (trigger[0:3] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
@@ -363,6 +365,7 @@ class ShiftMonitor:
                 self.otherHLTTriggers.append(trigger)
 
         for trigger in self.L1Rates.keys():
+            if (trigger[0:2] == "L1_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
@@ -565,6 +568,9 @@ class ShiftMonitor:
     def printTableSection(self, triggerList, doPred, aveLumi=0):
         self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
         # Get the trigger data
+        for trigger in self.fullL1HLTMenu:
+            self.getTriggerData(trigger, doPred, aveLumi)
+        self.tableData = [] 
         for trigger in triggerList:
             self.getTriggerData(trigger, doPred, aveLumi)
         # Sort by % diff if need be
@@ -577,11 +583,11 @@ class ShiftMonitor:
             self.tableData.reverse()
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
             info = stringSegment("* "+trigger, self.spacing[0])
-            if (self.displayRawRates):
+            if (self.displayRawRates or avePS == 0):
                 info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
                 if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
                 else: info += stringSegment("", self.spacing[2])
-            else:
+            elif avePS != 0:
                 info += stringSegment("* "+"{0:.2f}".format(rate/avePS), self.spacing[1])
                 if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred/avePS), self.spacing[2])
                 else: info += stringSegment("", self.spacing[2])
