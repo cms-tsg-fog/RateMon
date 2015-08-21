@@ -153,7 +153,7 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
         prescales = []
 #        if L1Seeds == 'L1_ZeroBias': pdb.set_trace()
         for hlt,l1 in zip(thisHLTPS,thisL1PS):
-           prescales.append(int(hlt)*l1)
+           prescales.append(int(hlt)*int(l1))
 
         #print HLTName+" HLT: "+str(thisHLTPS)+" L1: "+str(thisL1PS)+" Total: "+str(prescales)
         if not isSequential(prescales,PSColsToIgnore) and doPrint:
