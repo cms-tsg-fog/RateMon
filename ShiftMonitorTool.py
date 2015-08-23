@@ -32,7 +32,7 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
                                                        "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams", "cutOnBoth",
+                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate="])
         except:
             print "Error getting options. Exiting."
@@ -69,7 +69,7 @@ class CommandLineParser:
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
             elif label == "--simulate":
-                self.monitor.sendMailAlerts = False
+                self.monitor.sendMailAlerts = True
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True
                 self.monitor.assignedNum = True
@@ -99,8 +99,6 @@ class CommandLineParser:
                 self.monitor.usePerDiff = True
             elif label == "--hideStreams":
                 self.monitor.showStreams = False
-            elif label == "--cutOnBoth":
-                self.monitor.either = True
             elif label == "--maxStream":
                 self.monitor.maxStreamRate = float(op)
             elif label == "--maxHLTRate":
@@ -127,7 +125,6 @@ class CommandLineParser:
         print "Error Monitoring Options:"
 #        print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
-#        print "--cutOnBoth               : Flag rates only when they exceed both the standard deviation and the percent difference"
 #        print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--maxHLTRate=<num>        : HLT Triggers with prescaled rates above <num> are marked as bad."
         print "--maxL1Rate=<num>         : L1 Triggers with prescaled rates above <num> are marked as bad."

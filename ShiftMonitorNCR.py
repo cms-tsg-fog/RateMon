@@ -94,8 +94,7 @@ class ShiftMonitor:
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
-        self.devAccept = 1.5            # The acceptence for deviation
-        self.either = False             # If true, we only label triggers bad if they fail both accepts
+        self.devAccept = 3            # The acceptence for deviation
         self.normal = 0
         self.bad = 0
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
@@ -110,12 +109,12 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = True     # Whether we should send alert mails
-        self.showStreams = False         # Whether we should print stream information
-        self.showPDs = False             # Whether we should print pd information
+        self.sendMailAlerts = False     # Whether we should send alert mails
+        self.showStreams = True         # Whether we should print stream information
+        self.showPDs = True             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
-        self.maxStreamRate = 10000       # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 10000       # The maximum rate we allow a "good" pd to have        
+        self.maxStreamRate = 1000000       # The maximum rate we allow a "good" stream to have
+        self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
         
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
@@ -175,17 +174,17 @@ class ShiftMonitor:
         if self.fitFile!="":
             inputFit = self.loadFit(self.fitFile)
             for triggerName in inputFit:
-                if triggerName[0:2]=="L1":
+                if triggerName[0:3]=="L1_":
                     if self.InputFitL1 is None: self.InputFitL1 = {}
                     self.InputFitL1[triggerName] = inputFit[triggerName]
-                else:
+                elif triggerName[0:4] =="HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
                     self.InputFitHLT[triggerName] = inputFit[triggerName]
         
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
             for triggerName in self.triggerList:
-                if triggerName[0:1]=="L1":
+                if triggerName[0:3]=="L1_":
                     self.TriggerListL1.append(triggerName)
                 else:
                     self.TriggerListHLT.append(triggerName)
@@ -457,6 +456,9 @@ class ShiftMonitor:
             anytriggers = True
         self.L1 = True
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+        #check the full menu for paths deviating past thresholds
+        for trigger in self.fullL1HLTMenu:
+            self.getTriggerData(trigger, doPred, aveLumi)        
         # Print the triggers that we can't make predictions for
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
@@ -566,9 +568,6 @@ class ShiftMonitor:
     def printTableSection(self, triggerList, doPred, aveLumi=0):
         self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
         # Get the trigger data
-        for trigger in self.fullL1HLTMenu:
-            self.getTriggerData(trigger, doPred, aveLumi)
-        self.tableData = [] 
         for trigger in triggerList:
             self.getTriggerData(trigger, doPred, aveLumi)
         # Sort by % diff if need be
@@ -599,21 +598,22 @@ class ShiftMonitor:
             info += stringSegment("* "+comment, self.spacing[6])
 
             # Color the bad triggers with warning colors
-            if avePS>0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:2]=="L1"):
+            if avePS>0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
                 if not self.noColors: write(bcolors.WARNING) # Write colored text 
                 print info
                 if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
             # Don't color normal triggers
-            else: print info
+            else:
+                print info
 
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
-        if not self.either and ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
+        if ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
                                 or (dev!="INF" and dev!="" and (dev==">1E6" or dev>self.devAccept))) or \
-                                (self.either and (perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and \
-                                dev!="INF" and dev!="" and dev>self.devAccept)) or isL1 and psrate>self.maxL1Rate \
-                                or not isL1 and psrate>self.maxHLTRate: return True
+                                ((perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and \
+                                dev!="INF" and dev!="" and dev>self.devAccept)) or (isL1 and psrate>self.maxL1Rate) \
+                                or (not isL1 and psrate>self.maxHLTRate): return True
         return False
 
     # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
@@ -627,8 +627,6 @@ class ShiftMonitor:
         if not self.Rates.has_key(trigger): return
         # If cosmics, don't do predictions
         if self.cosmics: doPred = False
-        #set doPred to true no matter what for testing
-        #doPred = True
         # Calculate rate
         if not self.cosmics and doPred:
             if not aveLumi is None:
@@ -710,12 +708,10 @@ class ShiftMonitor:
         self.tableData.append(row)
         # Check if the trigger is bad
         if doPred:
-            # Check for bad rates. NOTE: Does not cover the self.either case
+            # Check for bad rates.
             #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
             #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
-
-            if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:2]=="L1"):
-            #if self.isBadTrigger(perc, dev, aveRate/avePS, trigger[0:2]=="L1"):
+            if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
@@ -723,14 +719,35 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [1, True]
-                last = self.badRates[trigger]
-                self.badRates[trigger] = [ last[0]+1, True, aveRate, expected, dev ]
+                    self.badRates[trigger] = [1, True, aveRate, expected, dev ]
+                else:
+                    last = self.badRates[trigger]
+                    self.badRates[trigger] = [ last[0]+1, True, aveRate, expected, dev ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger):
                     self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
+                    del self.badRates[trigger]
+        elif self.mode == "cosmics":
+            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
+                self.bad += 1
+                # Record if a trigger was bad
+                if not self.recordAllBadRates.has_key(trigger):
+                    self.recordAllBadRates[trigger] = 0
+                self.recordAllBadRates[trigger] += 1
+                # Record consecutive bad rates
+                if not self.badRates.has_key(trigger):
+                    self.badRates[trigger] = [ 1, True, aveRate, -999, -999 ]
+                else:
+                    last = self.badRates[trigger]
+                    self.badRates[trigger] = [ last[0]+1, True, aveRate, -999, -999 ]
+            else:
+                self.normal += 1
+                # Remove warning from badRates
+                if self.badRates.has_key(trigger):
+                    del self.badRates[trigger]
+                    
 
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
@@ -755,12 +772,9 @@ class ShiftMonitor:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= self.maxCBR:
                     print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.badRates[trigger][0])
-                elif self.badRates[trigger][0] >= self.maxCBR-1:
-                    print "Warning: Trigger %s has been out of line for more then %s minutes" % (trigger, self.maxCBR-1)
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
                 if self.badRates[trigger][0] == 1:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
-
         # Send mail alerts
         if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)    
             
@@ -828,6 +842,13 @@ class ShiftMonitor:
 
         for triggerName, rate, expected, dev in mailTriggers:
             mail += stringSegment(triggerName, 35) +": Expected: %s, Actual: %s, Abs Deviation: %s\n" % (expected, rate, dev)
+
+        mail += " \n"
+        mail += " \n"
+        mail += "Email warnings triggered when: \n"
+        mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
+        mail += "   - HLT rates > %s Hz \n" % (self.maxHLTRate)
+        mail += "   - L1 rates > %s Hz \n" % (self.maxL1Rate)
 
         print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
         mailAlert(mail)
