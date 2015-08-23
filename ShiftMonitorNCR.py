@@ -70,7 +70,6 @@ class ShiftMonitor:
         self.mode = None                # Mode: cosmics, circulate, physics
         self.cosmics = False            # Is the trigger in a cosmics mode
         # Columns header
-        self.header = ""                # The table header
         self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
@@ -154,7 +153,8 @@ class ShiftMonitor:
         
         self.spacing = [maxName + 5, 14, 14, 14, 14, 14, 0]
         self.spacing[5] = max( [ 181 - sum(self.spacing), 0 ] )
-        
+
+        self.header = ""                # The table header
         self.header += stringSegment("* TRIGGER NAME", self.spacing[0])
         if (self.displayRawRates): self.header += stringSegment("* RAW [Hz]", self.spacing[1])
         else: self.header += stringSegment("* ACTUAL [Hz]", self.spacing[1])
@@ -287,7 +287,7 @@ class ShiftMonitor:
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
             self.redoTriggerLists()
-
+            
         # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
         if not self.simulate:
             lslist = []
@@ -359,7 +359,6 @@ class ShiftMonitor:
                 self.usableHLTTriggers.append(trigger)
             elif self.triggerList=="" or trigger in self.TriggerListHLT:
                 self.otherHLTTriggers.append(trigger)
-
 
         for trigger in self.L1Rates.keys():
             if (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
