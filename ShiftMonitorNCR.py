@@ -95,8 +95,6 @@ class ShiftMonitor:
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
         self.devAccept = 3            # The acceptence for deviation
-        self.normal = 0
-        self.bad = 0
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
@@ -274,10 +272,10 @@ class ShiftMonitor:
             print "Starting a new run: Run %s" % (self.runNumber)
             self.lastLS = 1
             self.currentLS = 0
-            redoTList = True # Re-do trigger lists            
             # Check what mode we are in
             self.setMode()
-
+            self.redoTriggerLists()
+            
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
 
@@ -729,6 +727,7 @@ class ShiftMonitor:
                 if self.badRates.has_key(trigger):
                     self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
                     del self.badRates[trigger]
+                    
         elif self.mode == "cosmics":
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
