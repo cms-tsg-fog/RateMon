@@ -5,6 +5,9 @@ import os
 import getopt
 import copy
 
+#import pdb
+#
+
 from DatabaseParser import ConnectDB
 
 def usage():
@@ -68,30 +71,30 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
 
     ## Get the HLT seeds
     sqlquery ="""  
-    SELECT I.NAME,A.VALUE
-    FROM
-    CMS_HLT.STRINGPARAMVALUES A,
-    CMS_HLT.PARAMETERS B,
-    CMS_HLT.SUPERIDPARAMETERASSOC C,
-    CMS_HLT.MODULETEMPLATES D,
-    CMS_HLT.MODULES E,
-    CMS_HLT.PATHMODULEASSOC F,
-    CMS_HLT.CONFIGURATIONPATHASSOC G,
-    CMS_HLT.CONFIGURATIONS H,
-    CMS_HLT.PATHS I
-    WHERE
-    A.PARAMID = C.PARAMID AND
-    B.PARAMID = C.PARAMID AND
-    B.NAME = 'L1SeedsLogicalExpression' AND
-    C.SUPERID = F.MODULEID AND
-    D.NAME = 'HLTLevel1GTSeed' AND
-    E.TEMPLATEID = D.SUPERID AND
-    F.MODULEID = E.SUPERID AND
-    F.PATHID=G.PATHID AND
-    I.PATHID=G.PATHID AND
-    G.CONFIGID=H.CONFIGID AND
-    H.CONFIGDESCRIPTOR='%s' 
-    ORDER BY A.VALUE
+    select l.name as path, e.value 
+    from
+    cms_hlt_gdr.u_confversions a, 
+    cms_hlt_gdr.u_pathid2conf b, 
+    cms_hlt_gdr.u_pathid2pae c, 
+    cms_hlt_gdr.u_pae2moe d,  
+    cms_hlt_gdr.u_moelements e, 
+    cms_hlt_gdr.u_moduletemplates f, 
+    cms_hlt_gdr.u_mod2templ g, 
+    cms_hlt_gdr.u_pathids h, 
+    cms_hlt_gdr.u_paths l
+    where
+    a.name='%s' and
+    b.id_confver=a.id and
+    c.id_pathid=b.id_pathid and
+    h.id=b.id_pathid and
+    l.id=h.id_path and
+    g.id_pae=c.id_pae and
+    d.id_pae=c.id_pae and
+    e.id=d.id_moe and
+    f.id=g.id_templ and
+    f.name= 'HLTLevel1GTSeed' and 
+    e.name='L1SeedsLogicalExpression'
+    order by e.value
         """ % (HLT_Key,)
     curs.execute(sqlquery)
     HLTSeed = {}
@@ -130,13 +133,14 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
                 continue
             if not L1Names.has_key(seed):
                 print "WARNING: %s uses non-existant L1 seed: %s" % (HLTName,seed,)
-            tmp = L1Prescales[L1Names[seed]]
-            if len(thisL1PS)==0:
-                thisL1PS = copy.copy(tmp) ## just set it for the first one
             else:
-                for i,a,b in zip(range(len(tmp)),thisL1PS,tmp):
-                    if b<a:
-                        thisL1PS[i] = b # choose the minimum PS for each column
+                tmp = L1Prescales[L1Names[seed]]
+                if len(thisL1PS)==0:
+                    thisL1PS = copy.copy(tmp) ## just set it for the first one
+                else:
+                    for i,a,b in zip(range(len(tmp)),thisL1PS,tmp):
+                        if b<a:
+                            thisL1PS[i] = str(b) # choose the minimum PS for each column
         if len(thisL1PS)==0:
             continue  ## this probably means that the seeding was an OR of TTs
         if HLTPrescales.has_key(HLTName):   ## if the HLT path is totally unprescaled it won't be listed in the PS service
@@ -147,8 +151,10 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
             print "Incompatible number of prescales columns for trigger %s" % HLTName
             continue
         prescales = []
+#        if L1Seeds == 'L1_ZeroBias': pdb.set_trace()
         for hlt,l1 in zip(thisHLTPS,thisL1PS):
-            prescales.append(hlt*l1)
+           prescales.append(int(hlt)*int(l1))
+
         #print HLTName+" HLT: "+str(thisHLTPS)+" L1: "+str(thisL1PS)+" Total: "+str(prescales)
         if not isSequential(prescales,PSColsToIgnore) and doPrint:
             print formatString % (HLTName,L1Seeds,prescales,thisHLTPS,thisL1PS,)
@@ -157,36 +163,25 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
             
 def GetHLTPrescaleMatrix(cursor,HLT_Key):
     ## Get the config ID
-    configIDQuery = "SELECT CONFIGID FROM CMS_HLT.CONFIGURATIONS WHERE CONFIGDESCRIPTOR='%s'" % (HLT_Key,)
+    configIDQuery = "select id from cms_hlt_gdr.u_confversions where name='%s'" % (HLT_Key,)
     cursor.execute(configIDQuery)
     ConfigId, = cursor.fetchone()
 
     SequencePathQuery ="""
-    SELECT F.SEQUENCENB,J.VALUE TRIGGERNAME
-    FROM CMS_HLT.CONFIGURATIONSERVICEASSOC A
-    , CMS_HLT.SERVICES B
-    , CMS_HLT.SERVICETEMPLATES C
-    , CMS_HLT.SUPERIDVECPARAMSETASSOC D
-    , CMS_HLT.VECPARAMETERSETS E
-    , CMS_HLT.SUPERIDPARAMSETASSOC F
-    , CMS_HLT.PARAMETERSETS G
-    , CMS_HLT.SUPERIDPARAMETERASSOC H
-    , CMS_HLT.PARAMETERS I
-    , CMS_HLT.STRINGPARAMVALUES J
-    WHERE A.CONFIGID= %d
-    AND A.SERVICEID=B.SUPERID
-    AND B.TEMPLATEID=C.SUPERID
-    AND C.NAME='PrescaleService'
-    AND B.SUPERID=D.SUPERID
-    AND D.VPSETID=E.SUPERID
-    AND E.NAME='prescaleTable'
-    AND D.VPSETID=F.SUPERID
-    AND F.PSETID=G.SUPERID
-    AND G.SUPERID=H.SUPERID
-    AND I.PARAMID=H.PARAMID
-    AND I.NAME='pathName'
-    AND J.PARAMID=H.PARAMID
-    ORDER BY F.SEQUENCENB
+    SELECT prescale_sequence , triggername 
+    FROM ( SELECT J.ID, J.NAME, LAG(J.ORD,1,0) OVER (order by J.ID) PRESCALE_SEQUENCE, J.VALUE TRIGGERNAME, 
+    trim('{' from trim('}' from LEAD(J.VALUE,1,0) OVER (order by J.ID))) as PRESCALE_INDEX 
+    FROM CMS_HLT_GDR.U_CONFVERSIONS A, 
+    CMS_HLT_GDR.U_CONF2SRV S, 
+    CMS_HLT_GDR.U_SERVICES B, 
+    CMS_HLT_GDR.U_SRVTEMPLATES C, 
+    CMS_HLT_GDR.U_SRVELEMENTS J 
+    WHERE A.ID=%d AND A.ID=S.ID_CONFVER AND 
+    S.ID_SERVICE=B.ID AND 
+    C.ID=B.ID_TEMPLATE AND 
+    C.NAME='PrescaleService' AND 
+    J.ID_SERVICE=B.ID )Q WHERE NAME='pathName'
+    ORDER BY prescale_sequence
     """ % (ConfigId,)
 
     cursor.execute(SequencePathQuery)
@@ -196,34 +191,20 @@ def GetHLTPrescaleMatrix(cursor,HLT_Key):
         HLTSequenceMap[seq]=name
 
     SequencePrescaleQuery="""
-    SELECT F.SEQUENCENB,J.SEQUENCENB,J.VALUE
-    FROM CMS_HLT.CONFIGURATIONSERVICEASSOC A
-    , CMS_HLT.SERVICES B
-    , CMS_HLT.SERVICETEMPLATES C
-    , CMS_HLT.SUPERIDVECPARAMSETASSOC D
-    , CMS_HLT.VECPARAMETERSETS E
-    , CMS_HLT.SUPERIDPARAMSETASSOC F
-    , CMS_HLT.PARAMETERSETS G
-    , CMS_HLT.SUPERIDPARAMETERASSOC H
-    , CMS_HLT.PARAMETERS I
-    , CMS_HLT.VUINT32PARAMVALUES J
-    WHERE A.CONFIGID=%d 
-    AND A.SERVICEID=B.SUPERID
-    AND B.TEMPLATEID=C.SUPERID
-    AND C.NAME='PrescaleService'
-    AND B.SUPERID=D.SUPERID
-    AND D.VPSETID=E.SUPERID
-    AND E.NAME='prescaleTable'
-    AND D.VPSETID=F.SUPERID
-    AND F.PSETID=G.SUPERID
-    AND G.SUPERID=H.SUPERID
-    AND I.PARAMID=H.PARAMID
-    AND I.NAME='prescales'
-    AND J.PARAMID=H.PARAMID
-    ORDER BY F.SEQUENCENB,J.SEQUENCENB
+    with pq as ( SELECT Q.* FROM ( SELECT J.ID, J.NAME, LAG(J.ORD,1,0) 
+    OVER (order by J.ID) PRESCALE_SEQUENCE, J.VALUE TRIGGERNAME, 
+    trim('{' from trim('}' from LEAD(J.VALUE,1,0) 
+    OVER (order by J.ID))) as PRESCALE_INDEX FROM CMS_HLT_GDR.U_CONFVERSIONS A, 
+    CMS_HLT_GDR.U_CONF2SRV S, CMS_HLT_GDR.U_SERVICES B, CMS_HLT_GDR.U_SRVTEMPLATES C, CMS_HLT_GDR.U_SRVELEMENTS J 
+    WHERE A.ID=%d AND A.ID=S.ID_CONFVER AND S.ID_SERVICE=B.ID AND C.ID=B.ID_TEMPLATE AND C.
+    NAME='PrescaleService' AND J.ID_SERVICE=B.ID )Q 
+    WHERE NAME='pathName' ) select prescale_sequence , MYINDEX , 
+    regexp_substr (prescale_index, '[^,]+', 1, rn) mypsnum 
+    from pq cross join (select rownum rn, mod(rownum -1, level) MYINDEX 
+    from (select max (length (regexp_replace (prescale_index, '[^,]+'))) + 1 mx from pq ) connect by level <= mx ) 
+    where regexp_substr (prescale_index, '[^,]+', 1, rn) is not null order by prescale_sequence, myindex
     """ % (ConfigId,)
 
-    #print HLTSequenceMap
     cursor.execute(SequencePrescaleQuery)
     HLTPrescaleTable= {}
     lastIndex=-1
