@@ -198,6 +198,7 @@ class ShiftMonitor:
         # If we are observing a single run from the past
         elif not self.simulate:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+            self.getRates()
             self.runLoop()
             self.checkTriggers()
             return
@@ -277,7 +278,8 @@ class ShiftMonitor:
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
         #Construct (or reconstruct) trigger lists
-        if self.redoTList: self.redoTriggerLists()
+        if self.redoTList:
+            self.redoTriggerLists()
 
         # Make sure there is info to use
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
@@ -700,6 +702,9 @@ class ShiftMonitor:
         row.append(comment)
         # Add row to the table data
         self.tableData.append(row)
+
+        #do not warn on triggers that are ZeroBias
+        if trigger.find("ZeroBias") > -1: return
         # Check if the trigger is bad
         if doPred:
             # Check for bad rates.
@@ -725,7 +730,6 @@ class ShiftMonitor:
                     del self.badRates[trigger]
                     
         else:
-        #elif self.mode == "circulate":
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
                 # Record if a trigger was bad
