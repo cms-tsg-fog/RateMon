@@ -418,7 +418,8 @@ class ShiftMonitor:
                 # Average our instLumi
                 if not instLumi is None and physics:
                     physicsActive = True
-                    if not aveDeadTime is None: aveDeadTime += deadTimeData[LS]
+                    if not aveDeadTime is None and deadTimeData.has_key(LS):
+                        aveDeadTime += deadTimeData[LS]
                     aveLumi += instLumi
                     count += 1
             if count == 0:
