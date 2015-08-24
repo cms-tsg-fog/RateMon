@@ -372,10 +372,17 @@ class ShiftMonitor:
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
-            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
-            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            if (self.lastLS != 1):
+                #only query the db for the LS we want...
+                self.HLTRates = self.parser.getRawRates(self.runNumber, self.startLS, self.currentLS)
+                self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.startLS, self.currentLS)
+                self.streamData = self.parser.getStreamData(self.runNumber,self.startLS, self.currentLS)
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber,self.startLS, self.currentLS)
+            else:
+                self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
+                self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
+                self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
@@ -453,9 +460,10 @@ class ShiftMonitor:
             anytriggers = True
         self.L1 = True
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+
         #check the full menu for paths deviating past thresholds
-        #        if self.mode != 'other'
         for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, doPred, aveLumi)        
+
         # Print the triggers that we can't make predictions for
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
