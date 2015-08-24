@@ -372,17 +372,10 @@ class ShiftMonitor:
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
-            if (self.lastLS != 1):
-                #only query the db for the LS we want...
-                self.HLTRates = self.parser.getRawRates(self.runNumber, self.startLS, self.currentLS)
-                self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.startLS, self.currentLS)
-                self.streamData = self.parser.getStreamData(self.runNumber,self.startLS, self.currentLS)
-                self.pdData = self.parser.getPrimaryDatasets(self.runNumber,self.startLS, self.currentLS)
-            else:
-                self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-                self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
-                self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
-                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
+            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
@@ -652,6 +645,7 @@ class ShiftMonitor:
         for LS in self.Rates[trigger].keys():
             # If using a LSRange
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
+            elif LS < self.startLS or LS > self.currentLS: continue
             # Average the rate
             if self.Rates[trigger][LS][1] > 0: # If not prescaled to 0
                 aveRate += self.Rates[trigger][LS][0]
