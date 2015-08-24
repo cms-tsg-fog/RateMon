@@ -556,6 +556,7 @@ class ShiftMonitor:
         print "INFORMATION:"
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
+        print "LHC Status: %s" % self.parser.getLHCStatus()[1]
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
         print "Number of streams:", self.totalStreams
