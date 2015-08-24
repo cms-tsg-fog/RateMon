@@ -273,6 +273,7 @@ class ShiftMonitor:
             self.currentLS = 0
             # Check what mode we are in
             self.setMode()
+            self.getRates()
             self.redoTriggerLists()
             
         # Get Rates: [triggerName][LS] { raw rate, prescale }
