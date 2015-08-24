@@ -76,8 +76,6 @@ class ShiftMonitor:
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in cosmics mode 
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   #user specified trigger list 
-        self.TriggerListHLT = []        # All the HLT triggers that we want to monitor
-        self.TriggerListL1 = []         # All the L1 triggers that we want to monitor
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
         self.otherHLTTriggers = []      # HLT Triggers active during the run that are not usable triggers
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
@@ -346,26 +344,27 @@ class ShiftMonitor:
             for triggerName in self.triggerList:
                 if triggerName[0:3]=="L1_":
                     self.TriggerListL1.append(triggerName)
-                else:
+                elif triggerName[0:4]=="HLT_":
                     self.TriggerListHLT.append(triggerName)
 
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
-            if (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
-            elif (trigger[0:4] == "HLT_") and (self.triggerList=="" or trigger in self.TriggerListHLT):
+            elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
+            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
+
 
         for trigger in self.L1Rates.keys():
-            if (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
-            elif (trigger[0:3] == "L1_") and (self.triggerList=="" or trigger in self.TriggerListL1):
+            elif trigger[0:3] == "L1_" and (self.triggerList =="" or trigger in self.TriggerListL1):
                 self.otherL1Triggers.append(trigger)
-
+            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
+                        
         self.getHeader()
 
     # Use: Gets the rates for the lumisections we want
@@ -452,8 +451,8 @@ class ShiftMonitor:
         self.L1 = True
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
         #check the full menu for paths deviating past thresholds
-        for trigger in self.fullL1HLTMenu:
-            self.getTriggerData(trigger, doPred, aveLumi)        
+        #        if self.mode != 'other'
+        for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, doPred, aveLumi)        
         # Print the triggers that we can't make predictions for
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
@@ -725,8 +724,7 @@ class ShiftMonitor:
                     self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
                     del self.badRates[trigger]
                     
-        else:
-        #elif self.mode == "cosmics":
+        elif self.mode == "circulate":
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
                 # Record if a trigger was bad
