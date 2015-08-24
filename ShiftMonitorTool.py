@@ -30,7 +30,7 @@ class CommandLineParser:
     def parseArgs(self):
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
-                                                       "LSRange=", "singleLS=", "displayBad=", "allowedPercDiff=", "allowedDev=",
+                                                       "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
                                                        "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate="])
@@ -55,11 +55,6 @@ class CommandLineParser:
                 self.monitor.LSRange = [int(start), int(end)]
                 self.monitor.useLSRange = True
                 print "Using only LS in the range %s - %s" % (start, end)
-            elif label == "--singleLS":
-                self.monitor.sendMailAlerts = False
-                self.monitor.LSRange = [int(op), int(op)]
-                self.monitor.useLSRange = True
-                print "Only looking at lumisection %s" % (op)
             elif label == "--allowedPercDiff":
                 self.monitor.percAccept = float(op)
             elif label == "--allowedDev":
@@ -138,7 +133,6 @@ class CommandLineParser:
         print "Secondary Capabilities:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"
         print "--LSRange=<start>-<end>   : A range of LS to look at if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
-#        print "--singleLS=<num>          : Look at a single LS (short for --LSRange=<num>-<num>)."
         print "--simulate=<num>          : Simulates online monitoring of run <num>, printing out tables covering periods of 60 seconds of run time."
         print ""
         print "Trigger Options:"
