@@ -303,7 +303,9 @@ class ShiftMonitor:
                 self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS: self.printTable()
-        else: print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
+        else:
+            self.badRates = {}
+            print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
         self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
@@ -724,15 +726,15 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [1, True, aveRate, expected, dev ]
+                    self.badRates[trigger] = [1, True, properAvePSRate, expected, dev ]
                 else:
                     last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, aveRate, expected, dev ]
+                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, expected, dev ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
+                    self.badRates[trigger] = [ 0, False, properAvePSRate, expected, dev ]
                     del self.badRates[trigger]
                     
         else:
@@ -744,10 +746,10 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 1, True, aveRate, -999, -999 ]
+                    self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999 ]
                 else:
                     last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, aveRate, -999, -999 ]
+                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999 ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
