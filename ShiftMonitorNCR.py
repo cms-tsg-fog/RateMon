@@ -278,16 +278,14 @@ class ShiftMonitor:
             
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
+        #Construct (or reconstruct) trigger lists
+        if self.redoTList: self.redoTriggerLists()
 
         # Make sure there is info to use
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             return
         
-        # Construct (or reconstruct) trigger lists
-        if self.redoTList:
-            self.redoTriggerLists()
-            
         # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
         if not self.simulate:
             lslist = []
@@ -357,7 +355,7 @@ class ShiftMonitor:
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
                 self.usableHLTTriggers.append(trigger)
-            elif self.triggerList=="" or trigger in self.TriggerListHLT:
+            elif (trigger[0:4] == "HLT_") and (self.triggerList=="" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
 
         for trigger in self.L1Rates.keys():
@@ -365,7 +363,7 @@ class ShiftMonitor:
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
             (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
                 self.usableL1Triggers.append(trigger)
-            elif self.triggerList=="" or trigger in self.TriggerListL1:
+            elif (trigger[0:3] == "L1_") and (self.triggerList=="" or trigger in self.TriggerListL1):
                 self.otherL1Triggers.append(trigger)
 
         self.getHeader()
@@ -727,7 +725,8 @@ class ShiftMonitor:
                     self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
                     del self.badRates[trigger]
                     
-        elif self.mode == "cosmics":
+        else:
+        #elif self.mode == "cosmics":
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
                 # Record if a trigger was bad
