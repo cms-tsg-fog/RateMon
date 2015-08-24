@@ -724,7 +724,8 @@ class ShiftMonitor:
                     self.badRates[trigger] = [ 0, False, aveRate, expected, dev ]
                     del self.badRates[trigger]
                     
-        elif self.mode == "circulate":
+        else:
+        #elif self.mode == "circulate":
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
                 self.bad += 1
                 # Record if a trigger was bad
