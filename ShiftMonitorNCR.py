@@ -273,6 +273,7 @@ class ShiftMonitor:
             self.currentLS = 0
             # Check what mode we are in
             self.setMode()
+            self.getRates()
             self.redoTriggerLists()
             
         # Get Rates: [triggerName][LS] { raw rate, prescale }
@@ -339,6 +340,7 @@ class ShiftMonitor:
                 self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
                 print "monitoring triggers in: ", self.collisions_triggerList
             else:
+                self.triggerList = ""
                 print "No lists to monitor: trigger mode not recognized"
 
             self.TriggerListL1 = []
