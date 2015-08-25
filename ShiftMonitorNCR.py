@@ -223,6 +223,7 @@ class ShiftMonitor:
                 self.checkTriggers()
                 # Sleep before re-querying
                 self.sleepWait()
+                self.sendMailAlerts = True
                 # This loop is infinite, the user must forcefully exit
             except KeyboardInterrupt:
                 print "Quitting. Bye."
@@ -304,7 +305,8 @@ class ShiftMonitor:
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS: self.printTable()
         else:
-            self.badRates = {}
+            #increment the amount of time a trigger has been bad if we can't get new data
+            for trigger in self.badRates: self.badRates[trigger][0] += 1
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
@@ -354,6 +356,7 @@ class ShiftMonitor:
                     self.TriggerListHLT.append(triggerName)
 
         # Re-make trigger lists
+        print "LOOPING OVER HLT RATE KEYS!!!!!!!!!!!!!!!!!!XS"
         for trigger in self.HLTRates.keys():
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
@@ -361,6 +364,8 @@ class ShiftMonitor:
             elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
             elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
+            print trigger, " ", trigger[0:4]
+
 
 
         for trigger in self.L1Rates.keys():
@@ -733,9 +738,7 @@ class ShiftMonitor:
             else:
                 self.normal += 1
                 # Remove warning from badRates
-                if self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 0, False, properAvePSRate, expected, dev ]
-                    del self.badRates[trigger]
+                if self.badRates.has_key(trigger): del self.badRates[trigger]
                     
         else:
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
@@ -753,8 +756,7 @@ class ShiftMonitor:
             else:
                 self.normal += 1
                 # Remove warning from badRates
-                if self.badRates.has_key(trigger):
-                    del self.badRates[trigger]
+                if self.badRates.has_key(trigger): del self.badRates[trigger]
                     
 
     # Use: Checks triggers to make sure none have been bad for to long
