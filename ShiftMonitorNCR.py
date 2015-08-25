@@ -266,7 +266,6 @@ class ShiftMonitor:
         self.normal = 0
         self.bad = 0
 
-        redoTList = False # Re-do trigger lists            
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
@@ -286,6 +285,7 @@ class ShiftMonitor:
         # Make sure there is info to use
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
+            redoTList = True
             return
         
         # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
