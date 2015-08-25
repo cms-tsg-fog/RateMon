@@ -364,7 +364,6 @@ class ShiftMonitor:
             elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
             elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
-            print trigger, " ", trigger[0:4]
 
         for trigger in self.L1Rates.keys():
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
@@ -852,7 +851,6 @@ class ShiftMonitor:
         for triggerName, rate, expected, dev in mailTriggers:
             mail += stringSegment(triggerName, 35) +": Expected: %s, Actual: %s, Abs Deviation: %s\n" % (expected, rate, dev)
 
-        mail += " \n"
         mail += " \n"
         mail += "Email warnings triggered when: \n"
         mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
