@@ -4,7 +4,7 @@
 # Date Created: June 19, 2015
 # Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
-# Dependencies: RateMonitor.py
+# Dependencies: RateMonitor.py DBParser.py
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -15,6 +15,7 @@
 # Imports
 import getopt # For getting command line options
 # Import the RateMonitor object
+from DBParser import *
 from RateMonitorNCR import *
 
 ## ----------- End Imports ------------ #
@@ -306,7 +307,7 @@ class MonitorController:
         for triggerName in allTriggerNames:
             try:
                 if not str(triggerName) in self.rateMonitor.TriggerList:
-                    self.rateMonitor.TriggerList.append(str(triggerName))
+                    self.rateMonitor.TriggerList.append(stripVersion(str(triggerName)))
             except:
                 print "Error parsing trigger name in file", fileName
 
