@@ -86,6 +86,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
+        self.ignoreStrings = ["ZeroBias","Calibration","L1Tech"]
         # Restrictions
         self.removeZeros = False         # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
@@ -285,7 +286,7 @@ class ShiftMonitor:
         # Make sure there is info to use
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
-            redoTList = True
+            self.redoTList = True
             return
         
         # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
@@ -356,7 +357,6 @@ class ShiftMonitor:
                     self.TriggerListHLT.append(triggerName)
 
         # Re-make trigger lists
-        print "LOOPING OVER HLT RATE KEYS!!!!!!!!!!!!!!!!!!XS"
         for trigger in self.HLTRates.keys():
             if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
             (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
@@ -365,8 +365,6 @@ class ShiftMonitor:
                 self.otherHLTTriggers.append(trigger)
             elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
             print trigger, " ", trigger[0:4]
-
-
 
         for trigger in self.L1Rates.keys():
             if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
@@ -717,7 +715,8 @@ class ShiftMonitor:
         self.tableData.append(row)
 
         #do not warn on triggers that are ZeroBias
-        if trigger.find("ZeroBias") > -1: return
+        for vetoString in self.ignoreStrings:
+            if trigger.find(vetoString) > -1: return
         # Check if the trigger is bad
         if doPred:
             # Check for bad rates.
