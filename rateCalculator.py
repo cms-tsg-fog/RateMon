@@ -28,7 +28,6 @@ class RateCalculator:
         self.fitFile = ""                   # The name of the fit file
         self.outName = "predict.csv"        # The name of the file that we dump the data to
         self.InputFit = {}                  # The fit that we make our predictions from
-        self.acceptableChiSquared = 10      # The chi squared acceptance threshold
 
     def parseArgs(self):
         try:
@@ -39,7 +38,7 @@ class RateCalculator:
 
         if len(opt)==0:
             print "We need some options to run the program, a fit file, the number of bunches, and the instantaneous luminosity."
-            print "Use python LumiWizard.py --Help to see the help menu."
+            print "Use python rateCalculator.py --Help to see the help menu."
             return False
         # Parse arguments
         for label, op in opt:
@@ -58,16 +57,15 @@ class RateCalculator:
     # Use: Prints out all the command line options that can be used
     def printOptions(self):
         print ""
-        print "Usage: python LumiWizard.py [Options]"
+        print "Usage: python rateCalculator.py [Options]"
         print "Note that instantaneous luminosities are times 10^30"
         print ""
         print "Options:"
         print "--fitFile=<name>      : The name of the file that your fit is stored in."
         print "--bunches=<num>       : The number of colliding bunches you want your predictions to be made for."
-        print "--instLumi=<num>         : The instantaneous luminosity that you want to make your prediction at."
+        print "--instLumi=<num>      : The instantaneous luminosity that you want to make your prediction at in units of 10^30 s^-1 cm^-2."
         print "--Help                : Prints this help message. But you probably already know that."
         print ""
-        print "Program by Nathaniel Rupprecht, created July 9, 2015. For questions, email nrupprec@nd.edu"
 
     def run(self):
         if self.parseArgs():
@@ -104,16 +102,12 @@ class RateCalculator:
         file.write("TRIGGERNAME, PREDICTION or ERROR, CHI SQUARED (of fit function)\n\n")
         for triggerName in self.InputFit:
             paramlist = self.InputFit[triggerName]
-            # TODO: we might have different acceptable Chi squared thresholds for each trigger
-            if paramlist[11] > self.acceptableChiSquared : 
-                file.write(triggerName + ", Poor fit - no prediction, ChiSqr=%s\n" % (paramlist[11]))
-            else:
-                if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-                else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-                fitFunc = TF1("Fit_"+triggerName, funcStr, 0.8*self.instLumi, 1.1*self.instLumi)
-                # Make the prediction, write it to the file
-                pred = fitFunc.Eval(self.instLumi*self.bunches)
-                file.write(triggerName + ", " + str(pred) + ", %s\n" % paramlist[11])
+            if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+            else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+            fitFunc = TF1("Fit_"+triggerName, funcStr, 0.8*self.instLumi, 1.1*self.instLumi)
+            # Make the prediction, write it to the file
+            pred = fitFunc.Eval(self.instLumi*self.bunches)
+            file.write(triggerName + ", " + str(pred) + ", %s\n" % paramlist[11])
         file.close()
         print "Wrote prediction to %s" % (self.outName)
 
@@ -121,5 +115,5 @@ class RateCalculator:
 
 ## ----------- Main -----------## 
 if __name__ == "__main__":
-    LW = LumiWizard()
-    LW.run()
+    rc = RateCalculator()
+    rc.run()
