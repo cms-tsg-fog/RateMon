@@ -337,10 +337,11 @@ class RateMonitor:
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
-        if not self.useFit and not self.useTrigList:
+        if not self.useFit and not self.useTrigList and not self.mode:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
+
         # Store Rates for this run
         self.allRates[runNumber] = Rates
         # Get stream data
@@ -532,7 +533,7 @@ class RateMonitor:
                 fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName)
                 fitGraph.Draw("PZ3")
                 canvas.Update()
-                legend.AddEntry(fitGraph, "Fit (%s sigmas)" % (self.sigmas))
+                legend.AddEntry(fitGraph, "Fit (%s sigma)" % (self.sigmas))
             else: # Primary Mode
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
@@ -742,4 +743,19 @@ class RateMonitor:
                 sprint.steamData[triggerName] = [fitFunc.Eval(ilum), minFunc.Eval(ilum), maxFunc.Eval(ilum),
                                                  self.steamData[triggerName][0], self.steamData[triggerName][1]] # [ prediction, min predict, max predict, actual, error ]
         sprint.outputSteamErrors()
+        
+#     def fitExtrapolations(self):
+#         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+#         extrapolationFileName = self.saveDirectory+"Fits.csv"
+#         extrapolations = open(extrapolationFileName,"w")
+#         if not self.divByBunches:
+#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi in units of [10^30 s^-1 cm^-2],\n")
+#         else:
+#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi/#colliding bx in units of [10^30 s^-1 cm^-2],\n")
+
+#         extrapolations.write("PATH, a, b, c, d, \n")
+#         for trigger in sorted(self.OutputFit):
+#             if self.OutputFit[trigger][0] != "exp":
+#                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
+                
 ## ----------- End of class RateMonitor ------------ ##
