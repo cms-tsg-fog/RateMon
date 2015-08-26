@@ -175,7 +175,7 @@ class RateMonitor:
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
         if not self.mode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
-        else: self.saveDirectory = "SecondaryModePlots"
+        else: self.saveDirectory = "CertificationSummary_"+str(minNum)+"-"+str(maxNum)
         if not self.mode or self.first:
             self.first = False
             if os.path.exists(self.saveDirectory):
