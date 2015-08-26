@@ -69,8 +69,9 @@ class RateMonitor:
         self.HLTTriggers = True  # If True, then we get the HLT trigger Data
         self.savedAFile = False  # True if we saved at least one file
 
-        # Stream Options
+        # Stream + PD Options
         self.plotStreams = False # If true, we plot the streams
+        self.plotDatasets = False # If true, we plot the primary datasets
 
         # Error File Options
         self.makeErrFile = False # If true, we will write an error file
@@ -257,7 +258,7 @@ class RateMonitor:
                 continue
                 
             # Make plots for each trigger
-            if not self.plotStreams:
+            if not self.plotStreams and not self.plotDatasets:
                 for triggerName in self.TriggerList:
                     if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
                         # Make sure the is an entry for this trigger in plottingData
@@ -268,11 +269,16 @@ class RateMonitor:
                         # This should not occur if useFit is false, all triggers should be processed
                         message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                         self.errFile.write(message)
-            else: # Otherwise, make plots for each stream
+            elif not self.plotDatasets: # Otherwise, make plots for each stream
                 for streamName in dataList:
                     if not plottingData.has_key(streamName):
                         plottingData[streamName] = {}
                     plottingData[streamName][runNumber] = dataList[streamName]
+            else: # Otherwise, make plots for each dataset
+                for pdName in dataList:
+                    if not plottingData.has_key(pdName):
+                        plottingData[pdName] = {}
+                    plottingData[pdName][runNumber] = dataList[pdName]
 
             # Make sure we only process at most MAX runs
             counter += 1
@@ -342,12 +348,23 @@ class RateMonitor:
             # Stream Data [ stream name ] { LS, rate, size, bandwidth }
             streamData = self.parser.getStreamData(runNumber)
             Data = {}
-            # Format the data correcly: [ stream name ] [ LS ] { rate, size, bandwidth }
+            # Format the data correcly: [ stream name ] [ LS ] = { rate, size, bandwidth }
             for name in streamData:
                 Data[name] = {}
                 for LS, rate, size, bandwidth in streamData[name]:
                     Data[name][LS] = [ rate, size, bandwidth ]
+        # Get PD data
+        elif self.plotDatasets:
+            # pdData [ pd name ] { LS, rate }
+            pdData = self.parser.getPrimaryDatasets(runNumber)
+            Data = {}
+            # Format the data correcly: [ pd name ] [ LS ] = {rate}
+            for name in pdData:
+                Data[name] = {}
+                for LS, rate in pdData[name]:
+                    Data[name][LS] = [ rate ]
         else: Data = Rates
+
         
         # Depending on the mode, we return different pairs of data
         if not self.mode:
