@@ -1,8 +1,7 @@
 #######################################################
 # File: plotTriggerRates.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht, Charlie Mueller
 # Date Created: June 19, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMonitor.py DBParser.py
 #
@@ -263,7 +262,6 @@ class MonitorController:
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
         print ""
-        print "Program by Nathaniel Rupprecht, created June 16th, 2015. For questions, email nrupprec@nd.edu"
 
     # Use: Opens a file containing a list of runs and adds them to the RateMonitor class's run list
     # Note: We do not clear the run list, this way we could add runs from multiple files to the run list
