@@ -19,7 +19,7 @@ import array
 # Not all these are necessary
 import ROOT
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser, TLatex
+from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
 import os
 import sys
 import shutil
@@ -52,9 +52,9 @@ class RateMonitor:
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
-        self.varY = "rawRate"     # Plot the prescaled rate on the y axis
-        self.labelX = "Instantaneous lumi"
-        self.labelY = "Raw rate (Hz)"
+        self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
+        self.labelX = "instantaneous lumi"
+        self.labelY = "unprescaled rate [Hz]"
         
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
@@ -460,10 +460,10 @@ class RateMonitor:
         # Set axis names/units, create canvas
         if self.mode:
             xunits = ""
-            nameX = "Lumisection"
+            nameX = "lumisection"
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
-            nameX = "Instantaneous Luminosity"
+            nameX = "instantaneous luminosity"
         if self.divByBunches :
             nameX += " / (num colliding bunches)"
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
@@ -544,6 +544,13 @@ class RateMonitor:
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
             canvas.Update()
+        # draw text
+        textLabel = TLegend(0, 0, 0.2, 0.04)
+        textLabel.SetHeader("CMS Rate Monitoring")
+        textLabel.SetFillColor(0)
+        textLabel.SetBorderSize(0)
+        textLabel.Draw()
+        canvas.Update()
         # Draw Legend
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
         legend.SetFillColor(0)
