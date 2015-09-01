@@ -50,8 +50,8 @@ class ErrorPrinter:
     def outputErrors(self):
         # Output all kinds of info to a file
         try:
-            file = open(self.saveDirectory+"/OutLSErrors.err", 'w') # come up with a name based on something about the runs
-            print "Opening "+self.saveDirectory+"/OutLSErrors.err for LS error dump."
+            file = open(self.saveDirectory+"/badLumiSummary.txt", 'w') # come up with a name based on something about the runs
+            print "Opening "+self.saveDirectory+"/badLumiSummary.txt for LS error dump."
         except:
             print "Error: could not open file to output ls data."
             return
@@ -61,6 +61,8 @@ class ErrorPrinter:
             totalErrs = 0
 
             badLumiList = {}
+            badLumiListSorted = {}
+
             for triggerName in sorted(self.run_trig_ls[runNumber]):
                 file.write("     %s: " % (triggerName))
                 list = formatJSON(sorted(self.run_trig_ls[runNumber][triggerName]))
@@ -71,11 +73,19 @@ class ErrorPrinter:
                     if badLumiList.has_key(LS): badLumiList[LS] += 1
                     else: badLumiList[LS] = 1
 
-            file.write("---- Total bad LS: %s \n" % (totalErrs))
             file.write("\n")
-            file.write("  [ LS ]: # bad paths\n")
+            #sort the dict so the number of bad triggers is now the key
             for LS in sorted(badLumiList.keys(), key=badLumiList.__getitem__, reverse =True):
-                file.write("  [ %s ] : %s \n"%(LS,badLumiList[LS]))
+                if badLumiListSorted.has_key(badLumiList[LS]):
+                    badLumiListSorted[badLumiList[LS]].append(LS)
+                else:
+                    badLumiListSorted[badLumiList[LS]] = [LS]
+
+            file.write("     # of bad paths : lumis section(s)\n")
+            for numBadTrigs in sorted(badLumiListSorted.keys(), reverse =True):                
+                    file.write("     %s : %s\n"%(numBadTrigs, sorted(badLumiListSorted[numBadTrigs])))
+
+            file.write("\n---- Total bad LS: %s \n" % (totalErrs))
             
         file.close()
 

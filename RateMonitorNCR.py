@@ -19,7 +19,7 @@ import array
 # Not all these are necessary
 import ROOT
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser, TLatex
+from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
 import os
 import sys
 import shutil
@@ -52,9 +52,9 @@ class RateMonitor:
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
-        self.varY = "rawRate"     # Plot the prescaled rate on the y axis
-        self.labelX = "Instantaneous lumi"
-        self.labelY = "Raw rate (Hz)"
+        self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
+        self.labelX = "instantaneous lumi"
+        self.labelY = "unprescaled rate [Hz]"
         
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
@@ -69,8 +69,9 @@ class RateMonitor:
         self.HLTTriggers = True  # If True, then we get the HLT trigger Data
         self.savedAFile = False  # True if we saved at least one file
 
-        # Stream Options
+        # Stream + PD Options
         self.plotStreams = False # If true, we plot the streams
+        self.plotDatasets = False # If true, we plot the primary datasets
 
         # Error File Options
         self.makeErrFile = False # If true, we will write an error file
@@ -175,7 +176,7 @@ class RateMonitor:
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
         if not self.mode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
-        else: self.saveDirectory = "SecondaryModePlots"
+        else: self.saveDirectory = "CertificationSummary_"+str(minNum)+"-"+str(maxNum)
         if not self.mode or self.first:
             self.first = False
             if os.path.exists(self.saveDirectory):
@@ -257,7 +258,7 @@ class RateMonitor:
                 continue
                 
             # Make plots for each trigger
-            if not self.plotStreams:
+            if not self.plotStreams and not self.plotDatasets:
                 for triggerName in self.TriggerList:
                     if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
                         # Make sure the is an entry for this trigger in plottingData
@@ -268,11 +269,16 @@ class RateMonitor:
                         # This should not occur if useFit is false, all triggers should be processed
                         message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                         self.errFile.write(message)
-            else: # Otherwise, make plots for each stream
+            elif not self.plotDatasets: # Otherwise, make plots for each stream
                 for streamName in dataList:
                     if not plottingData.has_key(streamName):
                         plottingData[streamName] = {}
                     plottingData[streamName][runNumber] = dataList[streamName]
+            else: # Otherwise, make plots for each dataset
+                for pdName in dataList:
+                    if not plottingData.has_key(pdName):
+                        plottingData[pdName] = {}
+                    plottingData[pdName][runNumber] = dataList[pdName]
 
             # Make sure we only process at most MAX runs
             counter += 1
@@ -331,10 +337,11 @@ class RateMonitor:
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
-        if not self.useFit and not self.useTrigList:
+        if not self.useFit and not self.useTrigList and not self.mode:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
+
         # Store Rates for this run
         self.allRates[runNumber] = Rates
         # Get stream data
@@ -342,12 +349,23 @@ class RateMonitor:
             # Stream Data [ stream name ] { LS, rate, size, bandwidth }
             streamData = self.parser.getStreamData(runNumber)
             Data = {}
-            # Format the data correcly: [ stream name ] [ LS ] { rate, size, bandwidth }
+            # Format the data correcly: [ stream name ] [ LS ] = { rate, size, bandwidth }
             for name in streamData:
                 Data[name] = {}
                 for LS, rate, size, bandwidth in streamData[name]:
                     Data[name][LS] = [ rate, size, bandwidth ]
+        # Get PD data
+        elif self.plotDatasets:
+            # pdData [ pd name ] { LS, rate }
+            pdData = self.parser.getPrimaryDatasets(runNumber)
+            Data = {}
+            # Format the data correcly: [ pd name ] [ LS ] = {rate}
+            for name in pdData:
+                Data[name] = {}
+                for LS, rate in pdData[name]:
+                    Data[name][LS] = [ rate ]
         else: Data = Rates
+
         
         # Depending on the mode, we return different pairs of data
         if not self.mode:
@@ -442,10 +460,10 @@ class RateMonitor:
         # Set axis names/units, create canvas
         if self.mode:
             xunits = ""
-            nameX = "Lumisection"
+            nameX = "lumisection"
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
-            nameX = "Instantaneous Luminosity"
+            nameX = "instantaneous luminosity"
         if self.divByBunches :
             nameX += " / (num colliding bunches)"
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
@@ -515,7 +533,7 @@ class RateMonitor:
                 fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName)
                 fitGraph.Draw("PZ3")
                 canvas.Update()
-                legend.AddEntry(fitGraph, "Fit (%s sigmas)" % (self.sigmas))
+                legend.AddEntry(fitGraph, "Fit (%s sigma)" % (self.sigmas))
             else: # Primary Mode
                 legend.AddEntry(fitFunc, "Fit")
                 fitFunc.Draw("same") # Draw the fit function on the same graph
@@ -526,6 +544,13 @@ class RateMonitor:
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
             canvas.Update()
+        # draw text
+        textLabel = TLegend(0, 0, 0.2, 0.04)
+        textLabel.SetHeader("CMS Rate Monitoring")
+        textLabel.SetFillColor(0)
+        textLabel.SetBorderSize(0)
+        textLabel.Draw()
+        canvas.Update()
         # Draw Legend
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
         legend.SetFillColor(0)
@@ -725,4 +750,19 @@ class RateMonitor:
                 sprint.steamData[triggerName] = [fitFunc.Eval(ilum), minFunc.Eval(ilum), maxFunc.Eval(ilum),
                                                  self.steamData[triggerName][0], self.steamData[triggerName][1]] # [ prediction, min predict, max predict, actual, error ]
         sprint.outputSteamErrors()
+        
+#     def fitExtrapolations(self):
+#         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+#         extrapolationFileName = self.saveDirectory+"Fits.csv"
+#         extrapolations = open(extrapolationFileName,"w")
+#         if not self.divByBunches:
+#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi in units of [10^30 s^-1 cm^-2],\n")
+#         else:
+#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi/#colliding bx in units of [10^30 s^-1 cm^-2],\n")
+
+#         extrapolations.write("PATH, a, b, c, d, \n")
+#         for trigger in sorted(self.OutputFit):
+#             if self.OutputFit[trigger][0] != "exp":
+#                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
+                
 ## ----------- End of class RateMonitor ------------ ##
