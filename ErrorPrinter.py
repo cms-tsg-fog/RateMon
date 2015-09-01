@@ -55,20 +55,28 @@ class ErrorPrinter:
         except:
             print "Error: could not open file to output ls data."
             return
-        
+
         for runNumber in sorted(self.run_trig_ls):
             file.write("Run Number: %s\n" % (runNumber))
             totalErrs = 0
+
+            badLumiList = {}
             for triggerName in sorted(self.run_trig_ls[runNumber]):
                 file.write("     %s: " % (triggerName))
                 list = formatJSON(sorted(self.run_trig_ls[runNumber][triggerName]))
                 file.write(list+"\n")
                 totalErrs += len(self.run_trig_ls[runNumber][triggerName])
+                
+                for LS in sorted(self.run_trig_ls[runNumber][triggerName]):
+                    if badLumiList.has_key(LS): badLumiList[LS] += 1
+                    else: badLumiList[LS] = 1
 
             file.write("---- Total bad LS: %s \n" % (totalErrs))
-            file.write("---- Ave bad LS per trigger: %s \n" % (totalErrs/len(self.run_trig_ls[runNumber])))
             file.write("\n")
-                    
+            file.write("  [ LS ]: # bad paths\n")
+            for LS in sorted(badLumiList.keys(), key=badLumiList.__getitem__, reverse =True):
+                file.write("  [ %s ] : %s \n"%(LS,badLumiList[LS]))
+            
         file.close()
 
     def outputSteamErrors(self):
