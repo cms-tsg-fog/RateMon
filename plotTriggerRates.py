@@ -1,8 +1,7 @@
 #######################################################
 # File: plotTriggerRates.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht, Charlie Mueller
 # Date Created: June 19, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: RateMonitor.py DBParser.py
 #
@@ -39,7 +38,7 @@ class MonitorController:
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "streamRate", "streamBandwidth", "streamSize",
+                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "datasetRate", "streamRate", "streamBandwidth", "streamSize",
                                                        "noPNG"])
         except:
             print "Error geting options: command unrecognized. Exiting."
@@ -135,19 +134,24 @@ class MonitorController:
                 self.rateMonitor.doDataCut = True
                 self.rateMonitor.dataCut = float(op)
             elif label == "--streamRate":
-                self.rateMonitor.labelY = "Stream Rate (Hz)"
+                self.rateMonitor.labelY = "Stream Rate [Hz]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 0
                 self.rateMonitor.steam = False
             elif label == "--streamSize":
-                self.rateMonitor.labelY = "Stream Size (bytes)"
+                self.rateMonitor.labelY = "Stream Size [bytes]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 1
                 self.rateMonitor.steam = False
             elif label == "--streamBandwidth":
-                self.rateMonitor.labelY = "Stream Bandwidth (bytes)"
+                self.rateMonitor.labelY = "Stream Bandwidth [bytes]"
                 self.rateMonitor.dataCol = 2
                 self.rateMonitor.plotStreams = True
+                self.rateMonitor.steam = False
+            elif label == "--datasetRate":
+                self.rateMonitor.labelY = "PrimaryDataset Rate [Hz]"
+                self.rateMonitor.plotDatasets = True
+                self.rateMonitor.dataCol = 0
                 self.rateMonitor.steam = False
             elif label == "--hideEq":
                 self.rateMonitor.showEq = False
@@ -242,6 +246,7 @@ class MonitorController:
         print "--streamSize           : Plots the stream size vs inst lumi."
         print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
         print "--fitStreams           : Creates a fit of whatever stream data we are plotting."
+        print "--datasetRate          : Plots the PD rate vs inst lumi."
         print "\nCut/Normalization Options:"
         print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
         print "--datCut=<num>         : Any lumisection with plottable data (usually rate) less then <num> will not be plotted or considered in the fit making. (Default is 0.0)"
@@ -257,7 +262,6 @@ class MonitorController:
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
         print ""
-        print "Program by Nathaniel Rupprecht, created June 16th, 2015. For questions, email nrupprec@nd.edu"
 
     # Use: Opens a file containing a list of runs and adds them to the RateMonitor class's run list
     # Note: We do not clear the run list, this way we could add runs from multiple files to the run list
