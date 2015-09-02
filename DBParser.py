@@ -489,8 +489,9 @@ class DBParser:
         utime = int(time.time())
         sqlquery = "SELECT A.VALUE, CMS_LHCGMT_COND.GMTDB.VALUE_TEXT(A.GROUPINDEX,A.VALUE) TEXT_VALUE FROM CMS_LHCGMT_COND.LHC_GMT_EVENTS A, CMS_LHCGMT_COND.LHC_GMT_EVENT_DESCRIPTIONS B WHERE A.SOURCE=B.SOURCE(+) AND A.SOURCE=5130 AND A.SECONDS BETWEEN %s AND %s ORDER BY A.SECONDS DESC,A.NSECONDS DESC" % (str(utime-86400), str(utime))
         self.curs.execute(sqlquery)
-        if len(self.curs.fetchall()) == 0: return ['----','Not available']
-        elif len(self.curs.fetchall()[0]) >1: return self.curs.fetchall()[0]
+        queryResult = self.curs.fetchall()
+        if len(queryResult) == 0: return ['----','Not available']
+        elif len(queryResult[0]) >1: return queryResult[0]
         else: return ['---','Not available']
         
     # Use: Gets the dead time as a function of lumisection
