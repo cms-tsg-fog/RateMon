@@ -35,7 +35,7 @@ class MonitorController:
         # Get the command line arguments
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=",
-                                                       "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigmas=", "preferLinear=",
+                                                       "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
                                                        "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "datasetRate", "streamRate", "streamBandwidth", "streamSize",
@@ -78,7 +78,7 @@ class MonitorController:
                 self.rateMonitor.maxRuns = int(op)
             elif label == "--maxBatches":
                 self.rateMonitor.maxBatches = int(op)
-            elif label == "--sigmas":
+            elif label == "--sigma":
                 self.rateMonitor.sigmas = float(op)
             elif label == "--preferLinear":
                 self.rateMonitor.fitFinder.preferLinear = float(op)
@@ -226,7 +226,6 @@ class MonitorController:
         print "--fitSaveName=<name>   : A name to save the fit file in. Primary mode feature only, not for batch mode."
         print "--saveDirectory=<name> : The name of a directory that we will save all our file in. Useful for batch mode."
         print "\nRun Options:"
-        print "--offset=<number>      : Allows us to start processing with the <number>th entry in our list of runs. Note: The first entry would be --offset=1, etc."
         print "--maxRuns=<number>     : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
         print "--Secondary            : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
         print "--All                  : Overrides the maximum number of runs and processes all runs in the run list."
@@ -235,10 +234,11 @@ class MonitorController:
         print "--maxBatches=<num>     : The max number of batches to do when using batch mode. Also, the max number of runs to look at in secondary mode. By default 9999."
         print "\nFitting Options:"
         print "--createFit            : Make a fit for the data we plot. Only a primary mode feature."
+        print "--sigma=<num>          : The acceptable tolerance for the fit. default is 3 sigma"
         print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
         print "--rawPoints            : Don't do point selection in making fits"
         print "--linear               : Forces fits to be linear"
-        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
+        #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
         print "--hideEq               : Doesn't print the fit equation on the plot."
         print "--noPNG                : Won't save png copies of all the fits. Saves a lot of fime."
         print "Other Fitting Options:"
