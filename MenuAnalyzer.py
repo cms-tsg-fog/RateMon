@@ -6,6 +6,8 @@ from DatabaseParser import ConnectDB
 import re
 import cx_Oracle
 import eventContent
+import pdb
+import string
 
 try:  ## set is builtin in python 2.6.4 and sets is deprecated
     set
@@ -64,7 +66,7 @@ class MenuAnalyzer:
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
             'checkExpress' : 'Invalid or missing express stream/PD',
-            'checkNameFormats' : 'Invalid PD or path name format',
+            'checkNameFormats' : 'Invalid stream, PD or path name format',
             'checkEventContent' : 'Invalid Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
             'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
@@ -172,6 +174,15 @@ class MenuAnalyzer:
             if not self.T0REGEXP['RXSAFEPATH'].match(path):
                 self.Results['checkNameFormats'].append(path)
 
+        for stream in self.perStreamPDList:
+            if 'stream' in str(stream).lower() or 'part' in str(stream).lower():
+                self.Results['checkNameFormats'].append('WRONG STREAM NAME '+str(stream))
+            for pd in self.perStreamPDList[stream]:
+                    if 'part' in str(pd):
+                        self.Results['checkNameFormats'].append('WRONG DATASET NAME '+str(pd)+' in stream ' + stream )  
+
+       
+
     def checkEventContent(self):
         self.Results['checkEventContent']=[]
         for stream,content in self.eventContent.iteritems():
@@ -252,6 +263,32 @@ class MenuAnalyzer:
             if endPath: self.endPathList.add(PathName)
 
     def GetStreamsPathsPDs(self,cursor):
+        # sqlquery= """
+        # SELECT distinct a.name AS stream,
+        # b.name AS dataset,
+        # c.name AS path
+        # FROM
+        # cms_hlt_gdr.u_streams a,
+        # cms_hlt_gdr.u_datasets b,
+        # cms_hlt_gdr.u_paths c,
+        # cms_hlt_gdr.u_confversions d,
+        # cms_hlt_gdr.u_pathid2strdst e,
+        # cms_hlt_gdr.u_streamids f,
+        # cms_hlt_gdr.u_datasetids g,
+        # cms_hlt_gdr.u_pathids h,
+        # cms_hlt_gdr.u_pathid2conf i
+        # WHERE
+        # d.name = '%s'
+        # AND i.id_confver = d.id
+        # AND h.id = i.id_pathid
+        # AND c.id = h.id_path
+        # AND e.id_pathid = h.id
+        # AND f.id = e.id_streamid
+        # AND a.id = f.id_stream
+        # AND g.id = e.id_datasetid
+        # AND b.id = g.id_dataset
+        # ORDER BY path, dataset, stream
+        # """ % (self.menuName,)
         sqlquery= """
         SELECT distinct a.name AS stream,
         b.name AS dataset,
@@ -285,6 +322,8 @@ class MenuAnalyzer:
         
         cursor.execute(sqlquery)
         for StreamName,PDName,PathName in cursor.fetchall():
+            print StreamName, ' ', PDName,' ', PathName
+            print self.menuName
             if not self.perStreamPDList.has_key(StreamName): self.perStreamPDList[StreamName] = []
             if not PDName in self.perStreamPDList[StreamName]: self.perStreamPDList[StreamName].append(PDName)
             if not self.perPDPathList.has_key(PDName): self.perPDPathList[PDName] = []
