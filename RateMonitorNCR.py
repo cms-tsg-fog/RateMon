@@ -426,7 +426,7 @@ class RateMonitor:
         for name in Data:
             iLuminosity = array.array('f')
             yvals = array.array('f')
-            for LS, ilum, phys in iLumi:
+            for LS, ilum, psi, phys in iLumi:
                 if Data[name].has_key(LS) and phys and not ilum is None:
                     # Normalize ilumi here, if we aren't normalizing, self.bunches is set to 1
                     normedILumi = ilum/self.bunches
@@ -452,7 +452,7 @@ class RateMonitor:
             lumisecs = array.array('f')
             yvals = array.array('f')
 
-            for LS, ilum, phys in iLumi:
+            for LS, ilum, psi, phys in iLumi:
                 if phys and not ilum is None and Data[name].has_key(LS):
                     lumisecs.append(LS)
                     yvals.append(Data[name][LS][self.dataCol])
@@ -656,7 +656,7 @@ class RateMonitor:
         # Unpack values
         type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
-        for LS, ilum, phys in iLumi:
+        for LS, ilum, psi, phys in iLumi:
             if not ilum is None and phys:
                 lumisecs.append(LS)
                 # Either we have an exponential fit, or a polynomial fit
