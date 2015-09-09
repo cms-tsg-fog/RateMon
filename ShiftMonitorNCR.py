@@ -558,8 +558,8 @@ class ShiftMonitor:
             if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
             print "Using prescale column:", PScol
             if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
-        print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        print "Average dead time: %s" % (aveDeadTime)
+        print "Average inst. lumi: %.2f x 10^30 cm-2 s-1" % (aveLumi)
+        print "Average dead time: %.2f %%" % (100.*aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
