@@ -23,6 +23,7 @@ from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
 import os
 import sys
 import shutil
+import json
 # Import the DB interface class
 from DBParser import *
 # From the fit finding class
@@ -46,6 +47,8 @@ class RateMonitor:
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
+        self.jsonFile = ""
+        self.useJson = False
         self.maxRuns = 12 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         self.colorList = [1,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -333,7 +336,32 @@ class RateMonitor:
             Rates.update(L1Rates)
         
         if Rates == {}: return {} # The run (probably) doesn't exist
-
+        
+        
+        # JSON filtering
+        # Removes from the Rates dictionary the lumisections not included in the JSON file, if present.
+        if self.useJson:
+            # Read JSON file
+            json_data = {}
+            with open(self.jsonFile) as json_file:    
+                json_data = json.load(json_file)
+            if len(json_data) > 0:
+                runNumberStr = "%d" % runNumber
+                # Check for run number
+                if not runNumberStr in json_data:
+                    print "Run", runNumberStr, "is not included in the JSON file"
+                    return {}
+                else:
+                    print "Run", runNumberStr, "and lumisections", json_data[runNumberStr], "are included in the JSON file"
+                # Remove lumisections
+                for trigger, lumi in Rates.iteritems():
+                    lumis = lumi.keys()
+                    for i, ls in enumerate(lumis):
+                        if not any(l <= ls <= u for [l, u] in json_data[runNumberStr]):
+                            del Rates[trigger][ls]
+            else:
+                print "JSON file empty or not valid"
+        
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
@@ -766,3 +794,4 @@ class RateMonitor:
 #                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
                 
 ## ----------- End of class RateMonitor ------------ ##
+
