@@ -105,7 +105,7 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = False     # Whether we should send alert mails
+        self.sendMailAlerts = True      # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
         self.showPDs = False             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
@@ -385,8 +385,8 @@ class ShiftMonitor:
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.streamData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.pdData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.totalStreams = len(self.streamData.keys())
         self.Rates = {}
         self.Rates.update(self.HLTRates)
@@ -555,11 +555,15 @@ class ShiftMonitor:
         print "SUMMARY:"
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         if self.mode=="collisions":
-            if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
-            print "Using prescale column:", PScol
-            if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
-        print "Average inst. lumi: %.2f x 10^30 cm-2 s-1" % (aveLumi)
-        print "Average dead time: %.2f %%" % (100.*aveDeadTime)
+            print "Using prescale column:", 
+            if PScol == 0:
+                if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
+                print PScol, "\tcolumn 0 is emergency colum: be sure to be authorized by the HLT DOC"
+                if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
+            else:
+                print PScol
+        print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
+        print "Average dead time: %s %%" % (100.*aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
@@ -790,7 +794,7 @@ class ShiftMonitor:
                 if self.badRates[trigger][0] == 1:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
-        if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)    
+        if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
