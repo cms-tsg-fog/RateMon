@@ -552,7 +552,7 @@ class ShiftMonitor:
         print '*' * self.hlength
         print "SUMMARY:"
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
-        print "Average inst. lumi: %s" % (aveLumi)
+        print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
         print "Average dead time: %s" % (aveDeadTime)
         print '*' * self.hlength
 
