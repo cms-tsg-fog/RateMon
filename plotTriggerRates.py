@@ -34,7 +34,7 @@ class MonitorController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
@@ -69,6 +69,9 @@ class MonitorController:
                 self.rateMonitor.runFile = str(op)
                 print "Using the runs in file", self.rateMonitor.runFile
                 self.loadRunsFromFile()
+            elif label == "--jsonFile":
+                self.rateMonitor.useJson = True
+                self.rateMonitor.jsonFile = str(op)
             elif label == "--offset":
                 self.rateMonitor.offset = int(op)
             elif label == "--Help":
@@ -199,7 +202,13 @@ class MonitorController:
                 exit(0)
             
             self.rateMonitor.useFit = False
-
+        
+        # Check JSON file exists
+        if self.rateMonitor.useJson:
+            if not os.path.exists(self.rateMonitor.jsonFile):
+                print "The specifed JSON file does not exist. Exiting."
+                exit(0)
+        
         return True
 
     # Use: Prints out all the possible options that you can specify in the command line
@@ -218,6 +227,7 @@ class MonitorController:
         print "--fitFile=<name>       : Loads fit information from the file named <name>."
         print "--runFile=<name>       : Loads a list of runs to consider from the file named <name>."
         print "--runList=<name>       : Same as --runFile (see above)."
+        print "--jsonFile=<name>      : Filter runs and lumisections according the to provided JSON file."
         print "--steamFile=<name>     : Uses the data from the .csv file <name> to plot steam's predicted rates."
         print "--steamFile=<name>     : A .csv file containing steam data estimates to plot on the graph."
         print "--triggerList=<name>   : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
@@ -346,3 +356,4 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
+
