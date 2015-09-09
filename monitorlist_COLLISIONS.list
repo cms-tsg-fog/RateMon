@@ -34,3 +34,9 @@ L1_SingleEG30
 L1_SingleJet36
 L1_SingleJet68
 L1_SingleJet200
+HLT_DoublePhoton40_v1
+HLT_DoubleEle25_CaloIdL_GsfTrkIdVL_v1
+HLT_IsoMu20_v2
+HLT_Mu20_v2
+HLT_Mu33NoFiltersNoVtxDisplaced_DisplacedJet50_Loose_v2
+
