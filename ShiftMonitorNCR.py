@@ -402,6 +402,7 @@ class ShiftMonitor:
         # Reset variable
         self.normal = 0
         self.bad = 0
+        PScol = -1
         # Get the inst lumi
         aveLumi = 0
         try:
@@ -418,12 +419,13 @@ class ShiftMonitor:
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, physics in lumiData:
+            for LS, instLumi, psi, physics in lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
                 if not instLumi is None and physics:
                     physicsActive = True
+                    PScol = psi
                     if not aveDeadTime is None and deadTimeData.has_key(LS):
                         aveDeadTime += deadTimeData[LS]
                     aveLumi += instLumi
@@ -552,6 +554,10 @@ class ShiftMonitor:
         print '*' * self.hlength
         print "SUMMARY:"
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
+        if self.mode=="collisions":
+            if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
+            print "Using prescale column:", PScol
+            if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
         print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
         print "Average dead time: %s" % (aveDeadTime)
         print '*' * self.hlength
