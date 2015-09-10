@@ -663,6 +663,8 @@ class ShiftMonitor:
                 properAvePSRate += self.Rates[trigger][LS][0]/self.Rates[trigger][LS][1] 
                 count += 1
                 avePS += self.Rates[trigger][LS][1]
+            else: # Count lumisections even if prescaled to zero
+                count += 1
         if count > 0:
             # Make note if rate or PS are identically zero
             if aveRate == 0: comment += "Rate=0 "
