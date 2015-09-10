@@ -1,8 +1,7 @@
 #######################################################
 # File: ErrorPrinter
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller
 # Date Created: July 9, 2015
-# Last Modified: July 9, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: None
 #
@@ -49,14 +48,16 @@ class ErrorPrinter:
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
+        sortedRuns = sorted(self.run_trig_ls)
         try:
-            file = open(self.saveDirectory+"/badLumiSummary.txt", 'w') # come up with a name based on something about the runs
-            print "Opening "+self.saveDirectory+"/badLumiSummary.txt for LS error dump."
+            fileName = "badLumiSummary_run"+str(sortedRuns[0])+"_run"+str(sortedRuns[-1])+".txt"
+            file = open(fileName, 'w') # come up with a name based on something about the runs
+            print "Opening %s for LS error dump." % (fileName)            
         except:
             print "Error: could not open file to output ls data."
             return
 
-        for runNumber in sorted(self.run_trig_ls):
+        for runNumber in sortedRuns:
             file.write("Run Number: %s\n" % (runNumber))
             totalErrs = 0
 
