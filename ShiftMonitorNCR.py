@@ -105,7 +105,7 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = True      # Whether we should send alert mails
+        self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
         self.showPDs = False             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
@@ -591,18 +591,12 @@ class ShiftMonitor:
             if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4])
             else: self.tableData.sort(key=lambda tup : tup[6])
         elif self.sortRates:
-            self.tableData.sort(key=lambda tup: tup[1])
-            self.tableData.reverse()
+            self.tableData.sort(key=lambda tup: tup[1], reverse = True)
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
             info = stringSegment("* "+trigger, self.spacing[0])
-            if (self.displayRawRates or avePS == 0):
-                info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
-                if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
-                else: info += stringSegment("", self.spacing[2])
-            elif avePS != 0:
-                info += stringSegment("* "+"{0:.2f}".format(rate/avePS), self.spacing[1])
-                if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred/avePS), self.spacing[2])
-                else: info += stringSegment("", self.spacing[2])
+            info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
+            if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
+            else: info += stringSegment("", self.spacing[2])
             if perdiff=="": info += stringSegment("", self.spacing[3])
             elif perdiff=="INF": info += stringSegment("* INF", self.spacing[3])
             else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
@@ -681,7 +675,10 @@ class ShiftMonitor:
             return
         # We want this trigger to be in the table
         row = [trigger]
-        row.append(aveRate)
+        if self.displayRawRates:
+            row.append(aveRate)
+        else:
+            row.append(properAvePSRate)
         if doPred and not expected is None: row.append(expected)
         else: row.append("") # No predicted rate
         # Find the % diff
