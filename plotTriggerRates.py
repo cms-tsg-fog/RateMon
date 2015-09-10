@@ -52,7 +52,7 @@ class MonitorController:
         # Process Options
         for label, op in opt:
             if label == "--Secondary":
-                self.rateMonitor.mode = True # Run in secondary mode
+                self.rateMonitor.certifyMode = True # Run in secondary mode
                 self.batchMode = True # Use batch mode
                 self.rateMonitor.outputOn = False
                 self.rateMonitor.maxRuns = 1 # Only do one run at a time
@@ -115,7 +115,7 @@ class MonitorController:
                 self.rateMonitor.outputOn = False
                 self.rateMonitor.nameGiven = False # We do not allow a user defined save name in batch mode
             elif label == "--createFit":
-                if not self.rateMonitor.mode: self.rateMonitor.fit = True
+                if not self.rateMonitor.certifyMode: self.rateMonitor.fit = True
                 else: print "We do not create fits in secondary mode"
             elif label == "--debugFitter":
                 self.rateMonitor.fitFinder.saveDebug = True
@@ -126,7 +126,7 @@ class MonitorController:
             elif label == "--linear":
                 self.rateMonitor.fitFinder.forceLinear = True
             elif label == "--normalizeCollidingBx":
-                if not self.rateMonitor.mode:
+                if not self.rateMonitor.certifyMode:
                     self.rateMonitor.divByBunches = True
             elif label == "--includeNoneBunches":
                 self.rateMonitor.includeNoneBunches = Trues
@@ -197,7 +197,7 @@ class MonitorController:
         # If no fit file was specified, don't try to make a fit
         if self.rateMonitor.fitFile == "":
 
-            if self.rateMonitor.mode and not self.doAnyways:
+            if self.rateMonitor.certifyMode and not self.doAnyways:
                 print "We require a fit file in secondary mode unless the --doAnyways flag is specified. Exiting."
                 exit(0)
             

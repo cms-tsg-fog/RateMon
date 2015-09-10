@@ -1,8 +1,7 @@
 #######################################################
 # File: RateMonitorNCR.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller
 # Date Created: June 16, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
 #
@@ -81,7 +80,7 @@ class RateMonitor:
         self.errFileName = ""    # The name of the error file
         self.errFile = None      # A file to output errors to
         
-        self.mode = False        # False -> Primary mode, True -> Secondary mode
+        self.certifyMode = False        # False -> Primary mode, True -> Secondary mode
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
@@ -109,7 +108,7 @@ class RateMonitor:
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
         self.first = True        # True if we are processing our first batch
 
-        # Steam Compair
+        # Steam Compare
         self.steam = False       # If true, we plot a steam prediction
         self.steamFile = ""      # The csv file with the steam data
         self.steamData = {}      # Steam Data, gotten from the steam file
@@ -121,6 +120,7 @@ class RateMonitor:
         self.dataCut = 0.0       # The rate cut value
         self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
+        self.maxDeadTime = 0.08  # the maximum acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -138,7 +138,7 @@ class RateMonitor:
         if self.outputOn: print "" # Formatting
         length = len(self.runList)
         self.bunches = 1 # Reset bunches, just in case
-        if self.mode: self.varX = "LS" # We are in secondary mode
+        if self.certifyMode: self.varX = "LS" # We are in secondary mode
         if self.processAll: offset = 0 # Override any offset
         # Reset self.savedAFile
         self.savedAFile = False
@@ -174,13 +174,14 @@ class RateMonitor:
         maxNum = max(self.runList[ self.offset : self.lastRun ])
 
         # If we are supposed to, get the fit, a dictionary: [ triggername ] [ ( fit parameters ) ]
-        if self.useFit or self.mode: # Always try to load a fit in secondary mode
+        if self.useFit or self.certifyMode: # Always try to load a fit in secondary mode
             self.InputFit = self.loadFit()
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
-        if not self.mode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
+        if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
         else: self.saveDirectory = "CertificationSummary_"+str(minNum)+"-"+str(maxNum)
-        if not self.mode or self.first:
+#        if not self.certifyMode or self.first:
+        if self.certifyMode or self.first:            
             self.first = False
             if os.path.exists(self.saveDirectory):
                 shutil.rmtree(self.saveDirectory)
@@ -196,7 +197,7 @@ class RateMonitor:
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
-        if self.useFit or self.fit or (self.mode and not self.InputFit is None): fitOpt = "Fitted"
+        if self.useFit or self.fit or (self.certifyMode and not self.InputFit is None): fitOpt = "Fitted"
         else: fitOpt = "NoFit"
         if not self.nameGiven: self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
 
@@ -215,7 +216,7 @@ class RateMonitor:
 
     def runBatch(self):
         total = 0 # How many runs we have processed so far
-        count = 1 # Iteration variable
+        count = 1 # Iteration variabl e
         if not self.processAll: print "Batch size is %s." % (self.maxRuns) # Info message
         while total < len(self.runList) and (count <= self.maxBatches or self.processAll):
             print "Processing batch %s:" % (count)
@@ -224,7 +225,7 @@ class RateMonitor:
             total += self.runsToProcess # Update the count by how many runs we just processed
             count += 1
             print "" # Newline for formatting
-        if self.mode: # Operating in secondary mode, do checks
+        if self.certifyMode: # Operating in secondary mode, do checks
             self.doChecks()
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
@@ -297,7 +298,7 @@ class RateMonitor:
         if self.steam:
             self.loadSteamData()
         # We have all our data, now plot it
-        if self.useFit or (self.mode and not self.InputFit is None): fitparams = self.InputFit
+        if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
         for name in sorted(plottingData):
@@ -365,7 +366,7 @@ class RateMonitor:
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
-        if not self.useFit and not self.useTrigList and not self.mode:
+        if not self.useFit and not self.useTrigList and not self.certifyMode:
             for triggerName in sorted(Rates):
                 if not triggerName in self.TriggerList:
                     self.TriggerList.append(triggerName)
@@ -396,10 +397,10 @@ class RateMonitor:
 
         
         # Depending on the mode, we return different pairs of data
-        if not self.mode:
+        if not self.certifyMode:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
             return self.combineInfo(Data, iLumi)
-        else: # self.mode == True
+        else: # self.certifyMode == True
             return self.sortData(Data, iLumi)
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
@@ -412,8 +413,9 @@ class RateMonitor:
         for LS in deadTime:
             for triggerName in Rates:
                 if Rates[triggerName].has_key(LS): # Sometimes, LS's are missing
-                    Rates[triggerName][LS][0] *= (1-deadTime[LS])
-                
+                    Rates[triggerName][LS][0] *= (1+deadTime[LS])
+                    if deadTime[LS] > self.maxDeadTime and not self.certifyMode: del Rates[triggerName][LS] #do not plot lumis where deadtime is greater than                
+
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
     # Parameters:
     # -- Data: A dictionary [ triggerName ] [ LS ] { col 0, col 1, ... }
@@ -486,7 +488,7 @@ class RateMonitor:
         if maxVal==0 or maxRR==0: # No good data
             return
         # Set axis names/units, create canvas
-        if self.mode:
+        if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
         else:
@@ -553,8 +555,8 @@ class RateMonitor:
                 steamGraph.SetMarkerColor(2)
                 steamGraph.Draw("P")
             except: pass # Sometimes, this might fail if there are two items seperated by commas in the Group column
-        if (self.useFit or self.fit or self.mode or self.steam) and not paramlist is None:
-            if self.mode: # Secondary Mode
+        if (self.useFit or self.fit or self.certifyMode or self.steam) and not paramlist is None:
+            if self.certifyMode: # Secondary Mode
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 iLumi = self.parser.getLumiInfo(pickRun)
                 # iLumi is a list: ( { LS, instLumi } )
