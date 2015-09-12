@@ -555,7 +555,7 @@ class ShiftMonitor:
         print "SUMMARY:"
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         if self.mode=="collisions":
-            print "Using prescale column:", 
+            print "Prescale column index:", 
             if PScol == 0:
                 if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
                 print PScol, "\tcolumn 0 is emergency colum: be sure to be authorized by the HLT DOC"
@@ -788,7 +788,7 @@ class ShiftMonitor:
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= self.maxCBR:
-                    print "Trigger %s has been out of line for more then %s minutes" % (trigger, self.badRates[trigger][0])
+                    print "Trigger %s has been out of line for more than %s minutes" % (trigger, self.badRates[trigger][0])
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
                 if self.badRates[trigger][0] == 1:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
