@@ -428,6 +428,8 @@ class ShiftMonitor:
                     PScol = psi
                     if not aveDeadTime is None and deadTimeData.has_key(LS):
                         aveDeadTime += deadTimeData[LS]
+                    else:
+                        aveDeadTime = 0
                     aveLumi += instLumi
                     count += 1
             if count == 0:
