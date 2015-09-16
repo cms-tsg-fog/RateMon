@@ -160,7 +160,7 @@ class ShiftMonitor:
         self.header += stringSegment("* EXPECTED", self.spacing[2])
         self.header += stringSegment("* % DIFF", self.spacing[3])
         self.header += stringSegment("* DEVIATION", self.spacing[4])
-        self.header += stringSegment("* HLT PS", self.spacing[5])
+        self.header += stringSegment("* AVE PS", self.spacing[5])
         self.header += stringSegment("* COMMENTS", self.spacing[6])
         self.hlength = 181 #sum(self.spacing)
 
@@ -574,7 +574,8 @@ class ShiftMonitor:
         print "INFORMATION:"
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
-        if not self.assignedNum: print "LHC Status: %s" % self.parser.getLHCStatus()[1]
+        print "Last LHC Status: %s" % self.parser.getLHCStatus()[1]
+        print "Number of colliding bunches: %s" % self.parser.getNumberCollidingBunches(self.runNumber)
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
         print "Number of streams:", self.totalStreams
@@ -654,6 +655,7 @@ class ShiftMonitor:
         properAvePSRate = 0
         avePS = 0
         count = 0
+        countPS = 0
         comment = "" # A comment
         for LS in self.Rates[trigger].keys():
             # If using a LSRange
@@ -664,15 +666,16 @@ class ShiftMonitor:
                 aveRate += self.Rates[trigger][LS][0]
                 properAvePSRate += self.Rates[trigger][LS][0]/self.Rates[trigger][LS][1] 
                 count += 1
+                countPS += 1
                 avePS += self.Rates[trigger][LS][1]
             else: # Count lumisections even if prescaled to zero
-                count += 1
-        if count > 0:
+                count += 1  # Counts for paths and PS are different
+        if count > 0 and countPS > 0:
             # Make note if rate or PS are identically zero
             if aveRate == 0: comment += "Rate=0 "
             aveRate /= count
             properAvePSRate /= count
-            avePS /= count
+            avePS /= countPS
         else: comment += "PS=0"
         # Returns if we are not making predictions for this trigger and we are throwing zeros
         if not doPred and self.removeZeros and aveRate==0:
