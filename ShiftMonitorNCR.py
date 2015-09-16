@@ -160,7 +160,7 @@ class ShiftMonitor:
         self.header += stringSegment("* EXPECTED", self.spacing[2])
         self.header += stringSegment("* % DIFF", self.spacing[3])
         self.header += stringSegment("* DEVIATION", self.spacing[4])
-        self.header += stringSegment("* AVE PS", self.spacing[5])
+        self.header += stringSegment("* HLT PS", self.spacing[5])
         self.header += stringSegment("* COMMENTS", self.spacing[6])
         self.hlength = 181 #sum(self.spacing)
 
