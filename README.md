@@ -11,4 +11,4 @@ Connect to online network and install:
 Run shifter rate monitoring tool:
 
 	source set.sh
-	./RateMonitorShifter.py
+	python ShiftMonitorTool.py
