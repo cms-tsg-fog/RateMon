@@ -75,7 +75,7 @@ class ShiftMonitor:
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in cosmics mode 
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
-        self.userSpecTrigList = False   #user specified trigger list 
+        self.userSpecTrigList = False   # User specified trigger list 
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
         self.otherHLTTriggers = []      # HLT Triggers active during the run that are not usable triggers
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
@@ -88,28 +88,28 @@ class ShiftMonitor:
         self.fullL1HLTMenu = []
         self.ignoreStrings = ["ZeroBias","Calibration","L1Tech"]
         # Restrictions
-        self.removeZeros = False         # If true, we don't show triggers that have zero rate
+        self.removeZeros = False        # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
-        self.devAccept = 3            # The acceptence for deviation
+        self.devAccept = 3              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
-        self.displayBadRates = -1        # The number of bad rates we should show in the summary. We use -1 for all
+        self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
         # Trigger Rate
-        self.maxHLTRate = 200          # The maximum prescaled rate we allow an HLT Trigger to have
-        self.maxL1Rate = 30000           # The maximum prescaled rate we allow an L1 Trigger to have
+        self.maxHLTRate = 200           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
         self.showStreams = True         # Whether we should print stream information
-        self.showPDs = False             # Whether we should print pd information
+        self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
-        self.maxStreamRate = 1000000       # The maximum rate we allow a "good" stream to have
+        self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
         
 
@@ -565,7 +565,7 @@ class ShiftMonitor:
             else:
                 print PScol
         print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        print "Average dead time: %s %%" % (100.*aveDeadTime)
+        #print "Average dead time: %s %%" % (100.*aveDeadTime) #FIXME Do not diplay until we fix the query
         print '*' * self.hlength
 
     # Use: Prints the table header
