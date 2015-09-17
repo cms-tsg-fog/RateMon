@@ -591,8 +591,8 @@ class ShiftMonitor:
         # Sort by % diff if need be
         if doPred:
             # [4] is % diff, [6] is deviation
-            if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4])
-            else: self.tableData.sort(key=lambda tup : tup[6])
+            if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4], reverse = True)
+            else: self.tableData.sort(key=lambda tup : tup[6], reverse = True)
         elif self.sortRates:
             self.tableData.sort(key=lambda tup: tup[1], reverse = True)
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
