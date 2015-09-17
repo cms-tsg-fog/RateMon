@@ -560,12 +560,12 @@ class ShiftMonitor:
             print "Prescale column index:", 
             if PScol == 0:
                 if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
-                print PScol, "\tcolumn 0 is emergency colum: be sure to be authorized by the HLT DOC"
+                print PScol, "\tcolumn 0 is an emergency colum: be sure to be authorized by the HLT DOC"
                 if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
             else:
                 print PScol
         print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        #print "Average dead time: %s %%" % (100.*aveDeadTime) #FIXME Do not diplay until we fix the query
+        #print "Average dead time: %s %%" % (100.*aveDeadTime) #FIXME Do not display until we fix the query
         print '*' * self.hlength
 
     # Use: Prints the table header
@@ -698,7 +698,7 @@ class ShiftMonitor:
                 row.append(1)    # Sign of deviation
                 row.append(dev)  # abs deviation
             else:
-                diff = aveRate-expected
+                diff = properAvePSRate-expected
                 if expected!=0: perc = 100*diff/expected
                 else: perc = "INF"
                 if mse!=0:
