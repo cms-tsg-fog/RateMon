@@ -710,8 +710,8 @@ class ShiftMonitor:
                 row.append(sign)       # Sign of % diff
                 if perc!="INF": row.append(abs(perc))  # abs % diff
                 else: row.append("INF")
-                if mse>0: sign=1
-                else: sign=-1
+                #if mse>0: sign=1
+                #else: sign=-1
                 row.append(sign)       # Sign of the deviation
                 if dev!="INF" and dev!=">1E6":
                     row.append(abs(dev))   # abs deviation
