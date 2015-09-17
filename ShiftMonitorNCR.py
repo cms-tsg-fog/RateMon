@@ -500,7 +500,7 @@ class ShiftMonitor:
             head += stringSegment("* Stream bandwidth [GB/s]", streamSpacing[5])
             print head
             print '*' * self.hlength
-            for name in self.streamData.keys():
+            for name in sorted(self.streamData.keys()):
                 count = 0
                 streamsize = 0
                 aveBandwidth = 0
