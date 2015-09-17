@@ -477,7 +477,12 @@ class DBParser:
         
         # Get the number of colliding bunches
         sqlquery = "SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s" % (fill)
-        self.curs.execute(sqlquery)
+        try:
+            self.curs.execute(sqlquery)
+        except:
+            print "database error querying for num colliding bx" 
+            return 0
+        
         bunches = self.curs.fetchall()
         # We allow bunches to return even if it is None, we deal with that outside this class
         try:
