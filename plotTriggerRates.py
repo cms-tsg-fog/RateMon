@@ -37,7 +37,7 @@ class MonitorController:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
-                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "includeNoneBunches", "normalizeCollidingBx",
+                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT", "includeNoneBunches", "normalizeCollidingBx",
                                                        "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "datasetRate", "streamRate", "streamBandwidth", "streamSize",
                                                        "noPNG"])
         except:
@@ -125,6 +125,8 @@ class MonitorController:
                 self.rateMonitor.fitFinder.usePointSelection = False
             elif label == "--linear":
                 self.rateMonitor.fitFinder.forceLinear = True
+            elif label == "--correctForDT":
+                self.rateMonitor.correctForDT = True
             elif label == "--normalizeCollidingBx":
                 if not self.rateMonitor.certifyMode:
                     self.rateMonitor.divByBunches = True
@@ -248,6 +250,7 @@ class MonitorController:
         print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
         print "--rawPoints            : Don't do point selection in making fits"
         print "--linear               : Forces fits to be linear"
+        print "--correctForDT         : Correct rates for deadtime"
         #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
         print "--hideEq               : Doesn't print the fit equation on the plot."
         print "--noPNG                : Won't save png copies of all the fits. Saves a lot of fime."
