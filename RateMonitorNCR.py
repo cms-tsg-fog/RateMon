@@ -664,7 +664,7 @@ class RateMonitor:
             if not ilum is None and phys:
                 lumisecs.append(LS)
                 # Either we have an exponential fit, or a polynomial fit
-                if type == "exp": rr = X0 + X1*math.exp(X2+X3*x)
+                if type == "exp": rr = X0 + X1*math.exp(X2+X3*ilum)
                 else: rr = X0 + ilum*X1 + (ilum**2)*X2 + (ilum**3)*X3 # Maybe save some multiplications
                 if rr<0: rr=0 # Make sure prediction is non negative
                 predictions.append(rr)
