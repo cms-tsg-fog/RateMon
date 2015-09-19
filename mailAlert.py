@@ -8,7 +8,8 @@ from datetime import datetime,timedelta
 import sys
 sys.path.append('/nfshome0/hltpro/scripts')
 
-emailList = ["cms-tsg-fog@cern.ch"]
+#emailList = ["cms-tsg-fog@cern.ch"]
+emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
 #emailList = ["charles.mueller@cern.ch","cmuelle2@nd.edu"]
 #emailList = ["a.zucchetta@cern.ch"]
 
