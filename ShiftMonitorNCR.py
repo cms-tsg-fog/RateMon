@@ -106,7 +106,7 @@ class ShiftMonitor:
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = False     # Whether we should send alert mails
-        self.showStreams = True         # Whether we should print stream information
+        self.showStreams = False        # Whether we should print stream information
         self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
