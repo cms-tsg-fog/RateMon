@@ -698,7 +698,7 @@ class ShiftMonitor:
                 row.append(1)    # Sign of deviation
                 row.append(dev)  # abs deviation
             else:
-                diff = properAvePSRate-expected
+                diff = aveRate-expected
                 if expected!=0: perc = 100*diff/expected
                 else: perc = "INF"
                 if mse!=0:
