@@ -565,7 +565,7 @@ class ShiftMonitor:
             else:
                 print PScol
         print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        #print "Average dead time: %s %%" % (100.*aveDeadTime) #FIXME Do not display until we fix the query
+        print "Average dead time: %s %%" % (aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
