@@ -507,12 +507,7 @@ class DBParser:
     # Use: Gets the dead time as a function of lumisection
     # Returns: A dictionary: [ LS ] <Deadtime>
     def getDeadTime(self, runNumber):
-        sqlquery=""" select LUMI_SECTION, FRACTION
-        FROM
-        CMS_GT_MON.V_SCALERS_TCS_DEADTIME
-        where
-        RUN_NUMBER=%s and
-        SCALER_NAME='DeadtimeBeamActive'""" % (runNumber)
+        sqlquery="""SELECT SECTION_NUMBER, DEADTIME_BEAMACTIVE_TOTAL FROM CMS_TCDS_MONITORING.tcds_cpm_deadtimes WHERE RUN_NUMBER=%s""" % (runNumber)
         
         self.curs.execute(sqlquery)
         
