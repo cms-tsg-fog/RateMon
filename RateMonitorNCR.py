@@ -50,7 +50,7 @@ class RateMonitor:
         self.useJson = False
         self.maxRuns = 12 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
-        self.colorList = [1,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[1,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
@@ -527,11 +527,13 @@ class RateMonitor:
                 pickRun = runNumber
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
             # Set some stylistic settings for dataGraph
+            graphColor = self.colorList[counter % len(self.colorList)] # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
-            graphList[-1].SetLineColor(0)
-            graphList[-1].SetFillColor(0)
-            graphList[-1].SetMarkerColor(self.colorList[counter % len(self.colorList)]) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            graphList[-1].SetLineColor(graphColor)
+            graphList[-1].SetFillColor(graphColor)
+            graphList[-1].SetMarkerColor(graphColor)
+            graphList[-1].SetLineWidth(2)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
 #            graphList[-1].GetXaxis().SetLimits(0.999*minVal,1.001*maxVal)
@@ -542,7 +544,7 @@ class RateMonitor:
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            legend.AddEntry(graphList[-1], "Run %s" %(runNumber))
+            legend.AddEntry(graphList[-1], "Run %s" %(runNumber), "p")
             counter += 1
         # There is steam data to use, and we should use it
         if self.steam and self.steamData and self.steamData.has_key(triggerName):
@@ -577,11 +579,17 @@ class RateMonitor:
             funcLeg.Draw()
             canvas.Update()
         # draw text
-        textLabel = TLegend(0, 0, 0.2, 0.04)
-        textLabel.SetHeader("CMS Rate Monitoring")
-        textLabel.SetFillColor(0)
-        textLabel.SetBorderSize(0)
-        textLabel.Draw()
+        latex = TLatex()
+        latex.SetNDC()
+        latex.SetTextColor(1)
+        latex.SetTextAlign(11)
+        latex.SetTextFont(62)
+        latex.SetTextSize(0.05)
+        latex.DrawLatex(0.15, 0.84, "CMS")
+        latex.SetTextSize(0.035)
+        latex.SetTextFont(52)
+        latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+        
         canvas.Update()
         # Draw Legend
         legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
