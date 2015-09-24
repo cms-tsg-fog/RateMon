@@ -1,6 +1,6 @@
 ##################################
 # DB.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller
 # Date: June 11, 2015
 # Last Modified: July 16, 2015
 #
@@ -553,6 +553,21 @@ class DBParser:
             
         return [runNumber[0], isCol, isGood, mode]
 
+
+    def getPathId(self,runNumber,pathName,LS):
+
+        sqlquery = "SELECT A.PATHID, (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
+        WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
+        WHERE RUNNUMBER=%s AND A.LSNUMBER=%s" % (runNumber, LS)
+        
+        try: self.curs.execute(sqlquery)
+        except: return
+        
+        for id,fullName in self.curs.fetchall():
+            name = stripVersion(fullName)
+            if name == pathName: return [id,fullName]
+        return
+    
     # Use: Get the trigger mode for the specified run
     def getTriggerMode(self, runNumber):
         TrigModeQuery = "SELECT TRIGGERMODE FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER = %d" % (runNumber)

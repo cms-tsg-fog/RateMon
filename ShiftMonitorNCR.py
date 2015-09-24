@@ -1,6 +1,6 @@
 #######################################################)
 # File: ShiftMonitorTool.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
 # Date Created: July 13, 2015
 # Last Modified: August 17, 2015 by Nathaniel Rupprecht
 #
@@ -99,8 +99,7 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        # Trigger Rate
-        self.maxHLTRate = 200           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 2           # The maximum prescaled rate we allow an HLT Trigger to have
         self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
@@ -111,7 +110,7 @@ class ShiftMonitor:
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
-        
+        self.lumi_ave = "NONE"
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -442,7 +441,8 @@ class ShiftMonitor:
         if self.requireLumi and aveLumi == "NONE":
             if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
             return
-        
+
+        self.lumi_ave = aveLumi
         # We only do predictions when there were physics active LS in a collisions run
         doPred = physicsActive and self.mode=="collisions"
         # Print the header
@@ -621,10 +621,10 @@ class ShiftMonitor:
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
-        if ((self.usePerDiff and perdiff!="INF" and perdiff!="" and perdiff>self.percAccept) \
-                                or (dev!="INF" and dev!="" and (dev==">1E6" or dev>self.devAccept))) or \
-                                ((perdiff!="INF" and perdiff!="" and perdiff>self.percAccept and \
-                                dev!="INF" and dev!="" and dev>self.devAccept)) or (isL1 and psrate>self.maxL1Rate) \
+        if ((self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) \
+                                or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept))) or \
+                                ((perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and \
+                                dev!="INF" and dev!="" and abs(dev)>self.devAccept)) or (isL1 and psrate>self.maxL1Rate) \
                                 or (not isL1 and psrate>self.maxHLTRate): return True
         return False
 
@@ -795,7 +795,7 @@ class ShiftMonitor:
                 if self.badRates[trigger][0] >= self.maxCBR:
                     print "Trigger %s has been out of line for more than %s minutes" % (trigger, self.badRates[trigger][0])
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
-                if self.badRates[trigger][0] == 1:
+                if self.badRates[trigger][0] == 2:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
         if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)
@@ -859,13 +859,26 @@ class ShiftMonitor:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
     def sendMail(self, mailTriggers):
-        mail = "Run: %d, Lumisections: %s - %s \n \n" % (self.runNumber, self.lastLS, self.currentLS)
-        mail += "The following path rate(s) are deviating from expected values: \n"
+        mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
+        try: mail += "Average inst. lumi: %.3f x 10^30 cm-2 s-1\n \n" % (self.lumi_ave)
+        except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n \n" % (self.lumi_ave)
+        
+        mail += "The following path rate(s) are deviating from expected values: \n\n"
 
         for triggerName, rate, expected, dev in mailTriggers:
-            mail += stringSegment(triggerName, 35) +": Expected: %s, Actual: %s, Abs Deviation: %s\n" % (expected, rate, dev)
+            try: mail += stringSegment(triggerName, 35) +": Expected: %.3f Hz, Actual: %.3f Hz, Deviation: %.3f\n" % (expected, rate, dev)
+            except: mail += stringSegment(triggerName, 35) +": Expected: %s Hz, Actual: %s Hz, Deviation: %s\n" % (expected, rate, dev)                
+            try:
+                pathId, fullPathName = self.parser.getPathId(self.runNumber,triggerName,self.currentLS)
+                #                wbm_url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?RUNID=%s&PATHID=%s&LSLENGTH=23.310409580838325&TRIGGER_PATH=%s" % (self.runNumber,pathId,fullPathName)
+                wbm_url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?fromLSNumber=&toLSNumber=&minRate=&maxRate=&drawCounts=0&drawLumisec=1&runID=%s&pathID=%s&TRIGGER_PATH=%s&LSLength=23.310409580838325" % (self.runNumber,pathId,fullPathName)
+                mail += "WBM rate: <%s>\n" % (wbm_url)
+            except:
+                print "WBM query for mail failed"
+            if expected > 0: mail += "referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png> \n\n" % (triggerName)
 
-        mail += " \n"
+                
+        mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
         mail += "Email warnings triggered when: \n"
         mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
         mail += "   - HLT rates > %s Hz \n" % (self.maxHLTRate)
