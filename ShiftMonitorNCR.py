@@ -866,16 +866,16 @@ class ShiftMonitor:
         mail += "The following path rate(s) are deviating from expected values: \n\n"
 
         for triggerName, rate, expected, dev in mailTriggers:
-            try: mail += stringSegment(triggerName, 35) +": Expected: %.3f Hz, Actual: %.3f Hz, Deviation: %.3f\n" % (expected, rate, dev)
-            except: mail += stringSegment(triggerName, 35) +": Expected: %s Hz, Actual: %s Hz, Deviation: %s\n" % (expected, rate, dev)                
+            try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35),expected, rate, dev)
+            except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35),expected, rate, dev)
+            
+            if expected > 0: mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)
             try:
                 pathId, fullPathName = self.parser.getPathId(self.runNumber,triggerName,self.currentLS)
-                #                wbm_url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?RUNID=%s&PATHID=%s&LSLENGTH=23.310409580838325&TRIGGER_PATH=%s" % (self.runNumber,pathId,fullPathName)
                 wbm_url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?fromLSNumber=&toLSNumber=&minRate=&maxRate=&drawCounts=0&drawLumisec=1&runID=%s&pathID=%s&TRIGGER_PATH=%s&LSLength=23.310409580838325" % (self.runNumber,pathId,fullPathName)
-                mail += "WBM rate: <%s>\n" % (wbm_url)
+                mail += "  *WBM rate: <%s>\n" % (wbm_url)
             except:
                 print "WBM query for mail failed"
-            if expected > 0: mail += "referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png> \n\n" % (triggerName)
 
                 
         mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
