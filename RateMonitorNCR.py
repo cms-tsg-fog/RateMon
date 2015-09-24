@@ -1,6 +1,6 @@
 #######################################################
 # File: RateMonitorNCR.py
-# Author: Nathaniel Carl Rupprecht Charlie Mueller
+# Authors: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
 # Date Created: June 16, 2015
 #
 # Dependencies: DBParser.py, FitFinder.py, ErrorPrinter.py
@@ -85,7 +85,8 @@ class RateMonitor:
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
-
+        self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plots
+        
         self.png = True          # If true, create png images of all plots
 
         # Fitting
@@ -506,6 +507,32 @@ class RateMonitor:
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
             else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
             fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, maxVal)
+
+            if self.errorBands:
+                xVal = array.array('f')
+                yVal = array.array('f')
+                yeVal = array.array('f')
+                xeVal = array.array('f')
+                
+                xMin = fitFunc.GetXmin()
+                xMax = fitFunc.GetXmax()
+                xrange = xMax-xMin
+                nPoints = 2000
+                stepSize = xrange/nPoints
+                
+                xCoord = xMin
+                while xCoord <= xMax:
+                    xVal.append(xCoord)
+                    yVal.append(fitFunc.Eval(xCoord))
+                    yeVal.append(self.sigmas*paramlist[5])
+                    xeVal.append(0)
+                    xCoord += stepSize
+                    
+                fitErrorBand = TGraphErrors(len(xVal),xVal,yVal,xeVal,yeVal)
+                fitErrorBand.SetFillColor(2)
+                fitErrorBand.SetFillStyle(3003)
+            
+
         # Go through all runs and plot them
         counter = 0        
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
@@ -567,11 +594,12 @@ class RateMonitor:
                 fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName)
                 fitGraph.Draw("PZ3")
                 canvas.Update()
-                legend.AddEntry(fitGraph, "Fit (%s sigma)" % (self.sigmas))
+                legend.AddEntry(fitGraph, "Fit ( %s \sigma )" % (self.sigmas))
             else: # Primary Mode
-                legend.AddEntry(fitFunc, "Fit")
+                if self.errorBands: fitErrorBand.Draw("3")
+                legend.AddEntry(fitFunc, "Fit ( %s \sigma )" % (self.sigmas))
                 fitFunc.Draw("same") # Draw the fit function on the same graph
-        # Draw function string on the plot
+                # Draw function string on the plot
         if not funcStr == "" and self.showEq:
             funcLeg = TLegend(.146, .71, .57, .769)
             funcLeg.SetHeader("f(x) = " + funcStr)
