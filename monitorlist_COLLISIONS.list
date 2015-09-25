@@ -33,12 +33,12 @@ L1_SingleJet200
 L1_ETM70
 L1_HTT175
 ### 0T paths ###
-HLT_DoublePhoton40_v1
-HLT_DoubleEle25_CaloIdL_GsfTrkIdVL_v1
-HLT_DiSC30_18_EIso_AND_HE_Mass70_v1
-HLT_Ele23_WPLoose_Gsf_v1
-HLT_HT575_v1
-HLT_IsoMu20_v2
-HLT_Mu20_v2
-HLT_Mu33NoFiltersNoVtxDisplaced_DisplacedJet50_Loose_v2
-HLT_MET100_JetIdCleaned_v1
+#HLT_DoublePhoton40_v1
+#HLT_DoubleEle25_CaloIdL_GsfTrkIdVL_v1
+#HLT_DiSC30_18_EIso_AND_HE_Mass70_v1
+#HLT_Ele23_WPLoose_Gsf_v1
+#HLT_HT575_v1
+#HLT_IsoMu20_v2
+#HLT_Mu20_v2
+#HLT_Mu33NoFiltersNoVtxDisplaced_DisplacedJet50_Loose_v2
+#HLT_MET100_JetIdCleaned_v1
