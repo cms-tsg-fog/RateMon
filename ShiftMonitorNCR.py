@@ -329,7 +329,7 @@ class ShiftMonitor:
         # Reset the trigger lists
         self.usableHLTTriggers = []
         self.otherHLTTriggers = []
-        self.useableL1Triggers = []
+        self.usableL1Triggers = []
         self.otherL1Triggers = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
