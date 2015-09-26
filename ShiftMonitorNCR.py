@@ -2,7 +2,6 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
 # Date Created: July 13, 2015
-# Last Modified: August 17, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: DBParser.py, mailAlert.py
 #
@@ -645,10 +644,12 @@ class ShiftMonitor:
                 expected = self.calculateRate(trigger, aveLumi)
                 # Don't let expected value be negative
                 if expected<0: expected = 0
+                avePSExpected = expected
                 # Get the MSE
                 mse = self.getMSE(trigger)
             else:
                 expected = None
+                avePSExpected = None
                 mse = None
         # Find the ave rate since the last time we checked
         aveRate = 0
@@ -677,6 +678,8 @@ class ShiftMonitor:
             properAvePSRate /= count
             avePS /= countPS
         else: comment += "PS=0"
+        if doPred and not avePSExpected is None and avePS > 1:
+            avePSExpected /= avePS
         # Returns if we are not making predictions for this trigger and we are throwing zeros
         if not doPred and self.removeZeros and aveRate==0:
             return
@@ -686,7 +689,7 @@ class ShiftMonitor:
             row.append(aveRate)
         else:
             row.append(properAvePSRate)
-        if doPred and not expected is None: row.append(expected)
+        if doPred and not expected is None: row.append(avePSExpected)
         else: row.append("") # No predicted rate
         # Find the % diff
         if doPred:
