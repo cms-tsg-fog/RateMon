@@ -1,6 +1,6 @@
 ##################################
 # DB.py
-# Author: Nathaniel Carl Rupprecht Charlie Mueller
+# Author: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
 # Date: June 11, 2015
 # Last Modified: July 16, 2015
 #
@@ -41,6 +41,7 @@ class DBParser:
         self.nAlgoBits = 128
 
         self.HLTSeed = {}
+        self.L1Mask = {}
         self.L1IndexNameMap = {}
         self.PSColumnByLS = {}
 
@@ -202,6 +203,7 @@ class DBParser:
         # Get information that we will need to use
         self.getPSColumnByLS(runNumber, minLS)
         self.getL1Prescales(runNumber)
+        self.getL1Mask(runNumber)
         self.getL1NameIndexAssoc(runNumber)
         # Formulate query
         query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
@@ -216,11 +218,16 @@ class DBParser:
         LSRange = []
         for name in self.L1IndexNameMap:
             rmap[self.L1IndexNameMap[name]] = name
+        
         # Create L1 Rates: [ trigger ] [ LS ] <Rate>
         for LS, rate, bit in L1RateAll:
+            # Check if the L1 bit is enabled
+            if len(self.L1Mask) == 128 and self.L1Mask[bit] == 0: continue
+            
             if not rmap.has_key(bit):
                 #print "Cannot find L1 trigger with bit %s" % (bit)
                 continue
+            
             name = rmap[bit]
             if not LS in LSRange:
                 LSRange.append(LS)
@@ -251,6 +258,7 @@ class DBParser:
                     ps = L1PSdict[bit][pscol]
                     L1Rates[name][LS]= [ L1Triggers[name][LS]*ps , ps ]
                 except: pass
+        
         # [ trigger ] [ LS ] { raw rate, ps }
         return L1Rates
     
@@ -341,7 +349,25 @@ class DBParser:
             except:
                 AvgL1Prescales[i] = AvgL1Prescales[i]
         return AvgL1Prescales
-
+    
+    def getL1Mask(self, runNumber):
+        if self.GTRS_Key == "":
+            self.getRunInfo(runNumber)
+        sqlquery= """SELECT * FROM CMS_GT.GT_PARTITION_FINOR_ALGO WHERE ID IN (SELECT FINOR_ALGO_FK FROM CMS_GT.GT_RUN_SETTINGS WHERE ID='%s')""" % (self.GTRS_Key)
+        try:
+            self.curs.execute(sqlquery)
+            mask = self.curs.fetchall()[0]
+        except:
+            print "Cannot determine which L1 bits are masked or not"
+            return
+        
+        # Strip first element of the list, which is a string
+        mask = mask[1:]
+        # Always assign a list with len = 128
+        if len(mask) == 128:
+            self.L1Mask = mask
+    
+    
     # Note: This function is from DatabaseParser.py
     # Use: Frankly, I'm not sure. I don't think its ever been called. Read the (origional) info string
     # Returns: The minimum prescale value
