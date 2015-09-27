@@ -94,7 +94,7 @@ class ShiftMonitor:
         self.devAccept = 3              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-        self.maxCBR = 3                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
+        self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
@@ -795,10 +795,10 @@ class ShiftMonitor:
         mailTriggers = [] # A list of triggers that we should mail alerts about
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
-                if self.badRates[trigger][0] >= self.maxCBR:
+                if self.badRates[trigger][0] >= 1:
                     print "Trigger %s has been out of line for more than %s minutes" % (trigger, self.badRates[trigger][0])
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
-                if self.badRates[trigger][0] == 2:
+                if self.badRates[trigger][0] == self.maxCBR:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
         if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)
