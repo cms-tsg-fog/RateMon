@@ -493,6 +493,8 @@ class DBParser:
             lastIndex=index
             row.append(val)
 
+
+
     # Note: This is a function from DatabaseParser.py (with slight modification)
     # Use: Gets the number of colliding bunches during a run
     def getNumberCollidingBunches(self, runNumber):
@@ -505,19 +507,14 @@ class DBParser:
         sqlquery = "SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s" % (fill)
         try:
             self.curs.execute(sqlquery)
+            bunches = self.curs.fetchall()[0]
+            bunches= [ int(bunches[0]), int(bunches[1]) ]
+            return bunches
         except:
             print "database error querying for num colliding bx" 
-            return 0
-        
-        bunches = self.curs.fetchall()
-        # We allow bunches to return even if it is None, we deal with that outside this class
-        try:
-            if bunches[0][0] == None or bunches[0][0] > 0:
-                return bunches[0][0] # Number of colliding bunches
-            else:
-                return bunches[0][1] # Number of target bunches
-        except:
-            return 0
+            return [0, 0]
+
+    
     # Use: Gets the last LHC status
     # Returns: A dictionary: [ status ] <text_value>
     def getLHCStatus(self):
