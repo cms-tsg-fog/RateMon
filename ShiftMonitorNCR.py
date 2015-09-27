@@ -55,6 +55,7 @@ class ShiftMonitor:
         # Run control
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
+        self.numBunches = [-1, -1]     # Number of [target, colliding] bunches
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = []               # If we want to only look at a range of LS from the run
@@ -414,6 +415,7 @@ class ShiftMonitor:
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if not self.cosmics:
             lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
+            self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
@@ -573,8 +575,8 @@ class ShiftMonitor:
         print "INFORMATION:"
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
-        print "Last LHC Status: %s" % self.parser.getLHCStatus()[1]
-        print "Number of colliding bunches: %s" % self.parser.getNumberCollidingBunches(self.runNumber)
+        print "Latest LHC Status: %s" % self.parser.getLHCStatus()[1]
+        print "Number of colliding bunches: %s" % self.numBunches[1]
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
         print "Number of streams:", self.totalStreams
