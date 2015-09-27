@@ -98,7 +98,7 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        self.maxHLTRate = 200           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 250           # The maximum prescaled rate we allow an HLT Trigger to have
         self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
