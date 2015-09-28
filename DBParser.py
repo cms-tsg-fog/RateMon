@@ -580,19 +580,36 @@ class DBParser:
         return [runNumber[0], isCol, isGood, mode]
 
 
-    def getPathId(self,runNumber,pathName,LS):
+    def getWbmUrl(self,runNumber,pathName,LS):
+        if pathName[0:4]=="HLT_":
+            sqlquery = "SELECT A.PATHID, (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
+            WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
+            WHERE RUNNUMBER=%s AND A.LSNUMBER=%s" % (runNumber, LS)
 
-        sqlquery = "SELECT A.PATHID, (SELECT M.NAME FROM CMS_HLT_GDR.U_PATHS M,CMS_HLT_GDR.U_PATHIDS L \
-        WHERE L.PATHID=A.PATHID AND M.ID=L.ID_PATH) PATHNAME FROM CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A \
-        WHERE RUNNUMBER=%s AND A.LSNUMBER=%s" % (runNumber, LS)
-        
-        try: self.curs.execute(sqlquery)
-        except: return
-        
-        for id,fullName in self.curs.fetchall():
-            name = stripVersion(fullName)
-            if name == pathName: return [id,fullName]
-        return
+            try: self.curs.execute(sqlquery)
+            except: return "-"
+
+            for id,fullName in self.curs.fetchall():
+                name = stripVersion(fullName)
+                if name == pathName:
+                    url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?fromLSNumber=&toLSNumber=&minRate=&maxRate=&drawCounts=0&drawLumisec=1&runID=%s&pathID=%s&TRIGGER_PATH=%s&LSLength=23.310409580838325" % (runNumber,id,fullName)
+                    return url
+                
+        elif pathName[0:3]=="L1_":
+            if self.GT_Key == "": self.getRunInfo(runNumber)
+            sqlquery = """SELECT ALGO_INDEX FROM CMS_GT.L1T_MENU_ALGO_VIEW
+            WHERE ALIAS ='%s' AND MENU_IMPLEMENTATION IN
+            (SELECT L1T_MENU_FK FROM CMS_GT.GT_SETUP WHERE ID='%s')""" % (pathName,self.GT_Key)
+            
+            try:
+                self.curs.execute(sqlquery)
+                bitNum, = self.curs.fetchone()
+                url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartL1TriggerRates?fromTime=&toTime=&fromLSNumber=&toLSNumber=&minRate=&maxRate=&minCount=&maxCount=&postDeadRates=1&drawCounts=0&drawLumisec=1&runID=%s&bitID=%s&type=0&TRIGGER_NAME=%s&LSLength=23.310409580838325" % (runNumber,bitNum,pathName)
+                return url
+            except:
+                return "-"
+            
+        return "-"
     
     # Use: Get the trigger mode for the specified run
     def getTriggerMode(self, runNumber):
