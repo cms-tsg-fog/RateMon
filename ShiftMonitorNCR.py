@@ -673,7 +673,7 @@ class ShiftMonitor:
                 count += 1  # Counts for paths and PS are different
         if count > 0 and countPS > 0:
             # Make note if rate or PS are identically zero
-            if aveRate == 0: comment += "Rate=0 "
+            if aveRate == 0: comment += "0 counts "
             aveRate /= count
             properAvePSRate /= count
             avePS /= countPS
