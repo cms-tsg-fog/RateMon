@@ -605,6 +605,8 @@ class RateMonitor:
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
+            canvas.SetGridx(1);
+            canvas.SetGridy(1);
             canvas.Update()
         # draw text
         latex = TLatex()
