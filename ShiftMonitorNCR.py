@@ -675,7 +675,7 @@ class ShiftMonitor:
                 count += 1  # Counts for paths and PS are different
         if count > 0 and countPS > 0:
             # Make note if rate or PS are identically zero
-            if aveRate == 0: comment += "Rate=0 "
+            if aveRate == 0: comment += "0 counts "
             aveRate /= count
             properAvePSRate /= count
             avePS /= countPS
@@ -876,11 +876,10 @@ class ShiftMonitor:
             
             if expected > 0: mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)
             try:
-                pathId, fullPathName = self.parser.getPathId(self.runNumber,triggerName,self.currentLS)
-                wbm_url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartHLTTriggerRates?fromLSNumber=&toLSNumber=&minRate=&maxRate=&drawCounts=0&drawLumisec=1&runID=%s&pathID=%s&TRIGGER_PATH=%s&LSLength=23.310409580838325" % (self.runNumber,pathId,fullPathName)
-                mail += "  *WBM rate: <%s>\n" % (wbm_url)
+                wbm_url = self.parser.getWbmUrl(self.runNumber,triggerName,self.currentLS)
+                if not wbm_url == "-": mail += "  *WBM rate: <%s>\n" % (wbm_url)
             except:
-                print "WBM query for mail failed"
+                print "WBM plot url query failed"
 
                 
         mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
