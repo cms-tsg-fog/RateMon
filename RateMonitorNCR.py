@@ -507,8 +507,8 @@ class RateMonitor:
         if (self.useFit or self.fit) and not paramlist is None:
             # Create the fit function.
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+            elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
             else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-            #            fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, 1.1*maxVal)
             fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
 
             if self.errorBands:
@@ -604,7 +604,7 @@ class RateMonitor:
                 fitFunc.Draw("same") # Draw the fit function on the same graph
                 # Draw function string on the plot
         if not funcStr == "" and self.showEq:
-            funcLeg = TLegend(.146, .71, .57, .769)
+            funcLeg = TLegend(.146, .71, .47, .769)
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
