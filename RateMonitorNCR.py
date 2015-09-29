@@ -50,7 +50,9 @@ class RateMonitor:
         self.useJson = False
         self.maxRuns = 12 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
-        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[1,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        self.colorList = [4,6,7,8,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
@@ -506,7 +508,8 @@ class RateMonitor:
             # Create the fit function.
             if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
             else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-            fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, maxVal)
+            #            fitFunc = TF1("Fit_"+triggerName, funcStr, minVal, 1.1*maxVal)
+            fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
 
             if self.errorBands:
                 xVal = array.array('f')
@@ -517,7 +520,7 @@ class RateMonitor:
                 xMin = fitFunc.GetXmin()
                 xMax = fitFunc.GetXmax()
                 xrange = xMax-xMin
-                nPoints = 2000
+                nPoints = 1000
                 stepSize = xrange/nPoints
                 
                 xCoord = xMin
@@ -538,7 +541,7 @@ class RateMonitor:
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
         # Create legend
-        left = 0.8; right = 1.0; top = 0.9; scaleFactor = 0.05; minimum = 0.1
+        left = 0.82; right = 0.98; top = 0.9; scaleFactor = 0.05; minimum = 0.1
         bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
         legend = TLegend(left,top,right,bottom)
 
@@ -571,7 +574,7 @@ class RateMonitor:
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            legend.AddEntry(graphList[-1], "Run %s" %(runNumber), "p")
+            legend.AddEntry(graphList[-1], "%s" %(runNumber), "f")
             counter += 1
         # There is steam data to use, and we should use it
         if self.steam and self.steamData and self.steamData.has_key(triggerName):
@@ -622,7 +625,7 @@ class RateMonitor:
         
         canvas.Update()
         # Draw Legend
-        legend.SetHeader("Run Legend (%s runs)" % (len(plottingData)))
+        legend.SetHeader("%s runs:" % (len(plottingData)))
         legend.SetFillColor(0)
         legend.Draw() 
         canvas.Update()
