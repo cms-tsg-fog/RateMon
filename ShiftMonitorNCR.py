@@ -330,6 +330,7 @@ class ShiftMonitor:
         self.otherHLTTriggers = []
         self.usableL1Triggers = []
         self.otherL1Triggers = []
+        self.fullL1HLTMenu = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
