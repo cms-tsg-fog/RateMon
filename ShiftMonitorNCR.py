@@ -95,7 +95,7 @@ class ShiftMonitor:
         self.devAccept = 3              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-        self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
+        self.maxCBR = 3                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
@@ -279,11 +279,10 @@ class ShiftMonitor:
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
         #Construct (or reconstruct) trigger lists
-        if self.redoTList:
-            self.redoTriggerLists()
+        if self.redoTList: self.redoTriggerLists()
 
         # Make sure there is info to use
-        if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
+        if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             self.redoTList = True
             return
@@ -331,6 +330,7 @@ class ShiftMonitor:
         self.otherHLTTriggers = []
         self.usableL1Triggers = []
         self.otherL1Triggers = []
+        self.fullL1HLTMenu = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
