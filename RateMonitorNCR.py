@@ -46,8 +46,9 @@ class RateMonitor:
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
-        self.jsonFile = ""
         self.useJson = False
+        self.jsonFile = ""
+        self.jsonData = {}
         self.maxRuns = 12 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[1,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -98,7 +99,7 @@ class RateMonitor:
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
         self.fitFinder = FitFinder()  # A fit finder object
-        self.divByBunches = False     # If true, we divide by the number of colliding bunches
+        self.divByBunches = True # If true, we divide by the number of colliding bunches
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
         self.showEq = True       # Whether we should show the fit equation on the plot
@@ -169,6 +170,14 @@ class RateMonitor:
         self.runsToProcess = self.lastRun-self.offset
         if self.runsToProcess > 1: plural = "s" # Get our grammar right
         else: plural = ""
+        
+        # Read JSON file
+        if self.useJson:
+            with open(self.jsonFile) as jsonfile:    
+                self.jsonData = json.load(jsonfile)
+            if not len(self.jsonData) > 0:
+                print "JSON file is empty or not valid"
+                self.useJson = False
 
         if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
         
@@ -247,7 +256,7 @@ class RateMonitor:
 
             # Get number of bunches (if requested)
             if self.divByBunches:
-                self.bunches = self.parser.getNumberCollidingBunches(runNumber)
+                self.bunches = self.parser.getNumberCollidingBunches(runNumber)[0]
                 if self.bunches is None and not self.includeNoneBunches:
                     print "Cannot get number of bunches for this run: skipping this run.\n"
                     counter += 1
@@ -345,26 +354,19 @@ class RateMonitor:
         # JSON filtering
         # Removes from the Rates dictionary the lumisections not included in the JSON file, if present.
         if self.useJson:
-            # Read JSON file
-            json_data = {}
-            with open(self.jsonFile) as json_file:    
-                json_data = json.load(json_file)
-            if len(json_data) > 0:
-                runNumberStr = "%d" % runNumber
-                # Check for run number
-                if not runNumberStr in json_data:
-                    print "Run", runNumberStr, "is not included in the JSON file"
-                    return {}
-                else:
-                    print "Run", runNumberStr, "and lumisections", json_data[runNumberStr], "are included in the JSON file"
-                # Remove lumisections
-                for trigger, lumi in Rates.iteritems():
-                    lumis = lumi.keys()
-                    for i, ls in enumerate(lumis):
-                        if not any(l <= ls <= u for [l, u] in json_data[runNumberStr]):
-                            del Rates[trigger][ls]
+            runNumberStr = "%d" % runNumber
+            # Check for run number
+            if not runNumberStr in self.jsonData:
+                print "Run", runNumberStr, "is not included in the JSON file"
+                return {}
             else:
-                print "JSON file empty or not valid"
+                print "Run", runNumberStr, "and lumisections", self.jsonData[runNumberStr], "are included in the JSON file"
+            # Remove lumisections
+            for trigger, lumi in Rates.iteritems():
+                lumis = lumi.keys()
+                for i, ls in enumerate(lumis):
+                    if not any(l <= ls <= u for [l, u] in self.jsonData[runNumberStr]):
+                        del Rates[trigger][ls]
         
         # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
         iLumi = self.parser.getLumiInfo(runNumber)
