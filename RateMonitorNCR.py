@@ -101,7 +101,7 @@ class RateMonitor:
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
         self.fitFinder = FitFinder()  # A fit finder object
-        self.divByBunches = True # If true, we divide by the number of colliding bunches
+        self.divByBunches = False# If true, we divide by the number of colliding bunches
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
         self.showEq = True       # Whether we should show the fit equation on the plot
@@ -180,6 +180,9 @@ class RateMonitor:
             if not len(self.jsonData) > 0:
                 print "JSON file is empty or not valid"
                 self.jsonFilter = False
+        # Apply run pre-filtering
+        if self.jsonFilter:
+            self.runList = [x for x in self.runList if not "%d" % x in self.jsonData]
         
         
         if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
