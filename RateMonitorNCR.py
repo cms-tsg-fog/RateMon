@@ -46,10 +46,10 @@ class RateMonitor:
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
-        self.useJson = False
+        self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
-        self.maxRuns = 12 # The maximum number of runs that we will process
+        self.maxRuns = 30 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -174,13 +174,14 @@ class RateMonitor:
         else: plural = ""
         
         # Read JSON file
-        if self.useJson:
+        if self.jsonFilter:
             with open(self.jsonFile) as jsonfile:    
                 self.jsonData = json.load(jsonfile)
             if not len(self.jsonData) > 0:
                 print "JSON file is empty or not valid"
-                self.useJson = False
-
+                self.jsonFilter = False
+        
+        
         if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
         
         minNum = min(self.runList[ self.offset : self.lastRun ])
@@ -355,7 +356,7 @@ class RateMonitor:
         
         # JSON filtering
         # Removes from the Rates dictionary the lumisections not included in the JSON file, if present.
-        if self.useJson:
+        if self.jsonFilter:
             runNumberStr = "%d" % runNumber
             # Check for run number
             if not runNumberStr in self.jsonData:
@@ -550,7 +551,7 @@ class RateMonitor:
         # We only load the iLumi info for one of the runs to make the prediction, use the run with the most LS's
         pickRun = 0
         maxLS = 0
-        for runNumber in plottingData:
+        for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
             if numLS == 0: continue
             # See if this run has more LS's then the previous runs
