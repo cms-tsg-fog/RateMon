@@ -9,9 +9,9 @@ import sys
 sys.path.append('/nfshome0/hltpro/scripts')
 
 #emailList = ["cms-tsg-fog@cern.ch"]
-#emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
+emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
 #emailList = ["charles.mueller@cern.ch","cmuelle2@nd.edu"]
-emailList = ["a.zucchetta@cern.ch"]
+#emailList = ["a.zucchetta@cern.ch"]
 
 def getLastRuns(h=24):
     lastRun,isCol,isGood = DatabaseParser.GetLatestRunNumber()
