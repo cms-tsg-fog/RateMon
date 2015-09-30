@@ -267,7 +267,7 @@ class RateMonitor:
                     print "Cannot get number of bunches for this run: skipping this run.\n"
                     counter += 1
                     continue # Skip this run
-                print "Run %s has %s bunches.\n" % (runNumber, self.bunches)
+                print "Run %s has %s bunches." % (runNumber, self.bunches)
                 
             # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
             dataList = self.getData(runNumber)
