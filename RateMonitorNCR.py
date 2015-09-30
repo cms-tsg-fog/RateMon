@@ -46,10 +46,17 @@ class RateMonitor:
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
+<<<<<<< HEAD
         self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
         self.maxRuns = 30 # The maximum number of runs that we will process
+=======
+        self.useJson = False
+        self.maxRuns = 20 # The maximum number of runs that we will process
+        self.jsonFile = ""
+        self.jsonData = {}
+>>>>>>> 49f4c419dfaedb9891935aa2245e2f23577fd248
         self.fitFile = "" # The name of the file that the fit info is contained in
         #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
