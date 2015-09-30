@@ -163,6 +163,23 @@ class RateMonitor:
         if self.fit and self.outputOn:
             print "Creating a fit from data."
 
+        # Read JSON file
+        if self.jsonFilter:
+            with open(self.jsonFile) as jsonfile:    
+                self.jsonData = json.load(jsonfile)
+            if not len(self.jsonData) > 0:
+                print "JSON file is empty or not valid"
+                self.jsonFilter = False
+            else:
+                print "JSON file list of runs: ",
+                for k in self.jsonData.keys():
+                    print "%s" % k,
+                print "\n"
+        # Apply run pre-filtering
+        if self.jsonFilter:
+            self.runList = [x for x in self.runList if "%d" % x in self.jsonData]
+        
+        
         if self.useTrigList and self.outputOn: print "Only using triggers in current trig list." # Info message
         if self.processAll:
             if self.outputOn: print "\nProcessing all runs in the run list." # Info message
@@ -172,18 +189,6 @@ class RateMonitor:
         self.runsToProcess = self.lastRun-self.offset
         if self.runsToProcess > 1: plural = "s" # Get our grammar right
         else: plural = ""
-        
-        # Read JSON file
-        if self.jsonFilter:
-            with open(self.jsonFile) as jsonfile:    
-                self.jsonData = json.load(jsonfile)
-            if not len(self.jsonData) > 0:
-                print "JSON file is empty or not valid"
-                self.jsonFilter = False
-        # Apply run pre-filtering
-        if self.jsonFilter:
-            self.runList = [x for x in self.runList if not "%d" % x in self.jsonData]
-        
         
         if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
         
@@ -563,7 +568,7 @@ class RateMonitor:
                 pickRun = runNumber
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
             # Set some stylistic settings for dataGraph
-            graphColor = self.colorList[counter % len(self.colorList)] # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            graphColor = self.colorList[counter % len(self.colorList)] + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
             graphList[-1].SetLineColor(graphColor)
