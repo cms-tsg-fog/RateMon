@@ -70,7 +70,7 @@ class MonitorController:
                 print "Using the runs in file", self.rateMonitor.runFile
                 self.loadRunsFromFile()
             elif label == "--jsonFile":
-                self.rateMonitor.useJson = True
+                self.rateMonitor.jsonFilter = True
                 self.rateMonitor.jsonFile = str(op)
             elif label == "--offset":
                 self.rateMonitor.offset = int(op)
@@ -206,7 +206,7 @@ class MonitorController:
             self.rateMonitor.useFit = False
         
         # Check JSON file exists
-        if self.rateMonitor.useJson:
+        if self.rateMonitor.jsonFilter:
             if not os.path.exists(self.rateMonitor.jsonFile):
                 print "The specifed JSON file does not exist. Exiting."
                 exit(0)
