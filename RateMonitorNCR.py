@@ -268,7 +268,7 @@ class RateMonitor:
 
             # Get number of bunches (if requested)
             if self.divByBunches or self.pileUp:
-                self.bunches = self.parser.getNumberCollidingBunches(runNumber)[0]
+                self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
                 if self.bunches is None and not self.includeNoneBunches or self.bunches is 0:
                     print "Cannot get number of bunches for this run: skipping this run.\n"
                     counter += 1
@@ -577,7 +577,7 @@ class RateMonitor:
         if self.divByBunches or self.pileUp: self.labelY = "unprescaled rate / num colliding bx [Hz]"
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
-            bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[0]
+            bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
             if numLS == 0: continue
             # See if this run has more LS's then the previous runs
             if numLS > maxLS:
