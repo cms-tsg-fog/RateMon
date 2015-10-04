@@ -102,6 +102,7 @@ class RateMonitor:
         self.outFitFile = ""     # The name of the file that we will save an output fit to
         self.fitFinder = FitFinder()  # A fit finder object
         self.divByBunches = False# If true, we divide by the number of colliding bunches
+        self.pileUp = False
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
         self.showEq = True       # Whether we should show the fit equation on the plot
@@ -266,9 +267,9 @@ class RateMonitor:
             print "(",counter+1,") Processing run", runNumber
 
             # Get number of bunches (if requested)
-            if self.divByBunches:
+            if self.divByBunches or self.pileUp:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)[0]
-                if self.bunches is None and not self.includeNoneBunches:
+                if self.bunches is None and not self.includeNoneBunches or self.bunches is 0:
                     print "Cannot get number of bunches for this run: skipping this run.\n"
                     counter += 1
                     continue # Skip this run
@@ -452,8 +453,19 @@ class RateMonitor:
                     data = Data[name][LS][self.dataCol]
                     # We apply our cuts here if they are called for
                     if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doDataCut or data > self.dataCut):
-                        iLuminosity.append(ilum/self.bunches)     # Add the instantaneous luminosity for this LS
-                        yvals.append(data) # Add the correspoinding raw rate
+                        if self.divByBunches:
+                            iLuminosity.append(ilum/self.bunches) 
+                            yvals.append(data/self.bunches)
+                        elif self.pileUp:
+                            ppInelXsec = 80000.
+                            orbitsPerSec = 11000.
+                            PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
+                            iLuminosity.append(PU)
+                            yvals.append(data/self.bunches)
+                        else:
+                            iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
+                            yvals.append(data) # Add the correspoinding raw rate
+
             if len(iLuminosity) > 0:
                 dataList[name] = [iLuminosity, yvals]
             else: pass
@@ -510,8 +522,11 @@ class RateMonitor:
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "instantaneous luminosity"
-        if self.divByBunches :
+        if self.divByBunches:
             nameX += " / (num colliding bunches)"
+        elif self.pileUp:
+            nameX = "< PU >"
+            xunits = ""
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
@@ -559,8 +574,10 @@ class RateMonitor:
         # We only load the iLumi info for one of the runs to make the prediction, use the run with the most LS's
         pickRun = 0
         maxLS = 0
+        if self.divByBunches or self.pileUp: self.labelY = "unprescaled rate / num colliding bx [Hz]"
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
+            bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[0]
             if numLS == 0: continue
             # See if this run has more LS's then the previous runs
             if numLS > maxLS:
@@ -568,7 +585,7 @@ class RateMonitor:
                 pickRun = runNumber
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
             # Set some stylistic settings for dataGraph
-            graphColor = self.colorList[counter % len(self.colorList)] + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
             graphList[-1].SetLineColor(graphColor)
@@ -577,15 +594,15 @@ class RateMonitor:
             graphList[-1].SetLineWidth(2)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
             graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
-#            graphList[-1].GetXaxis().SetLimits(0.999*minVal,1.001*maxVal)
             graphList[-1].GetYaxis().SetTitle(self.labelY)
+            graphList[-1].GetYaxis().SetTitleOffset(1.2)
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*maxRR)
             graphList[-1].SetTitle(triggerName)
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            legend.AddEntry(graphList[-1], "%s" %(runNumber), "f")
+            legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
             counter += 1
         # There is steam data to use, and we should use it
         if self.steam and self.steamData and self.steamData.has_key(triggerName):
