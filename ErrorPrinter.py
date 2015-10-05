@@ -42,6 +42,7 @@ class ErrorPrinter:
     def __init__(self):
         self.run_trig_ls = {} # [ runNumber ] [ triggerName ] ( LS )
         self.run_ls_trig = {} # [ runNumber ] [ LS ] ( triggerName )
+        self.run_allLs = {} # [runNumber][triggerName] (LS)
         self.steamData = {}   # [ prediction, min predict, max predict, actual, error ]
         self.saveDirectory = "" #directory where output txt files are saved
         
@@ -68,7 +69,6 @@ class ErrorPrinter:
                 file.write("     %s: " % (triggerName))
                 list = formatJSON(sorted(self.run_trig_ls[runNumber][triggerName]))
                 file.write(list+"\n")
-                totalErrs += len(self.run_trig_ls[runNumber][triggerName])
                 
                 for LS in sorted(self.run_trig_ls[runNumber][triggerName]):
                     if badLumiList.has_key(LS): badLumiList[LS] += 1
@@ -85,8 +85,16 @@ class ErrorPrinter:
             file.write("     # of bad paths : lumis section(s)\n")
             for numBadTrigs in sorted(badLumiListSorted.keys(), reverse =True):                
                     file.write("     %s : %s\n"%(numBadTrigs, sorted(badLumiListSorted[numBadTrigs])))
+                    totalErrs += len(sorted(badLumiListSorted[numBadTrigs]))
 
-            file.write("\n---- Total bad LS: %s \n" % (totalErrs))
+            for triggerName in self.run_allLs[runNumber]:
+                totalLumis = len(self.run_allLs[runNumber][triggerName])
+                break
+            fractionBadLumis = 100.*float(totalErrs)/float(totalLumis)
+
+            file.write("\n---- Total bad LS: %s  ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % (totalErrs))
+            file.write("---- Total LS: %s\n" % (totalLumis))
+            file.write("---- Fraction bad LS: %s%% \n" % (fractionBadLumis))
             
         file.close()
 
