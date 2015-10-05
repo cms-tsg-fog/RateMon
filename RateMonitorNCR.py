@@ -502,17 +502,19 @@ class RateMonitor:
         minimumVals = array.array('f')
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
-            if len(plottingData[runNumber][0]) > 0: # It can happen that this is not true, though I'm not sure how
+            if len(plottingData[runNumber][0]) > 0:
                 maximumRR.append(max(plottingData[runNumber][1]))
                 maximumVals.append(max(plottingData[runNumber][0]))
                 minimumVals.append(min(plottingData[runNumber][0]))
 
         if len(maximumRR) > 0: maxRR = max(maximumRR)
         else: return
+        
         if len(maximumVals) > 0:
             maxVal = max(maximumVals)
             minVal = min(minimumVals)
         else: return
+
         if maxVal==0 or maxRR==0: # No good data
             return
         # Set axis names/units, create canvas
@@ -575,6 +577,7 @@ class RateMonitor:
         pickRun = 0
         maxLS = 0
         if self.divByBunches or self.pileUp: self.labelY = "unprescaled rate / num colliding bx [Hz]"
+        
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
             bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
@@ -622,7 +625,7 @@ class RateMonitor:
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 iLumi = self.parser.getLumiInfo(pickRun)
                 # iLumi is a list: ( { LS, instLumi } )
-                fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName)
+                fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName, pickRun)
                 fitGraph.Draw("PZ3")
                 canvas.Update()
                 legend.AddEntry(fitGraph, "Fit ( %s \sigma )" % (self.sigmas))
@@ -733,7 +736,7 @@ class RateMonitor:
     # -- iLumi: A list: ( { LS, instLumi } )
     # -- triggerName: The name of the trigger we are making a fit for
     # Returns: A TGraph of predicted values
-    def makeFitGraph(self, paramlist, minVal, maxVal, maxRR, iLumi, triggerName):
+    def makeFitGraph(self, paramlist, minVal, maxVal, maxRR, iLumi, triggerName, runNumber):
         # Initialize our point arrays
         lumisecs = array.array('f')
         predictions = array.array('f')
@@ -753,7 +756,7 @@ class RateMonitor:
                 lsError.append(0)
                 predError.append(self.sigmas*sigma)
         # Record for the purpose of doing checks
-        self.predictionRec[triggerName] = zip(lumisecs, predictions, predError) # Put these lists together into a list of triples
+        self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError) #charlie
         # Set some graph options
         fitGraph = TGraphErrors(len(lumisecs), lumisecs, predictions, lsError, predError)
         fitGraph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
@@ -815,9 +818,16 @@ class RateMonitor:
                 if self.predictionRec.has_key(triggerName):
                     if self.allRates[runNumber].has_key(triggerName): # In case some run did not contain this trigger
                         data = self.allRates[runNumber][triggerName]
-                        predList = self.predictionRec[triggerName]
+                        predList = self.predictionRec[triggerName][runNumber]
                         for LS, pred, err in predList:
                             if data.has_key(LS): # In case this LS is missing
+
+                                if not eprint.run_allLs.has_key(runNumber): eprint.run_allLs[runNumber] = {}
+                                if not eprint.run_allLs[runNumber].has_key(triggerName): eprint.run_allLs[runNumber][triggerName] = []
+                                eprint.run_allLs[runNumber][triggerName].append(LS)
+                                
+
+                                
                                 if(abs(data[LS][0] - pred) > err):
                                     if err != 0: errStr = str((data[LS][0]-pred)/err)
                                     else: errStr = "inf"
