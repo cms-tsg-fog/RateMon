@@ -458,7 +458,7 @@ class RateMonitor:
                             yvals.append(data/self.bunches)
                         elif self.pileUp:
                             ppInelXsec = 80000.
-                            orbitsPerSec = 11000.
+                            orbitsPerSec = 11246.
                             PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
                             iLuminosity.append(PU)
                             yvals.append(data/self.bunches)
