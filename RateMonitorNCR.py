@@ -818,7 +818,10 @@ class RateMonitor:
                 if self.predictionRec.has_key(triggerName):
                     if self.allRates[runNumber].has_key(triggerName): # In case some run did not contain this trigger
                         data = self.allRates[runNumber][triggerName]
-                        predList = self.predictionRec[triggerName][runNumber]
+                        
+                        if self.predictionRec[triggerName].has_key(runNumber): predList = self.predictionRec[triggerName][runNumber]
+                        else: continue
+
                         for LS, pred, err in predList:
                             if data.has_key(LS): # In case this LS is missing
 
