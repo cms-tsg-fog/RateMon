@@ -301,11 +301,12 @@ class ShiftMonitor:
                 self.slidingLS = -1 # No sliding LS window
                 self.lastLS = max( [self.lastLS, self.LSRange[0]] )
                 self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
+
         # If there are lumisection to show, print info for them
-        if self.currentLS > self.lastLS: self.printTable()
+        if self.currentLS > self.lastLS:
+            self.printTable()
         else:
-            #increment the amount of time a trigger has been bad if we can't get new data
-            for trigger in self.badRates: self.badRates[trigger][0] += 1
+            self.sendMailAlerts = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
