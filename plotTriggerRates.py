@@ -140,22 +140,22 @@ class MonitorController:
                 self.rateMonitor.doDataCut = True
                 self.rateMonitor.dataCut = float(op)
             elif label == "--streamRate":
-                self.rateMonitor.labelY = "Stream Rate [Hz]"
+                self.rateMonitor.labelY = "rate [Hz]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 0
                 self.rateMonitor.steam = False
             elif label == "--streamSize":
-                self.rateMonitor.labelY = "Stream Size [bytes]"
+                self.rateMonitor.labelY = "stream size [bytes]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 1
                 self.rateMonitor.steam = False
             elif label == "--streamBandwidth":
-                self.rateMonitor.labelY = "Stream Bandwidth [bytes]"
+                self.rateMonitor.labelY = "stream bandwidth [bytes]"
                 self.rateMonitor.dataCol = 2
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.steam = False
             elif label == "--datasetRate":
-                self.rateMonitor.labelY = "PrimaryDataset Rate [Hz]"
+                self.rateMonitor.labelY = "primary dataset rate [Hz]"
                 self.rateMonitor.plotDatasets = True
                 self.rateMonitor.dataCol = 0
                 self.rateMonitor.steam = False
