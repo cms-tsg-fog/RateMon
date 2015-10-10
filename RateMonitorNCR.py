@@ -297,10 +297,22 @@ class RateMonitor:
                         message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                         self.errFile.write(message)
             elif not self.plotDatasets: # Otherwise, make plots for each stream
+                sumPhysics = "HLT_Physics_Streams"
                 for streamName in dataList:
-                    if not plottingData.has_key(streamName):
-                        plottingData[streamName] = {}
+                    if not plottingData.has_key(streamName): plottingData[streamName] = {}
                     plottingData[streamName][runNumber] = dataList[streamName]
+                    
+                    if not plottingData.has_key(sumPhysics):
+                        plottingData[sumPhysics] = {}
+                    if streamName[0:7] =="Physics" and not plottingData[sumPhysics].has_key(runNumber):
+                        plottingData[sumPhysics][runNumber] = plottingData[streamName][runNumber]
+                    elif streamName[0:7] =="Physics":
+                        if plottingData[sumPhysics] != {}:
+                            ls_number =0
+                            for rate in plottingData[streamName][runNumber][1]:
+                                plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                                ls_number +=1
+                            
             else: # Otherwise, make plots for each dataset
                 for pdName in dataList:
                     if not plottingData.has_key(pdName):
