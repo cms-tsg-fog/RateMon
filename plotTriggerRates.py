@@ -259,7 +259,6 @@ class MonitorController:
         print "--streamRate           : Plots the stream rate vs inst lumi."
         print "--streamSize           : Plots the stream size vs inst lumi."
         print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
-        print "--fitStreams           : Creates a fit of whatever stream data we are plotting."
         print "--datasetRate          : Plots the PD rate vs inst lumi."
         print "\nCut/Normalization Options:"
         print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
