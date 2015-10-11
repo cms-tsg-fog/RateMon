@@ -30,6 +30,10 @@ from FitFinder import *
 # For Printing errors
 from ErrorPrinter import *
 
+# --- 13 TeV constant values ---
+ppInelXsec = 80000.
+orbitsPerSec = 11246.
+
 ## ----------- End Imports ------------ ##
 
 # Class RateMonitor:
@@ -470,8 +474,6 @@ class RateMonitor:
                             iLuminosity.append(ilum/self.bunches) 
                             yvals.append(data/self.bunches)
                         elif self.pileUp:
-                            ppInelXsec = 80000.
-                            orbitsPerSec = 11246.
                             PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
                             iLuminosity.append(PU)
                             yvals.append(data/self.bunches)
