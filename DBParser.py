@@ -511,7 +511,7 @@ class DBParser:
             bunches= [ int(bunches[0]), int(bunches[1]) ]
             return bunches
         except:
-            print "database error querying for num colliding bx" 
+            #print "database error querying for num colliding bx" 
             return [0, 0]
 
     
