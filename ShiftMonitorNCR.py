@@ -852,7 +852,10 @@ class ShiftMonitor:
         else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
         fitFunc = TF1("Fit_"+triggerName, funcStr)
         if True:
-            return self.numBunches[0]*fitFunc.Eval(ilum / self.numBunches[0])
+            if self.numBunches[0] > 0:
+                return self.numBunches[0]*fitFunc.Eval(ilum / self.numBunches[0])
+            else:
+                return 0
         return fitFunc.Eval(ilum)
 
     # Use: Gets the MSE of the fit

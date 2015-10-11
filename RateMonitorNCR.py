@@ -84,7 +84,7 @@ class RateMonitor:
         self.errFileName = ""    # The name of the error file
         self.errFile = None      # A file to output errors to
         
-        self.certifyMode = False        # False -> Primary mode, True -> Secondary mode
+        self.certifyMode = False # False -> Primary mode, True -> Secondary mode
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
