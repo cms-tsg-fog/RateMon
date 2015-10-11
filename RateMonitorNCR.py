@@ -264,23 +264,24 @@ class RateMonitor:
         if self.outputOn: print ""  # Print a newline (just for formatting)
         counter = 0 # Make sure we process at most MAX runs
         for runNumber in self.runList[self.offset : self.lastRun]:
-            print "(",counter+1,") Processing run", runNumber
+            print "(",counter+1,") Processing run", runNumber,
 
             # Get number of bunches (if requested)
             if self.divByBunches or self.pileUp:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
                 if self.bunches is None and not self.includeNoneBunches or self.bunches is 0:
-                    print "Cannot get number of bunches for this run: skipping this run.\n"
+                    print "Cannot get number of bunches: skipping this run.\n"
                     counter += 1
                     continue # Skip this run
-                print "Run %s has %s bunches." % (runNumber, self.bunches)
-                
+                print "(%s colliding bunches)" % (self.bunches)
+            else:
+                print " "
             # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
             dataList = self.getData(runNumber)
 
             if dataList == {}:
                 # The run does not exist (or some other critical error occured)
-                print "Fatal error for run %s, could not retrieve data. Probably Lumi was None or physics was not active.\nMoving on." % (runNumber) # Info message
+                print "Fatal error for run %s, could not retrieve data. Probably Lumi was None or physics was not active. Moving on." % (runNumber) # Info message
                 counter += 1
                 continue
                 
