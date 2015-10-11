@@ -26,6 +26,10 @@ import getopt
 # For mail alerts
 from mailAlert import mailAlert
 
+# --- 13 TeV constant values ---
+ppInelXsec = 80000.
+orbitsPerSec = 11246.
+
 # Use: Writes a string in a fixed length margin string (pads with spaces)
 def stringSegment(strng, tot):
     string = str(strng)
@@ -71,6 +75,7 @@ class ShiftMonitor:
         self.cosmics = False            # Is the trigger in a cosmics mode
         # Columns header
         self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
+        self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in cosmics mode 
@@ -851,9 +856,9 @@ class ShiftMonitor:
         if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
         else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
         fitFunc = TF1("Fit_"+triggerName, funcStr)
-        if True:
+        if self.pileUp:
             if self.numBunches[0] > 0:
-                return self.numBunches[0]*fitFunc.Eval(ilum / self.numBunches[0])
+                return self.numBunches[0]*fitFunc.Eval(ilum/self.numBunches[0]*ppInelXsec/orbitsPerSec)
             else:
                 return 0
         return fitFunc.Eval(ilum)
@@ -866,7 +871,7 @@ class ShiftMonitor:
             return 0
         if self.L1: paramlist = self.InputFitL1[triggerName]
         else: paramlist = self.InputFitHLT[triggerName]
-        if True:
+        if self.pileUp:
             return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
 
