@@ -566,8 +566,11 @@ class ShiftMonitor:
                 if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
             else:
                 print PScol
-        print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        print "Average dead time: %s %%" % (aveDeadTime)
+        try:
+            print "Average inst. lumi: %.0f x 10^30 cm-2 s-1" % (aveLumi)
+        except:
+            print "Average inst. lumi: Not available"
+        print "Average dead time: %.2f %%" % (aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
