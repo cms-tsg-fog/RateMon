@@ -72,7 +72,7 @@ class RateMonitor:
         # Trigger Options
         self.L1Triggers = False  # If True, then we get the L1 trigger Data
         self.HLTTriggers = True  # If True, then we get the HLT trigger Data
-        self.correctForDT = False # Correct rates for deadtime
+        self.correctForDT = True # Correct rates for deadtime
         self.savedAFile = False  # True if we saved at least one file
 
         # Stream + PD Options
