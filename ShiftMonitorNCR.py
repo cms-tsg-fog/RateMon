@@ -562,12 +562,15 @@ class ShiftMonitor:
             print "Prescale column index:", 
             if PScol == 0:
                 if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
-                print PScol, "\tcolumn 0 is an emergency colum: be sure to be authorized by the HLT DOC"
+                print PScol, "\t0 - Column 0 is an emergency column in collision mode, please select the proper column"
                 if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
             else:
                 print PScol
-        print "Average inst. lumi: %s x 10^30 cm-2 s-1" % (aveLumi)
-        print "Average dead time: %s %%" % (aveDeadTime)
+        try:
+            print "Average inst. lumi: %.0f x 10^30 cm-2 s-1" % (aveLumi)
+        except:
+            print "Average inst. lumi: Not available"
+        print "Average dead time: %.2f %%" % (aveDeadTime)
         print '*' * self.hlength
 
     # Use: Prints the table header
@@ -848,6 +851,8 @@ class ShiftMonitor:
         if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
         else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
         fitFunc = TF1("Fit_"+triggerName, funcStr)
+        if True:
+            return self.numBunches[0]*fitFunc.Eval(ilum / self.numBunches[0])
         return fitFunc.Eval(ilum)
 
     # Use: Gets the MSE of the fit
@@ -858,6 +863,8 @@ class ShiftMonitor:
             return 0
         if self.L1: paramlist = self.InputFitL1[triggerName]
         else: paramlist = self.InputFitHLT[triggerName]
+        if True:
+            return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
 
     # Use: Sends an email alert
