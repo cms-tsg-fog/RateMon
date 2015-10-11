@@ -126,7 +126,7 @@ class RateMonitor:
         self.dataCut = 0.0       # The rate cut value
         self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
-        self.maxDeadTime = 0.08  # the maximum acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
+        self.maxDeadTime = 8.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -443,7 +443,7 @@ class RateMonitor:
         for LS in deadTime:
             for triggerName in Rates:
                 if Rates[triggerName].has_key(LS): # Sometimes, LS's are missing
-                    Rates[triggerName][LS][0] *= (1+deadTime[LS])
+                    Rates[triggerName][LS][0] *= (1+deadTime[LS]/100)
                     if deadTime[LS] > self.maxDeadTime and not self.certifyMode: del Rates[triggerName][LS] #do not plot lumis where deadtime is greater than                
 
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
