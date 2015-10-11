@@ -20,16 +20,21 @@ HLT_Photon36_R9Id85_OR_CaloId24b40e_Iso50T80L_Photon22_AND_HE10_R9Id65_Eta2_Mass
 HLT_QuadJet45_TripleBTagCSV0p67_v3
 #HLT_ZeroBias_v2
 ### L1 paths ###
-L1_SingleMuOpen
+#L1_SingleMuOpen
 L1_SingleMu16
+L1_SingleMu25
 L1_SingleMu20er
-L1_SingleEG5
+#L1_SingleEG5
+L1_SingleIsoEG18er
+L1_SingleIsoEG30er
 L1_SingleEG20
 L1_SingleEG30
 L1_SingleEG40
-L1_SingleJet36
+#L1_SingleJet36
 L1_SingleJet68
+L1_SingleJet128
 L1_SingleJet200
+L1_DoubleJetC100
 L1_ETM70
 L1_HTT175
 ### 0T paths ###
