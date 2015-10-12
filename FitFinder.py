@@ -35,6 +35,7 @@ class FitFinder:
         self.topSkim = 0.0            # Portion of points with high y values that get removed
         self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
         self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
+        self.forceZero = False        # If true, the function is forced to include the (0, 0) value
         self.forceLinear = False      # If true, we only try a linear fit
         self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
@@ -203,6 +204,13 @@ class FitFinder:
         if maxindex!=minindex: slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
         else: slopeGuess = 0
         
+        if self.forceZero:
+            linear.FixParameter(0, 0.)
+            quad.FixParameter(0, 0.)
+            cube.FixParameter(0, 0.)
+            exp.FixParameter(0, 0.)
+            
+            
         linear.SetParameters(0, slopeGuess)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
         linearMSE = self.getMSE(linear, xVals, yVals)
