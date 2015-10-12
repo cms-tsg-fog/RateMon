@@ -104,7 +104,8 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        self.maxHLTRate = 250           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 250           # The maximum prescaled rate we 
+allow an HLT Trigger to have
         self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
@@ -116,6 +117,7 @@ class ShiftMonitor:
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
         self.lumi_ave = "NONE"
+        self.pu_ave = "NONE"
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -450,6 +452,10 @@ class ShiftMonitor:
             return
 
         self.lumi_ave = aveLumi
+        if self.numBunches[0] > 0:
+            self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
+        else:
+            self.pu_ave = "NONE"
         # We only do predictions when there were physics active LS in a collisions run
         doPred = physicsActive and self.mode=="collisions"
         # Print the header
@@ -586,7 +592,7 @@ class ShiftMonitor:
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
         print "Latest LHC Status: %s" % self.parser.getLHCStatus()[1]
-        print "Number of colliding bunches: %s" % self.numBunches[1]
+        print "Number of colliding bunches: %s" % self.numBunches[0]
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
         print "Number of streams:", self.totalStreams
@@ -883,14 +889,21 @@ class ShiftMonitor:
     # Returns: (void)
     def sendMail(self, mailTriggers):
         mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
-        try: mail += "Average inst. lumi: %.3f x 10^30 cm-2 s-1\n \n" % (self.lumi_ave)
-        except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n \n" % (self.lumi_ave)
+        try: mail += "Average inst. lumi: %.3f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+        except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+        
+        try: mail += "Average PU: %.0f\n \n" % (self.pu_ave)
+        except: mail += "Average PU: %s\n \n" % (self.pu_ave)
         
         mail += "The following path rate(s) are deviating from expected values: \n\n"
 
         for triggerName, rate, expected, dev in mailTriggers:
-            try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35),expected, rate, dev)
-            except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35),expected, rate, dev)
+        
+            if self.numBunches[0] == 0:
+                mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+            else:
+                try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Expected/nBunches: %.3f Hz, Actual/nBunches: %.3f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
+                except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
             
             if expected > 0: mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)
             try:
