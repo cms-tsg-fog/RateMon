@@ -472,7 +472,8 @@ class ShiftMonitor:
         self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
 
         #check the full menu for paths deviating past thresholds
-        for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, doPred, aveLumi)        
+        fullMenu_fits = False
+        for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, aveLumi)
 
         # Print the triggers that we can't make predictions for
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
@@ -595,9 +596,10 @@ class ShiftMonitor:
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0):
         self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+
         # Get the trigger data
-        for trigger in triggerList:
-            self.getTriggerData(trigger, doPred, aveLumi)
+        for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
+        
         # Sort by % diff if need be
         if doPred:
             # [4] is % diff, [6] is deviation
@@ -631,11 +633,11 @@ class ShiftMonitor:
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
-        if ((self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) \
-                                or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept))) or \
-                                ((perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and \
-                                dev!="INF" and dev!="" and abs(dev)>self.devAccept)) or (isL1 and psrate>self.maxL1Rate) \
-                                or (not isL1 and psrate>self.maxHLTRate): return True
+        if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
+        or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
+        or (isL1 and psrate>self.maxL1Rate)\
+        or (not isL1 and psrate>self.maxHLTRate): return True
+        
         return False
 
     # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
