@@ -451,7 +451,7 @@ class ShiftMonitor:
             return
 
         self.lumi_ave = aveLumi
-        if self.numBunches[0] > 0:
+        if self.numBunches[0] > 0 and not aveLumi == "NONE":
             self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
             self.pu_ave = "NONE"
