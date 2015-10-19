@@ -72,7 +72,6 @@ class ShiftMonitor:
         # Mode
         self.triggerMode = None         # The trigger mode
         self.mode = None                # Mode: cosmics, circulate, physics
-        self.cosmics = False            # Is the trigger in a cosmics mode
         # Columns header
         self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
@@ -223,14 +222,11 @@ class ShiftMonitor:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
                 self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
-                # Run the main functionality
                 self.runLoop()      
-                # Check for bad triggers
                 self.checkTriggers()
-                # Sleep before re-querying
                 self.sleepWait()
-                self.sendMailAlerts = True
-                # This loop is infinite, the user must forcefully exit
+                if self.mode == "collisions": self.sendMailAlerts = True
+                else: self.sendMailAlerts = False
             except KeyboardInterrupt:
                 print "Quitting. Bye."
                 break
@@ -317,9 +313,7 @@ class ShiftMonitor:
 
     def setMode(self):
         self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
-        self.cosmics = False
         if self.triggerMode.find("cosmics") > -1:
-            self.cosmics = True
             self.mode = "cosmics"
         elif self.triggerMode.find("circulate") > -1:
             self.mode = "circulate"
@@ -420,7 +414,7 @@ class ShiftMonitor:
             print "Error getting deadtime data"
             
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
-        if not self.cosmics:
+        if self.mode != "cosmics":
             lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
             self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
             # Find the average lumi since we last checked
@@ -655,9 +649,9 @@ class ShiftMonitor:
         # In case of critical error (this shouldn't occur)
         if not self.Rates.has_key(trigger): return
         # If cosmics, don't do predictions
-        if self.cosmics: doPred = False
+        if self.mode == "cosmics": doPred = False
         # Calculate rate
-        if not self.cosmics and doPred:
+        if self.mode != "cosmics" and doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
                 # Don't let expected value be negative
