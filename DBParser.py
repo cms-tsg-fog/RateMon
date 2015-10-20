@@ -86,7 +86,7 @@ class DBParser:
     def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999):
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
-        sqlquery="""SELECT LUMISECTION,INSTLUMI, PRESCALE_INDEX, PHYSICS_FLAG
+        sqlquery="""SELECT LUMISECTION,INSTLUMI, PRESCALE_INDEX, PHYSICS_FLAG*BEAM1_PRESENT
         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s
         AND A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
