@@ -545,6 +545,21 @@ class DBParser:
             
         return deadTime
 
+    
+    # Use: Gets the total L1 rate as a function of lumisection
+    # Returns: A dictionary: [ LS ] <Deadtime>
+    def getL1rate(self, runNumber):
+        sqlquery="""SELECT SECTION_NUMBER, TRG_RATE_TOTAL FROM CMS_TCDS_MONITORING.tcds_cpm_rates_v WHERE RUN_NUMBER=%s""" % (runNumber)
+        
+        self.curs.execute(sqlquery)
+        
+        l1rate = {}
+        for ls, rate in self.curs.fetchall():
+            l1rate[ls] = rate
+            
+        return l1rate    
+
+
     # Use: Returns the number of the latest run to be stored in the DB
     def getLatestRunInfo(self):
         query="""SELECT MAX(A.RUNNUMBER)
