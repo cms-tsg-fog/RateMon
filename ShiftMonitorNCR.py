@@ -412,6 +412,16 @@ class ShiftMonitor:
             deadTimeData = {}
             aveDeadTime = None
             print "Error getting deadtime data"
+        
+        # Get total L1 rate
+        l1rate = 0
+        try:
+            l1rateData = self.parser.getL1rate(self.runNumber)
+            aveL1rate = 0
+        except:
+            l1rateData = {}
+            aveL1rate = None
+            print "Error getting total L1 rate data"
             
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if self.mode != "cosmics":
@@ -427,10 +437,10 @@ class ShiftMonitor:
                 if not instLumi is None and physics:
                     physicsActive = True
                     PScol = psi
-                    if not aveDeadTime is None and deadTimeData.has_key(LS):
-                        aveDeadTime += deadTimeData[LS]
-                    else:
-                        aveDeadTime = 0
+                    if not aveDeadTime is None and deadTimeData.has_key(LS): aveDeadTime += deadTimeData[LS]
+                    else: aveDeadTime = 0
+                    if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
+                    else: aveL1rate = 0
                     aveLumi += instLumi
                     count += 1
             if count == 0:
@@ -439,6 +449,7 @@ class ShiftMonitor:
             else:
                 aveLumi /= float(count)
                 aveDeadTime /= float(count)
+                aveL1rate /= float(count)
         # If we demand a non NONE ave lumi, check that here
         if self.requireLumi and aveLumi == "NONE":
             if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
@@ -575,6 +586,7 @@ class ShiftMonitor:
             print "Average inst. lumi: %.0f x 10^30 cm-2 s-1" % (aveLumi)
         except:
             print "Average inst. lumi: Not available"
+        print "Total L1 rate: %.0f Hz" % (aveL1rate)
         print "Average dead time: %.2f %%" % (aveDeadTime)
         print '*' * self.hlength
 
@@ -882,7 +894,7 @@ class ShiftMonitor:
     # Returns: (void)
     def sendMail(self, mailTriggers):
         mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
-        try: mail += "Average inst. lumi: %.3f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+        try: mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         
         try: mail += "Average PU: %.2f\n \n" % (self.pu_ave)
