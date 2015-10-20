@@ -12,6 +12,7 @@
 
 # Imports
 import cx_Oracle
+import socket
 # For the parsing
 import re
 
@@ -26,7 +27,11 @@ class DBParser:
 
     def __init__(self) :
         # Connect to the Database
-        orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn='cms_omds_lb')
+        hostname = socket.gethostname()
+        if hostname.find('lxplus') > -1: self.dsn_ = 'cms_omds_adg' #offline
+        else: self.dsn_ = 'cms_omds_lb' #online
+
+        orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn=self.dsn_)
         # Create a DB cursor
         self.curs = orcl.cursor()
 
@@ -48,12 +53,12 @@ class DBParser:
     # Returns: a cursor to the HLT database
     def getHLTCursor(self):
         # Gets a cursor to the HLT database
-        orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn='cms_omds_lb')
+        orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn=self.dsn_)
         return orcl.cursor()
 
     # Returns: a cursor to the trigger database
     def getTrgCursor(self):
-        orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn='cms_omds_lb')
+        orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn=self.dsn_)
         return orcl.cursor()
 
 
