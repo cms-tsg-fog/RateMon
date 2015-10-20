@@ -67,7 +67,6 @@ class RateMonitor:
         
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
-        self.nameGiven = False   # Whether a user defined name was given as the save name
         
         self.parser = DBParser() # A database parser
         self.lastRun = 0         # The last run in the run list that will be considered
@@ -108,7 +107,6 @@ class RateMonitor:
         self.divByBunches = False# If true, we divide by the number of colliding bunches
         self.pileUp = False
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
-        self.includeNoneBunches = False  # Whether we should plot data from runs where we can't get the number of colliding bunches
         self.showEq = True       # Whether we should show the fit equation on the plot
         self.dataCol = 0         # The column of the input data that we want to use as our y values
         
@@ -226,7 +224,8 @@ class RateMonitor:
         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
         if self.useFit or self.fit or (self.certifyMode and not self.InputFit is None): fitOpt = "Fitted"
         else: fitOpt = "NoFit"
-        if not self.nameGiven: self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
+
+        self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
 
 
         # Remove any root files that already have that name
@@ -273,7 +272,7 @@ class RateMonitor:
             # Get number of bunches (if requested)
             if self.divByBunches or self.pileUp:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
-                if self.bunches is None and not self.includeNoneBunches or self.bunches is 0:
+                if self.bunches is None or self.bunches is 0:
                     print "Cannot get number of bunches: skipping this run.\n"
                     counter += 1
                     continue # Skip this run

@@ -37,9 +37,9 @@ class MonitorController:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
-                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT", "includeNoneBunches", "normalizeCollidingBx",
-                                                       "L1Triggers", "AllTriggers", "aLaMode", "hideEq", "datasetRate", "streamRate", "streamBandwidth", "streamSize",
-                                                       "noPNG","pileUp"])
+                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT", "normalizeCollidingBx",
+                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize",
+                                                       "pileUp"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -131,8 +131,6 @@ class MonitorController:
                 if not self.rateMonitor.certifyMode: self.rateMonitor.divByBunches = True
             elif label =="--pileUp":
                 if not self.rateMonitor.certifyMode: self.rateMonitor.pileUp = True                
-            elif label == "--includeNoneBunches":
-                self.rateMonitor.includeNoneBunches = Trues
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)
@@ -159,12 +157,6 @@ class MonitorController:
                 self.rateMonitor.plotDatasets = True
                 self.rateMonitor.dataCol = 0
                 self.rateMonitor.steam = False
-            elif label == "--hideEq":
-                self.rateMonitor.showEq = False
-            elif label == "--noPNG":
-                self.rateMonitor.png = False
-            elif label == "--aLaMode":
-                self.aLaMode()
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -231,13 +223,7 @@ class MonitorController:
         print "--runFile=<name>       : Loads a list of runs to consider from the file named <name>."
         print "--runList=<name>       : Same as --runFile (see above)."
         print "--jsonFile=<name>      : Filter runs and lumisections according the to provided JSON file."
-        print "--steamFile=<name>     : Uses the data from the .csv file <name> to plot steam's predicted rates."
-        print "--steamFile=<name>     : A .csv file containing steam data estimates to plot on the graph."
         print "--triggerList=<name>   : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
-        print "\nSave Options:"
-        print "--saveName=<name>      : Saves the root output as a file named <name>."
-        print "--fitSaveName=<name>   : A name to save the fit file in. Primary mode feature only, not for batch mode."
-        print "--saveDirectory=<name> : The name of a directory that we will save all our file in. Useful for batch mode."
         print "\nRun Options:"
         print "--maxRuns=<number>     : Changes the maximum number of runs that the program will put on a single chart. The default is 12 since we have 12 unique colors specified."
         print "--Secondary            : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
@@ -253,25 +239,19 @@ class MonitorController:
         print "--linear               : Forces fits to be linear"
         print "--correctForDT         : Correct rates for deadtime"
         #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
-        print "--hideEq               : Doesn't print the fit equation on the plot."
-        print "--noPNG                : Won't save png copies of all the fits. Saves a lot of fime."
         print "Other Fitting Options:"
         print "--streamRate           : Plots the stream rate vs inst lumi."
         print "--streamSize           : Plots the stream size vs inst lumi."
         print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
         print "--datasetRate          : Plots the PD rate vs inst lumi."
         print "\nCut/Normalization Options:"
-        print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
-        print "--datCut=<num>         : Any lumisection with plottable data (usually rate) less then <num> will not be plotted or considered in the fit making. (Default is 0.0)"
-        print "--normalizeCollidingBx : Divides the instantaneous luminosity by the number of colliding bunches."
-        print "--includeNoneBunches   : By default, if we normalize by the number of colliding bunches and we find a run where we cannot retrieve the number of colliding bunches,"
+#        print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
+#        print "--datCut=<num>         : Any lumisection with plottable data (usually rate) less then <num> will not be plotted or considered in the fit making. (Default is 0.0)"
         print "                         we skip that run. This overrides that functionality."
         print "--pileUp               : Plots rate/nbx vs < PU >"
         print "Trigger Options"
         print "--L1Triggers           : ONLY L1 triggers are monitored for the runs."
         print "--AllTriggers          : Both L1 and HLT triggers are monitored for the runs."
-        print "\nSecret Options"
-        print "--???"
         print ""
         print "In your run file, you can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
         print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
@@ -329,22 +309,6 @@ class MonitorController:
             except:
                 print "Error parsing trigger name in file", fileName
 
-    def aLaMode(self):
-        print ""
-        print """        .-"''"-.   """
-        print "       /        \  "
-        print "       |        |  "
-        print "       /'---'--`\  "
-        print "      |          | "
-        print "      \.--.---.-./ "
-        print "      (_.--._.-._) "
-        print "        \=-=-=-/   "
-        print "         \=-=-/    "
-        print "          \=-/     "
-        print "           \/      "
-        print ""
-    
-                                    
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     # Returns: (void)
     def run(self):
