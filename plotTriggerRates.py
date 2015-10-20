@@ -45,8 +45,7 @@ class MonitorController:
             return False
 
         if len(opt) == 0 and len(args) == 0:
-            print "\nWe do need some options to make this program work you know. We can't read your mind."
-            print "Use 'python plotTriggerRates.py --Help' to see options.\n"
+            self.printOptions()
             return False
         
         # Process Options
@@ -211,7 +210,7 @@ class MonitorController:
     def printOptions(self):
         print ""
         print "Usage: python plotTriggerRates.py [Options] <list of runs (optional)>"
-        print "<list of runs>        : Either single runs (like '10000') or ranges (like '10001-10003'). If you specified a file with a list of runs"
+        print "\n<list of runs>        : Either single runs (like '10000') or ranges (like '10001-10003'). If you specified a file with a list of runs"
         print "                        in it, you do not need to specify runs on the command line. If you do both, they will simply be added to the "
         print "                        RateMonitor class's internal list of runs to process"
         print ""
