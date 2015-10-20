@@ -885,7 +885,7 @@ class ShiftMonitor:
         try: mail += "Average inst. lumi: %.3f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         
-        try: mail += "Average PU: %.0f\n \n" % (self.pu_ave)
+        try: mail += "Average PU: %.2f\n \n" % (self.pu_ave)
         except: mail += "Average PU: %s\n \n" % (self.pu_ave)
         
         mail += "The following path rate(s) are deviating from expected values: \n\n"
@@ -895,7 +895,7 @@ class ShiftMonitor:
             if self.numBunches[0] == 0:
                 mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
-                try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Expected/nBunches: %.3f Hz, Actual/nBunches: %.3f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
+                try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
                 except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
             
             if expected > 0: mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)
