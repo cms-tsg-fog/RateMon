@@ -456,6 +456,19 @@ class ShiftMonitor:
                 aveLumi /= float(count)
                 aveDeadTime /= float(count)
                 aveL1rate /= float(count)
+        else:
+            count = 0
+            for LS in l1rateData.keys():
+                if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
+                if not aveDeadTime is None and deadTimeData.has_key(LS): aveDeadTime += deadTimeData[LS]
+                else: aveDeadTime = 0
+                if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
+                else: aveL1rate = 0
+            if not count == 0:
+                aveDeadTime /= float(count)
+                aveL1rate /= float(count)
+            
+            
         # If we demand a non NONE ave lumi, check that here
         if self.requireLumi and aveLumi == "NONE":
             if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
