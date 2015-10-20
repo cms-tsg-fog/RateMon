@@ -202,7 +202,10 @@ class ShiftMonitor:
             print "The current run number is %s." % (self.runNumber)
         # If we are observing a single run from the past
         elif not self.simulate:
-            self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+            try:
+                self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+            except:
+                self.triggerMode = "Other"
             self.getRates()
             self.runLoop()
             self.checkTriggers()
@@ -312,7 +315,10 @@ class ShiftMonitor:
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
-        self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+        try:
+            self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+        except:
+            self.triggerMode = "Other"
         if self.triggerMode.find("cosmics") > -1:
             self.mode = "cosmics"
         elif self.triggerMode.find("circulate") > -1:
