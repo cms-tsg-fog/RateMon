@@ -655,8 +655,6 @@ class RateMonitor:
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
             funcLeg.Draw()
-            canvas.SetGridx(1);
-            canvas.SetGridy(1);
             canvas.Update()
         # draw text
         latex = TLatex()
@@ -670,6 +668,9 @@ class RateMonitor:
         latex.SetTextFont(52)
         latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
         
+        canvas.SetGridx(1);
+        canvas.SetGridy(1);
+
         canvas.Update()
         # Draw Legend
         legend.SetHeader("%s runs:" % (len(plottingData)))
