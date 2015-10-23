@@ -506,7 +506,9 @@ class DBParser:
         # Get Fill number first
         sqlquery = "SELECT LHCFILL FROM CMS_WBM.RUNSUMMARY WHERE RUNNUMBER=%s" % (runNumber)
         self.curs.execute(sqlquery)
-        fill = self.curs.fetchall()[0][0]
+        
+        try: fill = self.curs.fetchone()[0]
+        except: return [0,0]
         
         # Get the number of colliding bunches
         sqlquery = "SELECT NCOLLIDINGBUNCHES, NTARGETBUNCHES FROM CMS_RUNTIME_LOGGER.RUNTIME_SUMMARY WHERE LHCFILL=%s" % (fill)
