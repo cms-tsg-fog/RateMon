@@ -534,13 +534,13 @@ class RateMonitor:
             nameX = "< PU >"
             xunits = ""
             self.labelY = "unprescaled rate / num colliding bx [Hz]"
+        else:
+            xunits = "[10^{30} Hz/cm^{2}]"
+            nameX = "instantaneous luminosity"
         if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
             self.labelY = "unprescaled rate [Hz]"
-        else:
-            xunits = "[10^{30} Hz/cm^{2}]"
-            nameX = "instantaneous luminosity"
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
