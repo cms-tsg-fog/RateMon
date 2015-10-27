@@ -25,6 +25,7 @@ from colors import *
 import getopt
 # For mail alerts
 from mailAlert import mailAlert
+from Logger import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -38,6 +39,7 @@ def stringSegment(strng, tot):
     return string
 
 # Alias for sys.stdout.write
+sys.stdout = Logger()
 write = sys.stdout.write
 
 # Class ShiftMonitor
