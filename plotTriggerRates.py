@@ -57,6 +57,7 @@ class MonitorController:
                 self.rateMonitor.maxRuns = 1 # Only do one run at a time
                 self.rateMonitor.fit = False # We don't make fits in secondary mode
                 self.rateMonitor.useFit = False # We don't plot a function, just a prediction
+                self.rateMonitor.L1Triggers = True
             elif label == "--fitFile":
                 self.rateMonitor.fitFile = str(op)
                 print "Using fit file:", self.rateMonitor.fitFile
