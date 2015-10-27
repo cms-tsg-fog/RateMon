@@ -94,7 +94,7 @@ class ErrorPrinter:
 
             file.write("\n---- Total bad LS: %s  ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % (totalErrs))
             file.write("---- Total LS: %s\n" % (totalLumis))
-            file.write("---- Fraction bad LS: %s%% \n" % (fractionBadLumis))
+            file.write("---- Fraction bad LS: %s %% \n" % (fractionBadLumis))
             
         file.close()
 
