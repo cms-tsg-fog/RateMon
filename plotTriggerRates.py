@@ -37,7 +37,7 @@ class MonitorController:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
-                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT", "normalizeCollidingBx",
+                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize",
                                                        "pileUp"])
         except:
@@ -57,7 +57,6 @@ class MonitorController:
                 self.rateMonitor.maxRuns = 1 # Only do one run at a time
                 self.rateMonitor.fit = False # We don't make fits in secondary mode
                 self.rateMonitor.useFit = False # We don't plot a function, just a prediction
-                self.rateMonitor.divByBunches = False # We don't divide the LS by the # of bunches
             elif label == "--fitFile":
                 self.rateMonitor.fitFile = str(op)
                 print "Using fit file:", self.rateMonitor.fitFile
@@ -127,10 +126,9 @@ class MonitorController:
                 self.rateMonitor.fitFinder.forceLinear = True
             elif label == "--correctForDT":
                 self.rateMonitor.correctForDT = True
-            elif label == "--normalizeCollidingBx":
-                if not self.rateMonitor.certifyMode: self.rateMonitor.divByBunches = True
             elif label =="--pileUp":
-                if not self.rateMonitor.certifyMode: self.rateMonitor.pileUp = True                
+                self.rateMonitor.pileUp = True
+            #            if not self.rateMonitor.certifyMode: self.rateMonitor.pileUp = True
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)

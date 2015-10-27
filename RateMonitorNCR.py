@@ -104,8 +104,7 @@ class RateMonitor:
         self.OutputFit = None    # The fit that we can make in primary mode
         self.outFitFile = ""     # The name of the file that we will save an output fit to
         self.fitFinder = FitFinder()  # A fit finder object
-        self.divByBunches = False# If true, we divide by the number of colliding bunches
-        self.pileUp = False
+        self.pileUp = True
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.showEq = True       # Whether we should show the fit equation on the plot
         self.dataCol = 0         # The column of the input data that we want to use as our y values
@@ -270,7 +269,7 @@ class RateMonitor:
             print "(",counter+1,") Processing run", runNumber,
 
             # Get number of bunches (if requested)
-            if self.divByBunches or self.pileUp:
+            if self.pileUp:
                 self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
                 if self.bunches is None or self.bunches is 0:
                     print "Cannot get number of bunches: skipping this run.\n"
@@ -471,10 +470,7 @@ class RateMonitor:
                     data = Data[name][LS][self.dataCol]
                     # We apply our cuts here if they are called for
                     if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doDataCut or data > self.dataCut):
-                        if self.divByBunches:
-                            iLuminosity.append(ilum/self.bunches) 
-                            yvals.append(data/self.bunches)
-                        elif self.pileUp:
+                        if self.pileUp:
                             PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
                             iLuminosity.append(PU)
                             yvals.append(data/self.bunches)
@@ -534,17 +530,17 @@ class RateMonitor:
         if maxVal==0 or maxRR==0: # No good data
             return
         # Set axis names/units, create canvas
+        if self.pileUp:
+            nameX = "< PU >"
+            xunits = ""
+            self.labelY = "unprescaled rate / num colliding bx [Hz]"
         if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
+            self.labelY = "unprescaled rate [Hz]"
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "instantaneous luminosity"
-        if self.divByBunches:
-            nameX += " / (num colliding bunches)"
-        elif self.pileUp:
-            nameX = "< PU >"
-            xunits = ""
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
@@ -592,7 +588,6 @@ class RateMonitor:
         # We only load the iLumi info for one of the runs to make the prediction, use the run with the most LS's
         pickRun = 0
         maxLS = 0
-        if self.divByBunches or self.pileUp: self.labelY = "unprescaled rate / num colliding bx [Hz]"
         
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
@@ -764,13 +759,14 @@ class RateMonitor:
         for LS, ilum, psi, phys in iLumi:
             if not ilum is None and phys:
                 lumisecs.append(LS)
+                pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
                 # Either we have an exponential fit, or a polynomial fit
-                if type == "exp": rr = X0 + X1*math.exp(X2+X3*ilum)
-                else: rr = X0 + ilum*X1 + (ilum**2)*X2 + (ilum**3)*X3 # Maybe save some multiplications
+                if type == "exp": rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
+                else: rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
                 if rr<0: rr=0 # Make sure prediction is non negative
                 predictions.append(rr)
                 lsError.append(0)
-                predError.append(self.sigmas*sigma)
+                predError.append(self.bunches*self.sigmas*sigma)
         # Record for the purpose of doing checks
         self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError) #charlie
         # Set some graph options
@@ -898,10 +894,7 @@ class RateMonitor:
 #         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
 #         extrapolationFileName = self.saveDirectory+"Fits.csv"
 #         extrapolations = open(extrapolationFileName,"w")
-#         if not self.divByBunches:
-#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi in units of [10^30 s^-1 cm^-2],\n")
-#         else:
-#             extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi/#colliding bx in units of [10^30 s^-1 cm^-2],\n")
+#         extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi/#colliding bx in units of [10^30 s^-1 cm^-2],\n")
 
 #         extrapolations.write("PATH, a, b, c, d, \n")
 #         for trigger in sorted(self.OutputFit):
