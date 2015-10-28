@@ -1,0 +1,1 @@
+python plotTriggerRates.py --createFit --linear --triggerList=monitorlist_COLLISIONS.list 260034 260035 260036 260037 260038 260039 260041 260043 260061 260062 260099 260100 260101
