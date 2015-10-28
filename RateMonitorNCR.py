@@ -53,7 +53,7 @@ class RateMonitor:
         self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
-        self.maxRuns = 30 # The maximum number of runs that we will process
+        self.maxRuns = 300 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -377,7 +377,9 @@ class RateMonitor:
             L1Rates = self.parser.getL1RawRates(runNumber)
             Rates.update(L1Rates)
         
-        if Rates == {}: return {} # The run (probably) doesn't exist
+        if Rates == {}:
+            print "trouble fetching rates from db"
+            return {} # The run (probably) doesn't exist
         
         
         # JSON filtering
@@ -581,7 +583,7 @@ class RateMonitor:
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
         # Create legend
-        left = 0.82; right = 0.98; top = 0.9; scaleFactor = 0.05; minimum = 0.1
+        left = 0.81; right = 0.98; top = 0.9; scaleFactor = 0.05; minimum = 0.1
         bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
         legend = TLegend(left,top,right,bottom)
 
