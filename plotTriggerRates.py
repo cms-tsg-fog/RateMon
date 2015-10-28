@@ -38,8 +38,7 @@ class MonitorController:
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT",
-                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize",
-                                                       "pileUp"])
+                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -127,9 +126,6 @@ class MonitorController:
                 self.rateMonitor.fitFinder.forceLinear = True
             elif label == "--correctForDT":
                 self.rateMonitor.correctForDT = True
-            elif label =="--pileUp":
-                self.rateMonitor.pileUp = True
-            #            if not self.rateMonitor.certifyMode: self.rateMonitor.pileUp = True
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)
@@ -225,7 +221,6 @@ class MonitorController:
         print "--sigma=<num>          : The acceptable tolerance for the fit. default is 3 sigma"
         #        print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
         print "--linear               : Forces fits to be linear"
-        print "--pileUp               : Plots rate/nbx vs < PU >"
         print "--L1Triggers           : ONLY L1 triggers are plotted for the runs."
         print "--AllTriggers          : Both L1 and HLT triggers are plotted for the runs."
         #        print "--correctForDT         : Correct rates for deadtime"
