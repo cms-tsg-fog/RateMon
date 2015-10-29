@@ -37,7 +37,7 @@ class MonitorController:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
-                                                       "debugFitter", "doAnyways", "rawPoints", "linear", "correctForDT",
+                                                       "debugFitter", "doAnyways", "rawPoints", "linear",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
         except:
             print "Error geting options: command unrecognized. Exiting."
@@ -124,8 +124,6 @@ class MonitorController:
                 self.rateMonitor.fitFinder.usePointSelection = False
             elif label == "--linear":
                 self.rateMonitor.fitFinder.forceLinear = True
-            elif label == "--correctForDT":
-                self.rateMonitor.correctForDT = True
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)
@@ -223,7 +221,6 @@ class MonitorController:
         print "--linear               : Forces fits to be linear"
         print "--L1Triggers           : ONLY L1 triggers are plotted for the runs."
         print "--AllTriggers          : Both L1 and HLT triggers are plotted for the runs."
-        #        print "--correctForDT         : Correct rates for deadtime"
         #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
         print "--streamRate           : Plots the stream rate vs inst lumi."
         print "--streamSize           : Plots the stream size vs inst lumi."
