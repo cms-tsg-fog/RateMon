@@ -58,6 +58,7 @@ class ShiftMonitor:
         self.HLTRates = None            # HLT rates
         self.L1Rates = None             # L1 rates
         self.Rates = None               # Combined L1 and HLT rates
+        self.deadTimeData = {}          # initializing deadTime dict
         # Run control
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
@@ -118,6 +119,7 @@ class ShiftMonitor:
         self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
+        self.deadTimeCorrection = True  # correct the rates for dead time
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -414,10 +416,10 @@ class ShiftMonitor:
         # Get the inst lumi
         aveLumi = 0
         try:
-            deadTimeData = self.parser.getDeadTime(self.runNumber)
+            self.deadTimeData = self.parser.getDeadTime(self.runNumber)
             aveDeadTime = 0
         except:
-            deadTimeData = {}
+            self.deadTimeData = {}
             aveDeadTime = None
             print "Error getting deadtime data"
         
@@ -445,7 +447,7 @@ class ShiftMonitor:
                 if not instLumi is None and physics:
                     physicsActive = True
                     PScol = psi
-                    if not aveDeadTime is None and deadTimeData.has_key(LS): aveDeadTime += deadTimeData[LS]
+                    if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                     else: aveDeadTime = 0
                     if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
                     else: aveL1rate = 0
@@ -462,7 +464,7 @@ class ShiftMonitor:
             count = 0
             for LS in l1rateData.keys():
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
-                if not aveDeadTime is None and deadTimeData.has_key(LS): aveDeadTime += deadTimeData[LS]
+                if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                 else: aveDeadTime = 0
                 if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
                 else: aveL1rate = 0
@@ -687,10 +689,9 @@ class ShiftMonitor:
         if self.mode != "cosmics" and doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
-                # Don't let expected value be negative
-                if expected<0: expected = 0
+                if expected<0: expected = 0                # Don't let expected value be negative
                 avePSExpected = expected
-                # Get the MSE
+                # Get the mean square error (standard deviation)
                 mse = self.getMSE(trigger)
             else:
                 expected = None
@@ -700,34 +701,48 @@ class ShiftMonitor:
         aveRate = 0
         properAvePSRate = 0
         avePS = 0
+        aveDeadTime = 0
         count = 0
         countPS = 0
-        comment = "" # A comment
+        comment = ""
         for LS in self.Rates[trigger].keys():
-            # If using a LSRange
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
             elif LS < self.startLS or LS > self.currentLS: continue
-            # Average the rate
-            if self.Rates[trigger][LS][1] > 0: # If not prescaled to 0
-                aveRate += self.Rates[trigger][LS][0]
-                properAvePSRate += self.Rates[trigger][LS][0]/self.Rates[trigger][LS][1] 
+
+            prescale = self.Rates[trigger][LS][1]
+            rate = self.Rates[trigger][LS][0]
+            try:
+                deadTime = self.deadTimeData[LS]
+            except:
+                print "trouble getting deadtime for LS: ", LS," setting DT to zero"
+                deadTime = 0                
+
+            if self.deadTimeCorrection: rate *= 1. + (deadTime/100.)
+                
+            if prescale > 0:
+                aveRate += rate
+                properAvePSRate += rate/prescale 
                 count += 1
                 countPS += 1
-                avePS += self.Rates[trigger][LS][1]
+                avePS += prescale
+                aveDeadTime += deadTime
             else: # Count lumisections even if prescaled to zero
                 count += 1  # Counts for paths and PS are different
+                
         if count > 0 and countPS > 0:
-            # Make note if rate or PS are identically zero
             if aveRate == 0: comment += "0 counts "
             aveRate /= count
             properAvePSRate /= count
             avePS /= countPS
+            aveDeadTime /= count
         else: comment += "PS=0"
-        if doPred and not avePSExpected is None and avePS > 1:
-            avePSExpected /= avePS
-        # Returns if we are not making predictions for this trigger and we are throwing zeros
-        if not doPred and self.removeZeros and aveRate==0:
-            return
+        
+        if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
+        if not doPred and self.removeZeros and aveRate==0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
+        if self.deadTimeCorrection:
+            aveRate *= aveDeadTime
+
+        
         # We want this trigger to be in the table
         row = [trigger]
         if self.displayRawRates:
@@ -775,7 +790,7 @@ class ShiftMonitor:
         # Add row to the table data
         self.tableData.append(row)
 
-        #do not warn on triggers that are ZeroBias
+        #do not warn on specific triggers
         for vetoString in self.ignoreStrings:
             if trigger.find(vetoString) > -1: return
         # Check if the trigger is bad
