@@ -654,7 +654,7 @@ class ShiftMonitor:
             info += stringSegment("* "+comment, self.spacing[6])
 
             # Color the bad triggers with warning colors
-            if avePS>0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
+            if self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
                 if not self.noColors: write(bcolors.WARNING) # Write colored text 
                 print info
                 if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
