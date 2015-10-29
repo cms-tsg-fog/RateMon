@@ -37,7 +37,6 @@
 
 ### 0T paths ###
 HLT_Ele32_WPLoose_Gsf
-HLT_Ele23_WPLoose_Gsf
 HLT_DoublePhoton40
 HLT_DoubleEle25_CaloIdL_GsfTrkIdVL
 HLT_DiSC30_18_EIso_AND_HE_Mass70
