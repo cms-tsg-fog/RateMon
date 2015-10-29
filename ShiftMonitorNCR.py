@@ -703,7 +703,6 @@ class ShiftMonitor:
         avePS = 0
         aveDeadTime = 0
         count = 0
-        countPS = 0
         comment = ""
         for LS in self.Rates[trigger].keys():
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
@@ -719,30 +718,25 @@ class ShiftMonitor:
 
             if self.deadTimeCorrection: rate *= 1. + (deadTime/100.)
                 
-            if prescale > 0:
-                aveRate += rate
-                properAvePSRate += rate/prescale 
-                count += 1
-                countPS += 1
-                avePS += prescale
-                aveDeadTime += deadTime
-            else: # Count lumisections even if prescaled to zero
-                count += 1  # Counts for paths and PS are different
+            if prescale > 0: properAvePSRate += rate/prescale
+            else: properAvePSRate += rate
+            aveRate += rate
+            count += 1
+            avePS += prescale
+            aveDeadTime += deadTime
                 
-        if count > 0 and countPS > 0:
+        if count > 0:
             if aveRate == 0: comment += "0 counts "
             aveRate /= count
             properAvePSRate /= count
-            avePS /= countPS
+            avePS /= count
             aveDeadTime /= count
-        else: comment += "PS=0"
+        else:
+            comment += "PS=0"
         
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
         if not doPred and self.removeZeros and aveRate==0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
-        if self.deadTimeCorrection:
-            aveRate *= aveDeadTime
 
-        
         # We want this trigger to be in the table
         row = [trigger]
         if self.displayRawRates:
