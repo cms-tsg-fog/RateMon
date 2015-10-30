@@ -73,17 +73,20 @@ def sendMail(email,subject,to,fro,msgtxt):
     s.sendmail(email, email, msg.as_string())
     s.quit()
 
-def sendAudio (text):
+def sendAudio(text):
     try:
         server = "cmsdaqweb.cms"
-        port=" 50555"
+        port="50555"
         pline = subprocess.Popen(["echo", "<alarm sender=\"HLT\" talk=\"HLT goes mad!\" sound=\"StravinskiDansesAsolecentes.wav\" >"+text+"</alarm>"], stdout=subprocess.PIPE)
         pnc = subprocess.Popen( ["nc", "cmsdaqweb.cms", "50555"], stdin=pline.stdout, stdout=subprocess.PIPE )
         playps = pnc.communicate()[0]
         print playps
     except:
-        print "Failed to send audio alarm"
-        print text
+        print "Failed to send audio alarm:", text
+
+def audioAlert():
+    try: sendAudio("PLEASE CHECK TRIGGER RATES")
+    except: print "failed audio alarm call..."
 
 
 def mailAlert(text):
@@ -94,9 +97,6 @@ def mailAlert(text):
     except:
         print "Failed to send mail"
         print text
-
-    #try: sendAudio("PLEASE CHECK TRIGGER RATES")
-    #except: print "failed audio alarm call..."
 
 
 if __name__=='__main__':
