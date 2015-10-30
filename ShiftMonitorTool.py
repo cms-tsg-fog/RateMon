@@ -32,7 +32,7 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "mailAlerts", "usePerDiff", "hideStreams",
+                                                       "requireLumi", "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate="])
         except:
             print "Error getting options. Exiting."
@@ -88,8 +88,13 @@ class CommandLineParser:
                 self.monitor.quiet = True
             elif label == "--noColors":
                 self.monitor.noColors = True
-            elif label == "--mailAlerts":
-                self.monitor.sendMailAlerts = True
+            elif label == "--noAlerts":
+                self.monitor.sendMailAlerts = False
+                self.monitor.sendAudioAlerts = False
+            elif label == "--noMail":
+                self.monitor.sendMailAlerts = False
+            elif label == "--noAudio":
+                self.monitor.sendAudioAlerts = False
             elif label == "--usePerDiff":
                 self.monitor.usePerDiff = True
             elif label == "--hideStreams":
@@ -128,7 +133,9 @@ class CommandLineParser:
 #        print "--hideStreams             : Doesn't print out information about the streams."
         print "--maxStream               : The maximum stream rate for a 'good' stream, streams with a rate greater then this are colored (if colors are on)"
         print "--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
-        print "--mailAlerts              : Send mail alerts when triggers have been in error for a while."
+        print "--noAlerts                : Do not send neither mail nor audio alerts when triggers have been in error for a while."
+        print "--noMail                  : Do not send mail alerts when triggers have been in error for a while."
+        print "--noAudio                 : Do not send audio alerts when triggers have been in error for a while."
         print ""
         print "Secondary Capabilities:"
         print "--run=<num>               : Look at a certain run instead of monitoring current runs"

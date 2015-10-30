@@ -24,7 +24,7 @@ from colors import *
 # For getting command line options
 import getopt
 # For mail alerts
-from mailAlert import mailAlert
+from mailAlert import mailAlert, audioAlert
 from Logger import *
 
 # --- 13 TeV constant values ---
@@ -111,7 +111,8 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = False     # Whether we should send alert mails
+        self.sendMailAlerts = True      # Whether we should send alert mails
+        self.sendAudioAlerts = True     # Whether we should send audio warning messages in the control room (CAUTION)
         self.showStreams = False        # Whether we should print stream information
         self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
@@ -232,8 +233,9 @@ class ShiftMonitor:
                 self.runLoop()      
                 self.checkTriggers()
                 self.sleepWait()
-                if self.mode == "collisions": self.sendMailAlerts = True
-                else: self.sendMailAlerts = False
+                # This could override the setting provided by the user
+                #if self.mode == "collisions": self.sendMailAlerts = True
+                #else: self.sendMailAlerts = False
             except KeyboardInterrupt:
                 print "Quitting. Bye."
                 break
@@ -315,7 +317,7 @@ class ShiftMonitor:
         if self.currentLS > self.lastLS:
             self.printTable()
         else:
-            self.sendMailAlerts = False
+            #self.sendMailAlerts = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
@@ -855,7 +857,9 @@ class ShiftMonitor:
                 if self.badRates[trigger][0] == self.maxCBR:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
-        if self.sendMailAlerts and len(mailTriggers)>0: self.sendMail(mailTriggers)
+        if len(mailTriggers)>0:
+            if self.sendMailAlerts: self.sendMail(mailTriggers)
+            if self.sendAudioAlerts: audioAlert()
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
