@@ -95,8 +95,8 @@ def mailAlert(text):
         print "Failed to send mail"
         print text
 
-    try: sendAudio("PLEASE CHECK TRIGGER RATES")
-    except: print "failed audio alarm call..."
+    #try: sendAudio("PLEASE CHECK TRIGGER RATES")
+    #except: print "failed audio alarm call..."
 
 
 if __name__=='__main__':
