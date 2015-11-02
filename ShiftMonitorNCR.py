@@ -107,7 +107,7 @@ class ShiftMonitor:
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
         self.maxHLTRate = 250           # The maximum prescaled rate we allow an HLT Trigger to have
-        self.maxL1Rate = 60000          # The maximum prescaled rate we allow an L1 Trigger to have
+        self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
