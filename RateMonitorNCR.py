@@ -57,7 +57,7 @@ class RateMonitor:
         self.fitFile = "" # The name of the file that the fit info is contained in
         #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
-        self.colorList = [4,6,7,8,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
+        self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
@@ -449,7 +449,7 @@ class RateMonitor:
         for LS in deadTime:
             for triggerName in Rates:
                 if Rates[triggerName].has_key(LS): # Sometimes, LS's are missing
-                    Rates[triggerName][LS][0] *= (1+deadTime[LS]/100)
+                    Rates[triggerName][LS][0] *= (1. + deadTime[LS]/100.)
                     if deadTime[LS] > self.maxDeadTime and not self.certifyMode: del Rates[triggerName][LS] #do not plot lumis where deadtime is greater than                
 
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
