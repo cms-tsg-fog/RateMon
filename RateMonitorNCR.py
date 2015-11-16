@@ -322,8 +322,6 @@ class RateMonitor:
         # If we are fitting the data
         if self.fit: self.findFit(plottingData)
 
-        if self.png: self.printHtml(plottingData)
-
         if self.outputOn: print "" # Print a newline
 
         # We have all our data, now plot it
@@ -346,6 +344,8 @@ class RateMonitor:
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run."
         if self.outputOn: print "" # Final newline for formatting
+
+        if self.png: self.printHtml(plottingData)
 
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
@@ -703,7 +703,9 @@ class RateMonitor:
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:right; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
             for pathName in sorted(plottingData):
-                htmlFile.write("<div class=image><a href=\'%s.png\'><img width=398 height=229 border=0 src=\'%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
+                fileName = "%s/png/%s.png" % (self.saveDirectory,pathName)
+                if os.access(fileName,os.F_OK):
+                    htmlFile.write("<div class=image><a href=\'%s.png\'><img width=398 height=229 border=0 src=\'%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
             htmlFile.write("</html>\n")
             htmlFile.close
         except:
