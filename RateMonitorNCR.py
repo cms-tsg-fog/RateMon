@@ -115,12 +115,6 @@ class RateMonitor:
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
         self.first = True        # True if we are processing our first batch
 
-        # Steam Compare
-        self.steam = False       # If true, we plot a steam prediction
-        self.steamFile = ""      # The csv file with the steam data
-        self.steamData = {}      # Steam Data, gotten from the steam file
-        self.steamILumi = 5000   # For what inst lumi the steam prediction is for (currently 5e33)
-
         # Cuts
         self.lumiCut = 0.1       # The lumi cut value
         self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
@@ -154,8 +148,6 @@ class RateMonitor:
             print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
 
         # Make a fit of the data
-        if self.steam:
-            self.fit = True
         
         if not self.useFit and self.outputOn:
             if not self.fit: print "Not plotting a fit."
@@ -334,9 +326,7 @@ class RateMonitor:
         if self.png: self.printHtml(plottingData)
 
         if self.outputOn: print "" # Print a newline
-        # Get our steam data
-        if self.steam:
-            self.loadSteamData()
+
         # We have all our data, now plot it
         if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
@@ -345,9 +335,7 @@ class RateMonitor:
             if fitparams is None or not fitparams.has_key(name): fit = None
             else: fit = fitparams[name]
             self.graphAllData(plottingData[name], fit, name)
-        # Print steam checks
-        if self.steam:
-            self.steamChecks()
+
         # Try to close the error file
         if self.makeErrFile:
             try:
@@ -620,24 +608,11 @@ class RateMonitor:
             canvas.Update()
             legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
             counter += 1
-        # There is steam data to use, and we should use it
-        if self.steam and self.steamData and self.steamData.has_key(triggerName):
-            try:
-                Xval = array.array('f'); Xval.append(self.steamILumi) # Steam data point
-                Yval = array.array('f'); Yval.append(float(self.steamData[triggerName][0]))
-                Xerr = array.array('f'); Xerr.append(0.0)
-                Yerr = array.array('f'); Yerr.append(float(self.steamData[triggerName][1]))
-                steamGraph = TGraphErrors(1, Xval, Yval, Xerr, Yerr)
-                steamGraph.SetMarkerStyle(3)
-                steamGraph.SetMarkerSize(3)
-                steamGraph.SetMarkerColor(2)
-                steamGraph.Draw("P")
-            except: pass # Sometimes, this might fail if there are two items seperated by commas in the Group column
-        if (self.useFit or self.fit or self.certifyMode or self.steam) and not paramlist is None:
+
+        if (self.useFit or self.fit or self.certifyMode) and not paramlist is None:
             if self.certifyMode: # Secondary Mode
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
-                iLumi = self.parser.getLumiInfo(pickRun)
-                # iLumi is a list: ( { LS, instLumi } )
+                iLumi = self.parser.getLumiInfo(pickRun) # iLumi is a list: ( { LS, instLumi } )
                 fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName, pickRun)
                 fitGraph.Draw("PZ3")
                 canvas.Update()
@@ -802,25 +777,6 @@ class RateMonitor:
             print "Error: could not open fit file: %s" % (self.fitFile)
         return InputFit
 
-    # Use: Loads the data from a steam created google doc (downloaded to a .csv file)
-    def loadSteamData(self):
-        try:
-            # Assume the group column has been deleted
-            steam_file = open(self.steamFile, 'rb')
-            count = 0
-            for line in steam_file:
-                if count < 2:
-                    count += 1
-                    continue
-                tuple = line.split(',')
-                triggerName = stripVersion(tuple[0])
-                if not self.steamData.has_key(triggerName):
-                    self.steamData[triggerName] = [float(tuple[1]), float(tuple[3])]
-            steam_file.close()
-        except:
-            # File failed to open
-            print "ERROR: could not open steam file:", self.steamFile
-
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
     # Returns: (void)
     def doChecks(self):
@@ -863,35 +819,6 @@ class RateMonitor:
 
         eprint.outputErrors()
 
-    # Use: Checks fit predictions against steam predictions given to us in a .csv file
-    # Returns: (void)
-    def steamChecks(self):
-        sprint = ErrorPrinter()
-        sprint.saveDirectory = self.saveDirectory
-        for triggerName in self.steamData:
-            if triggerName in self.TriggerList and self.OutputFit.has_key(triggerName):
-                paramlist = self.OutputFit[triggerName]
-                if paramlist[0]=="exp":
-                    funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-                    minFStr = "(%s+%s) + (%s+%s)*expo((%s+%s)+(%s+%s)*x)" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
-                                                                             paramlist[3], paramlist[9], paramlist[4], paramlist[10])
-                    maxFStr = "(%s-%s) + (%s-%s)*expo((%s-%s)+(%s-%s)*x)" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
-                                                                             paramlist[3], paramlist[9], paramlist[4], paramlist[10])
-                else:
-                    funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-                    minFStr = "(%s+%s)+x*((%s+%s) + x*((%s+%s) + x*(%s+%s)))" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
-                                                                                 paramlist[3], paramlist[9], paramlist[4], paramlist[10])
-                    maxFStr = "(%s-%s)+x*((%s-%s) + x*((%s-%s) + x*(%s-%s)))" % (paramlist[1], paramlist[7], paramlist[2], paramlist[8],
-                                                                                 paramlist[3], paramlist[9], paramlist[4], paramlist[10])
-
-                fitFunc = TF1("Fit_"+triggerName, funcStr, 0, 1.2*self.steamILumi)
-                maxFunc = TF1("Max_"+triggerName, maxFStr, 0, 1.2*self.steamILumi)
-                minFunc = TF1("Min_"+triggerName, minFStr, 0, 1.2*self.steamILumi)
-                ilum = self.steamILumi
-                sprint.steamData[triggerName] = [fitFunc.Eval(ilum), minFunc.Eval(ilum), maxFunc.Eval(ilum),
-                                                 self.steamData[triggerName][0], self.steamData[triggerName][1]] # [ prediction, min predict, max predict, actual, error ]
-        sprint.outputSteamErrors()
-        
 #     def fitExtrapolations(self):
 #         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
 #         extrapolationFileName = self.saveDirectory+"Fits.csv"
