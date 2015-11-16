@@ -1,29 +1,52 @@
-### 3.8T paths ###
-HLT_AK8DiPFJet250_200_TrimMass30_BTagCSV0p45_v2
-HLT_CaloJet500_NoJetID_v2
-HLT_DoubleEle33_CaloIdL_GsfTrkIdVL_v3
-HLT_DoubleMediumIsoPFTau35_Trk1_eta2p1_Reg_v1
-HLT_Ele105_CaloIdVT_GsfTrkIdT_v3
-HLT_Ele27_WPLoose_Gsf_v1
-HLT_HT650_v2
-HLT_IsoMu27_v2
-HLT_MET250_v1
-HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v2
-HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_v3
-HLT_Mu45_eta2p1_v2
-HLT_DiPFJetAve100_HFJEC
-HLT_PFHT800_v2
-HLT_PFJet450_v3
-HLT_PFMET120_PFMHT120_IDTight_v2
-HLT_PFMET170_NoiseCleaned_v3
-HLT_Photon175_v3
-HLT_Photon36_R9Id85_OR_CaloId24b40e_Iso50T80L_Photon22_AND_HE10_R9Id65_Eta2_Mass15_v2
-HLT_QuadJet45_TripleBTagCSV0p67_v3
+# ### 3.8T paths ###
+# HLT_AK8DiPFJet250_200_TrimMass30_BTagCSV0p45_v2
+# HLT_CaloJet500_NoJetID_v2
+# HLT_DoubleEle33_CaloIdL_GsfTrkIdVL_v3
+# HLT_DoubleMediumIsoPFTau35_Trk1_eta2p1_Reg_v1
+# HLT_Ele105_CaloIdVT_GsfTrkIdT_v3
+# HLT_Ele27_WPLoose_Gsf_v1
+# HLT_HT650_v2
+# HLT_IsoMu27_v2
+# HLT_MET250_v1
+# HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v2
+# HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_v3
+# HLT_Mu45_eta2p1_v2
+# HLT_DiPFJetAve100_HFJEC
+# HLT_PFHT800_v2
+# HLT_PFJet450_v3
+# HLT_PFMET120_PFMHT120_IDTight_v2
+# HLT_PFMET170_NoiseCleaned_v3
+# HLT_Photon175_v3
+# HLT_Photon36_R9Id85_OR_CaloId24b40e_Iso50T80L_Photon22_AND_HE10_R9Id65_Eta2_Mass15_v2
+# HLT_QuadJet45_TripleBTagCSV0p67_v3
+# ### L1 paths ###
+# L1_SingleMu16
+# L1_SingleMu25
+# L1_SingleMu20er
+# L1_SingleIsoEG18er
+# L1_SingleIsoEG30er
+# L1_SingleEG20
+# L1_SingleEG30
+# L1_SingleEG40
+# L1_SingleJet68
+# L1_SingleJet128
+# L1_SingleJet200
+# L1_DoubleJetC100
+# L1_ETM70
+# L1_HTT175
 
-### L1 paths ###
-L1_SingleMu16
-L1_SingleMu25
-L1_SingleMu20er
+### 0T paths ###
+HLT_Ele32_WPLoose_Gsf
+HLT_DoublePhoton40
+HLT_DoubleEle25_CaloIdL_GsfTrkIdVL
+HLT_DiSC30_18_EIso_AND_HE_Mass70
+HLT_HT575
+HLT_IsoMu20
+HLT_Mu20
+HLT_Mu33NoFiltersNoVtxDisplaced_DisplacedJet50_Loose
+HLT_MET100_JetIdCleaned
+HLT_DiPFJetAve100_HFJEC
+L1_SingleEG5
 L1_SingleIsoEG18er
 L1_SingleIsoEG30er
 L1_SingleEG20
@@ -36,26 +59,3 @@ L1_DoubleJetC100
 L1_ETM70
 L1_HTT175
 
-### 0T paths ###
-#HLT_Ele32_WPLoose_Gsf
-#HLT_DoublePhoton40
-#HLT_DoubleEle25_CaloIdL_GsfTrkIdVL
-#HLT_DiSC30_18_EIso_AND_HE_Mass70
-#HLT_HT575
-#HLT_IsoMu20
-#HLT_Mu20
-#HLT_Mu33NoFiltersNoVtxDisplaced_DisplacedJet50_Loose
-#HLT_MET100_JetIdCleaned
-#HLT_DiPFJetAve100_HFJEC
-#L1_SingleEG5
-#L1_SingleIsoEG18er
-#L1_SingleIsoEG30er
-#L1_SingleEG20
-#L1_SingleEG30
-#L1_SingleEG40
-#L1_SingleJet68
-#L1_SingleJet128
-#L1_SingleJet200
-#L1_DoubleJetC100
-#L1_ETM70
-#L1_HTT175

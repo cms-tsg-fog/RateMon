@@ -36,7 +36,7 @@ class MonitorController:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
-                                                       "steamFile=", "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
+                                                       "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "linear",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
         except:
@@ -60,9 +60,6 @@ class MonitorController:
             elif label == "--fitFile":
                 self.rateMonitor.fitFile = str(op)
                 print "Using fit file:", self.rateMonitor.fitFile
-            elif label == "--steamFile":
-                self.rateMonitor.steam = True
-                self.rateMonitor.steamFile = str(op)
             elif label == "--runList" or label == "--runFile":
                 self.rateMonitor.runFile = str(op)
                 print "Using the runs in file", self.rateMonitor.runFile
@@ -134,22 +131,18 @@ class MonitorController:
                 self.rateMonitor.labelY = "rate [Hz]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 0
-                self.rateMonitor.steam = False
             elif label == "--streamSize":
                 self.rateMonitor.labelY = "stream size [bytes]"
                 self.rateMonitor.plotStreams = True
                 self.rateMonitor.dataCol = 1
-                self.rateMonitor.steam = False
             elif label == "--streamBandwidth":
                 self.rateMonitor.labelY = "stream bandwidth [bytes]"
                 self.rateMonitor.dataCol = 2
                 self.rateMonitor.plotStreams = True
-                self.rateMonitor.steam = False
             elif label == "--datasetRate":
                 self.rateMonitor.labelY = "primary dataset rate [Hz]"
                 self.rateMonitor.plotDatasets = True
                 self.rateMonitor.dataCol = 0
-                self.rateMonitor.steam = False
             else:
                 print "Unimplemented option '%s'." % label
                 return False
