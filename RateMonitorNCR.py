@@ -39,7 +39,6 @@ orbitsPerSec = 11246.
 # Class RateMonitor:
 # Analyzes the rate vs instantaneous luminosity behavior of runs (held in a run list called self.runList) and make plots of the data
 # Can also plot a fit from a given pickle file on the plots it produces
-# Contains an instance of DBParser to get information from the database
 class RateMonitor:
     # Default constructor for RateMonitor class
     def __init__(self):
@@ -517,8 +516,8 @@ class RateMonitor:
             minVal = min(minimumVals)
         else: return
 
-        if maxVal==0 or maxRR==0: # No good data
-            return
+        if maxVal==0 or maxRR==0: return
+
         # Set axis names/units, create canvas
         if self.pileUp:
             nameX = "< PU >"
@@ -535,38 +534,44 @@ class RateMonitor:
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
         funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
-            # Create the fit function.
-            if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-            elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
-            else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-            fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+            if self.certifyMode:
+                # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
+                runNum_cert = plottingData.keys()[0]
+                predictionTGraph = self.makePredictionTGraph(paramlist, minVal, maxVal, triggerName, runNum_cert)
+                maxPred = max(self.predictionRec[triggerName][runNum_cert][1])
+                if maxPred > maxRR: maxRR = maxPred
 
-            if self.errorBands:
-                xVal = array.array('f')
-                yVal = array.array('f')
-                yeVal = array.array('f')
-                xeVal = array.array('f')
+            else: #primary mode
+                if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
+                else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+                fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+
+                if self.errorBands:
+                    xVal = array.array('f')
+                    yVal = array.array('f')
+                    yeVal = array.array('f')
+                    xeVal = array.array('f')
                 
-                xMin = fitFunc.GetXmin()
-                xMax = fitFunc.GetXmax()
-                xrange = xMax-xMin
-                nPoints = 1000
-                stepSize = xrange/nPoints
+                    xMin = fitFunc.GetXmin()
+                    xMax = fitFunc.GetXmax()
+                    xrange = xMax-xMin
+                    nPoints = 1000
+                    stepSize = xrange/nPoints
                 
-                xCoord = xMin
-                while xCoord <= xMax:
-                    xVal.append(xCoord)
-                    yVal.append(fitFunc.Eval(xCoord))
-                    yeVal.append(self.sigmas*paramlist[5])
-                    xeVal.append(0)
-                    xCoord += stepSize
+                    xCoord = xMin
+                    while xCoord <= xMax:
+                        xVal.append(xCoord)
+                        yVal.append(fitFunc.Eval(xCoord))
+                        yeVal.append(self.sigmas*paramlist[5])
+                        xeVal.append(0)
+                        xCoord += stepSize
                     
-                fitErrorBand = TGraphErrors(len(xVal),xVal,yVal,xeVal,yeVal)
-                fitErrorBand.SetFillColor(2)
-                fitErrorBand.SetFillStyle(3003)
-            
+                    fitErrorBand = TGraphErrors(len(xVal),xVal,yVal,xeVal,yeVal)
+                    fitErrorBand.SetFillColor(2)
+                    fitErrorBand.SetFillStyle(3003)
 
-        # Go through all runs and plot them
+
         counter = 0        
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
@@ -575,18 +580,10 @@ class RateMonitor:
         bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
         legend = TLegend(left,top,right,bottom)
 
-        # We only load the iLumi info for one of the runs to make the prediction, use the run with the most LS's
-        pickRun = 0
-        maxLS = 0
-        
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
             bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
             if numLS == 0: continue
-            # See if this run has more LS's then the previous runs
-            if numLS > maxLS:
-                maxLS = numLS
-                pickRun = runNumber
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
             # Set some stylistic settings for dataGraph
             graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
@@ -609,14 +606,11 @@ class RateMonitor:
             legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
             counter += 1
 
-        if (self.useFit or self.fit or self.certifyMode) and not paramlist is None:
-            if self.certifyMode: # Secondary Mode
-                # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
-                iLumi = self.parser.getLumiInfo(pickRun) # iLumi is a list: ( { LS, instLumi } )
-                fitGraph = self.makeFitGraph(paramlist, minVal, maxVal, maxRR, iLumi, triggerName, pickRun)
-                fitGraph.Draw("PZ3")
+        if (self.useFit or self.fit) and not paramlist is None:
+            if self.certifyMode:
+                predictionTGraph.Draw("PZ3")
                 canvas.Update()
-                legend.AddEntry(fitGraph, "Fit ( %s \sigma )" % (self.sigmas))
+                legend.AddEntry(predictionTGraph, "Fit ( %s \sigma )" % (self.sigmas))
             else: # Primary Mode
                 if self.errorBands: fitErrorBand.Draw("3")
                 legend.AddEntry(fitFunc, "Fit ( %s \sigma )" % (self.sigmas))
@@ -720,11 +714,10 @@ class RateMonitor:
     # -- paramlist: A tuple of parameters { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err, ChiSqr } 
     # -- minVal: The minimum LS
     # -- maxVal: The maximum LS
-    # -- maxRR: The maximum raw rate (y value)
     # -- iLumi: A list: ( { LS, instLumi } )
     # -- triggerName: The name of the trigger we are making a fit for
     # Returns: A TGraph of predicted values
-    def makeFitGraph(self, paramlist, minVal, maxVal, maxRR, iLumi, triggerName, runNumber):
+    def makePredictionTGraph(self, paramlist, minVal, maxVal, triggerName, runNumber):
         # Initialize our point arrays
         lumisecs = array.array('f')
         predictions = array.array('f')
@@ -733,6 +726,7 @@ class RateMonitor:
         # Unpack values
         type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
+        iLumi = self.parser.getLumiInfo(runNumber) # iLumi is a list: ( { LS, instLumi } )
         for LS, ilum, psi, phys in iLumi:
             if not ilum is None and phys:
                 lumisecs.append(LS)
@@ -745,7 +739,7 @@ class RateMonitor:
                 lsError.append(0)
                 predError.append(self.bunches*self.sigmas*sigma)
         # Record for the purpose of doing checks
-        self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError) #charlie
+        self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError)
         # Set some graph options
         fitGraph = TGraphErrors(len(lumisecs), lumisecs, predictions, lsError, predError)
         fitGraph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
