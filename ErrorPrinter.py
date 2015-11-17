@@ -12,7 +12,7 @@
 #######################################################
 
 import array
-from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
+from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend, TFile, TLine, TLatex, TH1D
 
 
 #prints bad LS in JSON format
@@ -42,22 +42,27 @@ class ErrorPrinter:
         self.run_allLs = {} # [runNumber][triggerName] (LS)
         self.steamData = {}   # [ prediction, min predict, max predict, actual, error ]
         self.saveDirectory = "" #directory where output txt files are saved
-        
+        gStyle.SetOptStat(0)
 
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
+        rootFileName = "%s/CertificaitonSummary.root" % (self.saveDirectory)
+        rootFile = TFile(rootFileName,"RECREATE")
+        print "Writing summary root file %s" % (rootFileName)
+
         sortedRuns = sorted(self.run_trig_ls)
         try:
             fileName = "CertificationSummary_run"+str(sortedRuns[0])+"_run"+str(sortedRuns[-1])+".txt"
             file = open(self.saveDirectory+"/"+fileName, 'w') # come up with a name based on something about the runs
-            print "Opening %s for LS error dump." % (fileName)            
+            print "Certification Summary txt file:  %s ." % (fileName)            
         except:
-            print "Error: could not open file to output ls data."
+            print "Error writing certification summary ."
             return
 
         for runNumber in sortedRuns:
             file.write("Run Number: %s\n" % (runNumber))
+
             totalErrs = 0
 
             badLumiList = {}
@@ -73,8 +78,24 @@ class ErrorPrinter:
                     else: badLumiList[LS] = 1
 
             file.write("\n")
+
+            totalLumis = len( self.run_allLs[runNumber][self.run_allLs[runNumber].keys()[0]] )
+            #            maxNumBadPaths = sorted(badLumiListSorted.keys(), reverse =True)[0]
+            maxNumBadPaths = len( self.run_allLs[runNumber] )
+
+            canvas = TCanvas("can", "can", 1000, 600)
+            canvas.SetName("run %s" % runNumber)
+            canvas.SetGridx(1);
+            canvas.SetGridy(1);
+            summaryHist = TH1D("Run %s" % (runNumber),"Run %s" % (runNumber),totalLumis,1,totalLumis)
+            summaryHist.GetXaxis().SetTitle("LS")
+            summaryHist.GetYaxis().SetTitle("Number of bad paths")
+            summaryHist.SetMaximum(1.2 * maxNumBadPaths)
+
+
             #sort the dict so the number of bad triggers is now the key
             for LS in sorted(badLumiList.keys(), key=badLumiList.__getitem__, reverse =True):
+                summaryHist.Fill(LS,badLumiList[LS])
                 if badLumiListSorted.has_key(badLumiList[LS]):
                     badLumiListSorted[badLumiList[LS]].append(LS)
                 else:
@@ -82,19 +103,46 @@ class ErrorPrinter:
 
             file.write("     # of bad paths : lumis section(s)\n")
             for numBadTrigs in sorted(badLumiListSorted.keys(), reverse =True):                
-                    file.write("     %s : %s\n"%(numBadTrigs, sorted(badLumiListSorted[numBadTrigs])))
-                    totalErrs += len(sorted(badLumiListSorted[numBadTrigs]))
+                file.write("     %s : %s\n"%(numBadTrigs, sorted(badLumiListSorted[numBadTrigs])))
+                totalErrs += len(sorted(badLumiListSorted[numBadTrigs]))
 
-            for triggerName in self.run_allLs[runNumber]:
-                totalLumis = len(self.run_allLs[runNumber][triggerName])
-                break
+            maxLine = TLine(1,maxNumBadPaths,totalLumis,maxNumBadPaths)
+            maxLine.SetLineStyle(9)
+            maxLine.SetLineColor(2)
+            maxLine.SetLineWidth(2)
+
+            summaryHist.Draw("hist")
+            summaryHist.SetLineColor(4)
+            summaryHist.SetFillColor(4)
+            summaryHist.SetFillStyle(3004)
+            canvas.Update()
+            latex = TLatex()
+            latex.SetNDC()
+            latex.SetTextColor(1)
+            latex.SetTextAlign(11)
+            latex.SetTextFont(62)
+            latex.SetTextSize(0.05)
+            latex.DrawLatex(0.15, 0.84, "CMS")
+            latex.SetTextSize(0.035)
+            latex.SetTextFont(52)
+            latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+            canvas.Update()
+            maxLine.Draw("same")
+            canvas.Update()
+            canvas.Modified()
+            canvas.Write()
+
             fractionBadLumis = 100.*float(totalErrs)/float(totalLumis)
+            fractionBadRun = 100.*summaryHist.Integral()/float(totalLumis * maxNumBadPaths) 
 
             file.write("\n---- Total bad LS: %s  ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % (totalErrs))
             file.write("---- Total LS: %s\n" % (totalLumis))
             file.write("---- Fraction bad LS: %s %% \n" % (fractionBadLumis))
             
+
+          
         file.close()
+        rootFile.Close()
 
     def outputSteamErrors(self):
         try:
