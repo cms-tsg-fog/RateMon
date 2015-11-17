@@ -11,12 +11,9 @@
 #    ( object )          -- denotes a list of objects
 #######################################################
 
-# Imports
 import array
-# Not all these are necessary
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
 
-## ----------- End Imports ------------ ##
 
 #prints bad LS in JSON format
 def formatJSON(lumisection_list):
@@ -46,13 +43,14 @@ class ErrorPrinter:
         self.steamData = {}   # [ prediction, min predict, max predict, actual, error ]
         self.saveDirectory = "" #directory where output txt files are saved
         
+
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
         sortedRuns = sorted(self.run_trig_ls)
         try:
-            fileName = "badLumiSummary_run"+str(sortedRuns[0])+"_run"+str(sortedRuns[-1])+".txt"
-            file = open(fileName, 'w') # come up with a name based on something about the runs
+            fileName = "CertificationSummary_run"+str(sortedRuns[0])+"_run"+str(sortedRuns[-1])+".txt"
+            file = open(self.saveDirectory+"/"+fileName, 'w') # come up with a name based on something about the runs
             print "Opening %s for LS error dump." % (fileName)            
         except:
             print "Error: could not open file to output ls data."

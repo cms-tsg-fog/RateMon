@@ -23,6 +23,7 @@ import os
 import sys
 import shutil
 import json
+import datetime
 # Import the DB interface class
 from DBParser import *
 # From the fit finding class
@@ -87,6 +88,7 @@ class RateMonitor:
         self.errFile = None      # A file to output errors to
         
         self.certifyMode = False # False -> Primary mode, True -> Secondary mode
+        self.certifyDir = None
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
@@ -194,18 +196,23 @@ class RateMonitor:
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
         
         if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
-        else: self.saveDirectory = "CertificationSummary_"+str(minNum)+"-"+str(maxNum)
+        elif self.certifyMode: self.saveDirectory = "run%s" % (str(maxNum))
+#        elif self.certifyMode: self.saveDirectory = "%s/run%s" % (self.certifyDir,minNum)
+
+
 #        if not self.certifyMode or self.first:
         if self.certifyMode or self.first:            
             self.first = False
             if os.path.exists(self.saveDirectory):
                 shutil.rmtree(self.saveDirectory)
                 print "Removing existing directory %s " % (self.saveDirectory)
+                
+            os.chdir(self.certifyDir)
             os.mkdir(self.saveDirectory)
             if self.png:
                 os.chdir(self.saveDirectory)
                 os.mkdir("png")
-                os.chdir("../")
+                os.chdir("../../")
             print "Created directory %s " % (self.saveDirectory)
             self.saveName = self.saveDirectory + "/" + self.saveName
             
@@ -216,7 +223,7 @@ class RateMonitor:
         else: fitOpt = "NoFit"
 
         self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
-
+        if self.certifyMode: self.saveName = self.certifyDir+"/"+self.saveName
 
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
@@ -234,6 +241,10 @@ class RateMonitor:
         total = 0 # How many runs we have processed so far
         count = 1 # Iteration variabl e
         if not self.processAll: print "Batch size is %s." % (self.maxRuns) # Info message
+        
+        if self.certifyMode: 
+            self.certifyDir = "Certification_%sruns_%s_%s" % (len(self.runList),str(datetime.datetime.now()).split()[0],str(datetime.datetime.now()).split()[1].split(':')[0] +"_"+ str(datetime.datetime.now()).split()[1].split(':')[1])
+            os.mkdir(self.certifyDir)
         while total < len(self.runList) and (count <= self.maxBatches or self.processAll):
             print "Processing batch %s:" % (count)
             self.offset = total
@@ -241,8 +252,8 @@ class RateMonitor:
             total += self.runsToProcess # Update the count by how many runs we just processed
             count += 1
             print "" # Newline for formatting
-        if self.certifyMode: # Operating in secondary mode, do checks
-            self.doChecks()
+
+        if self.certifyMode: self.doChecks()
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
@@ -646,7 +657,9 @@ class RateMonitor:
         # Update root file
         file = TFile(self.saveName, "UPDATE")
         canvas.Modified()
-        if self.png: canvas.Print(self.saveDirectory+"/png/"+triggerName+".png", "png")
+        if self.png:
+            if not self.certifyMode: canvas.Print(self.saveDirectory+"/png/"+triggerName+".png", "png")
+            else: canvas.Print(self.certifyDir+"/"+self.saveDirectory+"/png/"+triggerName+".png", "png")
         canvas.Write()
         file.Close()
         self.savedAFile = True
@@ -698,14 +711,16 @@ class RateMonitor:
 
     def printHtml(self,plottingData):
         try:
-            htmlFile = open(self.saveDirectory+"/png/index.html", "wb")
+            if not self.certifyMode: htmlFile = open(self.saveDirectory+"/index.html", "wb")
+            else: htmlFile = open(self.certifyDir+"/"+self.saveDirectory+"/index.html", "wb")
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:right; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
             for pathName in sorted(plottingData):
                 fileName = "%s/png/%s.png" % (self.saveDirectory,pathName)
+                if self.certifyMode: fileName = "%s/%s/png/%s.png" % (self.certifyDir,self.saveDirectory,pathName)
                 if os.access(fileName,os.F_OK):
-                    htmlFile.write("<div class=image><a href=\'%s.png\'><img width=398 height=229 border=0 src=\'%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
+                    htmlFile.write("<div class=image><a href=\'png/%s.png\'><img width=398 height=229 border=0 src=\'png/%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
             htmlFile.write("</html>\n")
             htmlFile.close
         except:
@@ -777,7 +792,7 @@ class RateMonitor:
     # Returns: (void)
     def doChecks(self):
         eprint = ErrorPrinter()
-        eprint.saveDirectory = self.saveDirectory
+        eprint.saveDirectory = self.certifyDir
         # Look at all lumisections for each trigger for each run. Check which ones are behaving badly
         for triggerName in self.TriggerList: # We may want to look at the triggers from somewhere else, but for now I assume this will work
             for runNumber in self.allRates:
