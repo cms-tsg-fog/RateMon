@@ -132,6 +132,8 @@ class ErrorPrinter:
             canvas.Modified()
             canvas.Write()
 
+            canvas.Print("%s/CertificationSummary_run%s.png" % (self.saveDirectory,runNumber), "png")
+
             fractionBadLumis = 100.*float(totalErrs)/float(totalLumis)
             fractionBadRun = 100.*summaryHist.Integral()/float(totalLumis * maxNumBadPaths) 
 
