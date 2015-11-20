@@ -935,17 +935,21 @@ class ShiftMonitor:
         try: mail += "Average PU: %.2f\n \n" % (self.pu_ave)
         except: mail += "Average PU: %s\n \n" % (self.pu_ave)
         
-        mail += "The following path rate(s) are deviating from expected values: \n\n"
+        mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
         for triggerName, rate, expected, dev in mailTriggers:
         
             if self.numBunches[0] == 0:
                 mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
-                try: mail += "\n %s: Expected: %.3f Hz, Actual: %.3f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.3f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-                except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-            
-            if expected > 0: mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)
+                if expected > 0:
+                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
+                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
+                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)                    
+                else:
+                    try: mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
+                    except: mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+
             try:
                 wbm_url = self.parser.getWbmUrl(self.runNumber,triggerName,self.currentLS)
                 if not wbm_url == "-": mail += "  *WBM rate: <%s>\n" % (wbm_url)
