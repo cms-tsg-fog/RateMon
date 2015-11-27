@@ -207,12 +207,13 @@ class RateMonitor:
                 shutil.rmtree(self.saveDirectory)
                 print "Removing existing directory %s " % (self.saveDirectory)
                 
-            os.chdir(self.certifyDir)
+            if self.certifyMode: os.chdir(self.certifyDir)
             os.mkdir(self.saveDirectory)
             if self.png:
                 os.chdir(self.saveDirectory)
                 os.mkdir("png")
-                os.chdir("../../")
+                if self.certifyMode: os.chdir("../../")
+                else: os.chdir("../")
             print "Created directory %s " % (self.saveDirectory)
             self.saveName = self.saveDirectory + "/" + self.saveName
             
@@ -352,8 +353,10 @@ class RateMonitor:
             except: print "Could not save error file."
         if self.fitFinder.saveDebug and self.fitFinder.usePointSelection:
             print "Fit finder debug file saved to Debug.root.\n" # Info message
+
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run."
+
         if self.outputOn: print "" # Final newline for formatting
 
         if self.png: self.printHtml(plottingData)
@@ -378,7 +381,6 @@ class RateMonitor:
         if Rates == {}:
             print "trouble fetching rates from db"
             return {} # The run (probably) doesn't exist
-        
         
         # JSON filtering
         # Removes from the Rates dictionary the lumisections not included in the JSON file, if present.
