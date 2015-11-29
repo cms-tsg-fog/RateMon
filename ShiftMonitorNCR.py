@@ -94,7 +94,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["ZeroBias","Calibration","L1Tech"]
+        self.ignoreStrings = ["ZeroBias","Calibration","L1Tech","HLT_L1SingleS1JetC20_NotBptxOR"]
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
