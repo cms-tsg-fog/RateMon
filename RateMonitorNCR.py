@@ -53,7 +53,7 @@ class RateMonitor:
         self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
-        self.maxRuns = 300 # The maximum number of runs that we will process
+        self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -117,7 +117,7 @@ class RateMonitor:
         self.first = True        # True if we are processing our first batch
 
         # Cuts
-        self.lumiCut = 0.1       # The lumi cut value
+        self.lumiCut = 0.0000001       # The lumi cut value
         self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
         self.dataCut = 0.0       # The rate cut value
         self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
@@ -377,7 +377,7 @@ class RateMonitor:
         if self.L1Triggers:
             L1Rates = self.parser.getL1RawRates(runNumber)
             Rates.update(L1Rates)
-        
+
         if Rates == {}:
             print "trouble fetching rates from db"
             return {} # The run (probably) doesn't exist
