@@ -169,10 +169,10 @@ class DBParser:
         
         for LS, L1Pass, PSPass, HLTPass, HLTExcept, triggerName in self.curs.fetchall():
             name = stripVersion(triggerName)
-            
+
             rate = HLTPass/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
             hltps = 0 # HLT Prescale
-            
+
             if not TriggerRates.has_key(name):
                 TriggerRates[name] = {} # Initialize dictionary
             # TODO: We can probably come up with a better solution then a try, except here
@@ -183,7 +183,7 @@ class DBParser:
             try:
                 hltps = self.HLTPrescales[name][psi]
             except:
-                if PSPass: hltps = float(L1Pass)/PSPass
+                hltps = 1.
             hltps = float(hltps)
                     
             try:
