@@ -36,7 +36,7 @@ class FitFinder:
         self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
         self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
         self.forceZero = False        # If true, the function is forced to include the (0, 0) value
-        self.forceLinear = False      # If true, we only try a linear fit
+        self.forceLinear = True      # If true, we only try a linear fit
         self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
 
