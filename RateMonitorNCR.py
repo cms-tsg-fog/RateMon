@@ -55,8 +55,8 @@ class RateMonitor:
         self.jsonData = {}
         self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
-        #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
-        #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
@@ -303,16 +303,16 @@ class RateMonitor:
                         message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                         self.errFile.write(message)
             elif not self.plotDatasets: # Otherwise, make plots for each stream
-                sumPhysics = "HLT_Physics_Streams"
+                sumPhysics = "Sum_Physics_Streams"
                 for streamName in dataList:
                     if not plottingData.has_key(streamName): plottingData[streamName] = {}
                     plottingData[streamName][runNumber] = dataList[streamName]
                     
                     if not plottingData.has_key(sumPhysics):
                         plottingData[sumPhysics] = {}
-                    if streamName[0:7] =="Physics" and not plottingData[sumPhysics].has_key(runNumber):
+                    if (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics") and not plottingData[sumPhysics].has_key(runNumber):
                         plottingData[sumPhysics][runNumber] = plottingData[streamName][runNumber]
-                    elif streamName[0:7] =="Physics":
+                    elif (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics"):
                         if plottingData[sumPhysics] != {}:
                             ls_number =0
                             for rate in plottingData[streamName][runNumber][1]:
@@ -616,7 +616,8 @@ class RateMonitor:
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
+            if bunchesForLegend > 0: legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
+            else: legend.AddEntry(graphList[-1], "%s (- b)" %(runNumber), "f")
             counter += 1
 
         if (self.useFit or self.fit) and not paramlist is None:
