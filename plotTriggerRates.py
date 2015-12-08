@@ -37,7 +37,7 @@ class MonitorController:
             opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
-                                                       "debugFitter", "doAnyways", "rawPoints", "nonLinear",
+                                                       "debugFitter", "doAnyways", "rawPoints", "nonLinear","vsInstLumi",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
         except:
             print "Error geting options: command unrecognized. Exiting."
@@ -121,6 +121,8 @@ class MonitorController:
                 self.rateMonitor.fitFinder.usePointSelection = False
             elif label == "--nonLinear":
                 self.rateMonitor.fitFinder.forceLinear = False
+            elif label == "--vsInstLumi":
+                self.rateMonitor.pileUp = False
             elif label == "--lumiCut":
                 self.rateMonitor.doLumiCut = True
                 self.rateMonitor.lumiCut = float(op)
@@ -211,7 +213,8 @@ class MonitorController:
         print "--createFit            : Make a fit for the data we plot. Only a primary mode feature."
         print "--sigma=<num>          : The acceptable tolerance for the fit. default is 3 sigma"
         #        print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
-        print "--nonLinear               : Forces fits to be nonLinear"
+        print "--nonLinear            : Forces fits to be nonLinear"
+        print "--vsInstLumi           : Plot rates vs inst. lumi"
         print "--L1Triggers           : ONLY L1 triggers are plotted for the runs."
         print "--AllTriggers          : Both L1 and HLT triggers are plotted for the runs."
         #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
