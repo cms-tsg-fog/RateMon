@@ -193,12 +193,13 @@ class FitFinder:
         linear = TF1("Linear Fit", "pol1", 0, maxX)
         quad = TF1("Quad Fit", "pol2", 0, maxX)
         cube = TF1("Cubic Fit", "pol3", 0, maxX)
-        exp = TF1("Exp Fit", "[0]+[1]*expo", 0, maxX)
+        exp = TF1("Exp Fit", "[0]+[1]*expo(2)", 0, maxX)
 
         fitGraph = TGraph(len(xVals), xVals, yVals)
         # Linear Fit
         maxY = max(yVals)
         minY = min(yVals)
+
         maxindex = yVals.index(maxY)
         minindex = yVals.index(minY)
         if maxindex!=minindex: slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
@@ -209,7 +210,15 @@ class FitFinder:
             quad.FixParameter(0, 0.)
             cube.FixParameter(0, 0.)
             exp.FixParameter(0, 0.)
-            
+
+
+        # Exponential fit
+        exp.SetParameter( 0, 0.)
+        exp.SetParameter( 1, 1)
+        exp.SetParameter( 2, 0.001)
+        exp.SetParameter( 3, 0.01)
+        fitGraph.Fit(exp, "QNM", "rob=0.90")
+        expMSE = self.getMSE(exp, xVals, yVals)            
             
         linear.SetParameters(0, slopeGuess)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
@@ -222,10 +231,6 @@ class FitFinder:
         cube.SetParameters(quad.GetParameter(0), quad.GetParameter(1), quad.GetParameter(2), 0) # Seed with the parameters from the quadratic fit
         fitGraph.Fit(cube, "QNM", "rob=0.90")
         cubeMSE = self.getMSE(cube, xVals, yVals)
-        # Exponential fit
-        
-        fitGraph.Fit(exp, "QNM", "rob=0.90")
-        expMSE = self.getMSE(exp, xVals, yVals)
 
         # Define lists for finding best fit
         fitList = [linear, quad, cube, exp]
@@ -252,6 +257,9 @@ class FitFinder:
                 title = titleList[i]
                 break
         
+        #        pickFit = fitList[3]
+        #        title = titleList[3]
+
         # Set output fit and return
         self.fit = pickFit
         OutputFit = [title]
