@@ -557,7 +557,7 @@ class RateMonitor:
             else: #primary mode
                 if paramlist[0]=="exp": funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
                 elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
-                else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+                else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
                 #maxVal = 50
                 fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
                 #maxRR = fitFunc.Eval(50.)
