@@ -210,11 +210,17 @@ class DBParser:
         self.getL1Prescales(runNumber)
         self.getL1Mask(runNumber)
         self.getL1NameIndexAssoc(runNumber)
-        # Formulate query
-        query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
-        C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
-        A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY_PHYSICS) C
-        WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
+        
+        #pre-DT rates query
+        query = """SELECT LUMI_SECTION, RATE_HZ, SCALER_INDEX 
+        FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION>=%s AND LUMI_SECTION <=%s""" % (runNumber, minLS, maxLS) 
+
+        # Formulate Post-DT deadtime rates query
+        # query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
+        # C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
+        # A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY_PHYSICS) C
+        # WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
+
         self.curs.execute(query)
         L1RateAll=self.curs.fetchall()
 
