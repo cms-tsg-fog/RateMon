@@ -555,10 +555,12 @@ class RateMonitor:
                 if maxPred > maxRR: maxRR = maxPred
 
             else: #primary mode
-                if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                if paramlist[0]=="exp": funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
                 elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
                 else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+                #maxVal = 50
                 fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+                #maxRR = fitFunc.Eval(50.)
 
                 if self.errorBands:
                     xVal = array.array('f')
@@ -629,6 +631,7 @@ class RateMonitor:
                 if self.errorBands: fitErrorBand.Draw("3")
                 legend.AddEntry(fitFunc, "Fit ( %s \sigma )" % (self.sigmas))
                 fitFunc.Draw("same") # Draw the fit function on the same graph
+
                 # Draw function string on the plot
         if not funcStr == "" and self.showEq:
             funcLeg = TLegend(.146, .71, .47, .769)
@@ -752,8 +755,10 @@ class RateMonitor:
                 lumisecs.append(LS)
                 pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
                 # Either we have an exponential fit, or a polynomial fit
-                if type == "exp": rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
-                else: rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                if type == "exp":
+                    rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
+                else:
+                    rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
                 if rr<0: rr=0 # Make sure prediction is non negative
                 predictions.append(rr)
                 lsError.append(0)
