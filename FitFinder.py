@@ -1,8 +1,7 @@
 #######################################################
 # File: FitFinder.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller
 # Date Created: June 23, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -34,7 +33,7 @@ class FitFinder:
         self.bottomSkim = 0.15        # Portion of points with low y values that get removed
         self.topSkim = 0.0            # Portion of points with high y values that get removed
         self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
-        self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
+        self.usePointSelection = False # If true, we use an algorithm to pick out "good" points to fit to
         self.forceZero = False        # If true, the function is forced to include the (0, 0) value
         self.forceLinear = True      # If true, we only try a linear fit
         self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
@@ -242,23 +241,26 @@ class FitFinder:
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
-        if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
+        #        if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
+        if self.forceLinear:
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
-            OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
+            OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
             OutputFit += [linear.GetChisquare()]
             self.fit = linear
             return OutputFit
 
-        pickFit = ""
-        for i in range(0,4):
-            if minMSE == mseList[i]:
-                pickFit = fitList[i]
-                title = titleList[i]
-                break
+        # pickFit = ""
+        # for i in range(0,4):
+        #     if minMSE == mseList[i]:
+        #         pickFit = fitList[i]
+        #         title = titleList[i]
+        #         break
         
-        #        pickFit = fitList[3]
-        #        title = titleList[3]
+        pickFit = fitList[1]
+        title = titleList[1]
+        minMSE = mseList[1]
+
 
         # Set output fit and return
         self.fit = pickFit
