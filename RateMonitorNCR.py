@@ -546,6 +546,7 @@ class RateMonitor:
             self.labelY = "unprescaled rate [Hz]"
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
+        plotFuncStr = ""
         funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
             if self.certifyMode:
@@ -556,16 +557,18 @@ class RateMonitor:
                 if maxPred > maxRR: maxRR = maxPred
 
             else: #primary mode
-                if paramlist[0]=="exp": funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                if paramlist[0]=="exp": 
+                     plotFuncStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                     funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
                 elif paramlist[0]=="linear": 
-                    funcStr = "%.15f + x*%.15f" % (paramlist[1], paramlist[2])                   
-                #else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-                #else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], 0.)
+                    plotFuncStr = "%.15f + x*%.15f" % (paramlist[1], paramlist[2])
+                    funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2])                   
                 else: 
-                    funcStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
-             
-                #maxVal = 50.
-                fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+                    plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])#Polynomial
+                    funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+                
+                #maxVal = 50
+                fitFunc = TF1("Fit_"+triggerName, plotFuncStr, 0., 1.1*maxVal)
                 
                 #maxRR = fitFunc.Eval(50.)
 
