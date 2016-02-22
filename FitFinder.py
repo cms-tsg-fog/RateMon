@@ -20,8 +20,8 @@ from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gS
 from ROOT import TFile, TPaveText, TBrowser
 
 ## ----------- End Imports ------------ ##
-
 class FitFinder:
+    
     # Default constructor for FitFinder class
     def __init__(self):
         self.GraphNumber = 0          # How many graphs we have drawn (for debugging purposes)
@@ -31,18 +31,19 @@ class FitFinder:
         self.guessX = 0               # An x value to do the binning at
         self.nBins = 20               # The number of bins that we use in guessing the slope
         self.nTrys = 15               # Number of y intercepts to try at
-        self.bottomSkim = 0.15        # Portion of points with low y values that get removed
-        self.topSkim = 0.0            # Portion of points with high y values that get removed
-        self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
-        self.usePointSelection = True # If true, we use an algorithm to pick out "good" points to fit to
-        self.forceZero = False        # If true, the function is forced to include the (0, 0) value
+        #self.bottomSkim = 0.15        # Portion of points with low y values that get removed
+        #self.topSkim = 0.0            # Portion of points with high y values that get removed
+        self.saveDebug = True        # If true, we save a debug plot showing included and excluded points
+        self.usePointSelection = True  # If true, we use an algorithm to pick out "good" points to fit to
+        #self.forceZero = False        # If true, the function is forced to include the (0, 0) value
         self.forceLinear = True      # If true, we only try a linear fit
-        self.preferLinear = 0.05      # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
+        #self.preferLinear = 0.4     # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
 
         self.goodPoints = None        # List of good points (for debugging
         self.badPoints = None         # List of bad points (for debugging)
-
+        
+         
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
@@ -52,7 +53,7 @@ class FitFinder:
         # Fitting
         if self.forceLinear: return self.findLinearFit(xVals, yVals, name)
         else: return self.tryFits(goodX, goodY, name)
-
+        
     # Use: Gets a binning index based on the coordinates of a point
     # Parameters:
     # -- x: An x value
@@ -81,8 +82,8 @@ class FitFinder:
         goodY = array.array('f')
         if self.saveDebug:
             badX = array.array('f')
-            badY = array.array('f')
-            
+            badY = array.array('f') 
+
         # Estimate y intercept
         sortY = sorted(zip(yVals,xVals))
         selectY = sortY[int(self.bottomSkim*len(sortY)) : int((1-self.topSkim)*len(sortY))] # Remove bottom 20% and top 10% of points
@@ -186,16 +187,17 @@ class FitFinder:
     # -- xVals: x values
     # -- yVals: y values
     # Returns: The best fit
+       
     def tryFits(self, xVals, yVals, name):
+          
         # Set up graph and functions
         fitGraph = TGraph(len(xVals), xVals, yVals)
         maxX = max(xVals)
         linear = TF1("Linear Fit", "pol1", 0, maxX)
         quad = TF1("Quad Fit", "pol2", 0, maxX)
-        cube = TF1("Cubic Fit", "pol3", 0, maxX)
-        exp = TF1("Exp Fit", "[0]+[1]*expo(2)", 0, maxX)
+        #cube = TF1("Cubic Fit", "pol3", 0, maxX)
+        #exp = TF1("Exp Fit", "[0]+[1]*expo(2)", 0, maxX)
 
-        fitGraph = TGraph(len(xVals), xVals, yVals)
         # Linear Fit
         maxY = max(yVals)
         minY = min(yVals)
@@ -205,44 +207,53 @@ class FitFinder:
         if maxindex!=minindex: slopeGuess = (maxY-minY)/(xVals[maxindex]-xVals[minindex])
         else: slopeGuess = 0
         
-        if self.forceZero:
-            linear.FixParameter(0, 0.)
-            quad.FixParameter(0, 0.)
-            cube.FixParameter(0, 0.)
-            exp.FixParameter(0, 0.)
-
+        #if self.forceZero:
+        #    linear.FixParameter(0, 0.)
+        #    quad.FixParameter(0, 0.)
+        #    cube.FixParameter(0, 0.)
+        #    exp.FixParameter(0, 0.)
+      
 
         # Exponential fit
-        exp.SetParameter( 0, 0.)
-        exp.SetParameter( 1, 1)
-        exp.SetParameter( 2, 0.001)
-        exp.SetParameter( 3, 0.01)
-        fitGraph.Fit(exp, "QNM", "rob=0.90")
-        expMSE = self.getMSE(exp, xVals, yVals)            
-            
-        linear.SetParameters(0, slopeGuess)
+        #exp.SetParameter( 0, 0.)
+        #exp.SetParameter( 1, 1)
+        #exp.SetParameter( 2, 0.01)
+        #exp.SetParameter( 3, 0.01)
+        #fitGraph.Fit(exp, "QNM", "rob=0.90")
+        #expMSE = self.getMSE(exp, xVals, yVals)         
+
+        # Linear Fits    
+        #linear.SetParameters(0, slopeGuess)
         fitGraph.Fit(linear, "QNM", "rob=0.90")
-        linearMSE = self.getMSE(linear, xVals, yVals)
+        linearMSE = self.getMSE(linear, xVals, yVals)        
+
         # Quadratic Fit
-        quad.SetParameters(linear.GetParameter(0), linear.GetParameter(1), 0) # Seed with the parameters from the linear fit
+        #quad.SetParameters(linear.GetParameter(0), linear.GetParameter(1), 0) # Seed with the parameters from the linear fit
         fitGraph.Fit(quad, "QNM", "rob=0.90")
         quadMSE = self.getMSE(quad, xVals, yVals)
-        # Cubic Fit
-        cube.SetParameters(quad.GetParameter(0), quad.GetParameter(1), quad.GetParameter(2), 0) # Seed with the parameters from the quadratic fit
-        fitGraph.Fit(cube, "QNM", "rob=0.90")
-        cubeMSE = self.getMSE(cube, xVals, yVals)
+
+        # Cubic Fit   
+        #cube.SetParameters(quad.GetParameter(0), quad.GetParameter(1), quad.GetParameter(2), 0) # Seed with the parameters from the quadratic fit
+        #fitGraph.Fit(cube, "QNM", "rob=0.90")
+        #cubeMSE = self.getMSE(cube, xVals, yVals) 
 
         # Define lists for finding best fit
-        fitList = [linear, quad, cube, exp]
-        mseList = [linearMSE, quadMSE, cubeMSE, expMSE]
-        titleList = ["linear", "quad", "cube", "exp"]
-        minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
+        fitList = [linear, quad]
+        mseList = [linearMSE, quadMSE]
+        titleList = ["linear", "quad"]
+        minMSE = min([linearMSE, quadMSE])
+
+        #fitList = [linear, quad, cube, exp]
+        #mseList = [linearMSE, quadMSE, cubeMSE, expMSE]
+        #titleList = ["linear", "quad", "cube", "exp"]
+        #minMSE = min([linearMSE, quadMSE, cubeMSE, expMSE]) # Find the minimum MSE
 
         # Save debug graph
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
-        if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
+        #if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
+        if self.forceLinear:   
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
             OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
@@ -251,14 +262,15 @@ class FitFinder:
             return OutputFit
 
         pickFit = ""
-        for i in range(0,4):
-            if minMSE == mseList[i]:
+        for i in range(0, 4):
+            if minMSE  == mseList[i]:
                 pickFit = fitList[i]
                 title = titleList[i]
                 break
-        
-        #        pickFit = fitList[3]
-        #        title = titleList[3]
+       
+        #pickFit = fitList[1]
+        #title = titleList[1]
+        #minMSE = mseList[1]
 
         # Set output fit and return
         self.fit = pickFit
@@ -266,9 +278,18 @@ class FitFinder:
         OutputFit += [pickFit.GetParameter(0), pickFit.GetParameter(1), pickFit.GetParameter(2), pickFit.GetParameter(3)]
         OutputFit += [minMSE, 0, pickFit.GetParError(0), pickFit.GetParError(1), pickFit.GetParError(2), pickFit.GetParError(3)]
         OutputFit += [pickFit.GetChisquare()]
+        
+        return OutputFit      
 
-        return OutputFit
+    # Use: Finds the root of the mean squared error of a fit
+    # Returns: The square root of the mean squared error
+    def getMSE(self, fitFunc, xVals, yVals):
+        mse = 0
+        for x,y in zip(xVals, yVals):
+            mse += (fitFunc.Eval(x) - y)**2
+        return math.sqrt(mse/len(xVals))
 
+        
     # Use: Gets the best linear fit of the data
     # Returns: An output fit tuple
     def findLinearFit(self, xVals, yVals, name):
@@ -282,24 +303,13 @@ class FitFinder:
         OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
         OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
         OutputFit += [linear.GetChisquare()]
-
         fitList = [linear]
         titleList = ["linear"]
+
         # Save debug graph
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
-        
-        return OutputFit
-        
-    # Use: Finds the root of the mean squared error of a fit
-    # Returns: The square root of the mean squared error
-    def getMSE(self, fitFunc, xVals, yVals):
-        mse = 0
-        for x,y in zip(xVals, yVals):
-            mse += (fitFunc.Eval(x) - y)**2
-        return math.sqrt(mse/len(xVals))
 
-    # Use: Another method of getting good points to make a fit from
     def getGoodPoints2(self, xVals, yVals):
         if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals, "preprocess")
         else: paramlist = self.tryFits(xVals, yVals, "preprocess")
@@ -308,6 +318,7 @@ class FitFinder:
         badX = array.array('f')
         goodY = array.array('f')
         badY = array.array('f')
+
 
         for x,y in zip(xVals,yVals):
             eval = self.fit.Eval(x)
@@ -335,13 +346,14 @@ class FitFinder:
                 self.badPoints = badPoints
 
         return goodX, goodY
-
-                
+        
+              
     def saveDebugGraph(self, fitList, titleList, name, fitGraph):
         canvas = TCanvas("Debug_%s" % (name), "y", 1000, 700)
         # Add a legend
         legend = TLegend(0.8, 0.9, 1.0, 0.7)
         legend.SetHeader("Fits:")
+        
         # Remove Debug.root if it already exists
         if os.path.exists("Debug.root") and self.GraphNumber == 0:
             os.remove("Debug.root")
@@ -359,7 +371,7 @@ class FitFinder:
             fitGraph.Draw("AP3")
             
         count = 0 # Counting variable
-        for fit in fitList:  # Draw fits
+        for fit in fitList:  # Draw fits 
             legend.AddEntry(fit, titleList[count])
             fit.SetLineColor(count+6)
             fit.Draw("same")
@@ -370,5 +382,5 @@ class FitFinder:
         file = TFile("Debug.root", "UPDATE")
         canvas.Write()
         file.Close()
-            
+   
 ## ----------- End of class FitFinder ------------ ## 

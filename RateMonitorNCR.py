@@ -92,8 +92,7 @@ class RateMonitor:
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
-        self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plots
-        
+        self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plot
         self.png = True          # If true, create png images of all plots
 
         # Fitting
@@ -109,7 +108,7 @@ class RateMonitor:
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.showEq = True       # Whether we should show the fit equation on the plot
         self.dataCol = 0         # The column of the input data that we want to use as our y values
-        
+ 
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
@@ -118,7 +117,7 @@ class RateMonitor:
 
         # Cuts
         self.lumiCut = 0.0000001       # The lumi cut value
-        self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
+        self.doLumiCut = False    # If true, we only plot data points with inst lumi > self.lumiCut
         self.dataCut = 0.0       # The rate cut value
         self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
@@ -133,6 +132,7 @@ class RateMonitor:
         # If False, modify self.triggerList as neccessary to include as many triggers as possible
         # If True, only use triggers in self.triggerList
         self.useTrigList = False
+
 
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
@@ -343,6 +343,7 @@ class RateMonitor:
         for name in sorted(plottingData):
             if fitparams is None or not fitparams.has_key(name): fit = None
             else: fit = fitparams[name]
+           
             self.graphAllData(plottingData[name], fit, name)
 
         # Try to close the error file
@@ -359,7 +360,7 @@ class RateMonitor:
 
         if self.outputOn: print "" # Final newline for formatting
 
-        if self.png: self.printHtml(plottingData)
+        if self.png: self.printHtml(plottingData)  
 
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
@@ -430,8 +431,7 @@ class RateMonitor:
                 for LS, rate in pdData[name]:
                     Data[name][LS] = [ rate ]
         else: Data = Rates
-
-        
+ 
         # Depending on the mode, we return different pairs of data
         if not self.certifyMode:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
@@ -509,6 +509,7 @@ class RateMonitor:
     # -- paramlist: A tuple: { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err } 
     # -- triggerName: The name of the trigger that we are examining
     # Returns: (void)
+ 
     def graphAllData(self, plottingData, paramlist, triggerName):        
         # Find that max and min values
         maximumRR = array.array('f')
@@ -556,10 +557,16 @@ class RateMonitor:
 
             else: #primary mode
                 if paramlist[0]=="exp": funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-                elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
-                else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-                #maxVal = 50
+                elif paramlist[0]=="linear": 
+                    funcStr = "%.15f + x*%.15f" % (paramlist[1], paramlist[2])                   
+                #else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+                #else: funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], 0.)
+                else: 
+                    funcStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+             
+                #maxVal = 50.
                 fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+                
                 #maxRR = fitFunc.Eval(50.)
 
                 if self.errorBands:
@@ -600,6 +607,7 @@ class RateMonitor:
             bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
             if numLS == 0: continue
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
+
             # Set some stylistic settings for dataGraph
             graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].SetMarkerStyle(7)
@@ -669,6 +677,7 @@ class RateMonitor:
         canvas.Write()
         file.Close()
         self.savedAFile = True
+       
 
     # Use: Get a fit for all the data that we have collected
     # Parameters:
@@ -676,6 +685,7 @@ class RateMonitor:
     # Returns: (void)
     def findFit(self, plottingData):
         self.OutputFit = {}
+        
         # Combine data
         for name in sorted(plottingData):
             instLumis = array.array('f')
