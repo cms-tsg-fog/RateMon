@@ -1,8 +1,7 @@
 #######################################################
 # File: FitFinder.py
-# Author: Nathaniel Carl Rupprecht
+# Author: Nathaniel Carl Rupprecht Charlie Mueller
 # Date Created: June 23, 2015
-# Last Modified: August 13, 2015 by Nathaniel Rupprecht
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
@@ -253,10 +252,10 @@ class FitFinder:
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
         #if self.forceLinear or (minMSE != 0 and (linearMSE-minMSE)/minMSE < self.preferLinear):
-        if self.forceLinear:   
+        if self.forceLinear:
             OutputFit = ["linear"]
             OutputFit += [linear.GetParameter(0), linear.GetParameter(1), 0, 0]
-            OutputFit += [minMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
+            OutputFit += [linearMSE, 0, linear.GetParError(0), linear.GetParError(1), 0, 0]
             OutputFit += [linear.GetChisquare()]
             self.fit = linear
             return OutputFit
