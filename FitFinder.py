@@ -25,16 +25,13 @@ class FitFinder:
     def __init__(self):
         self.GraphNumber = 0          # How many graphs we have drawn (for debugging purposes)
         self.lowLimitY = 0            # A guess at what the lower limit on what the y intercept could be
-        self.hightLimitY = 0          # A guess at what the upper limit on what the y intercept could be
+        self.highLimitY = 0          # A guess at what the upper limit on what the y intercept could be
         self.guessY = 0               # Guess at the y intercept
         self.guessX = 0               # An x value to do the binning at
         self.nBins = 20               # The number of bins that we use in guessing the slope
         self.nTrys = 15               # Number of y intercepts to try at
-        #self.bottomSkim = 0.15        # Portion of points with low y values that get removed
-        #self.topSkim = 0.0            # Portion of points with high y values that get removed
         self.saveDebug = True        # If true, we save a debug plot showing included and excluded points
         self.usePointSelection = True  # If true, we use an algorithm to pick out "good" points to fit to
-        #self.forceZero = False        # If true, the function is forced to include the (0, 0) value
         self.forceLinear = True      # If true, we only try a linear fit
         #self.preferLinear = 0.4     # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
@@ -47,7 +44,7 @@ class FitFinder:
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
         # Point selectoin
-        if self.usePointSelection: goodX, goodY = self.getGoodPoints2(xVals, yVals)
+        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
         else: goodX, goodY = xVals, yVals
         # Fitting
         if self.forceLinear: return self.findLinearFit(xVals, yVals, name)
@@ -61,80 +58,6 @@ class FitFinder:
     def getIndex(self, x, y):
         # The x-0.1 is to ensure that we never get an angle of exactly pi/2 or -pi/2
         return int(self.nBins * (math.atan2((y-self.guessY)/self.yRatio, (x-self.guessX)/self.xRatio)/math.pi+0.5))
-
-    # Use: Determines which points are good and returns them
-    # Returns: A pair, { goodX, goodY }
-    def getGoodPoints(self, xVals, yVals):
-        # Find some properties of the values
-        length = len(xVals)
-
-        if length <= 0:
-            print "No points."
-            return
-
-        maxX = max(xVals)
-        maxY = max(yVals)
-        aveY = sum(yVals)/length
-        
-        # Initialize arrays
-        goodX = array.array('f')
-        goodY = array.array('f')
-        if self.saveDebug:
-            badX = array.array('f')
-            badY = array.array('f') 
-
-        # Estimate y intercept
-        sortY = sorted(zip(yVals,xVals))
-        selectY = sortY[int(self.bottomSkim*len(sortY)) : int((1-self.topSkim)*len(sortY))] # Remove bottom 20% and top 10% of points
-        
-        if self.saveDebug:
-            for i in range(0, int(self.bottomSkim*len(sortY))): # Add lower points to badX, badY
-                badX.append(sortY[i][1])
-                badY.append(sortY[i][0])
-            for i in range(int((1-self.topSkim)*len(sortY)), length): # Add upper points to badX, badY
-                badX.append(sortY[i][1])
-                badY.append(sortY[i][0])
-                
-        # Reset points
-        yVals, xVals = zip(*selectY)
-        length = len(xVals)
-        self.highLimitY = 1.5*aveY
-        self.lowLimitY = -0.5*aveY
-        
-        # Estimate slope
-        self.xRatio = max([maxX,1])     # x factor
-        self.yRatio = max([1.5*aveY,1]) # y factor
-        self.guessX = min(xVals) - 0.1  # Minimum x value
-        
-        # Guess at a good y intercept and slope
-        bin, maxCount = self.tryBins(xVals, yVals)
-        
-        for count in range(0,length):
-            index = self.getIndex(xVals[count], yVals[count])
-            if abs(index - bin) <= 0:
-                goodX.append(xVals[count])
-                goodY.append(yVals[count])
-            elif self.saveDebug: # For Debugging
-                badX.append(xVals[count])
-                badY.append(yVals[count])
-
-        if self.saveDebug:
-            if len(goodX)>0:
-                goodPoints = TGraph(len(goodX), goodX, goodY)
-                goodPoints.SetMarkerStyle(7)
-                goodPoints.SetMarkerColor(3)
-                goodPoints.SetMaximum(1.2*max(yVals))
-                goodPoints.SetMinimum(0)
-                self.goodPoints = goodPoints
-            if len(badX)>0:
-                badPoints = TGraph(len(badX), badX, badY)
-                badPoints.SetMarkerStyle(7)
-                badPoints.SetMarkerColor(2)
-                badPoints.SetMaximum(1.2*max(yVals))
-                badPoints.SetMinimum(0)
-                self.badPoints = badPoints
-                
-        return goodX, goodY
 
     # Use: Trys out a number of binnings to see which one captures the most data within a single bin
     # Parameters:
@@ -309,7 +232,7 @@ class FitFinder:
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
-    def getGoodPoints2(self, xVals, yVals):
+    def getGoodPoints(self, xVals, yVals):
         if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals, "preprocess")
         else: paramlist = self.tryFits(xVals, yVals, "preprocess")
         minMSE = paramlist[5]
