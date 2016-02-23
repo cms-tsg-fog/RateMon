@@ -34,11 +34,12 @@ class MonitorController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["lumiCut=", "dataCut=","maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "nonLinear","vsInstLumi",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
+                                                   
         except:
             print "Error geting options: command unrecognized. Exiting."
             return False
@@ -78,8 +79,8 @@ class MonitorController:
                 self.rateMonitor.maxBatches = int(op)
             elif label == "--sigma":
                 self.rateMonitor.sigmas = float(op)
-            elif label == "--preferLinear":
-                self.rateMonitor.fitFinder.preferLinear = float(op)
+            #elif label == "--preferLinear":
+                #self.rateMonitor.fitFinder.preferLinear = float(op)
             elif label == "--All":
                 self.rateMonitor.processAll = True
             elif label == "--Raw":
@@ -123,12 +124,6 @@ class MonitorController:
                 self.rateMonitor.fitFinder.forceLinear = False
             elif label == "--vsInstLumi":
                 self.rateMonitor.pileUp = False
-            elif label == "--lumiCut":
-                self.rateMonitor.doLumiCut = True
-                self.rateMonitor.lumiCut = float(op)
-            elif label == "--dataCut":
-                self.rateMonitor.doDataCut = True
-                self.rateMonitor.dataCut = float(op)
             elif label == "--streamRate":
                 self.rateMonitor.labelY = "rate [Hz]"
                 self.rateMonitor.plotStreams = True
@@ -222,9 +217,7 @@ class MonitorController:
         print "--streamSize           : Plots the stream size vs inst lumi."
         #print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
         print "--datasetRate          : Plots the PD rate vs inst lumi."
-        #        print "\nCut/Normalization Options:"
-        #        print "--lumiCut=<num>        : Any lumisection with inst lumi less then <num> will not be plotted or considered in the fit making. By default, this value is 0.1"
-        #        print "--datCut=<num>         : Any lumisection with plottable data (usually rate) less then <num> will not be plotted or considered in the fit making. (Default is 0.0)"
+        #        print "\nCut/Normalization Options:" 
         #print "                         we skip that run. This overrides that functionality."
         print ""
         print "EXAMPLES:"
