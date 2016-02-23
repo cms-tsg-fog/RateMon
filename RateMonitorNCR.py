@@ -116,10 +116,6 @@ class RateMonitor:
         self.first = True        # True if we are processing our first batch
 
         # Cuts
-        self.lumiCut = 0.0000001       # The lumi cut value
-        self.doLumiCut = False    # If true, we only plot data points with inst lumi > self.lumiCut
-        self.dataCut = 0.0       # The rate cut value
-        self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
         self.maxDeadTime = 8.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
 
@@ -471,14 +467,13 @@ class RateMonitor:
                     # Extract the required data from Data
                     data = Data[name][LS][self.dataCol]
                     # We apply our cuts here if they are called for
-                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doDataCut or data > self.dataCut):
-                        if self.pileUp:
-                            PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
-                            iLuminosity.append(PU)
-                            yvals.append(data/self.bunches)
-                        else:
-                            iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
-                            yvals.append(data) # Add the correspoinding raw rate
+                    if self.pileUp:
+                        PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
+                        iLuminosity.append(PU)
+                        yvals.append(data/self.bunches)
+                    else:
+                        iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
+                        yvals.append(data) # Add the correspoinding raw rate
 
             if len(iLuminosity) > 0:
                 dataList[name] = [iLuminosity, yvals]
