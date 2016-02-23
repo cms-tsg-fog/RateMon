@@ -227,14 +227,17 @@ class FitFinder:
         OutputFit += [linear.GetChisquare()]
         fitList = [linear]
         titleList = ["linear"]
+        return OutputFit
 
         # Save debug graph
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
     def getGoodPoints(self, xVals, yVals):
-        if self.forceLinear: paramlist = self.findLinearFit(xVals, yVals, "preprocess")
-        else: paramlist = self.tryFits(xVals, yVals, "preprocess")
+        if self.forceLinear: 
+            paramlist = self.findLinearFit(xVals, yVals, "preprocess")
+        else: 
+            paramlist = self.tryFits(xVals, yVals, "preprocess")
         minMSE = paramlist[5]
         goodX = array.array('f')
         badX = array.array('f')
