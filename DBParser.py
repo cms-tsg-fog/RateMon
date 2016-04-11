@@ -66,11 +66,19 @@ class DBParser:
     # Returns: True if we succeded, false if the run doesn't exist (probably)
     def getRunInfo(self, runNumber):
         ## This query gets the L1_HLT Key (A), the associated HLT Key (B) and the Config number for that key (C)
+#         KeyQuery = """
+#         SELECT A.TRIGGERMODE, B.HLT_KEY, B.GT_RS_KEY, B.TSC_KEY, D.GT_KEY FROM
+#         CMS_WBM.RUNSUMMARY A, CMS_L1_HLT.L1_HLT_CONF B, CMS_HLT_GDR.U_CONFVERSIONS C, CMS_TRG_L1_CONF.TRIGGERSUP_CONF D WHERE
+#         B.ID = A.TRIGGERMODE AND C.NAME = B.HLT_KEY AND D.TS_Key = B.TSC_Key AND A.RUNNUMBER=%d
+#         """ % (runNumber)
+
         KeyQuery = """
-        SELECT A.TRIGGERMODE, B.HLT_KEY, B.GT_RS_KEY, B.TSC_KEY, D.GT_KEY FROM
-        CMS_WBM.RUNSUMMARY A, CMS_L1_HLT.L1_HLT_CONF B, CMS_HLT_GDR.U_CONFVERSIONS C, CMS_TRG_L1_CONF.TRIGGERSUP_CONF D WHERE
-        B.ID = A.TRIGGERMODE AND C.NAME = B.HLT_KEY AND D.TS_Key = B.TSC_Key AND A.RUNNUMBER=%d
+        SELECT A.TRIGGERMODE, B.HLT_KEY, B.L1_TRG_RS_KEY, B.L1_TRG_CONF_KEY, B.UGT_KEY FROM
+        CMS_WBM.RUNSUMMARY A, CMS_L1_HLT.V_L1_HLT_CONF_EXTENDED B, CMS_TRG_L1_CONF.TRIGGERSUP_CONF D WHERE
+        B.ID = A.TRIGGERMODE AND A.RUNNUMBER=%d
         """ % (runNumber)
+
+
         try:
             self.curs.execute(KeyQuery)
             self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.curs.fetchone()
@@ -78,6 +86,7 @@ class DBParser:
         except:
             print "Unable to get L1 and HLT keys for this run"
             return False
+        
 
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
@@ -317,7 +326,6 @@ class DBParser:
             else: sqlquery += " "
         sqlquery += "FROM CMS_GT.GT_FDL_PRESCALE_FACTORS_ALGO A, CMS_GT.GT_RUN_SETTINGS_PRESC_VIEW B WHERE A.ID=B.PRESCALE_FACTORS_ALGO_FK AND B.ID='"
         sqlquery += (self.GTRS_Key + "'")
-        # Our query is now constructed
         try:
             self.curs.execute(sqlquery)
         except:
