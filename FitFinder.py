@@ -30,8 +30,8 @@ class FitFinder:
         self.guessX = 0               # An x value to do the binning at
         self.nBins = 20               # The number of bins that we use in guessing the slope
         self.nTrys = 15               # Number of y intercepts to try at
-        self.saveDebug = True        # If true, we save a debug plot showing included and excluded points
-        self.usePointSelection = True  # If true, we use an algorithm to pick out "good" points to fit to
+        self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
+        self.usePointSelection = False  # If true, we use an algorithm to pick out "good" points to fit to
         self.forceLinear = True      # If true, we only try a linear fit
         #self.preferLinear = 0.4     # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
@@ -190,9 +190,9 @@ class FitFinder:
                 title = titleList[i]
                 break
        
-        #pickFit = fitList[1]
-        #title = titleList[1]
-        #minMSE = mseList[1]
+        #pickFit = fitList[3]
+        #title = titleList[3]
+        #minMSE = mseList[3]
 
         # Set output fit and return
         self.fit = pickFit
