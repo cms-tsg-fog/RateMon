@@ -35,7 +35,7 @@ class DBParser:
         # Create a DB cursor
         self.curs = orcl.cursor()
 
-        self.L1Prescales = []
+        self.L1Prescales = {}
         self.HLTPrescales = {}
         self.HLTSequenceMap = {}
         self.GTRS_Key = ""
@@ -215,15 +215,22 @@ class DBParser:
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
     def getL1RawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # Get information that we will need to use
+        self.getRunInfo(runNumber)
         self.getPSColumnByLS(runNumber, minLS)
         self.getL1Prescales(runNumber)
         self.getL1Mask(runNumber)
         self.getL1NameIndexAssoc(runNumber)
-        # Formulate query
-        query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
-        C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
-        A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY_PHYSICS) C
-        WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
+        
+        #pre-DT rates query
+        query = """SELECT LUMI_SECTION, RATE_HZ, SCALER_INDEX 
+        FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION>=%s AND LUMI_SECTION <=%s""" % (runNumber, minLS, maxLS) 
+
+        # Formulate Post-DT deadtime rates query
+        # query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
+        # C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
+        # A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY_PHYSICS) C
+        # WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
+
         self.curs.execute(query)
         L1RateAll=self.curs.fetchall()
 
@@ -249,18 +256,11 @@ class DBParser:
                 L1Triggers[name] = {}
             L1Triggers[name][LS] = rate
                 
-        # #total L1 PS table
-        L1PSdict={}
-        counter=0
-        for line in self.L1Prescales:
-            L1PSdict[counter]=line
-            counter=counter+1
-                
         if len(LSRange) == 0: return {}
         
         L1PSbits={}
         L1Rates = {}
-        for bit in L1PSdict.iterkeys():
+        for bit in self.L1Prescales.iterkeys():
             if not rmap.has_key(bit):
                 continue
             name = rmap[bit]
@@ -269,10 +269,12 @@ class DBParser:
             for LS in LSRange:
                 try:
                     pscol = self.PSColumnByLS[LS]
-                    ps = L1PSdict[bit][pscol]
-                    L1Rates[name][LS]= [ L1Triggers[name][LS]*ps , ps ]
-                except: pass
-        
+                    ps = self.L1Prescales[bit][pscol]
+                    unprescaled_rate = L1Triggers[name][LS]*ps
+                    L1Rates[name][LS]= [ unprescaled_rate , ps ]
+                except:
+                    pass
+                
         # [ trigger ] [ LS ] { raw rate, ps }
         return L1Rates
     
@@ -332,18 +334,19 @@ class DBParser:
             print "Get L1 Prescales failed"
             return 
 
-        tmp = self.curs.fetchall()
-        self.L1Prescales = []
+        ps_table = self.curs.fetchall()
+        self.L1Prescales = {}
 
-        if len(tmp) < 1:
+        if len(ps_table) < 1:
             print "Cannot get L1 Prescales"
             return
-
-        for ps in tmp[0]: #build the prescale table initially
-            self.L1Prescales.append([ps])
-        for line in tmp[1:]: # now fill it
-            for ps,index in zip(line,range(len(line))):
-                self.L1Prescales[index].append(ps)
+        
+        for bit in range(0,128):
+            self.L1Prescales[bit] = {}
+            ps_column_index = 0
+            for ps_col_array in ps_table:
+                self.L1Prescales[bit][ps_column_index] = ps_col_array[bit]
+                ps_column_index +=1
 
     # Note: This function is from DatabaseParser.py (with slight modifications)
     # Use: Gets the average L1 prescales

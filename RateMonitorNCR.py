@@ -55,8 +55,8 @@ class RateMonitor:
         self.jsonData = {}
         self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
-        #        self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
-        #        self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
+        #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
         self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
@@ -92,8 +92,7 @@ class RateMonitor:
         self.runsToProcess = 12  # How many runs we are about to process
         self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
-        self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plots
-        
+        self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plot
         self.png = True          # If true, create png images of all plots
 
         # Fitting
@@ -109,7 +108,7 @@ class RateMonitor:
         self.bunches = 1         # The number of colliding bunches if divByBunches is true, 1 otherwise
         self.showEq = True       # Whether we should show the fit equation on the plot
         self.dataCol = 0         # The column of the input data that we want to use as our y values
-        
+ 
         # Batch mode variables
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
@@ -117,10 +116,6 @@ class RateMonitor:
         self.first = True        # True if we are processing our first batch
 
         # Cuts
-        self.lumiCut = 0.0000001       # The lumi cut value
-        self.doLumiCut = True    # If true, we only plot data points with inst lumi > self.lumiCut
-        self.dataCut = 0.0       # The rate cut value
-        self.doDataCut = True    # If true, we only plot data points with data > self.dataCut
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
         self.maxDeadTime = 8.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
 
@@ -133,6 +128,7 @@ class RateMonitor:
         # If False, modify self.triggerList as neccessary to include as many triggers as possible
         # If True, only use triggers in self.triggerList
         self.useTrigList = False
+
 
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
@@ -303,16 +299,16 @@ class RateMonitor:
                         message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                         self.errFile.write(message)
             elif not self.plotDatasets: # Otherwise, make plots for each stream
-                sumPhysics = "HLT_Physics_Streams"
+                sumPhysics = "Sum_Physics_Streams"
                 for streamName in dataList:
                     if not plottingData.has_key(streamName): plottingData[streamName] = {}
                     plottingData[streamName][runNumber] = dataList[streamName]
                     
                     if not plottingData.has_key(sumPhysics):
                         plottingData[sumPhysics] = {}
-                    if streamName[0:7] =="Physics" and not plottingData[sumPhysics].has_key(runNumber):
+                    if (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics") and not plottingData[sumPhysics].has_key(runNumber):
                         plottingData[sumPhysics][runNumber] = plottingData[streamName][runNumber]
-                    elif streamName[0:7] =="Physics":
+                    elif (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics"):
                         if plottingData[sumPhysics] != {}:
                             ls_number =0
                             for rate in plottingData[streamName][runNumber][1]:
@@ -343,6 +339,7 @@ class RateMonitor:
         for name in sorted(plottingData):
             if fitparams is None or not fitparams.has_key(name): fit = None
             else: fit = fitparams[name]
+           
             self.graphAllData(plottingData[name], fit, name)
 
         # Try to close the error file
@@ -359,7 +356,7 @@ class RateMonitor:
 
         if self.outputOn: print "" # Final newline for formatting
 
-        if self.png: self.printHtml(plottingData)
+        if self.png: self.printHtml(plottingData)  
 
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
@@ -430,8 +427,7 @@ class RateMonitor:
                 for LS, rate in pdData[name]:
                     Data[name][LS] = [ rate ]
         else: Data = Rates
-
-        
+ 
         # Depending on the mode, we return different pairs of data
         if not self.certifyMode:
             # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
@@ -471,14 +467,13 @@ class RateMonitor:
                     # Extract the required data from Data
                     data = Data[name][LS][self.dataCol]
                     # We apply our cuts here if they are called for
-                    if (not self.doLumiCut or normedILumi > self.lumiCut) and (not self.doDataCut or data > self.dataCut):
-                        if self.pileUp:
-                            PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
-                            iLuminosity.append(PU)
-                            yvals.append(data/self.bunches)
-                        else:
-                            iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
-                            yvals.append(data) # Add the correspoinding raw rate
+                    if self.pileUp:
+                        PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
+                        iLuminosity.append(PU)
+                        yvals.append(data/self.bunches)
+                    else:
+                        iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
+                        yvals.append(data) # Add the correspoinding raw rate
 
             if len(iLuminosity) > 0:
                 dataList[name] = [iLuminosity, yvals]
@@ -509,6 +504,7 @@ class RateMonitor:
     # -- paramlist: A tuple: { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err } 
     # -- triggerName: The name of the trigger that we are examining
     # Returns: (void)
+ 
     def graphAllData(self, plottingData, paramlist, triggerName):        
         # Find that max and min values
         maximumRR = array.array('f')
@@ -545,6 +541,7 @@ class RateMonitor:
             self.labelY = "unprescaled rate [Hz]"
         canvas = TCanvas((self.varX+" "+xunits), self.varY, 1000, 600)
         canvas.SetName(triggerName+"_"+self.varX+"_vs_"+self.varY)
+        plotFuncStr = ""
         funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
             if self.certifyMode:
@@ -555,10 +552,20 @@ class RateMonitor:
                 if maxPred > maxRR: maxRR = maxPred
 
             else: #primary mode
-                if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-                elif paramlist[0]=="linear": funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2]) # Linear
-                else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
-                fitFunc = TF1("Fit_"+triggerName, funcStr, 0., 1.1*maxVal)
+                if paramlist[0]=="exp": 
+                     plotFuncStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+                     funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+                elif paramlist[0]=="linear": 
+                    plotFuncStr = "%.15f + x*%.15f" % (paramlist[1], paramlist[2])
+                    funcStr = "%.5f + x*%.5f" % (paramlist[1], paramlist[2])                   
+                else: 
+                    plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])#Polynomial
+                    funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+                
+                #maxVal = 50
+                fitFunc = TF1("Fit_"+triggerName, plotFuncStr, 0., 1.1*maxVal)
+                
+                #maxRR = fitFunc.Eval(50.)
 
                 if self.errorBands:
                     xVal = array.array('f')
@@ -598,6 +605,7 @@ class RateMonitor:
             bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
             if numLS == 0: continue
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
+
             # Set some stylistic settings for dataGraph
             graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             graphList[-1].SetMarkerStyle(7)
@@ -616,7 +624,8 @@ class RateMonitor:
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
+            if bunchesForLegend > 0: legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
+            else: legend.AddEntry(graphList[-1], "%s (- b)" %(runNumber), "f")
             counter += 1
 
         if (self.useFit or self.fit) and not paramlist is None:
@@ -628,6 +637,7 @@ class RateMonitor:
                 if self.errorBands: fitErrorBand.Draw("3")
                 legend.AddEntry(fitFunc, "Fit ( %s \sigma )" % (self.sigmas))
                 fitFunc.Draw("same") # Draw the fit function on the same graph
+
                 # Draw function string on the plot
         if not funcStr == "" and self.showEq:
             funcLeg = TLegend(.146, .71, .47, .769)
@@ -665,6 +675,7 @@ class RateMonitor:
         canvas.Write()
         file.Close()
         self.savedAFile = True
+       
 
     # Use: Get a fit for all the data that we have collected
     # Parameters:
@@ -672,6 +683,7 @@ class RateMonitor:
     # Returns: (void)
     def findFit(self, plottingData):
         self.OutputFit = {}
+        
         # Combine data
         for name in sorted(plottingData):
             instLumis = array.array('f')
@@ -751,8 +763,10 @@ class RateMonitor:
                 lumisecs.append(LS)
                 pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
                 # Either we have an exponential fit, or a polynomial fit
-                if type == "exp": rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
-                else: rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                if type == "exp":
+                    rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
+                else:
+                    rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
                 if rr<0: rr=0 # Make sure prediction is non negative
                 predictions.append(rr)
                 lsError.append(0)
