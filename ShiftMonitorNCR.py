@@ -81,7 +81,7 @@ class ShiftMonitor:
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         #self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode 
-        self.collisions_triggerList = "monitorlist_HI.list" #default list used when in collision mode 
+        self.collisions_triggerList = "monitorlist_COSMICS.list" #default list used when in collision mode
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list 
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -107,7 +107,7 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        self.maxHLTRate = 1250           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 400           # The maximum prescaled rate we allow an HLT Trigger to have
         self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
@@ -291,10 +291,13 @@ class ShiftMonitor:
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         if not self.simulate: self.getRates()
         #Construct (or reconstruct) trigger lists
-        if self.redoTList: self.redoTriggerLists()
+        if self.redoTList:
+            self.redoTriggerLists()
 
         # Make sure there is info to use
-        if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+        
+        #if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+        if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             self.redoTList = True
             return
@@ -387,7 +390,7 @@ class ShiftMonitor:
             elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
                         
         self.getHeader()
-
+        
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
