@@ -14,7 +14,6 @@
 import array
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend, TFile, TLine, TLatex, TH1D
 
-
 #prints bad LS in JSON format
 def formatJSON(lumisection_list):
     list = "[" 
@@ -47,7 +46,7 @@ class ErrorPrinter:
     # Use: Outputs information to a file
     def outputErrors(self):
         # Output all kinds of info to a file
-        rootFileName = "%s/CertificaitonSummary.root" % (self.saveDirectory)
+        rootFileName = "%s/CertificationSummaries.root" % (self.saveDirectory)
         rootFile = TFile(rootFileName,"RECREATE")
         print "Writing summary root file %s" % (rootFileName)
 
@@ -62,6 +61,9 @@ class ErrorPrinter:
 
         for runNumber in sortedRuns:
             file.write("Run Number: %s\n" % (runNumber))
+            file.write("\n")
+            file.write("     TRIGGERS: BAD LUMIECTION(S) \n")
+            file.write("\n")
 
             totalErrs = 0
 
@@ -80,14 +82,16 @@ class ErrorPrinter:
             file.write("\n")
 
             totalLumis = len( self.run_allLs[runNumber][self.run_allLs[runNumber].keys()[0]] )
+            minLumi = min( self.run_allLs[runNumber][self.run_allLs[runNumber].keys()[0]] )
+            maxLumi = max( self.run_allLs[runNumber][self.run_allLs[runNumber].keys()[0]] )
             #            maxNumBadPaths = sorted(badLumiListSorted.keys(), reverse =True)[0]
             maxNumBadPaths = len( self.run_allLs[runNumber] )
 
             canvas = TCanvas("can", "can", 1000, 600)
-            canvas.SetName("run %s" % runNumber)
+            canvas.SetName("Certification Summary of Run %s" % runNumber)
             canvas.SetGridx(1);
-            canvas.SetGridy(1);
-            summaryHist = TH1D("Run %s" % (runNumber),"Run %s" % (runNumber),totalLumis,1,totalLumis)
+            canvas.SetGridy(1); 
+            summaryHist = TH1D("Certification_Summary_of_Run%s" % (runNumber), "Run %s" % (runNumber), (totalLumis+2), (minLumi-1), (maxLumi+1))
             summaryHist.GetXaxis().SetTitle("LS")
             summaryHist.GetYaxis().SetTitle("Number of bad paths")
             summaryHist.SetMaximum(1.2 * maxNumBadPaths)
@@ -100,13 +104,15 @@ class ErrorPrinter:
                     badLumiListSorted[badLumiList[LS]].append(LS)
                 else:
                     badLumiListSorted[badLumiList[LS]] = [LS]
-
-            file.write("     # of bad paths : lumis section(s)\n")
-            for numBadTrigs in sorted(badLumiListSorted.keys(), reverse =True):                
+            testVariable = 0
+            file.write("     # OF BAD PATHS : LUMISECTION(S)\n")
+            file.write("\n")
+            for numBadTrigs in sorted(badLumiListSorted.keys(), reverse =True):
+                testVariable += numBadTrigs*(len(sorted(badLumiListSorted[numBadTrigs])))                
                 file.write("     %s : %s\n"%(numBadTrigs, sorted(badLumiListSorted[numBadTrigs])))
                 totalErrs += len(sorted(badLumiListSorted[numBadTrigs]))
 
-            maxLine = TLine(1,maxNumBadPaths,totalLumis,maxNumBadPaths)
+            maxLine = TLine(minLumi-1, maxNumBadPaths, maxLumi+1, maxNumBadPaths)
             maxLine.SetLineStyle(9)
             maxLine.SetLineColor(2)
             maxLine.SetLineWidth(2)
@@ -131,19 +137,30 @@ class ErrorPrinter:
             canvas.Update()
             canvas.Modified()
             canvas.Write()
-
-            canvas.Print("%s/CertificationSummary_run%s.png" % (self.saveDirectory,runNumber), "png")
+            
+            canvas.Print("%s/CertificationSummary_run%s.png" % (self.saveDirectory, runNumber), "png")
 
             fractionBadLumis = 100.*float(totalErrs)/float(totalLumis)
-            fractionBadRun = 100.*summaryHist.Integral()/float(totalLumis * maxNumBadPaths) 
-
+            fractionBadRun = 100.*summaryHist.Integral()/float((totalLumis+2) * maxNumBadPaths) 
+            file.write("\n")
+            file.write("BAD LS SUMMARY: \n")
             file.write("\n---- Total bad LS: %s  ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % (totalErrs))
             file.write("---- Total LS: %s\n" % (totalLumis))
-            file.write("---- Fraction bad LS: %s %% \n" % (fractionBadLumis))
-            
+            file.write("---- Fraction bad LS: %s\n" % (fractionBadLumis))
 
-          
-        file.close()
+            fractionBadpaths = (100.*(float(testVariable)/(float(totalLumis*maxNumBadPaths))))
+            totalPossPaths = float(totalLumis*maxNumBadPaths)
+            totalBadPaths = float(testVariable)
+            file.write("\n")
+            file.write("BAD PATH SUMMARY: \n")
+            file.write("\n")
+            file.write("---- Total Bad Paths: %.1f\n" % (totalBadPaths))
+            file.write("---- Total Possible Paths: %.1f\n" % (totalPossPaths))
+            file.write("---- Fraction that are Bad Paths: %.1f\n" % (float(fractionBadpaths)))
+            file.write("\n")
+            file.write("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
+  
+        file.close()        
         rootFile.Close()
 
     def outputSteamErrors(self):
