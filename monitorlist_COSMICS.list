@@ -5,7 +5,14 @@ HLT_JetE30_NoBPTX_v1
 HLT_L2Mu10_NoVertex_NoBPTX3BX_NoHalo_v1
 HLT_L2Mu10_NoVertex_NoBPTX_v1
 HLT_L1SingleMuOpen
-L1_SingleMuOpen_v6
-L1_SingleEG5_v1
-L1_SingleJet36
+HLT_BptxAnd_part0
+HLT_BptxAnd_part1
+HLT_BptxAnd_part2
+HLT_BptxAnd_part3
+HLT_BptxAnd_part4
+HLT_BptxAnd_part5
+HLT_BptxAnd_part6
+HLT_BptxAnd_part7
+HLT_EcalCalibration
+HLT_L1FatEvents_v1
 
