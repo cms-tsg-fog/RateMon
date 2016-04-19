@@ -114,6 +114,7 @@ class ShiftMonitor:
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = True      # Whether we should send alert mails
         self.sendAudioAlerts = True     # Whether we should send audio warning messages in the control room (CAUTION)
+        self.isUpdating = True          # flag to determine whether or not we're receiving new LS
         self.showStreams = False        # Whether we should print stream information
         self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
@@ -320,8 +321,10 @@ class ShiftMonitor:
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
             self.printTable()
+            self.isUpdating = True
         else:
             #self.sendMailAlerts = False
+            self.isUpdating = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
@@ -865,7 +868,7 @@ class ShiftMonitor:
                 if self.badRates[trigger][0] == self.maxCBR:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
-        if len(mailTriggers)>0:
+        if len(mailTriggers)>0 && self.isUpdating:
             if self.sendMailAlerts: self.sendMail(mailTriggers)
             if self.sendAudioAlerts: audioAlert()
             
