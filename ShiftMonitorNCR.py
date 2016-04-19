@@ -337,6 +337,10 @@ class ShiftMonitor:
             self.mode = "collisions"
         elif self.triggerMode == "MANUAL":
             self.mode = "MANUAL"
+        elif self.triggerMode.find("highrate") > -1:
+            self.mode = "other"
+            self.maxHLTRate = 100000
+            self.maxL1Rate = 100000
         else: self.mode = "other"
 
     # Use: Remakes the trigger lists
