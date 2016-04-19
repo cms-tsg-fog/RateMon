@@ -868,7 +868,7 @@ class ShiftMonitor:
                 if self.badRates[trigger][0] == self.maxCBR:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
-        if len(mailTriggers)>0 && self.isUpdating:
+        if len(mailTriggers)>0 and self.isUpdating:
             if self.sendMailAlerts: self.sendMail(mailTriggers)
             if self.sendAudioAlerts: audioAlert()
             
