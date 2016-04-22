@@ -80,8 +80,7 @@ class ShiftMonitor:
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
-        #self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode 
-        self.collisions_triggerList = "monitorlist_COSMICS.list" #default list used when in collision mode
+        self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode 
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list 
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -94,7 +93,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["ZeroBias","Calibration","L1Tech","HLT_L1SingleS1JetC20_NotBptxOR"]
+        self.ignoreStrings = ["Calibration","L1Tech","HLT_L1SingleS1JetC20_NotBptxOR"]
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
