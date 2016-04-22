@@ -106,13 +106,13 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        self.maxHLTRate = 400           # The maximum prescaled rate we allow an HLT Trigger to have
+        self.maxHLTRate = 500           # The maximum prescaled rate we allow an HLT Trigger to have
         self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts = True      # Whether we should send alert mails
-        self.sendAudioAlerts = True     # Whether we should send audio warning messages in the control room (CAUTION)
+        self.sendAudioAlerts = False     # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
         self.showStreams = False        # Whether we should print stream information
         self.showPDs = False            # Whether we should print pd information
