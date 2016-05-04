@@ -93,7 +93,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["Calibration","L1Tech","HLT_L1SingleS1JetC20_NotBptxOR"]
+        self.ignoreStrings = ["Calibration","L1Tech"]
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
@@ -111,14 +111,15 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = True      # Whether we should send alert mails
-        self.sendAudioAlerts = False     # Whether we should send audio warning messages in the control room (CAUTION)
+        self.sendMailAlerts_static = True      # Whether we should send alert mails
+        self.sendMailAlerts_dynamic = self.sendMailAlerts_static      
+        self.sendAudioAlerts = False    # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
-        self.showStreams = False        # Whether we should print stream information
-        self.showPDs = False            # Whether we should print pd information
+        self.showStreams = False         # Whether we should print stream information
+        self.showPDs = True             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 10000000       # The maximum rate we allow a "good" pd to have        
+        self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have        
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
         self.deadTimeCorrection = True  # correct the rates for dead time
@@ -234,9 +235,6 @@ class ShiftMonitor:
                 self.runLoop()      
                 self.checkTriggers()
                 self.sleepWait()
-                # This could override the setting provided by the user
-                #if self.mode == "collisions": self.sendMailAlerts = True
-                #else: self.sendMailAlerts = False
             except KeyboardInterrupt:
                 print "Quitting. Bye."
                 break
@@ -322,11 +320,11 @@ class ShiftMonitor:
             self.printTable()
             self.isUpdating = True
         else:
-            #self.sendMailAlerts = False
             self.isUpdating = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
 
     def setMode(self):
+        self.sendMailAlerts_dynamic = self.sendMailAlerts_static
         try:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
         except:
@@ -341,8 +339,7 @@ class ShiftMonitor:
             self.mode = "MANUAL"
         elif self.triggerMode.find("highrate") > -1:
             self.mode = "other"
-            self.maxHLTRate = 100000
-            self.maxL1Rate = 100000
+            self.sendMailAlerts_dynamic = False
         else: self.mode = "other"
 
     # Use: Remakes the trigger lists
@@ -549,7 +546,7 @@ class ShiftMonitor:
             head += stringSegment("* NLumis", streamSpacing[1])
             head += stringSegment("* Events", streamSpacing[2])
             head += stringSegment("* Stream rate [Hz]", streamSpacing[3])
-            head += stringSegment("* Stream size [GB]", streamSpacing[4])
+            head += stringSegment("* File size [GB]", streamSpacing[4])
             head += stringSegment("* Stream bandwidth [GB/s]", streamSpacing[5])
             print head
             print '*' * self.hlength
@@ -573,9 +570,9 @@ class ShiftMonitor:
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), streamSpacing[3])
                     row += stringSegment("* "+"{0:.2f}".format(streamsize), streamSpacing[4])
                     row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
-                    if not self.noColors and aveRate > self.maxStreamRate: write(bcolors.WARNING) # Write colored text
+                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
                     print row
-                    if not self.noColors and aveRate > self.maxStreamRate: write(bcolors.ENDC)    # Stop writing colored text 
+                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
                 else: pass
 
         # Print PD data
@@ -600,9 +597,9 @@ class ShiftMonitor:
                     row += stringSegment("* "+str(int(count)), pdSpacing[1])
                     row += stringSegment("* "+str(int(aveRate*23.3*count)), pdSpacing[2])
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), pdSpacing[3])
-                    if not self.noColors and aveRate > self.maxPDRate: write(bcolors.WARNING) # Write colored text
+                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
                     print row
-                    if not self.noColors and aveRate > self.maxPDRate: write(bcolors.ENDC)    # Stop writing colored text 
+                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
                 else: pass
 
         # Closing information
@@ -612,9 +609,9 @@ class ShiftMonitor:
         if self.mode=="collisions":
             print "Prescale column index:", 
             if PScol == 0:
-                if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
+                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.WARNING) # Write colored text
                 print PScol, "\t0 - Column 0 is an emergency column in collision mode, please select the proper column"
-                if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
+                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
             else:
                 print PScol
         try:
@@ -668,10 +665,11 @@ class ShiftMonitor:
             info += stringSegment("* "+comment, self.spacing[6])
 
             # Color the bad triggers with warning colors
-            if avePS != 0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
-                if not self.noColors: write(bcolors.WARNING) # Write colored text 
+            
+            if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_"):
+                if not self.noColors and self.mode != "other": write(bcolors.WARNING) # Write colored text 
                 print info
-                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
+                if not self.noColors and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
             # Don't color normal triggers
             else:
                 print info
@@ -679,6 +677,7 @@ class ShiftMonitor:
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
+        if self.mode == "other": return False
         if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
         or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
         or (isL1 and psrate>self.maxL1Rate)\
@@ -868,7 +867,7 @@ class ShiftMonitor:
                     mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
         # Send mail alerts
         if len(mailTriggers)>0 and self.isUpdating:
-            if self.sendMailAlerts: self.sendMail(mailTriggers)
+            if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
             if self.sendAudioAlerts: audioAlert()
             
     # Use: Sleeps and prints out waiting dots
