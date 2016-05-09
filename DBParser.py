@@ -62,7 +62,6 @@ class DBParser:
         return orcl.cursor()
 
 
-    # Note: This function is from DatabaseParse.py (with slight modification)
     # Returns: True if we succeded, false if the run doesn't exist (probably)
     def getRunInfo(self, runNumber):
         ## This query gets the L1_HLT Key (A), the associated HLT Key (B) and the Config number for that key (C)
@@ -96,7 +95,7 @@ class DBParser:
 
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
         sqlquery="""SELECT LUMISECTION,INSTLUMI, PRESCALE_INDEX, PHYSICS_FLAG*BEAM1_PRESENT
-        FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
+        FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_UGT_MON.VIEW_LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s
         AND A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
         """ % (runNumber, minLS, minLS, maxLS, maxLS)
@@ -148,6 +147,7 @@ class DBParser:
     def getRawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # First we need the HLT and L1 prescale rates and the HLT seed info
         if not self.getRunInfo(runNumber):
+            print "Failed to get run info "
             return {} # The run probably doesn't exist
 
         # Get L1 info
