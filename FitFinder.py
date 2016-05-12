@@ -43,11 +43,9 @@ class FitFinder:
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
-        # Point selectoin
-        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
-        else: goodX, goodY = xVals, yVals
+        goodX, goodY = self.getGoodPoints(xVals, yVals)
         # Fitting
-        if self.forceLinear: return self.findLinearFit(xVals, yVals, name)
+        if self.forceLinear: return self.findLinearFit(goodX, goodY, name)
         else: return self.tryFits(goodX, goodY, name)
         
     # Use: Gets a binning index based on the coordinates of a point
@@ -211,7 +209,6 @@ class FitFinder:
             mse += (fitFunc.Eval(x) - y)**2
         return math.sqrt(mse/len(xVals))
 
-        
     # Use: Gets the best linear fit of the data
     # Returns: An output fit tuple
     def findLinearFit(self, xVals, yVals, name):
@@ -234,44 +231,24 @@ class FitFinder:
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
     def getGoodPoints(self, xVals, yVals):
-        if self.forceLinear: 
-            paramlist = self.findLinearFit(xVals, yVals, "preprocess")
-        else: 
-            paramlist = self.tryFits(xVals, yVals, "preprocess")
-        minMSE = paramlist[5]
         goodX = array.array('f')
-        badX = array.array('f')
         goodY = array.array('f')
-        badY = array.array('f')
-
-
+        average_x, sigma = self.getSD(xVals)
         for x,y in zip(xVals,yVals):
-            eval = self.fit.Eval(x)
-            if eval + 1.5*minMSE > y and y > eval - 1.5*minMSE :
+            if abs(x-average_x) < 2*sigma:
                 goodX.append(x)
                 goodY.append(y)
-            elif self.saveDebug: # For Debugging
-                badX.append(x)
-                badY.append(y)
-                    
-        if self.saveDebug:
-            if len(goodX)>0:
-                goodPoints = TGraph(len(goodX), goodX, goodY)
-                goodPoints.SetMarkerStyle(7)
-                goodPoints.SetMarkerColor(3)
-                goodPoints.SetMaximum(1.2*max(yVals))
-                goodPoints.SetMinimum(0)
-                self.goodPoints = goodPoints
-            if len(badX)>0:
-                badPoints = TGraph(len(badX), badX, badY)
-                badPoints.SetMarkerStyle(7)
-                badPoints.SetMarkerColor(2)
-                badPoints.SetMaximum(1.2*max(yVals))
-                badPoints.SetMinimum(0)
-                self.badPoints = badPoints
 
         return goodX, goodY
-        
+
+    #returns SD of PU for a given run 
+    def getSD(self,xVals):
+        sum = 0
+        for x in xVals: sum += x
+        average_x = sum/len(xVals)
+        mse=0
+        for x in xVals: mse += (x - average_x)**2
+        return average_x, math.sqrt(mse/len(xVals))        
               
     def saveDebugGraph(self, fitList, titleList, name, fitGraph):
         canvas = TCanvas("Debug_%s" % (name), "y", 1000, 700)
