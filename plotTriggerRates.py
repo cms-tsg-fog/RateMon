@@ -36,7 +36,7 @@ class MonitorController:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
                                                        "runFile=","saveName=", "saveDirectory=", "sigma=", "preferLinear=",
-                                                       "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
+                                                       "Secondary", "updateOnlineFits", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "nonLinear","vsInstLumi",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
                                                    
@@ -49,6 +49,7 @@ class MonitorController:
             return False
         
         # Process Options
+        self.rateMonitor.ops = opt
         for label, op in opt:
             if label == "--Secondary":
                 self.rateMonitor.certifyMode = True # Run in secondary mode
@@ -100,6 +101,8 @@ class MonitorController:
                 self.rateMonitor.HLTTriggers = False
             elif label == "--AllTriggers":
                 self.rateMonitor.L1Triggers = True
+            elif label == "--updateOnlineFits":
+                self.rateMonitor.updateOnlineFits = True
             elif label == "--batch":
                 self.batchMode = True
                 self.rateMonitor.outputOn = False
@@ -284,4 +287,4 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
-
+    

@@ -48,6 +48,7 @@ class DBParser:
         self.HLTSeed = {}
         self.L1Mask = {}
         self.L1IndexNameMap = {}
+        self.L1NameIndexMap = {}
         self.PSColumnByLS = {}
         
     # Returns: a cursor to the HLT database
@@ -77,6 +78,13 @@ class DBParser:
 #         B.ID = A.TRIGGERMODE AND A.RUNNUMBER=%d
 #         """ % (runNumber)
 
+        sqlquery="""SELECT LUMI_SECTION, PRESCALE_INDEX FROM CMS_UGT_MON.VIEW_LUMI_SECTIONS WHERE RUN_NUMBER=%s""" % (runNumber)
+        try:
+            self.curs.execute(sqlquery)
+            self.PSColumnByLS = {} 
+            for lumi_section, prescale_column in self.curs.fetchall(): self.PSColumnByLS[lumi_section] = prescale_column
+        except:
+            print "Trouble getting PS column by LS"
 
         KeyQuery = """
         SELECT B.ID, B.HLT_KEY, B.L1_TRG_RS_KEY, B.L1_TRG_CONF_KEY, C.UGT_KEY FROM
@@ -105,13 +113,6 @@ class DBParser:
         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s
         AND A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
         """ % (runNumber, minLS, minLS, maxLS, maxLS)
-
-#         sqlquery="""SELECT LUMISECTION,INSTLUMI, PRESCALE_INDEX, BEAM1_PRESENT
-#         FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_UGT_MON.VIEW_LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-#         AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s
-#         AND A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
-#         """ % (runNumber, minLS, minLS, maxLS, maxLS)
-
 
         try:
             self.curs.execute(sqlquery) # Execute the query
@@ -164,15 +165,11 @@ class DBParser:
             return {} # The run probably doesn't exist
 
         # Get L1 info
-        #self.getL1Prescales(runNumber) commenting out for now
-        temporary_l1_info = self.getL1RawRates(runNumber, minLS, maxLS)
+        self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)
         # Get HLT info
         self.getHLTSeeds(runNumber)
         self.getHLTPrescales(runNumber)
-
-        # Get column prescale info
-        self.getPSColumnByLS(runNumber, minLS)
 
         # Get the prescale index as a function of LS
         for LS, psi in self.curs.fetchall():
@@ -208,16 +205,11 @@ class DBParser:
             except:
                 hltps = 1.
             hltps = float(hltps)
-
-
                     
             try:
-                #                l1_seed_str = '"%s"' % (self.HLTSeed[name])
                 if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
-                    l1ps = temporary_l1_info[ self.HLTSeed[name] ][LS][1]
-                    #  l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                 else:
-                 #   print "ELSEEEE"
                     AvL1Prescales = self.CalculateAvL1Prescales([LS])
                     l1ps = self.UnwindORSeed(self.HLTSeed[name] ,AvL1Prescales)
             except:
@@ -229,21 +221,13 @@ class DBParser:
         return TriggerRates
 
     # Use: Gets data related to L1 trigger rates
-    # Parameters:
-    # -- runNumber: The number of the run to look at
-    # -- minLS: The minimum lumisection to consider
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
     def getL1RawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # Get information that we will need to use
         self.getRunInfo(runNumber)
-        self.getPSColumnByLS(runNumber, minLS)
-        #        self.getL1Prescales(runNumber)
+        self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)
         
-        #pre-DT rates query (old GT)
-#         query = """SELECT LUMI_SECTION, RATE_HZ, SCALER_INDEX 
-#         FROM CMS_GT_MON.V_SCALERS_FDL_ALGO WHERE RUN_NUMBER=%s AND LUMI_SECTION>=%s AND LUMI_SECTION <=%s""" % (runNumber, minLS, maxLS) 
-
         #pre-DT rates query (new uGT)
         #(0, 'ALGORITHM_RATE_AFTER_PRESCALE'),
         #(1, 'ALGORITHM_RATE_BEFORE_PRESCALE'),
@@ -256,97 +240,22 @@ class DBParser:
         query_before_ps = """SELECT LUMI_SECTIONS_ID, ALGO_RATE, ALGO_INDEX FROM CMS_UGT_MON.VIEW_ALGO_SCALERS WHERE
         SCALER_TYPE=1 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
 
-        query_after_ps = """SELECT LUMI_SECTIONS_ID, ALGO_RATE, ALGO_INDEX FROM CMS_UGT_MON.VIEW_ALGO_SCALERS WHERE
-        SCALER_TYPE=0 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
-
-        # Formulate Post-DT deadtime rates query
-        # query = """SELECT LUMI_SECTION, COUNT/23.31041, BIT FROM (SELECT MOD(ROWNUM - 1, 128) BIT,
-        # C.COLUMN_VALUE COUNT, A.RUNNUMBER RUN_NUMBER,
-        # A.LSNUMBER LUMI_SECTION FROM CMS_RUNINFO.HLT_SUPERVISOR_L1_SCALARS A ,TABLE(A.DECISION_ARRAY_PHYSICS) C
-        # WHERE A.RUNNUMBER=%s AND A.LSNUMBER>=%s AND A.LSNUMBER<=%s)""" % (runNumber, minLS, maxLS)
-
         self.curs.execute(query_before_ps)
-        L1RateAll_query_before_ps = self.curs.fetchall()
+        l1_rates_preDT_unprescaled = self.curs.fetchall()
 
-        self.curs.execute(query_after_ps)
-        L1RateAll_query_after_ps = self.curs.fetchall()
-        
-        L1RateAll = []
-        l1_rate_b4_ps_dict = {}
-        l1_rate_after_ps_dict = {}
-
-        ########################### before
-        for tuple_before_ps in L1RateAll_query_before_ps:
-            ls = tuple_before_ps[0].split('_')[1].lstrip('0')
-            rate = tuple_before_ps[1]
-            bit = tuple_before_ps[2]
-            
-            if not l1_rate_b4_ps_dict.has_key(bit): l1_rate_b4_ps_dict[bit] = {}
-            l1_rate_b4_ps_dict[bit][ls] = rate
-            
-        ########################### after
-        for tuple_after_ps in L1RateAll_query_after_ps:
-            ls = tuple_after_ps[0].split('_')[1].lstrip('0')
-            rate = tuple_after_ps[1]
-            bit = tuple_after_ps[2]
-            
-            if not l1_rate_after_ps_dict.has_key(bit): l1_rate_after_ps_dict[bit] = {}
-            l1_rate_after_ps_dict[bit][ls] = rate            
-
-        for bit in l1_rate_b4_ps_dict:
-            for ls in l1_rate_b4_ps_dict[bit]:
-                b4_ps_rate = l1_rate_b4_ps_dict[bit][ls]
-                after_ps_rate = l1_rate_after_ps_dict[bit][ls]
-                if after_ps_rate > 0: ps = int(b4_ps_rate/after_ps_rate)
-                else: ps = 0
-                L1RateAll.append((int(ls),b4_ps_rate,bit,ps))
-            
         L1Triggers = {}
-        rmap = {} # Maps bits to trigger names
-        LSRange = []
-        for name in self.L1IndexNameMap:
-            rmap[self.L1IndexNameMap[name]] = name
-        
-        # Create L1 Rates: [ trigger ] [ LS ] <Rate>
-        for LS, rate, bit, ps in L1RateAll:
-            # Check if the L1 bit is enabled
+        for tuple in l1_rates_preDT_unprescaled:
+            ls = int(tuple[0].split('_')[1].lstrip('0'))
+            unprescaled_rate = tuple[1]
+            bit = tuple[2]
+            algo_name = self.L1NameIndexMap[bit]
 
-            if self.L1Mask[bit] == 0: continue
+            if not L1Triggers.has_key(algo_name): L1Triggers[algo_name] = {}
+            prescale_column = self.PSColumnByLS[ls]
+            L1Triggers[algo_name][ls] = [ unprescaled_rate, self.L1Prescales[bit][prescale_column] ]
 
-            if not rmap.has_key(bit):
-                print "Cannot find L1 trigger with bit %s" % (bit)
-                continue
-            
-            name = rmap[bit]
-            if not LS in LSRange:
-                LSRange.append(LS)
-            if not L1Triggers.has_key(name):
-                L1Triggers[name] = {}
-            L1Triggers[name][LS] = [rate, ps]
-                
-        if len(LSRange) == 0: return {}
+        return L1Triggers        # [ trigger ] [ LS ] { raw rate, ps }
 
-        #need to comment this out...
-        #######################################################################
-        L1PSbits={}
-        L1Rates = {}
-        for bit in self.L1Prescales.iterkeys():
-            if not rmap.has_key(bit):
-                continue
-            name = rmap[bit]
-            if not L1Rates.has_key(name):
-                L1Rates[name] = {}
-            for LS in LSRange:
-                try:
-                    pscol = self.PSColumnByLS[LS]
-                    ps = self.L1Prescales[bit][pscol]
-                    unprescaled_rate = L1Triggers[name][LS]*ps
-                    L1Rates[name][LS]= [ unprescaled_rate , ps ]
-                except:
-                    pass
-        #######################################################################                
-        # [ trigger ] [ LS ] { raw rate, ps }
-        return L1Triggers
     
     # Use: Gets the raw rate of a trigger during a run and the average prescale value of that trigger during the run
     # Returns: A dictionary: [ trigger name ] { ave ps, [ LS ] [ raw rate ] }
@@ -369,35 +278,13 @@ class DBParser:
 
         return TriggerRates
 
-    # Use: Gets the ps columns for each ls
-    # Returns: (void)
-    def getPSColumnByLS(self, runNumber, minLS=-1):
-        # Get column prescale info
-        sqlquery= """SELECT LUMISECTION,PRESCALE_INDEX
-        FROM CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,CMS_GT_MON.LUMI_SECTIONS B WHERE A.RUNNUMBER=%s
-        AND B.RUN_NUMBER(+)=A.RUNNUMBER AND B.LUMI_SECTION(+)=A.LUMISECTION AND A.LUMISECTION>=%s ORDER BY A.RUNNUMBER,A.LUMISECTION
-        """ % (runNumber, minLS)
-        self.curs.execute(sqlquery)
-        # Reset self.PSColumnByLS 
-        self.PSColumnByLS = {} 
-        # Get the prescale index as a function of LS
-        for LS, psi in self.curs.fetchall():
-            self.PSColumnByLS[LS] = psi
-
     # Note: This function is from DatabaseParser.py (with moderate modification)
     # Use: Sets the L1 trigger prescales for this class
     # Returns: (void)
     def getL1Prescales(self, runNumber):
-        if self.GTRS_Key == "":
-            self.getRunInfo(runNumber)
-        # Construct the query in a more concise way then trying to just write it all out
-        sqlquery = "SELECT "
-        for x in range(0, 128):
-            sqlquery += "PRESCALE_FACTOR_ALGO_" + (3-len(str(x)))*"0" + str(x)
-            if x != 127: sqlquery += ","
-            else: sqlquery += " "
-        sqlquery += "FROM CMS_GT.GT_FDL_PRESCALE_FACTORS_ALGO A, CMS_GT.GT_RUN_SETTINGS_PRESC_VIEW B WHERE A.ID=B.PRESCALE_FACTORS_ALGO_FK AND B.ID='"
-        sqlquery += (self.GTRS_Key + "'")
+        sqlquery = """SELECT A.ALGO_INDEX, A.ALGO_NAME, B.PRESCALE, B.PRESCALE_INDEX FROM CMS_UGT_MON.VIEW_UGT_RUN_ALGO_SETTING A, CMS_UGT_MON.VIEW_UGT_RUN_PRESCALE B WHERE
+        A.ALGO_INDEX=B.ALGO_INDEX AND A.RUN_NUMBER = B.RUN_NUMBER AND A.RUN_NUMBER=%s""" % (runNumber)
+
         try:
             self.curs.execute(sqlquery)
         except:
@@ -410,13 +297,15 @@ class DBParser:
         if len(ps_table) < 1:
             print "Cannot get L1 Prescales"
             return
-        
-        for bit in range(0,128):
-            self.L1Prescales[bit] = {}
-            ps_column_index = 0
-            for ps_col_array in ps_table:
-                self.L1Prescales[bit][ps_column_index] = ps_col_array[bit]
-                ps_column_index +=1
+
+        for object in ps_table:
+            algo_index = object[0]
+            algo_name = object[1]
+            algo_ps = object[2]
+            ps_index = object[3]
+            if not self.L1Prescales.has_key(algo_index): self.L1Prescales[algo_index] = {}
+            self.L1Prescales[algo_index][ps_index] = algo_ps
+
 
     # Note: This function is from DatabaseParser.py (with slight modifications)
     # Use: Gets the average L1 prescales
@@ -508,6 +397,7 @@ class DBParser:
             name = stripVersion(name)
             name = name.replace("\"","")
             self.L1IndexNameMap[name] = bit
+            self.L1NameIndexMap[bit]=name
             self.L1Mask[bit] = mask
 
     # Note: This is a function from DatabaseParser.py (with slight modification)

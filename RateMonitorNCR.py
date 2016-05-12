@@ -55,6 +55,7 @@ class RateMonitor:
         self.jsonData = {}
         self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
+        self.logFile = ""
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
@@ -66,6 +67,8 @@ class RateMonitor:
         
         self.saveName = ""       # A name that we save the root file as
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
+        self.updateOnlineFits = False #Update the online fits in the git directory
+        self.ops = [] #options for log file
         
         self.parser = DBParser() # A database parser
         self.TriggerList = []    # The list of triggers to consider in plot-making 
@@ -159,8 +162,7 @@ class RateMonitor:
         # Apply run pre-filtering
         if self.jsonFilter:
             self.runList = [x for x in self.runList if "%d" % x in self.jsonData]
-        
-        
+                
         minNum = self.runList[0]
         maxNum = self.runList[-1]
 
@@ -209,6 +211,22 @@ class RateMonitor:
         # If we are going to save fit find debug graph, delete any old ones
         if self.fitFinder.saveDebug and os.path.exists("Debug.root"): os.remove("Debug.root")
 
+        ###dump a log file with the exact command used to produce the results
+        self.logFile = self.saveDirectory+"/command_line.txt"
+        command_line_str = "Results produced with:\n"
+        command_line_str+="python plotTriggerRates.py "
+        for tuple in self.ops:
+            if tuple[0].find('--updateOnlineFits') > -1: continue #never record when we update online fits
+            if len(tuple[1]) == 0: command_line_str+= "%s " % (tuple[0])
+            else: command_line_str+= "%s=%s " % (tuple[0],tuple[1])
+        for run in self.runList: command_line_str+= "%d " % (run)
+        command_line_str+="\n"
+        
+        command_line_log_file = open(self.logFile, "w")
+        command_line_log_file.write(command_line_str)
+        command_line_log_file.close()
+        
+        
     def runBatch(self):
         
         if self.certifyMode: 
@@ -314,9 +332,27 @@ class RateMonitor:
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run."
 
-        if self.png: self.printHtml(plottingData)  
+        if self.png: self.printHtml(plottingData)
+        
+        if self.updateOnlineFits:
+            #online files/dirs
+            online_git_dir = "Fits/2016/"
+            online_plots_dir = online_git_dir+"plots/"
+            online_fit_file = online_git_dir+"FOG.pkl"
+            online_cmd_line_file = online_git_dir+"command_line.txt"
+            
+            #files and dirs to be copied
+            self.outFitFile
+            self.logFile
+            png_dir = self.saveDirectory+"/png/"
+
+            shutil.rmtree(online_plots_dir)
+            shutil.copytree(png_dir,online_plots_dir)
+            shutil.copy(self.outFitFile,online_fit_file) #copy fit
+            shutil.copy(self.logFile,online_cmd_line_file) #copy command line
 
 
+        
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
     # -- runNumber: The number of the run we want data from
