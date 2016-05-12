@@ -35,7 +35,7 @@ class MonitorController:
         # Get the command line arguments
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["maxRuns=", "maxBatches=", "fitFile=", "triggerList=", "runList=", "jsonFile=",
-                                                       "runFile=", "offset=", "saveName=", "fitSaveName=", "saveDirectory=", "sigma=", "preferLinear=",
+                                                       "runFile=","saveName=", "saveDirectory=", "sigma=", "preferLinear=",
                                                        "Secondary", "All", "Raw", "Help", "batch", "overrideBatch", "createFit",
                                                        "debugFitter", "doAnyways", "rawPoints", "nonLinear","vsInstLumi",
                                                        "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
@@ -68,8 +68,6 @@ class MonitorController:
             elif label == "--jsonFile":
                 self.rateMonitor.jsonFilter = True
                 self.rateMonitor.jsonFile = str(op)
-            elif label == "--offset":
-                self.rateMonitor.offset = int(op)
             elif label == "--Help":
                 self.printOptions()
                 return False
@@ -91,11 +89,6 @@ class MonitorController:
                     self.rateMonitor.nameGiven = True
                 else:
                     print "We do not allow a user defined save name while using batch or secondary mode."
-            elif label == "--fitSaveName":
-                if not self.batchMode: # We do not allow a user defined fit save name in batch mode
-                    self.rateMonitor.outFitFile = str(op)
-                else:
-                    print "We do not allow a user defined fit save name while using batch or secondary mode"
             elif label == "--saveDirectory":
                 self.rateMonitor.saveDirectory = str(op)
             elif label == "--triggerList":
@@ -283,11 +276,7 @@ class MonitorController:
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     # Returns: (void)
     def run(self):
-        if self.parseArgs():
-            if self.batchMode:
-                self.rateMonitor.runBatch()
-            else:
-                self.rateMonitor.run()
+        if self.parseArgs(): self.rateMonitor.runBatch()
 
 ## ----------- End of class MonitorController ------------ #
 

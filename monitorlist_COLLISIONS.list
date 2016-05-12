@@ -21,5 +21,18 @@ HLT_QuadJet45_TripleBTagCSV_p087_v1
 HLT_Physics_v4
 HLT_Random_v2
 HLT_ZeroBias
-HLT_L1FatEvents_v1
 
+#L1_SingleMu16
+#L1_SingleMu25
+#L1_SingleMu20er
+#L1_SingleIsoEG18er
+#L1_SingleIsoEG30er
+#L1_SingleEG18
+#L1_SingleEG30
+#L1_SingleEG40
+#L1_SingleJet60
+#L1_SingleJet120
+#L1_SingleJet200
+#L1_DoubleJetC100
+#L1_ETM70
+#L1_HTT160
