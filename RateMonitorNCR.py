@@ -58,7 +58,6 @@ class RateMonitor:
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
-        self.offset = 0   # Which run to start with if processing runs in a file (first, second, etc...)
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
@@ -69,7 +68,6 @@ class RateMonitor:
         self.saveDirectory = ""  # A directory that we can save all our files in if we are in batch mode
         
         self.parser = DBParser() # A database parser
-        self.lastRun = 0         # The last run in the run list that will be considered
         self.TriggerList = []    # The list of triggers to consider in plot-making 
 
         # Trigger Options
@@ -117,7 +115,7 @@ class RateMonitor:
 
         # Cuts
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
-        self.maxDeadTime = 8.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
+        self.maxDeadTime = 10.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
 
         # self.useFit:
         # If False, no fit will be plotted and all possible triggers will be used in graph making.
@@ -135,24 +133,16 @@ class RateMonitor:
     def setUp(self):
         if self.outputOn: print "" # Formatting
         length = len(self.runList)
+        
+        try:
+            self.runList.sort()
+        except:
+            print "Unable to sort runs"
+            return
+            
         self.bunches = 1 # Reset bunches, just in case
         if self.certifyMode: self.varX = "LS" # We are in secondary mode
-        if self.processAll: offset = 0 # Override any offset
-        # Reset self.savedAFile
-        self.savedAFile = False
-        # Make sure we have enough color options
-        if len(self.colorList) < self.maxRuns or self.processAll and self.outputOn:
-            print "Warning: Potentially not enough colors to have a unique one for each run." # Info message
-
-        # Make a fit of the data
-        
-        if not self.useFit and self.outputOn:
-            if not self.fit: print "Not plotting a fit."
-            if not self.useTrigList:
-                print "Using all possible triggers."
-
-        if self.fit and self.outputOn:
-            print "Creating a fit from data."
+        self.savedAFile = False  # Reset self.savedAFile
 
         # Read JSON file
         if self.jsonFilter:
@@ -171,20 +161,8 @@ class RateMonitor:
             self.runList = [x for x in self.runList if "%d" % x in self.jsonData]
         
         
-        if self.useTrigList and self.outputOn: print "Only using triggers in current trig list." # Info message
-        if self.processAll:
-            if self.outputOn: print "\nProcessing all runs in the run list." # Info message
-            self.lastRun = length
-        else: self.lastRun = min( [self.offset + self.maxRuns, length] )
-
-        self.runsToProcess = self.lastRun-self.offset
-        if self.runsToProcess > 1: plural = "s" # Get our grammar right
-        else: plural = ""
-        
-        if self.outputOn: print "Processing %s run%s:" % (self.runsToProcess, plural) # Info message
-        
-        minNum = min(self.runList[ self.offset : self.lastRun ])
-        maxNum = max(self.runList[ self.offset : self.lastRun ])
+        minNum = self.runList[0]
+        maxNum = self.runList[-1]
 
         # If we are supposed to, get the fit, a dictionary: [ triggername ] [ ( fit parameters ) ]
         if self.useFit or self.certifyMode: # Always try to load a fit in secondary mode
@@ -193,10 +171,7 @@ class RateMonitor:
         
         if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
         elif self.certifyMode: self.saveDirectory = "run%s" % (str(maxNum))
-#        elif self.certifyMode: self.saveDirectory = "%s/run%s" % (self.certifyDir,minNum)
 
-
-#        if not self.certifyMode or self.first:
         if self.certifyMode or self.first:            
             self.first = False
             if os.path.exists(self.saveDirectory):
@@ -235,128 +210,112 @@ class RateMonitor:
         if self.fitFinder.saveDebug and os.path.exists("Debug.root"): os.remove("Debug.root")
 
     def runBatch(self):
-        total = 0 # How many runs we have processed so far
-        count = 1 # Iteration variabl e
-        if not self.processAll: print "Batch size is %s." % (self.maxRuns) # Info message
         
         if self.certifyMode: 
             self.certifyDir = "Certification_%sruns_%s_%s" % (len(self.runList),str(datetime.datetime.now()).split()[0],str(datetime.datetime.now()).split()[1].split(':')[0] +"_"+ str(datetime.datetime.now()).split()[1].split(':')[1])
             os.mkdir(self.certifyDir)
-        while total < len(self.runList) and (count <= self.maxBatches or self.processAll):
-            print "Processing batch %s:" % (count)
-            self.offset = total
-            self.run()
-            total += self.runsToProcess # Update the count by how many runs we just processed
-            count += 1
-            print "" # Newline for formatting
 
+        plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
+
+        self.setUp() # Set up parameters and data structures
+        #plottingData = self.getSteamRates()
+
+        for run_number in self.runList:
+            self.run(run_number, plottingData)
+            print "-----" # Newline for formatting
+
+        
+        self.makeFits(plottingData)
         if self.certifyMode: self.doChecks()
+
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
-    def run(self):
-        # Set up parameters and data structures
-        self.setUp()
-        
-        # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
-        plottingData = {}
-                
-        ### Starting the main loop ###
+    def run(self,runNumber,plottingData):
         if self.outputOn: print ""  # Print a newline (just for formatting)
-        counter = 0 # Make sure we process at most MAX runs
-        for runNumber in self.runList[self.offset : self.lastRun]:
-            print "(",counter+1,") Processing run", runNumber,
+        
+        print "Processing run: %d" % (runNumber)
 
-            # Get number of bunches (if requested)
-            if self.pileUp:
-                self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
-                if self.bunches is None or self.bunches is 0:
-                    print "Cannot get number of bunches: skipping this run.\n"
-                    counter += 1
-                    continue # Skip this run
-                print "(%s colliding bunches)" % (self.bunches)
-            else:
-                print " "
-            # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
-            dataList = self.getData(runNumber)
+        if self.pileUp:
+            self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
+            if self.bunches is None or self.bunches is 0:
+                print "Cannot get number of bunches: skipping this run.\n"
+                return
+            print "(%s colliding bunches)" % (self.bunches)
+            
+        # Get run info in a dictionary: [ trigger name ] { ( inst lumi's ), ( raw rates ) }
+        dataList = self.getData(runNumber)
 
-            if dataList == {}:
-                # The run does not exist (or some other critical error occured)
-                print "Fatal error for run %s, could not retrieve data. Probably Lumi was None or physics was not active. Moving on." % (runNumber) # Info message
-                counter += 1
-                continue
+        if dataList == {}:
+            # The run does not exist (or some other critical error occured)
+            print "Fatal error for run %s, could not retrieve data. Probably Lumi was None or physics was not active. Moving on." % (runNumber) # Info message
+            return
+            
+        # Make plots for each trigger
+        if not self.plotStreams and not self.plotDatasets:
+            for triggerName in self.TriggerList:
+                if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
+                    # Make sure the is an entry for this trigger in plottingData
+                    if not plottingData.has_key(triggerName):
+                        plottingData[triggerName] = {}
+                    plottingData[triggerName][runNumber] = dataList[triggerName]
+                elif self.makeErrFile: # The trigger data was not taken from the DB or does not exist
+                    # This should not occur if useFit is false, all triggers should be processed
+                    message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
+                    self.errFile.write(message)
+        elif not self.plotDatasets: # Otherwise, make plots for each stream
+            sumPhysics = "Sum_Physics_Streams"
+            for streamName in dataList:
+                if not plottingData.has_key(streamName): plottingData[streamName] = {}
+                plottingData[streamName][runNumber] = dataList[streamName]
                 
-            # Make plots for each trigger
-            if not self.plotStreams and not self.plotDatasets:
-                for triggerName in self.TriggerList:
-                    if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
-                        # Make sure the is an entry for this trigger in plottingData
-                        if not plottingData.has_key(triggerName):
-                            plottingData[triggerName] = {}
-                        plottingData[triggerName][runNumber] = dataList[triggerName]
-                    elif self.makeErrFile: # The trigger data was not taken from the DB or does not exist
-                        # This should not occur if useFit is false, all triggers should be processed
-                        message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
-                        self.errFile.write(message)
-            elif not self.plotDatasets: # Otherwise, make plots for each stream
-                sumPhysics = "Sum_Physics_Streams"
-                for streamName in dataList:
-                    if not plottingData.has_key(streamName): plottingData[streamName] = {}
-                    plottingData[streamName][runNumber] = dataList[streamName]
-                    
-                    if not plottingData.has_key(sumPhysics):
-                        plottingData[sumPhysics] = {}
-                    if (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics") and not plottingData[sumPhysics].has_key(runNumber):
-                        plottingData[sumPhysics][runNumber] = plottingData[streamName][runNumber]
-                    elif (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics"):
-                        if plottingData[sumPhysics] != {}:
-                            ls_number =0
-                            for rate in plottingData[streamName][runNumber][1]:
-                                plottingData[sumPhysics][runNumber][1][ls_number] += rate
-                                ls_number +=1
-                            
-            else: # Otherwise, make plots for each dataset
+                if not plottingData.has_key(sumPhysics):
+                    plottingData[sumPhysics] = {}
+                if (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics") and not plottingData[sumPhysics].has_key(runNumber):
+                    plottingData[sumPhysics][runNumber] = plottingData[streamName][runNumber]
+                elif (streamName[0:7] =="Physics" or streamName[0:9] =="HIPhysics"):
+                    if plottingData[sumPhysics] != {}:
+                        ls_number =0
+                        for rate in plottingData[streamName][runNumber][1]:
+                            plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                            ls_number +=1
+                        
+        else: # Otherwise, make plots for each dataset
                 for pdName in dataList:
                     if not plottingData.has_key(pdName):
                         plottingData[pdName] = {}
                     plottingData[pdName][runNumber] = dataList[pdName]
 
-            # Make sure we only process at most MAX runs
-            counter += 1
-            if counter == self.maxRuns and not self.processAll:
-                if self.outputOn: print "Truncating run list, final run:", runNumber,"\n"
-                break # Exit the loop
-            
-        # If we are fitting the data
-        if self.fit: self.findFit(plottingData)
 
-        if self.outputOn: print "" # Print a newline
+
+    def makeFits(self, plottingData):
+        if self.fit: self.findFit(plottingData)
+        if self.outputOn: print "\n"
 
         # We have all our data, now plot it
         if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
+
         for name in sorted(plottingData):
             if fitparams is None or not fitparams.has_key(name): fit = None
             else: fit = fitparams[name]
-           
             self.graphAllData(plottingData[name], fit, name)
 
-        # Try to close the error file
+            # Try to close the error file
         if self.makeErrFile:
             try:
                 self.errFile.close() # Close the error file
                 print "Error file saved to", self.errFileName # Info message
             except: print "Could not save error file."
-        if self.fitFinder.saveDebug and self.fitFinder.usePointSelection:
-            print "Fit finder debug file saved to Debug.root.\n" # Info message
+
+        if self.fitFinder.saveDebug and self.fitFinder.usePointSelection: print "Fit finder debug file saved to Debug.root.\n" # Info message
 
         if self.savedAFile: print "File saved as %s" % (self.saveName) # Info message
         else: print "No files were saved. Perhaps none of the triggers you requested were in use for this run."
 
-        if self.outputOn: print "" # Final newline for formatting
-
         if self.png: self.printHtml(plottingData)  
+
 
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
@@ -364,15 +323,12 @@ class RateMonitor:
     # Returns: A dictionary:  [ trigger name ] { ( inst lumi's || LS ), ( data ) }
     def getData(self, runNumber):
         Rates = {}
-        # Get the HLT raw rate vs LS
         if self.HLTTriggers:
-            Rates = self.parser.getRawRates(runNumber)
-            # Correct HLT Rates for deadtime
-            if self.correctForDT:
-                self.correctForDeadtime(Rates, runNumber)
-        # Get the L1 raw rate vs LS
+            Rates = self.parser.getRawRates(runNumber) # Get the HLT raw rate vs LS
+            if self.correctForDT: self.correctForDeadtime(Rates, runNumber) # Correct HLT Rates for deadtime
+
         if self.L1Triggers:
-            L1Rates = self.parser.getL1RawRates(runNumber)
+            L1Rates = self.parser.getL1RawRates(runNumber) # Get the L1 raw rate vs LS
             Rates.update(L1Rates)
 
         if Rates == {}:
@@ -393,11 +349,11 @@ class RateMonitor:
             for trigger, lumi in Rates.iteritems():
                 lumis = lumi.keys()
                 for i, ls in enumerate(lumis):
-                    if not any(l <= ls <= u for [l, u] in self.jsonData[runNumberStr]):
-                        del Rates[trigger][ls]
-        
-        # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
-        iLumi = self.parser.getLumiInfo(runNumber)
+                    if not any(l <= ls <= u for [l, u] in self.jsonData[runNumberStr]): del Rates[trigger][ls]
+
+
+        iLumi = self.parser.getLumiInfo(runNumber) # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
+
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
         if not self.useFit and not self.useTrigList and not self.certifyMode:
             for triggerName in sorted(Rates):
@@ -406,6 +362,7 @@ class RateMonitor:
 
         # Store Rates for this run
         self.allRates[runNumber] = Rates
+
         # Get stream data
         if self.plotStreams:
             # Stream Data [ stream name ] { LS, rate, size, bandwidth }
@@ -427,11 +384,10 @@ class RateMonitor:
                 for LS, rate in pdData[name]:
                     Data[name][LS] = [ rate ]
         else: Data = Rates
- 
+
         # Depending on the mode, we return different pairs of data
         if not self.certifyMode:
-            # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
-            return self.combineInfo(Data, iLumi)
+            return self.combineInfo(Data, iLumi) # Combine the rates and lumi into one dictionary, [ trigger name ] { ( inst lumi's ), ( raw rates ) } and return
         else: # self.certifyMode == True
             return self.sortData(Data, iLumi)
 
@@ -447,6 +403,7 @@ class RateMonitor:
                 if Rates[triggerName].has_key(LS): # Sometimes, LS's are missing
                     Rates[triggerName][LS][0] *= (1. + deadTime[LS]/100.)
                     if deadTime[LS] > self.maxDeadTime and not self.certifyMode: del Rates[triggerName][LS] #do not plot lumis where deadtime is greater than                
+
 
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
     # Parameters:
@@ -477,7 +434,8 @@ class RateMonitor:
 
             if len(iLuminosity) > 0:
                 dataList[name] = [iLuminosity, yvals]
-            else: pass
+            else:
+                pass
         return dataList
 
     # Use: Combines the Data from an array of the shown format and the instant luminosity data into a form that we can make a graph from
@@ -512,6 +470,7 @@ class RateMonitor:
         minimumVals = array.array('f')
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
+
             if len(plottingData[runNumber][0]) > 0:
                 maximumRR.append(max(plottingData[runNumber][1]))
                 maximumVals.append(max(plottingData[runNumber][0]))
@@ -692,12 +651,8 @@ class RateMonitor:
                 # Combine all data
                 instLumis += plottingData[name][runNumber][0]
                 yvals += plottingData[name][runNumber][1]
+            if len(instLumis) > self.minPointsToFit: self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
 
-            if len(instLumis) > self.minPointsToFit:
-                self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
-            else:
-                print "Not enough points to fit %s, we need %s, we have %s" % (name, self.minPointsToFit, len(instLumis))
-        # Save the fit
         self.saveFit()
 
     # Use: Save a fit to a file
@@ -705,10 +660,9 @@ class RateMonitor:
         outputFile = open(self.outFitFile, "wb")
         pickle.dump(self.OutputFit, outputFile, 2)
         outputFile.close()
-
         self.sortFit()
+        print "\nFit file saved to", self.outFitFile
 
-        print "\nFit file saved to", self.outFitFile # Info message
 
     # Use: Sorts trigger fits by their chi squared value and writes it to a file
     def sortFit(self):
@@ -804,6 +758,36 @@ class RateMonitor:
             print "Error: could not open fit file: %s" % (self.fitFile)
         return InputFit
 
+
+
+    def getSteamRates(self):
+        data={}
+        import csv
+
+        file = "steam__5e33_260627HLT.csv"
+
+        with open(file) as csvfile:
+            steamReader=csv.reader(csvfile)
+            for line in steamReader:
+                path = line[0].split("_v")[0]
+                
+                if path.find("HLT_")!=-1:
+                    try:
+                        rate = float(line[3])
+                        rateErr = float(line[5])
+                    except:
+                        #print path,line[51],line[53]
+                        rate -1
+                        rateErr = -1
+                        #                    data[path]=(rate,rateErr)
+                    data[path][1] = [15., rate, rateErr]
+                    data[path][0] = [0., 0., rateErr]
+
+        return data
+                    
+                    
+                    
+                    
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
     # Returns: (void)
     def doChecks(self):
