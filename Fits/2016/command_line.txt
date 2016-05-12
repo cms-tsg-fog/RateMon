@@ -1,0 +1,2 @@
+Results produced with:
+python plotTriggerRates.py --createFit --triggerList=monitorlist_COLLISIONS.list 273013 273017 273158 
