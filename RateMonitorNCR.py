@@ -468,6 +468,9 @@ class RateMonitor:
                         iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
                         yvals.append(data) # Add the correspoinding raw rate
 
+
+            iLuminosity, yvals = self.fitFinder.getGoodPoints(iLuminosity, yvals) #filter out points that differ greatly from the averages on a trigger,run basis 
+            
             if len(iLuminosity) > 0:
                 dataList[name] = [iLuminosity, yvals]
             else:
