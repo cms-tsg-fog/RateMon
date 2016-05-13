@@ -43,7 +43,9 @@ class FitFinder:
     # Use: Trys to find the best fit to a set of points that is either an order < 4 poly or an exponential
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
-        goodX, goodY = self.getGoodPoints(xVals, yVals)
+        #point selection 
+        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
+        else: goodX, goodY = xVals, yVals
         # Fitting
         if self.forceLinear: return self.findLinearFit(goodX, goodY, name)
         else: return self.tryFits(goodX, goodY, name)
@@ -233,9 +235,11 @@ class FitFinder:
     def getGoodPoints(self, xVals, yVals):
         goodX = array.array('f')
         goodY = array.array('f')
-        average_x, sigma = self.getSD(xVals)
+        average_x, std_dev_x = self.getSD(xVals)
+        average_y, std_dev_y = self.getSD(yVals)
+        sigma = 2 #how many standard deviations before we cut out points
         for x,y in zip(xVals,yVals):
-            if abs(x-average_x) < 2*sigma:
+            if abs(x-average_x) < sigma*std_dev_x and abs(y-average_y) < sigma*std_dev_y:
                 goodX.append(x)
                 goodY.append(y)
 
