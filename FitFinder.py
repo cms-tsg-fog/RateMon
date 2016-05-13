@@ -237,7 +237,7 @@ class FitFinder:
         goodY = array.array('f')
         average_x, std_dev_x = self.getSD(xVals)
         average_y, std_dev_y = self.getSD(yVals)
-        sigma = 2 #how many standard deviations before we cut out points
+        sigma = 3 #how many standard deviations before we cut out points
         for x,y in zip(xVals,yVals):
             if abs(x-average_x) < sigma*std_dev_x and abs(y-average_y) < sigma*std_dev_y:
                 goodX.append(x)
