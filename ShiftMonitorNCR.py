@@ -49,7 +49,8 @@ class ShiftMonitor:
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
-        self.fitFile = ""               # The fit file, can contain both HLT and L1 triggers
+        self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        #        self.fitFile = ""#fits__273013-273017/HLT_Fit_Run273013-273017_Tot12_fit.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
         # DBParser
@@ -93,7 +94,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["Calibration","L1Tech"]
+        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx"]
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
@@ -294,7 +295,8 @@ class ShiftMonitor:
 
         # Make sure there is info to use
         
-        #if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+        if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+            self.redoTList = True
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             self.redoTList = True
@@ -953,7 +955,7 @@ class ShiftMonitor:
                 if expected > 0:
                     try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
                     except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)                    
+                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2016/plots/%s.png>\n" % (triggerName)                    
                 else:
                     try: mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
                     except: mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)

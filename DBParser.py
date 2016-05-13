@@ -238,21 +238,25 @@ class DBParser:
         #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
         run_str = '0%d' % (runNumber)
         query_before_ps = """SELECT LUMI_SECTIONS_ID, ALGO_RATE, ALGO_INDEX FROM CMS_UGT_MON.VIEW_ALGO_SCALERS WHERE
-        SCALER_TYPE=1 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
+        SCALER_TYPE=0 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
 
         self.curs.execute(query_before_ps)
-        l1_rates_preDT_unprescaled = self.curs.fetchall()
+        l1_rates_preDT_ps = self.curs.fetchall()
 
         L1Triggers = {}
-        for tuple in l1_rates_preDT_unprescaled:
+        for tuple in l1_rates_preDT_ps:
             ls = int(tuple[0].split('_')[1].lstrip('0'))
-            unprescaled_rate = tuple[1]
+            ps_rate = tuple[1]
             bit = tuple[2]
             algo_name = self.L1NameIndexMap[bit]
 
+            if self.L1Mask[bit] == 0: ps_rate=0. 
+
             if not L1Triggers.has_key(algo_name): L1Triggers[algo_name] = {}
             prescale_column = self.PSColumnByLS[ls]
-            L1Triggers[algo_name][ls] = [ unprescaled_rate, self.L1Prescales[bit][prescale_column] ]
+            unprescaled_rate = ps_rate*self.L1Prescales[bit][prescale_column]
+            
+            L1Triggers[algo_name][ls] = [ unprescaled_rate , self.L1Prescales[bit][prescale_column] ]
 
         return L1Triggers        # [ trigger ] [ LS ] { raw rate, ps }
 
@@ -411,7 +415,7 @@ class DBParser:
         configIDQuery = "SELECT CONFIGID FROM CMS_HLT_GDR.U_CONFVERSIONS WHERE NAME='%s'" % (self.HLT_Key)
         tmp_curs.execute(configIDQuery)
         ConfigId, = tmp_curs.fetchone()
-        
+
         SequencePathQuery ="""
         SELECT prescale_sequence , triggername FROM ( SELECT J.ID, J.NAME, LAG(J.ORD,1,0) OVER (order by J.ID) \
         PRESCALE_SEQUENCE, J.VALUE TRIGGERNAME, trim('{' from trim('}' from LEAD(J.VALUE,1,0) OVER (order by J.ID)))\
