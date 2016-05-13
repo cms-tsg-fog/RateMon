@@ -578,8 +578,10 @@ class DBParser:
             (SELECT L1T_MENU_FK FROM CMS_GT.GT_SETUP WHERE ID='%s')""" % (pathName,self.GT_Key)
             
             try:
-                self.curs.execute(sqlquery)
-                bitNum, = self.curs.fetchone()
+                #self.curs.execute(sqlquery)
+                #bitNum, = self.curs.fetchone()
+                #charlie
+                self.L1IndexNameMap[pathName] = bit
                 url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartL1TriggerRates?fromTime=&toTime=&fromLSNumber=&toLSNumber=&minRate=&maxRate=&minCount=&maxCount=&postDeadRates=1&drawCounts=0&drawLumisec=1&runID=%s&bitID=%s&type=0&TRIGGER_NAME=%s&LSLength=23.310409580838325" % (runNumber,bitNum,pathName)
                 return url
             except:
