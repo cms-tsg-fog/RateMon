@@ -115,7 +115,9 @@ class RateMonitor:
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
         self.first = True        # True if we are processing our first batch
-
+        self.plot_steam_rates = False
+        self.steamRates = {}
+        
         # Cuts
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
         self.maxDeadTime = 10.    # the maximum % acceptable deadtime, if deadtime is > maxDeadTime, we do not plot or fit that lumi
@@ -129,6 +131,7 @@ class RateMonitor:
         # If False, modify self.triggerList as neccessary to include as many triggers as possible
         # If True, only use triggers in self.triggerList
         self.useTrigList = False
+
 
 
     # Use: sets up the variables before the main loop in run()
@@ -236,7 +239,6 @@ class RateMonitor:
         plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
 
         self.setUp() # Set up parameters and data structures
-        #plottingData = self.getSteamRates()
 
         for run_number in self.runList:
             self.run(run_number, plottingData)
@@ -314,6 +316,9 @@ class RateMonitor:
         if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
+
+
+        if self.plot_steam_rates: self.getSteamRates() #get steam rates
 
         for name in sorted(plottingData):
             if fitparams is None or not fitparams.has_key(name): fit = None
@@ -636,6 +641,22 @@ class RateMonitor:
                 legend.AddEntry(fitFunc, "Fit ( %s \sigma )" % (self.sigmas))
                 fitFunc.Draw("same") # Draw the fit function on the same graph
 
+        if self.plot_steam_rates:
+            if self.steamRates.has_key(triggerName.split('_v')[0]):
+                steam_xVal = array.array('f'); steam_xVal.append(15.)
+                steam_xVal_err = array.array('f'); steam_xVal_err.append(0.)
+                steam_yVal = array.array('f'); steam_yVal.append(self.steamRates[triggerName.split('_v')[0]][0])
+                steam_yVal_err = array.array('f'); steam_yVal_err.append(self.steamRates[triggerName.split('_v')[0]][1])
+            
+                steamGraph = TGraphErrors(1, steam_xVal, steam_yVal, steam_xVal_err, steam_yVal_err)
+                steamGraph.SetMarkerStyle(29)
+                steamGraph.SetMarkerSize(2.6)
+                steamGraph.SetMarkerColor(1)
+                steamGraph.Draw("P")
+                legend.AddEntry(steamGraph,"STEAM estimate","p")
+            else:
+                return
+            
                 # Draw function string on the plot
         if not funcStr == "" and self.showEq:
             funcLeg = TLegend(.146, .71, .47, .769)
@@ -800,11 +821,8 @@ class RateMonitor:
 
 
     def getSteamRates(self):
-        data={}
         import csv
-
-        file = "steam__5e33_260627HLT.csv"
-
+        file = "steamRate_forRateMon.csv"
         with open(file) as csvfile:
             steamReader=csv.reader(csvfile)
             for line in steamReader:
@@ -812,20 +830,14 @@ class RateMonitor:
                 
                 if path.find("HLT_")!=-1:
                     try:
-                        rate = float(line[3])
-                        rateErr = float(line[5])
+                        rate = float(line[6])
+                        rateErr = float(line[7])
                     except:
-                        #print path,line[51],line[53]
                         rate -1
                         rateErr = -1
-                        #                    data[path]=(rate,rateErr)
-                    data[path][1] = [15., rate, rateErr]
-                    data[path][0] = [0., 0., rateErr]
+                        
+                    if rate >0.: self.steamRates[path] = [rate, rateErr]
 
-        return data
-                    
-                    
-                    
                     
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
     # Returns: (void)
