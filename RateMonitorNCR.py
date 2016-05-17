@@ -58,7 +58,7 @@ class RateMonitor:
         self.logFile = ""
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
-        self.colorList = [4,6,8,7,9,20,28,32,38,40,41,46] # List of colors that we can use for graphing
+        self.colorList = [4,6,8,7,9,419,46,20,28,862,874,38,32,40,41,5,3] # List of colors that we can use for graphing
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
