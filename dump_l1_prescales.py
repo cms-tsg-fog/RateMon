@@ -23,7 +23,7 @@ class DBQueryTool:
         if hostname.find('lxplus') > -1: self.dsn_ = 'cms_omds_adg' #offline
         else: self.dsn_ = 'cms_omds_lb' #online
 
-        orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn=self.dsn_)
+        #orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn=self.dsn_) #for access to dbs containing hlt menus
         orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn=self.dsn_)
         # Create a DB cursor
         self.curs = orcl.cursor()
