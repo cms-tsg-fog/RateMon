@@ -213,21 +213,21 @@ class RateMonitor:
 
         # If we are going to save fit find debug graph, delete any old ones
         if self.fitFinder.saveDebug and os.path.exists("Debug.root"): os.remove("Debug.root")
-
+        if not self.certifyMode:
         ###dump a log file with the exact command used to produce the results
-        self.logFile = self.saveDirectory+"/command_line.txt"
-        command_line_str = "Results produced with:\n"
-        command_line_str+="python plotTriggerRates.py "
-        for tuple in self.ops:
-            if tuple[0].find('--updateOnlineFits') > -1: continue #never record when we update online fits
-            if len(tuple[1]) == 0: command_line_str+= "%s " % (tuple[0])
-            else: command_line_str+= "%s=%s " % (tuple[0],tuple[1])
-        for run in self.runList: command_line_str+= "%d " % (run)
-        command_line_str+="\n"
+            self.logFile = self.saveDirectory+"/command_line.txt"
+            command_line_str = "Results produced with:\n"
+            command_line_str+="python plotTriggerRates.py "
+            for tuple in self.ops:
+                if tuple[0].find('--updateOnlineFits') > -1: continue #never record when we update online fits
+                if len(tuple[1]) == 0: command_line_str+= "%s " % (tuple[0])
+                else: command_line_str+= "%s=%s " % (tuple[0],tuple[1])
+            for run in self.runList: command_line_str+= "%d " % (run)
+            command_line_str+="\n"
         
-        command_line_log_file = open(self.logFile, "w")
-        command_line_log_file.write(command_line_str)
-        command_line_log_file.close()
+            command_line_log_file = open(self.logFile, "w")
+            command_line_log_file.write(command_line_str)
+            command_line_log_file.close()
         
         
     def runBatch(self):
