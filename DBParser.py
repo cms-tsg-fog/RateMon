@@ -254,8 +254,11 @@ class DBParser:
 
             if not L1Triggers.has_key(algo_name): L1Triggers[algo_name] = {}
             prescale_column = self.PSColumnByLS[ls]
-            unprescaled_rate = ps_rate*self.L1Prescales[bit][prescale_column]
-            
+            try:
+                unprescaled_rate = ps_rate*self.L1Prescales[bit][prescale_column]
+            except:
+                print "prescales bit or column not avaiable "
+                continue
             L1Triggers[algo_name][ls] = [ unprescaled_rate , self.L1Prescales[bit][prescale_column] ]
 
         return L1Triggers        # [ trigger ] [ LS ] { raw rate, ps }
@@ -287,7 +290,7 @@ class DBParser:
     # Returns: (void)
     def getL1Prescales(self, runNumber):
         sqlquery = """SELECT A.ALGO_INDEX, A.ALGO_NAME, B.PRESCALE, B.PRESCALE_INDEX FROM CMS_UGT_MON.VIEW_UGT_RUN_ALGO_SETTING A, CMS_UGT_MON.VIEW_UGT_RUN_PRESCALE B WHERE
-        A.ALGO_INDEX=B.ALGO_INDEX AND A.RUN_NUMBER = B.RUN_NUMBER AND A.RUN_NUMBER=%s""" % (runNumber)
+        A.ALGO_INDEX=B.ALGO_INDEX AND A.RUN_NUMBER = B.RUN_NUMBER AND A.RUN_NUMBER=%s ORDER BY A.ALGO_INDEX""" % (runNumber)
 
         try:
             self.curs.execute(sqlquery)
@@ -572,16 +575,8 @@ class DBParser:
                     return url
                 
         elif pathName[0:3]=="L1_":
-            if self.GT_Key == "": self.getRunInfo(runNumber)
-            sqlquery = """SELECT ALGO_INDEX FROM CMS_GT.L1T_MENU_ALGO_VIEW
-            WHERE ALIAS ='%s' AND MENU_IMPLEMENTATION IN
-            (SELECT L1T_MENU_FK FROM CMS_GT.GT_SETUP WHERE ID='%s')""" % (pathName,self.GT_Key)
-            
             try:
-                #self.curs.execute(sqlquery)
-                #bitNum, = self.curs.fetchone()
-                #charlie
-                self.L1IndexNameMap[pathName] = bit
+                bitNum = self.L1IndexNameMap[pathName]
                 url = "https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/ChartL1TriggerRates?fromTime=&toTime=&fromLSNumber=&toLSNumber=&minRate=&maxRate=&minCount=&maxCount=&postDeadRates=1&drawCounts=0&drawLumisec=1&runID=%s&bitID=%s&type=0&TRIGGER_NAME=%s&LSLength=23.310409580838325" % (runNumber,bitNum,pathName)
                 return url
             except:
