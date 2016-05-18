@@ -117,7 +117,7 @@ class ShiftMonitor:
         self.sendAudioAlerts = False    # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
         self.showStreams = False         # Whether we should print stream information
-        self.showPDs = True             # Whether we should print pd information
+        self.showPDs = False             # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have        
