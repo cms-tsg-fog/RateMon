@@ -117,6 +117,10 @@ class RateMonitor:
         self.first = True        # True if we are processing our first batch
         self.plot_steam_rates = False
         self.steamRates = {}
+
+        #misc.
+        self.minNum = 0
+        self.maxNum = 0
         
         # Cuts
         self.minPointsToFit = 10 # The minimum number of points we need to make a fit
@@ -166,16 +170,19 @@ class RateMonitor:
         if self.jsonFilter:
             self.runList = [x for x in self.runList if "%d" % x in self.jsonData]
                 
-        minNum = self.runList[0]
-        maxNum = self.runList[-1]
+        self.minNum = self.runList[0]
+        self.maxNum = self.runList[-1]
 
         # If we are supposed to, get the fit, a dictionary: [ triggername ] [ ( fit parameters ) ]
         if self.useFit or self.certifyMode: # Always try to load a fit in secondary mode
             self.InputFit = self.loadFit()
             if not self.useTrigList and not self.InputFit is None: self.TriggerList = sorted(self.InputFit)
+
         
-        if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(minNum) + "-" + str(maxNum)
-        elif self.certifyMode: self.saveDirectory = "run%s" % (str(maxNum))
+        if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(self.minNum) + "-" + str(self.maxNum)
+
+#########################################
+#        elif self.certifyMode: self.saveDirectory = "run%s" % (str(self.maxNum))
 
         if self.certifyMode or self.first:            
             self.first = False
@@ -183,31 +190,35 @@ class RateMonitor:
                 shutil.rmtree(self.saveDirectory)
                 print "Removing existing directory %s " % (self.saveDirectory)
                 
-            if self.certifyMode: os.chdir(self.certifyDir)
-            os.mkdir(self.saveDirectory)
-            if self.png:
-                os.chdir(self.saveDirectory)
-                os.mkdir("png")
-                if self.certifyMode: os.chdir("../../")
-                else: os.chdir("../")
-            print "Created directory %s " % (self.saveDirectory)
-            self.saveName = self.saveDirectory + "/" + self.saveName
+                #     if self.certifyMode: os.chdir(self.certifyDir)
+            if not self.certifyMode:
+                os.mkdir(self.saveDirectory)
+                if self.png:
+                    os.chdir(self.saveDirectory)
+                    os.mkdir("png")
+                    #        if self.certifyMode: os.chdir("../../")
+                    os.chdir("../")
+                print "Created directory %s " % (self.saveDirectory)
+                self.saveName = self.saveDirectory + "/" + self.saveName
             
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
-        if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+        if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (self.minNum, self.maxNum, self.runsToProcess)
         if self.useFit or self.fit or (self.certifyMode and not self.InputFit is None): fitOpt = "Fitted"
         else: fitOpt = "NoFit"
 
-        self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, minNum, maxNum, self.runsToProcess)
+        self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, self.minNum, self.maxNum, self.runsToProcess)
         if self.certifyMode: self.saveName = self.certifyDir+"/"+self.saveName
 
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
 
+#########################################
+
+
         # Open a file for writing errors
         if self.makeErrFile:
-            self.errFileName = "rateGrapher_%s_%s.err" % (minNum, maxNum) # Define the error file name
+            self.errFileName = "rateGrapher_%s_%s.err" % (self.minNum, self.maxNum) # Define the error file name
             try: self.errFile = open(self.errFileName, 'w')
             except: print "Could not open error file."
 
@@ -237,17 +248,18 @@ class RateMonitor:
             os.mkdir(self.certifyDir)
 
         plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
-
         self.setUp() # Set up parameters and data structures
 
         for run_number in self.runList:
+            
             self.run(run_number, plottingData)
             print "-----" # Newline for formatting
-
-        
-        self.makeFits(plottingData)
+            if self.certifyMode:
+                self.makeFits(plottingData)
+                plottingData = {}
+                
         if self.certifyMode: self.doChecks()
-
+        else: self.makeFits(plottingData)
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
@@ -255,6 +267,46 @@ class RateMonitor:
         if self.outputOn: print ""  # Print a newline (just for formatting)
         
         print "Processing run: %d" % (runNumber)
+
+
+
+#########################################
+        if self.certifyMode:
+            self.saveDirectory = "run%s" % (str(runNumber))
+            if os.path.exists(self.saveDirectory):
+                shutil.rmtree(self.saveDirectory)
+                print "Removing existing directory %s " % (self.saveDirectory)
+                
+            os.chdir(self.certifyDir)
+            os.mkdir(self.saveDirectory)
+            if self.png:
+                os.chdir(self.saveDirectory)
+                os.mkdir("png")
+                os.chdir("../../")
+            print "Created directory %s " % (self.saveDirectory)
+            self.saveName = self.saveDirectory + "/" + self.saveName
+            
+            # File names and name templates
+            RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s_CERTIFICATION.root"
+#            if self.useFit or self.fit or (self.certifyMode and not self.InputFit is None): fitOpt = "Fitted"
+            if self.useFit or self.fit or (not self.InputFit is None): fitOpt = "Fitted"
+            else: fitOpt = "NoFit"
+
+            self.saveName = self.saveDirectory+"/"+RootNameTemplate % (self.varX, self.varY, fitOpt, runNumber)
+            self.saveName = self.certifyDir+"/"+self.saveName
+
+            # Remove any root files that already have that name
+            if os.path.exists(self.saveName): os.remove(self.saveName)
+
+#########################################
+        
+
+
+
+
+
+
+
 
         if self.pileUp:
             self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
@@ -882,7 +934,7 @@ class RateMonitor:
         eprint.outputErrors()
 
 #     def fitExtrapolations(self):
-#         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (minNum, maxNum, self.runsToProcess)
+#         if self.outFitFile=="": self.outFitFile = self.saveDirectory+"/HLT_Fit_Run%s-%s_Tot%s_fit.pkl" % (self.minNum, self.maxNum, self.runsToProcess)
 #         extrapolationFileName = self.saveDirectory+"Fits.csv"
 #         extrapolations = open(extrapolationFileName,"w")
 #         extrapolations.write("Description:: fits are of form: f(x) = a+ b*x + c*x^2 + d*x^3 where f(x) = rate, x = inst. lumi/#colliding bx in units of [10^30 s^-1 cm^-2],\n")
