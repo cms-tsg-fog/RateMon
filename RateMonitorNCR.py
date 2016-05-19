@@ -181,25 +181,19 @@ class RateMonitor:
         
         if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(self.minNum) + "-" + str(self.maxNum)
 
-#########################################
-#        elif self.certifyMode: self.saveDirectory = "run%s" % (str(self.maxNum))
-
-        if self.certifyMode or self.first:            
+        if self.first and not self.certifyMode:
             self.first = False
             if os.path.exists(self.saveDirectory):
                 shutil.rmtree(self.saveDirectory)
                 print "Removing existing directory %s " % (self.saveDirectory)
                 
-                #     if self.certifyMode: os.chdir(self.certifyDir)
-            if not self.certifyMode:
-                os.mkdir(self.saveDirectory)
-                if self.png:
-                    os.chdir(self.saveDirectory)
-                    os.mkdir("png")
-                    #        if self.certifyMode: os.chdir("../../")
-                    os.chdir("../")
-                print "Created directory %s " % (self.saveDirectory)
-                self.saveName = self.saveDirectory + "/" + self.saveName
+            os.mkdir(self.saveDirectory)
+            if self.png:
+                os.chdir(self.saveDirectory)
+                os.mkdir("png")
+                os.chdir("../")
+            print "Created directory %s " % (self.saveDirectory)
+            self.saveName = self.saveDirectory + "/" + self.saveName
             
         # File names and name templates
         RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s-%s_Tot%s_cert.root"
@@ -212,9 +206,6 @@ class RateMonitor:
 
         # Remove any root files that already have that name
         if os.path.exists(self.saveName): os.remove(self.saveName)
-
-#########################################
-
 
         # Open a file for writing errors
         if self.makeErrFile:
@@ -251,12 +242,11 @@ class RateMonitor:
         self.setUp() # Set up parameters and data structures
 
         for run_number in self.runList:
-            
             self.run(run_number, plottingData)
-            print "-----" # Newline for formatting
             if self.certifyMode:
                 self.makeFits(plottingData)
                 plottingData = {}
+            print "-----" # Newline for formatting
                 
         if self.certifyMode: self.doChecks()
         else: self.makeFits(plottingData)
@@ -266,12 +256,10 @@ class RateMonitor:
     def run(self,runNumber,plottingData):
         if self.outputOn: print ""  # Print a newline (just for formatting)
         
-        print "Processing run: %d" % (runNumber)
+        print "\nProcessing run: %d" % (runNumber)
 
 
-
-#########################################
-        if self.certifyMode:
+        if self.certifyMode: #should probably find a better place for this...
             self.saveDirectory = "run%s" % (str(runNumber))
             if os.path.exists(self.saveDirectory):
                 shutil.rmtree(self.saveDirectory)
@@ -288,7 +276,6 @@ class RateMonitor:
             
             # File names and name templates
             RootNameTemplate = "HLT_%s_vs_%s_%s_Run%s_CERTIFICATION.root"
-#            if self.useFit or self.fit or (self.certifyMode and not self.InputFit is None): fitOpt = "Fitted"
             if self.useFit or self.fit or (not self.InputFit is None): fitOpt = "Fitted"
             else: fitOpt = "NoFit"
 
@@ -298,16 +285,7 @@ class RateMonitor:
             # Remove any root files that already have that name
             if os.path.exists(self.saveName): os.remove(self.saveName)
 
-#########################################
         
-
-
-
-
-
-
-
-
         if self.pileUp:
             self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
             if self.bunches is None or self.bunches is 0:

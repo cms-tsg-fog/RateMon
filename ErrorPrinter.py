@@ -48,13 +48,13 @@ class ErrorPrinter:
         # Output all kinds of info to a file
         rootFileName = "%s/CertificationSummaries.root" % (self.saveDirectory)
         rootFile = TFile(rootFileName,"RECREATE")
-        print "Writing summary root file %s" % (rootFileName)
+        print "\nWriting summary root file %s" % (rootFileName)
 
         sortedRuns = sorted(self.run_trig_ls)
         try:
             fileName = "CertificationSummary_run"+str(sortedRuns[0])+"_run"+str(sortedRuns[-1])+".txt"
             file = open(self.saveDirectory+"/"+fileName, 'w') # come up with a name based on something about the runs
-            print "Certification Summary txt file:  %s ." % (fileName)            
+            print "\nCertification Summary txt file:  %s/%s \n" % (self.saveDirectory,fileName)            
         except:
             print "Error writing certification summary ."
             return
