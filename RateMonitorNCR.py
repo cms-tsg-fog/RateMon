@@ -114,7 +114,6 @@ class RateMonitor:
         self.batchSize = 12      # Number of runs to process in a single batch
         self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
         self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
-        self.first = True        # True if we are processing our first batch
         self.plot_steam_rates = False
         self.steamRates = {}
 
@@ -181,8 +180,7 @@ class RateMonitor:
         
         if not self.certifyMode and self.saveDirectory == "": self.saveDirectory = "fits__"+str(self.minNum) + "-" + str(self.maxNum)
 
-        if self.first and not self.certifyMode:
-            self.first = False
+        if not self.certifyMode:
             if os.path.exists(self.saveDirectory):
                 shutil.rmtree(self.saveDirectory)
                 print "Removing existing directory %s " % (self.saveDirectory)
@@ -236,6 +234,7 @@ class RateMonitor:
         
         if self.certifyMode: 
             self.certifyDir = "Certification_%sruns_%s_%s" % (len(self.runList),str(datetime.datetime.now()).split()[0],str(datetime.datetime.now()).split()[1].split(':')[0] +"_"+ str(datetime.datetime.now()).split()[1].split(':')[1])
+            if os.path.exists(self.certifyDir): shutil.rmtree(self.certifyDir)
             os.mkdir(self.certifyDir)
 
         plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
@@ -581,7 +580,7 @@ class RateMonitor:
                 # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
                 runNum_cert = plottingData.keys()[0]
                 predictionTGraph = self.makePredictionTGraph(paramlist, minVal, maxVal, triggerName, runNum_cert)
-                maxPred = max(self.predictionRec[triggerName][runNum_cert][1])
+                maxPred = self.predictionRec[triggerName][runNum_cert][0][1]
                 if maxPred > maxRR: maxRR = maxPred
 
             else: #primary mode
