@@ -24,8 +24,8 @@ HLT_ZeroBias
 
 L1_SingleMu16       
 L1_SingleMu16er    
-L1_DoubleMu_12_5
-L1_QuadMu0
+#L1_DoubleMu_12_5
+#L1_QuadMu0
 L1_SingleEG24 	
 L1_SingleEG40 	
 L1_SingleIsoEG24 		
