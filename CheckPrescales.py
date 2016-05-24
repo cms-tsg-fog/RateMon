@@ -6,12 +6,12 @@ import getopt
 import copy
 
 #import pdb
-#
 
+import xml.etree.ElementTree
 from DatabaseParser import ConnectDB
 
 def usage():
-    print sys.argv[0] + " [options] HLTKey GTKey GTRS Key"
+    print sys.argv[0] + " [options] HLTKey uGTKey RS Key"
     print "options:"
     print "-v                 Verbose Mode"
     print "--ignore=<cols>    list (comma-separated) of prescale columns to ignore"
@@ -30,8 +30,8 @@ def main():
         sys.exit(0)
 
     HLT_Key  = args[0]
-    GT_Key   = args[1]
-    GTRS_Key = args[2]
+    uGT_Key   = args[1]
+    RS_Key = args[2]
     Verbose = False
     PSColsToIgnore = []
 
@@ -46,7 +46,7 @@ def main():
                     print "\nERROR: %s is not a valid prescale column\n" % c
                     usage()
                     sys.exit(0)
-    psTable = GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,True)
+    psTable = GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,True)
 
     if Verbose:
         firstPS = {}
@@ -66,9 +66,9 @@ def main():
                
             
             
-def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
+def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint):
     curs = ConnectDB('hlt')
-
+    trg_curs = ConnectDB()
     ## Get the HLT seeds
     sqlquery ="""  
     select l.name as path, e.value 
@@ -92,7 +92,7 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
     d.id_pae=c.id_pae and
     e.id=d.id_moe and
     f.id=g.id_templ and
-    f.name= 'HLTLevel1GTSeed' and 
+    f.name= 'HLTL1TSeed' and 
     e.name='L1SeedsLogicalExpression'
     order by e.value
         """ % (HLT_Key,)
@@ -107,14 +107,16 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
 
     L1Names = {}
     ## get the L1 algo names associated with each algo bit
-    AlgoNameQuery = """SELECT ALGO_INDEX, ALIAS FROM CMS_GT.L1T_MENU_ALGO_VIEW
-    WHERE MENU_IMPLEMENTATION IN (SELECT L1T_MENU_FK FROM CMS_GT.GT_SETUP WHERE ID='%s')
-    ORDER BY ALGO_INDEX""" % (GT_Key,)
-    curs.execute(AlgoNameQuery)
-    for index,name in curs.fetchall():
+    AlgoNameQuery = """select D.CONF from CMS_TRG_L1_CONF.UGT_L1_MENU D, CMS_TRG_L1_CONF.UGT_KEYS A WHERE D.ID=A.L1_MENU AND A.ID='%s'""" % (uGT_Key)
+    trg_curs.execute(AlgoNameQuery)
+    
+    l1xml = trg_curs.fetchall()[0][0].read()
+    e = xml.etree.ElementTree.fromstring(l1xml)
+    for r in e.findall('algorithm'):
+        name = r.find('name').text.replace(' ','')
+        index = int(r.find('index').text.replace(' ',''))
         L1Names[name] = index
-
-    L1Prescales = GetL1AlgoPrescales(curs,GTRS_Key)
+    L1Prescales = GetL1AlgoPrescales(trg_curs,RS_Key)
 
     FullPrescales = {}
     formatString = "hlt path: %s\nl1t seed: %s\ntotal p.: %s\nhlt pre.: %s\nl1t pre.: %s\n"
@@ -140,7 +142,7 @@ def GetPrescaleTable(HLT_Key,GT_Key,GTRS_Key,PSColsToIgnore,doPrint):
                 else:
                     for i,a,b in zip(range(len(tmp)),thisL1PS,tmp):
                         if b<a:
-                            thisL1PS[i] = str(b) # choose the minimum PS for each column
+                            thisL1PS[i] = b # choose the minimum PS for each column
         if len(thisL1PS)==0:
             continue  ## this probably means that the seeding was an OR of TTs
         if HLTPrescales.has_key(HLTName):   ## if the HLT path is totally unprescaled it won't be listed in the PS service
@@ -216,48 +218,26 @@ def GetHLTPrescaleMatrix(cursor,HLT_Key):
             row=[]
         lastSeq=seq
         lastIndex=index
-        row.append(val)
+        row.append(int(val))
 
     return HLTPrescaleTable
 
-def GetL1AlgoPrescales(curs, GTRS_Key):
-    L1PrescalesQuery= """
-    SELECT
-    PRESCALE_FACTOR_ALGO_000,PRESCALE_FACTOR_ALGO_001,PRESCALE_FACTOR_ALGO_002,PRESCALE_FACTOR_ALGO_003,PRESCALE_FACTOR_ALGO_004,PRESCALE_FACTOR_ALGO_005,
-    PRESCALE_FACTOR_ALGO_006,PRESCALE_FACTOR_ALGO_007,PRESCALE_FACTOR_ALGO_008,PRESCALE_FACTOR_ALGO_009,PRESCALE_FACTOR_ALGO_010,PRESCALE_FACTOR_ALGO_011,
-    PRESCALE_FACTOR_ALGO_012,PRESCALE_FACTOR_ALGO_013,PRESCALE_FACTOR_ALGO_014,PRESCALE_FACTOR_ALGO_015,PRESCALE_FACTOR_ALGO_016,PRESCALE_FACTOR_ALGO_017,
-    PRESCALE_FACTOR_ALGO_018,PRESCALE_FACTOR_ALGO_019,PRESCALE_FACTOR_ALGO_020,PRESCALE_FACTOR_ALGO_021,PRESCALE_FACTOR_ALGO_022,PRESCALE_FACTOR_ALGO_023,
-    PRESCALE_FACTOR_ALGO_024,PRESCALE_FACTOR_ALGO_025,PRESCALE_FACTOR_ALGO_026,PRESCALE_FACTOR_ALGO_027,PRESCALE_FACTOR_ALGO_028,PRESCALE_FACTOR_ALGO_029,
-    PRESCALE_FACTOR_ALGO_030,PRESCALE_FACTOR_ALGO_031,PRESCALE_FACTOR_ALGO_032,PRESCALE_FACTOR_ALGO_033,PRESCALE_FACTOR_ALGO_034,PRESCALE_FACTOR_ALGO_035,
-    PRESCALE_FACTOR_ALGO_036,PRESCALE_FACTOR_ALGO_037,PRESCALE_FACTOR_ALGO_038,PRESCALE_FACTOR_ALGO_039,PRESCALE_FACTOR_ALGO_040,PRESCALE_FACTOR_ALGO_041,
-    PRESCALE_FACTOR_ALGO_042,PRESCALE_FACTOR_ALGO_043,PRESCALE_FACTOR_ALGO_044,PRESCALE_FACTOR_ALGO_045,PRESCALE_FACTOR_ALGO_046,PRESCALE_FACTOR_ALGO_047,
-    PRESCALE_FACTOR_ALGO_048,PRESCALE_FACTOR_ALGO_049,PRESCALE_FACTOR_ALGO_050,PRESCALE_FACTOR_ALGO_051,PRESCALE_FACTOR_ALGO_052,PRESCALE_FACTOR_ALGO_053,
-    PRESCALE_FACTOR_ALGO_054,PRESCALE_FACTOR_ALGO_055,PRESCALE_FACTOR_ALGO_056,PRESCALE_FACTOR_ALGO_057,PRESCALE_FACTOR_ALGO_058,PRESCALE_FACTOR_ALGO_059,
-    PRESCALE_FACTOR_ALGO_060,PRESCALE_FACTOR_ALGO_061,PRESCALE_FACTOR_ALGO_062,PRESCALE_FACTOR_ALGO_063,PRESCALE_FACTOR_ALGO_064,PRESCALE_FACTOR_ALGO_065,
-    PRESCALE_FACTOR_ALGO_066,PRESCALE_FACTOR_ALGO_067,PRESCALE_FACTOR_ALGO_068,PRESCALE_FACTOR_ALGO_069,PRESCALE_FACTOR_ALGO_070,PRESCALE_FACTOR_ALGO_071,
-    PRESCALE_FACTOR_ALGO_072,PRESCALE_FACTOR_ALGO_073,PRESCALE_FACTOR_ALGO_074,PRESCALE_FACTOR_ALGO_075,PRESCALE_FACTOR_ALGO_076,PRESCALE_FACTOR_ALGO_077,
-    PRESCALE_FACTOR_ALGO_078,PRESCALE_FACTOR_ALGO_079,PRESCALE_FACTOR_ALGO_080,PRESCALE_FACTOR_ALGO_081,PRESCALE_FACTOR_ALGO_082,PRESCALE_FACTOR_ALGO_083,
-    PRESCALE_FACTOR_ALGO_084,PRESCALE_FACTOR_ALGO_085,PRESCALE_FACTOR_ALGO_086,PRESCALE_FACTOR_ALGO_087,PRESCALE_FACTOR_ALGO_088,PRESCALE_FACTOR_ALGO_089,
-    PRESCALE_FACTOR_ALGO_090,PRESCALE_FACTOR_ALGO_091,PRESCALE_FACTOR_ALGO_092,PRESCALE_FACTOR_ALGO_093,PRESCALE_FACTOR_ALGO_094,PRESCALE_FACTOR_ALGO_095,
-    PRESCALE_FACTOR_ALGO_096,PRESCALE_FACTOR_ALGO_097,PRESCALE_FACTOR_ALGO_098,PRESCALE_FACTOR_ALGO_099,PRESCALE_FACTOR_ALGO_100,PRESCALE_FACTOR_ALGO_101,
-    PRESCALE_FACTOR_ALGO_102,PRESCALE_FACTOR_ALGO_103,PRESCALE_FACTOR_ALGO_104,PRESCALE_FACTOR_ALGO_105,PRESCALE_FACTOR_ALGO_106,PRESCALE_FACTOR_ALGO_107,
-    PRESCALE_FACTOR_ALGO_108,PRESCALE_FACTOR_ALGO_109,PRESCALE_FACTOR_ALGO_110,PRESCALE_FACTOR_ALGO_111,PRESCALE_FACTOR_ALGO_112,PRESCALE_FACTOR_ALGO_113,
-    PRESCALE_FACTOR_ALGO_114,PRESCALE_FACTOR_ALGO_115,PRESCALE_FACTOR_ALGO_116,PRESCALE_FACTOR_ALGO_117,PRESCALE_FACTOR_ALGO_118,PRESCALE_FACTOR_ALGO_119,
-    PRESCALE_FACTOR_ALGO_120,PRESCALE_FACTOR_ALGO_121,PRESCALE_FACTOR_ALGO_122,PRESCALE_FACTOR_ALGO_123,PRESCALE_FACTOR_ALGO_124,PRESCALE_FACTOR_ALGO_125,
-    PRESCALE_FACTOR_ALGO_126,PRESCALE_FACTOR_ALGO_127
-    FROM CMS_GT.GT_FDL_PRESCALE_FACTORS_ALGO A, CMS_GT.GT_RUN_SETTINGS_PRESC_VIEW B
-    WHERE A.ID=B.PRESCALE_FACTORS_ALGO_FK AND B.ID='%s'
-    """ % (GTRS_Key,)
+def GetL1AlgoPrescales(curs,RS_Key):
+    L1PrescalesQuery= """select D.CONF from CMS_TRG_L1_CONF.L1_TRG_RS_KEYS B, CMS_TRG_L1_CONF.UGT_RS_KEYS C, CMS_TRG_L1_CONF.UGT_RS D where
+    B.ID ='%s' and C.ID=B.UGT_RS_KEY and D.ID=C.ALGO_PRESCALE""" % (RS_Key)    
     curs.execute(L1PrescalesQuery)
-    ## This is pretty horrible, but this how you get them!!
-    tmp = curs.fetchall()
-    L1PrescaleTable = []
-    for ps in tmp[0]: #build the prescale table initially
-        L1PrescaleTable.append([ps])
-    for line in tmp[1:]: # now fill it
-        for ps,index in zip(line,range(len(line))):
-            L1PrescaleTable[index].append(ps)
+    l1_ps_xml = curs.fetchall()[0][0].read()
+    e = xml.etree.ElementTree.fromstring(l1_ps_xml)
+    L1PrescaleTable = {}
+    for row in e[0][0][2]:
+        line = row.text.replace('\n','').replace(' ','').split(',')
+        line = [ int(x) for x in line ]
+        bit = line[0]
+        prescales = line[1:]
+        L1PrescaleTable[bit] = prescales
+    
     return L1PrescaleTable
+
 
 def isSequential(row,ignore):
     seq = True
