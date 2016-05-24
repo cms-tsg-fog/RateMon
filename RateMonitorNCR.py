@@ -537,7 +537,7 @@ class RateMonitor:
     # Returns: (void)
  
     def graphAllData(self, plottingData, paramlist, triggerName):        
-        # Find that max and min values
+        # Find max and min values
         maximumRR = array.array('f')
         maximumVals = array.array('f')
         minimumVals = array.array('f')
@@ -549,6 +549,7 @@ class RateMonitor:
                 maximumVals.append(max(plottingData[runNumber][0]))
                 minimumVals.append(min(plottingData[runNumber][0]))
 
+
         if len(maximumRR) > 0: maxRR = max(maximumRR)
         else: return
         
@@ -556,6 +557,22 @@ class RateMonitor:
             maxVal = max(maximumVals)
             minVal = min(minimumVals)
         else: return
+
+
+        if self.plot_steam_rates:
+            if self.steamRates.has_key(triggerName.split('_v')[0]):
+                steam_xVal = array.array('f'); steam_xVal.append(15.)
+                steam_xVal_err = array.array('f'); steam_xVal_err.append(0.)
+                steam_yVal = array.array('f'); steam_yVal.append(self.steamRates[triggerName.split('_v')[0]][0])
+                steam_yVal_err = array.array('f'); steam_yVal_err.append(self.steamRates[triggerName.split('_v')[0]][1])
+            
+                steamGraph = TGraphErrors(1, steam_xVal, steam_yVal, steam_xVal_err, steam_yVal_err)
+                steamGraph.SetMarkerStyle(29)
+                steamGraph.SetMarkerSize(2.6)
+                steamGraph.SetMarkerColor(1)
+                if max(steam_yVal) > maxRR: maxRR = max(steam_yVal)
+            else:
+                return
 
         if maxVal==0 or maxRR==0: return
 
@@ -672,22 +689,10 @@ class RateMonitor:
 
         if self.plot_steam_rates:
             if self.steamRates.has_key(triggerName.split('_v')[0]):
-                steam_xVal = array.array('f'); steam_xVal.append(15.)
-                steam_xVal_err = array.array('f'); steam_xVal_err.append(0.)
-                steam_yVal = array.array('f'); steam_yVal.append(self.steamRates[triggerName.split('_v')[0]][0])
-                steam_yVal_err = array.array('f'); steam_yVal_err.append(self.steamRates[triggerName.split('_v')[0]][1])
-            
-                steamGraph = TGraphErrors(1, steam_xVal, steam_yVal, steam_xVal_err, steam_yVal_err)
-                steamGraph.SetMarkerStyle(29)
-                steamGraph.SetMarkerSize(2.6)
-                steamGraph.SetMarkerColor(1)
                 steamGraph.Draw("P")
                 legend.AddEntry(steamGraph,"STEAM estimate","p")
-            else:
-                return
             
-                # Draw function string on the plot
-        if not funcStr == "" and self.showEq:
+        if not funcStr == "" and self.showEq: # Draw function string on the plot
             funcLeg = TLegend(.146, .71, .47, .769)
             funcLeg.SetHeader("f(x) = " + funcStr)
             funcLeg.SetFillColor(0)
