@@ -611,9 +611,9 @@ class RateMonitor:
                     plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])#Polynomial
                     funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
                 
-                max_xaxis_val = 40 #Extend x-axis to 40
+                #max_xaxis_val = 40 #Extend x-axis to 40
                 fitFunc = TF1("Fit_"+triggerName, plotFuncStr, 0., 1.1*max_xaxis_val)                
-                if fitFunc.Eval(max_xaxis_val) > max_yaxis_value: max_yaxis_value = fitFunc.Eval(max_xaxis_val) #extend y-axis to maximum fit value
+                #if fitFunc.Eval(max_xaxis_val) > max_yaxis_value: max_yaxis_value = fitFunc.Eval(max_xaxis_val) #extend y-axis to maximum fit value
 
                 if self.errorBands:
                     xVal = array.array('f')
