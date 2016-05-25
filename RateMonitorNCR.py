@@ -346,15 +346,14 @@ class RateMonitor:
         elif self.fit: fitparams = self.OutputFit # Plot the fit that we made
         else: fitparams = None
 
-
-        if self.plot_steam_rates: self.getSteamRates() #get steam rates
+        if self.plot_steam_rates: self.getSteamRates()
 
         for name in sorted(plottingData):
             if fitparams is None or not fitparams.has_key(name): fit = None
             else: fit = fitparams[name]
             self.graphAllData(plottingData[name], fit, name)
 
-            # Try to close the error file
+        # Try to close the error file
         if self.makeErrFile:
             try:
                 self.errFile.close() # Close the error file
@@ -421,7 +420,6 @@ class RateMonitor:
                 for i, ls in enumerate(lumis):
                     if not any(l <= ls <= u for [l, u] in self.jsonData[runNumberStr]): del Rates[trigger][ls]
 
-
         iLumi = self.parser.getLumiInfo(runNumber) # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
 
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
@@ -487,13 +485,15 @@ class RateMonitor:
         for name in Data:
             iLuminosity = array.array('f')
             yvals = array.array('f')
-            for LS, ilum, psi, phys in iLumi:
+            detector_ready = array.array('f')
+            for LS, ilum, psi, phys, cms_ready in iLumi:
                 if Data[name].has_key(LS) and phys and not ilum is None:
                     # Normalize ilumi here, if we aren't normalizing, self.bunches is set to 1
                     normedILumi = ilum/self.bunches
                     # Extract the required data from Data
                     data = Data[name][LS][self.dataCol]
                     # We apply our cuts here if they are called for
+                    detector_ready.append(cms_ready)
                     if self.pileUp:
                         PU = (ilum/self.bunches*ppInelXsec/orbitsPerSec) 
                         iLuminosity.append(PU)
@@ -502,11 +502,10 @@ class RateMonitor:
                         iLuminosity.append(ilum)     # Add the instantaneous luminosity for this LS
                         yvals.append(data) # Add the correspoinding raw rate
 
-
             iLuminosity, yvals = self.fitFinder.getGoodPoints(iLuminosity, yvals) #filter out points that differ greatly from the averages on a trigger,run basis 
             
             if len(iLuminosity) > 0:
-                dataList[name] = [iLuminosity, yvals]
+                dataList[name] = [iLuminosity, yvals, detector_ready]
             else:
                 pass
         return dataList
@@ -521,12 +520,13 @@ class RateMonitor:
         for name in Data:
             lumisecs = array.array('f')
             yvals = array.array('f')
-
-            for LS, ilum, psi, phys in iLumi:
+            detector_ready = array.array('f')
+            for LS, ilum, psi, phys, cms_ready in iLumi:
                 if phys and not ilum is None and Data[name].has_key(LS):
                     lumisecs.append(LS)
+                    detector_ready.append(cms_ready)
                     yvals.append(Data[name][LS][self.dataCol])
-            dataList[name] = [lumisecs, yvals]
+            dataList[name] = [lumisecs, yvals, detector_ready]
         return dataList
 
     # Use: Graphs the data from all runs and triggers onto graphs and saves them to the root file
@@ -550,12 +550,12 @@ class RateMonitor:
                 minimumVals.append(min(plottingData[runNumber][0]))
 
 
-        if len(maximumRR) > 0: maxRR = max(maximumRR)
+        if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)
         else: return
         
         if len(maximumVals) > 0:
-            maxVal = max(maximumVals)
-            minVal = min(minimumVals)
+            max_xaxis_val = max(maximumVals)
+            min_xaxis_val = min(minimumVals)
         else: return
 
 
@@ -570,11 +570,11 @@ class RateMonitor:
                 steamGraph.SetMarkerStyle(29)
                 steamGraph.SetMarkerSize(2.6)
                 steamGraph.SetMarkerColor(1)
-                if max(steam_yVal) > maxRR: maxRR = max(steam_yVal)
+                if max(steam_yVal) > max_yaxis_value: max_yaxis_value = max(steam_yVal)
             else:
                 return
 
-        if maxVal==0 or maxRR==0: return
+        if max_xaxis_val==0 or max_yaxis_value==0: return
 
         # Set axis names/units, create canvas
         if self.pileUp:
@@ -594,11 +594,11 @@ class RateMonitor:
         funcStr = ""
         if (self.useFit or self.fit) and not paramlist is None:
             if self.certifyMode:
-                # Make a prediction graph of raw rate vs LS for values between minVal and maxVal
+                # Make a prediction graph of raw rate vs LS for values between min_xaxis_val and max_xaxis_val
                 runNum_cert = plottingData.keys()[0]
-                predictionTGraph = self.makePredictionTGraph(paramlist, minVal, maxVal, triggerName, runNum_cert)
+                predictionTGraph = self.makePredictionTGraph(paramlist, min_xaxis_val, max_xaxis_val, triggerName, runNum_cert)
                 maxPred = self.predictionRec[triggerName][runNum_cert][0][1]
-                if maxPred > maxRR: maxRR = maxPred
+                if maxPred > max_yaxis_value: max_yaxis_value = maxPred
 
             else: #primary mode
                 if paramlist[0]=="exp": 
@@ -611,10 +611,9 @@ class RateMonitor:
                     plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])#Polynomial
                     funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
                 
-                #maxVal = 50
-                fitFunc = TF1("Fit_"+triggerName, plotFuncStr, 0., 1.1*maxVal)
-                
-                #maxRR = fitFunc.Eval(50.)
+                max_xaxis_val = 40 #Extend x-axis to 40
+                fitFunc = TF1("Fit_"+triggerName, plotFuncStr, 0., 1.1*max_xaxis_val)                
+                if fitFunc.Eval(max_xaxis_val) > max_yaxis_value: max_yaxis_value = fitFunc.Eval(max_xaxis_val) #extend y-axis to maximum fit value
 
                 if self.errorBands:
                     xVal = array.array('f')
@@ -664,11 +663,11 @@ class RateMonitor:
             graphList[-1].SetMarkerColor(graphColor)
             graphList[-1].SetLineWidth(2)
             graphList[-1].GetXaxis().SetTitle(nameX+" "+xunits)
-            graphList[-1].GetXaxis().SetLimits(0, 1.1*maxVal)
+            graphList[-1].GetXaxis().SetLimits(0, 1.1*max_xaxis_val)
             graphList[-1].GetYaxis().SetTitle(self.labelY)
             graphList[-1].GetYaxis().SetTitleOffset(1.2)
             graphList[-1].SetMinimum(0)
-            graphList[-1].SetMaximum(1.2*maxRR)
+            graphList[-1].SetMaximum(1.2*max_yaxis_value)
             graphList[-1].SetTitle(triggerName)
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
@@ -736,15 +735,18 @@ class RateMonitor:
     # Returns: (void)
     def findFit(self, plottingData):
         self.OutputFit = {}
-        
-        # Combine data
         for name in sorted(plottingData):
             instLumis = array.array('f')
             yvals = array.array('f')
+            detector_ready = array.array('f')
             for runNumber in sorted(plottingData[name]):
-                # Combine all data
-                instLumis += plottingData[name][runNumber][0]
-                yvals += plottingData[name][runNumber][1]
+                #if runNumber == 273447 and ( name.find('DoubleMu') > -1 or name.find('QuadMu') > -1 or name.find('TripleMu') > -1 ): print "Skimming some Runs and Paths"; continue
+                detector_ready = plottingData[name][runNumber][2]
+                for x,y,cms_ready in zip(plottingData[name][runNumber][0],plottingData[name][runNumber][1],detector_ready):
+                    if cms_ready: #only fit data points when ALL subsystems are IN.
+                        instLumis.append(x)
+                        yvals.append(y)
+                        
             if len(instLumis) > self.minPointsToFit: self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
 
         self.saveFit()
@@ -791,12 +793,12 @@ class RateMonitor:
     # Use: Creates a graph of predicted raw rate vs lumisection data
     # Parameters:
     # -- paramlist: A tuple of parameters { FitType, X0, X1, X2, X3, sigma, meanrawrate, X0err, X1err, X2err, X3err, ChiSqr } 
-    # -- minVal: The minimum LS
-    # -- maxVal: The maximum LS
+    # -- min_xaxis_val: The minimum LS
+    # -- max_xaxis_val: The maximum LS
     # -- iLumi: A list: ( { LS, instLumi } )
     # -- triggerName: The name of the trigger we are making a fit for
     # Returns: A TGraph of predicted values
-    def makePredictionTGraph(self, paramlist, minVal, maxVal, triggerName, runNumber):
+    def makePredictionTGraph(self, paramlist, min_xaxis_val, max_xaxis_val, triggerName, runNumber):
         # Initialize our point arrays
         lumisecs = array.array('f')
         predictions = array.array('f')
@@ -829,7 +831,7 @@ class RateMonitor:
         fitGraph.SetMarkerColor(2) # Red
         fitGraph.SetFillColor(4)
         fitGraph.SetFillStyle(3003)
-        fitGraph.GetXaxis().SetLimits(minVal, 1.1*maxVal)
+        fitGraph.GetXaxis().SetLimits(min_xaxis_val, 1.1*max_xaxis_val)
         
         return fitGraph
         
