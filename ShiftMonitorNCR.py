@@ -451,7 +451,7 @@ class ShiftMonitor:
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, psi, physics in lumiData:
+            for LS, instLumi, psi, physics, all_subSys_good in lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
