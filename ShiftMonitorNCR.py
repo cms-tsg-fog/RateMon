@@ -717,6 +717,10 @@ class ShiftMonitor:
         aveDeadTime = 0
         count = 0
         comment = ""
+        
+        correct_for_deadtime = self.deadTimeCorrection
+        if trigger[0:3]=="L1_": correct_for_deadtime = False
+        
         for LS in self.Rates[trigger].keys():
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
             elif LS < self.startLS or LS > self.currentLS: continue
@@ -729,7 +733,7 @@ class ShiftMonitor:
                 print "trouble getting deadtime for LS: ", LS," setting DT to zero"
                 deadTime = 0                
 
-            if self.deadTimeCorrection: rate *= 1. + (deadTime/100.)
+            if correct_for_deadtime: rate *= 1. + (deadTime/100.)
                 
             if prescale > 0: properAvePSRate += rate/prescale
             else: properAvePSRate += rate
