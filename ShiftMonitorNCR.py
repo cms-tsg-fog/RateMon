@@ -750,6 +750,7 @@ class ShiftMonitor:
             aveDeadTime /= count
         else:
             comment += "PS=0"
+            return
         
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
         if not doPred and self.removeZeros and aveRate==0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
