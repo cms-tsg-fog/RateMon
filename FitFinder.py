@@ -250,7 +250,8 @@ class FitFinder:
     def getSD(self,xVals):
         sum = 0
         for x in xVals: sum += x
-        average_x = sum/len(xVals)
+        try: average_x = sum/len(xVals)
+        except: return 0, 0; 
         mse=0
         for x in xVals: mse += (x - average_x)**2
         return average_x, math.sqrt(mse/len(xVals))        
