@@ -818,10 +818,10 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev ]
+                    self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev, avePS ]
                 else:
                     last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev ]
+                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev, avePS ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
@@ -871,7 +871,7 @@ class ShiftMonitor:
                     print "Trigger %s has been out of line for more than %s minutes" % (trigger, self.badRates[trigger][0])
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
                 if self.badRates[trigger][0] == self.maxCBR:
-                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
+                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
         # Send mail alerts
         if len(mailTriggers)>0 and self.isUpdating:
             if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
@@ -952,14 +952,14 @@ class ShiftMonitor:
         
         mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
-        for triggerName, rate, expected, dev in mailTriggers:
+        for triggerName, rate, expected, dev, ps in mailTriggers:
         
             if self.numBunches[0] == 0:
                 mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
-                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
+                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Unprescaled Expected/nBunches: %.5f Hz, Unprescaled Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
+                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Unprescaled Expected/nBunches: %s Hz, Unprescaled Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
                     mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2016/plots/%s.png>\n" % (triggerName)                    
                 else:
                     try: mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
