@@ -34,7 +34,7 @@ L1_DoubleIsoTau28er
 L1_SingleTau120er	       
 L1_SingleJet120
 L1_HTT200
-L1_DoubleJetC60
+#L1_DoubleJetC60
 L1_ETM60
 L1_QuadJetC40
 L1_TripleJet_84_68_48_VBF
