@@ -808,7 +808,7 @@ class RateMonitor:
         type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
         iLumi = self.parser.getLumiInfo(runNumber) # iLumi is a list: ( { LS, instLumi } )
-        for LS, ilum, psi, phys in iLumi:
+        for LS, ilum, psi, phys, cms_ready in iLumi:
             if not ilum is None and phys:
                 lumisecs.append(LS)
                 pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
