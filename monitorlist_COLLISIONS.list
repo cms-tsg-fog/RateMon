@@ -3,7 +3,7 @@ HLT_CaloJet500_NoJetID_v2
 HLT_DoubleEle33_CaloIdL_GsfTrkIdVL_v3
 HLT_DoubleMediumIsoPFTau35_Trk1_eta2p1_Reg_v2
 HLT_Ele105_CaloIdVT_GsfTrkIdT_v3
-HLT_Ele27_WPLoose_Gsf_v1
+HLT_Ele35_WPLoose_Gsf_v2
 HLT_HT650_v2
 HLT_IsoMu27_v3
 HLT_MET250_v1
