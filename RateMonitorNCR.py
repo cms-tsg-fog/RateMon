@@ -286,7 +286,7 @@ class RateMonitor:
 
         
         if self.pileUp:
-            self.bunches = self.parser.getNumberCollidingBunches(runNumber)[1]
+            self.bunches = self.parser.getNumberCollidingBunches(runNumber)[0]
             if self.bunches is None or self.bunches is 0:
                 print "Cannot get number of bunches: skipping this run.\n"
                 return
@@ -650,7 +650,7 @@ class RateMonitor:
 
         for runNumber in sorted(plottingData):
             numLS = len(plottingData[runNumber][0])
-            bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[1]
+            bunchesForLegend = self.parser.getNumberCollidingBunches(runNumber)[0]
             if numLS == 0: continue
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
 
