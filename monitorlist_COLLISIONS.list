@@ -22,7 +22,7 @@ HLT_Physics_v4
 HLT_Random_v2
 HLT_ZeroBias
 
-L1_SingleMu16       
+#L1_SingleMu16       
 L1_SingleMu16er    
 #L1_DoubleMu_12_5
 #L1_QuadMu0
@@ -33,8 +33,8 @@ L1_DoubleEG_22_10
 L1_DoubleIsoTau28er	
 L1_SingleTau120er	       
 L1_SingleJet120
-L1_HTT200
+#L1_HTT200
 #L1_DoubleJetC60
-L1_ETM60
+#L1_ETM60
 L1_QuadJetC40
 L1_TripleJet_84_68_48_VBF
