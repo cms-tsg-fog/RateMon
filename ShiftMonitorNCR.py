@@ -100,7 +100,7 @@ class ShiftMonitor:
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
-        self.devAccept = 3              # The acceptance for deviation
+        self.devAccept = 5              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 3                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
