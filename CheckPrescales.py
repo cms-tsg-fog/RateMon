@@ -229,13 +229,19 @@ def GetL1AlgoPrescales(curs,RS_Key):
     l1_ps_xml = curs.fetchall()[0][0].read()
     e = xml.etree.ElementTree.fromstring(l1_ps_xml)
     L1PrescaleTable = {}
-    for row in e[0][0][2]:
-        line = row.text.replace('\n','').replace(' ','').split(',')
-        line = [ int(x) for x in line ]
-        bit = line[0]
-        prescales = line[1:]
-        L1PrescaleTable[bit] = prescales
-    
+
+    for child in e:
+        for gchild in child:
+            for ggchild in gchild:
+                for row in ggchild:
+                    if row.tag == 'row':
+                        line = row.text.replace('\n','').replace(' ','').split(',')
+                        line = [ int(x) for x in line ]
+                        bit = line[0]
+                        prescales = line[1:]
+                        L1PrescaleTable[bit] = prescales
+                        
+
     return L1PrescaleTable
 
 
