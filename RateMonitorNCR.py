@@ -421,6 +421,8 @@ class RateMonitor:
                     if not any(l <= ls <= u for [l, u] in self.jsonData[runNumberStr]): del Rates[trigger][ls]
 
         iLumi = self.parser.getLumiInfo(runNumber) # If we are in primary mode, we need luminosity info, otherwise, we just need the physics bit
+        #iLumi = self.getBrilCalcLumi(runNumber) #for special studies using brilcalc lumis
+        
 
         # Get the trigger list if useFit is false and we want to see all triggers (self.useTrigList is false)
         if not self.useFit and not self.useTrigList and not self.certifyMode:
@@ -873,6 +875,25 @@ class RateMonitor:
                         rateErr = -1
                         
                     if rate >0.: self.steamRates[path] = [rate, rateErr]
+
+
+
+    def getBrilCalcLumi(self, run_number):
+        import csv
+        file = "lumi.csv"
+        lumi_array = []
+        with open(file) as csvfile:
+            fileReader = csv.reader(csvfile)
+            for line in fileReader:
+                run_number_file = int(line[0].split(":")[0])
+                if run_number_file != run_number: continue
+                lumi_section = int(line[1].split(":")[0])
+                delivered = float(line[5])/23.3
+                recorded = float(line[6])/23.3
+                lumi_array.append((lumi_section,recorded,0,1,1))
+        return lumi_array
+
+                
 
                     
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
