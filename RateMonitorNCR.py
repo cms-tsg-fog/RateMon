@@ -247,8 +247,10 @@ class RateMonitor:
                 plottingData = {}
             print "-----" # Newline for formatting
                 
-        if self.certifyMode: self.doChecks()
-        else: self.makeFits(plottingData)
+        if self.certifyMode:
+            self.doChecks()
+        else:
+            self.makeFits(plottingData)
     
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
@@ -543,13 +545,17 @@ class RateMonitor:
         maximumRR = array.array('f')
         maximumVals = array.array('f')
         minimumVals = array.array('f')
+
+        yVals = array.array('f')
+        xVals = array.array('f')
+
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
-
-            if len(plottingData[runNumber][0]) > 0:
-                maximumRR.append(max(plottingData[runNumber][1]))
-                maximumVals.append(max(plottingData[runNumber][0]))
-                minimumVals.append(min(plottingData[runNumber][0]))
+            xVals, yVals = self.fitFinder.getGoodPoints(plottingData[runNumber][0], plottingData[runNumber][1]) 
+            if len(xVals) > 0:
+                maximumRR.append(max(yVals))
+                maximumVals.append(max(xVals))
+                minimumVals.append(min(xVals))
 
 
         if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)

@@ -31,7 +31,7 @@ class FitFinder:
         self.nBins = 20               # The number of bins that we use in guessing the slope
         self.nTrys = 15               # Number of y intercepts to try at
         self.saveDebug = False        # If true, we save a debug plot showing included and excluded points
-        self.usePointSelection = False  # If true, we use an algorithm to pick out "good" points to fit to
+        self.usePointSelection = True  # If true, we use an algorithm to pick out "good" points to fit to
         self.forceLinear = True      # If true, we only try a linear fit
         #self.preferLinear = 0.4     # If linear is within (self.preferLinear) of the min MSE, we still pick the linear (even if it has greater MSE)
         self.fit = None               # The fit function, a TF1
@@ -237,8 +237,8 @@ class FitFinder:
         goodY = array.array('f')
         average_x, std_dev_x = self.getSD(xVals)
         average_y, std_dev_y = self.getSD(yVals)
-        sigma_x = 3 #how many standard deviations before we cut out points
-        sigma_y = 5 #how many standard deviations before we cut out points
+        sigma_x = 4 #how many standard deviations before we cut out points
+        sigma_y = 4 #how many standard deviations before we cut out points
         for x,y in zip(xVals,yVals):
             if abs(x-average_x) < sigma_x*std_dev_x and abs(y-average_y) < sigma_y*std_dev_y:
                 goodX.append(x)
