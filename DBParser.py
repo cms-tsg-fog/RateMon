@@ -19,7 +19,9 @@ import re
 # Key version stripper
 def stripVersion(name):
     #if re.match('.*_v[0-9]+',name): name = name[:name.rfind('_')]
-    name = str(name.split('_v[0-9]')[0])
+    #name = str(name.split('_v[0-9]')[0])
+    p = re.compile(r"_v[0-9]\b")
+    name = p.sub('',name,)
     return name
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
