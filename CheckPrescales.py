@@ -13,12 +13,13 @@ from DatabaseParser import ConnectDB
 def usage():
     print sys.argv[0] + " [options] HLTKey uGTKey RS Key"
     print "options:"
-    print "-v                 Verbose Mode"
-    print "--ignore=<cols>    list (comma-separated) of prescale columns to ignore"
+    print "-v                    Verbose Mode"
+    print "--ignore=<cols>       list (comma-separated) of prescale columns to ignore"
+    print "--l1csv=<csvfile.csv> use .csv file with comma-separated l1 bit, algo, prescales (no comments allowed)"
 
 def main():
     try:
-        opt, args = getopt.getopt(sys.argv[1:],"v",["ignore="])
+        opt, args = getopt.getopt(sys.argv[1:],"v",["ignore=","l1csv="])
         
     except getopt.GetoptError, err:
         print str(err)
@@ -33,6 +34,7 @@ def main():
     uGT_Key   = args[1]
     RS_Key = args[2]
     Verbose = False
+    L1CSV=""
     PSColsToIgnore = []
 
     for o,a in opt:
@@ -46,7 +48,9 @@ def main():
                     print "\nERROR: %s is not a valid prescale column\n" % c
                     usage()
                     sys.exit(0)
-    psTable = GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,True)
+        elif o=="--l1csv":            
+            L1CSV=a
+    psTable = GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,True,L1CSV)
 
     if Verbose:
         firstPS = {}
@@ -66,7 +70,7 @@ def main():
                
             
             
-def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint):
+def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
     curs = ConnectDB('hlt')
     trg_curs = ConnectDB()
     ## Get the HLT seeds
@@ -116,7 +120,7 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint):
         name = r.find('name').text.replace(' ','')
         index = int(r.find('index').text.replace(' ',''))
         L1Names[name] = index
-    L1Prescales = GetL1AlgoPrescales(trg_curs,RS_Key)
+    L1Prescales = GetL1AlgoPrescales(trg_curs,RS_Key,L1CSV)
 
     FullPrescales = {}
     formatString = "hlt path: %s\nl1t seed: %s\ntotal p.: %s\nhlt pre.: %s\nl1t pre.: %s\n"
@@ -222,7 +226,7 @@ def GetHLTPrescaleMatrix(cursor,HLT_Key):
 
     return HLTPrescaleTable
 
-def GetL1AlgoPrescales(curs,RS_Key):
+def GetL1AlgoPrescales(curs,RS_Key,L1CSV):
     L1PrescalesQuery= """select D.CONF from CMS_TRG_L1_CONF.L1_TRG_RS_KEYS B, CMS_TRG_L1_CONF.UGT_RS_KEYS C, CMS_TRG_L1_CONF.UGT_RS D where
     B.ID ='%s' and C.ID=B.UGT_RS_KEY and D.ID=C.ALGO_PRESCALE""" % (RS_Key)    
     curs.execute(L1PrescalesQuery)
@@ -230,17 +234,31 @@ def GetL1AlgoPrescales(curs,RS_Key):
     e = xml.etree.ElementTree.fromstring(l1_ps_xml)
     L1PrescaleTable = {}
 
-    for child in e:
-        for gchild in child:
-            for ggchild in gchild:
-                for row in ggchild:
-                    if row.tag == 'row':
-                        line = row.text.replace('\n','').replace(' ','').split(',')
-                        line = [ int(x) for x in line ]
-                        bit = line[0]
-                        prescales = line[1:]
-                        L1PrescaleTable[bit] = prescales
+    if (L1CSV==""):
+        for child in e:
+            for gchild in child:
+                for ggchild in gchild:
+                    for row in ggchild:
+                        if row.tag == 'row':
+                            line = row.text.replace('\n','').replace(' ','').split(',')
+                            line = [ int(x) for x in line ]
+                            bit = line[0]
+                            prescales = line[1:]
+                            L1PrescaleTable[bit] = prescales
                         
+    else:
+        with open(L1CSV,'r') as psfile:
+            for row in psfile:
+                psline = row.replace('\n','').replace(' ','').split(',')
+                line = []
+                j=-1
+                for x in psline:
+                    j+=1
+                    if j==1: continue
+                    line.append(int(x))
+                bit = line[0]
+                prescales = line[1:]
+                L1PrescaleTable[bit] = prescales
 
     return L1PrescaleTable
 
