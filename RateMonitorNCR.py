@@ -755,7 +755,11 @@ class RateMonitor:
                         instLumis.append(x)
                         yvals.append(y)
                         
-            if len(instLumis) > self.minPointsToFit: self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
+            if len(instLumis) > self.minPointsToFit:
+                try:
+                    self.OutputFit[name] = self.fitFinder.findFit(instLumis, yvals, name)
+                except:
+                    continue
 
         self.saveFit()
 
