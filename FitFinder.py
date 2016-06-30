@@ -44,8 +44,17 @@ class FitFinder:
     # This is the function that is called by the Rate Monitor class
     def findFit(self, xVals, yVals, name):
         #point selection 
-        if self.usePointSelection: goodX, goodY = self.getGoodPoints(xVals, yVals)
+        if self.usePointSelection: 
+            goodX, goodY = self.getGoodPoints(xVals, yVals)
+            goodX, goodY = self.removePoints(goodX, goodY, 0)
         else: goodX, goodY = xVals, yVals
+
+        if len(goodX) == 0 or len(goodY) == 0:
+            print "%s: No points - generating empty fit..." % name
+            print "\tlen(xVals): %s" % len(goodX)
+            print "\tlen(yVals): %s" % len(goodY)
+            return self.emptyFit()
+
         # Fitting
         if self.forceLinear: return self.findLinearFit(goodX, goodY, name)
         else: return self.tryFits(goodX, goodY, name)
@@ -232,6 +241,15 @@ class FitFinder:
         if self.saveDebug and self.usePointSelection and name != "preprocess":
             self.saveDebugGraph(fitList, titleList, name, fitGraph)
 
+    def emptyFit(self):
+        maxX = 1
+        linear = TF1("Linear Fit", "pol1", 0, maxX)
+        OutputFit = ["linear"]
+        OutputFit += [0, 0, 0, 0]
+        OutputFit += [0, 0, 0, 0, 0, 0]
+        OutputFit += [0]
+        return OutputFit
+
     def getGoodPoints(self, xVals, yVals):
         goodX = array.array('f')
         goodY = array.array('f')
@@ -245,6 +263,18 @@ class FitFinder:
                 goodY.append(y)
 
         return goodX, goodY
+
+    #Use: Removes pts with a y-val equal to ptVal
+    def removePoints(self, xVals, yVals, ptVal=0):
+        arrX = array.array('f')
+        arrY = array.array('f')
+
+        for x,y in zip(xVals,yVals):
+            if y != ptVal:
+                arrX.append(x)
+                arrY.append(y)
+
+        return arrX, arrY
 
     #returns SD of PU for a given run 
     def getSD(self,xVals):
