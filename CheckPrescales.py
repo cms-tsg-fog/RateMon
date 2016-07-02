@@ -108,7 +108,8 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
             HLTSeed[HLTPath] = tmp.rstrip(' ')
             
     HLTPrescales = GetHLTPrescaleMatrix(curs,HLT_Key)
-
+    ExpressHLTPhysicsSmartPS = GetExpressHLTPhysicsSmartPS(curs,HLT_Key)
+    
     L1Names = {}
     ## get the L1 algo names associated with each algo bit
     AlgoNameQuery = """select D.CONF from CMS_TRG_L1_CONF.UGT_L1_MENU D, CMS_TRG_L1_CONF.UGT_KEYS A WHERE D.ID=A.L1_MENU AND A.ID='%s'""" % (uGT_Key)
@@ -165,6 +166,17 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
         if not isSequential(prescales,PSColsToIgnore) and doPrint:
             print formatString % (HLTName,L1Seeds,prescales,thisHLTPS,thisL1PS,)
         FullPrescales[HLTName] = prescales
+        
+        if ('HLT_Physics_v' in HLTName):
+            #print ExpressHLTPhysicsSmartPS
+            #print prescales
+            #print thisHLTPS
+            #print thisL1PS
+            print " "
+            print "Prescales of HLT_Physics in Express (should be 18000 in first few columns):"
+            print [x*ExpressHLTPhysicsSmartPS for x in thisHLTPS]
+            print " "
+        
     return FullPrescales
             
 def GetHLTPrescaleMatrix(cursor,HLT_Key):
@@ -262,6 +274,28 @@ def GetL1AlgoPrescales(curs,RS_Key,L1CSV):
 
     return L1PrescaleTable
 
+def GetExpressHLTPhysicsSmartPS(cursor,HLT_Key):
+    # Assumes that the combination of L1 prescales in HLT_Physics is ~1
+
+    query="select s.name, d.value from cms_hlt_gdr.u_confversions h, cms_hlt_gdr.u_pathid2conf a, cms_hlt_gdr.u_pathid2pae n, cms_hlt_gdr.u_paelements b, cms_hlt_gdr.u_pae2moe c, cms_hlt_gdr.u_moelements d, cms_hlt_gdr.u_mod2templ e, cms_hlt_gdr.u_moduletemplates f, cms_hlt_gdr.u_pathids p, cms_hlt_gdr.u_paths s where h.name='%s' and a.id_confver=h.id and n.id_pathid=a.id_pathid and b.id=n.id_pae and c.id_pae=b.id and d.id=c.id_moe and d.name='triggerConditions' and e.id_pae=b.id and f.id=e.id_templ and f.name='TriggerResultsFilter' and p.id=n.id_pathid and s.id=p.id_path order by value" % (HLT_Key,)
+    #print query
+    cursor.execute(query)
+    expressSet = set()
+    for HLTPath,smartPSs in cursor.fetchall():
+        if (HLTPath=="ExpressOutput"):
+            expressSet = smartPSs
+            
+    trysomething = str(expressSet)
+    trysomething = trysomething.lstrip('{  ').rstrip('  }')
+    smartVect = [x.strip() for x in trysomething.split(" , ")]
+    smartPS = []
+    
+    for elem in smartVect:
+        if 'HLT_Physics_v' in elem:
+            elem = elem.lstrip('"').rstrip('"')
+            smartPS = [x.strip() for x in elem.split(" / ")]
+
+    return int(smartPS[1])
 
 def isSequential(row,ignore):
     seq = True
