@@ -836,10 +836,10 @@ class ShiftMonitor:
                 self.recordAllBadRates[trigger] += 1
                 # Record consecutive bad rates
                 if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999 ]
+                    self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
                 else:
                     last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999 ]
+                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
             else:
                 self.normal += 1
                 # Remove warning from badRates
