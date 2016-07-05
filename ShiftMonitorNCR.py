@@ -49,8 +49,7 @@ class ShiftMonitor:
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
-        #self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
-	self.fitFile = "../HLT_Fit_Run275911-276244_Tot12_fit.pkl"
+        self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
         #        self.fitFile = ""#fits__273013-273017/HLT_Fit_Run273013-273017_Tot12_fit.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
