@@ -50,6 +50,7 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
         self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        #self.fitFile = "../HLT_Fit_Run275911-276244_Tot12_fit.pkl"
         #        self.fitFile = ""#fits__273013-273017/HLT_Fit_Run273013-273017_Tot12_fit.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
@@ -124,7 +125,7 @@ class ShiftMonitor:
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
         self.deadTimeCorrection = True  # correct the rates for dead time
-        self.scale_sleeptime = 1.5      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec)
+        self.scale_sleeptime = 1.0      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -186,10 +187,11 @@ class ShiftMonitor:
             for triggerName in inputFit:
                 if triggerName[0:3]=="L1_":
                     if self.InputFitL1 is None: self.InputFitL1 = {}
-                    self.InputFitL1[triggerName] = inputFit[triggerName]
+                    self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
                 elif triggerName[0:4] =="HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
-                    self.InputFitHLT[triggerName] = inputFit[triggerName]
+                    print triggerName
+                    self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
         
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
