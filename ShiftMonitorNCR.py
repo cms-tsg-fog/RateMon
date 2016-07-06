@@ -190,7 +190,6 @@ class ShiftMonitor:
                     self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
                 elif triggerName[0:4] =="HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
-                    print triggerName
                     self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
         
         # Sort trigger list into HLT and L1 trigger lists
