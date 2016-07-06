@@ -19,7 +19,7 @@ class MenuAnalyzer:
         ##default ranges
         self.maxModuleNameLength = 300
         self.maxModulesPerPath   = 50
-        self.maxPaths = 500
+        self.maxPaths = 1000
         self.maxEndPaths = 30
 
         ##required streams
@@ -322,8 +322,8 @@ class MenuAnalyzer:
         
         cursor.execute(sqlquery)
         for StreamName,PDName,PathName in cursor.fetchall():
-            print StreamName, ' ', PDName,' ', PathName
-            print self.menuName
+            #print StreamName, ' ', PDName,' ', PathName
+            #print self.menuName
             if not self.perStreamPDList.has_key(StreamName): self.perStreamPDList[StreamName] = []
             if not PDName in self.perStreamPDList[StreamName]: self.perStreamPDList[StreamName].append(PDName)
             if not self.perPDPathList.has_key(PDName): self.perPDPathList[PDName] = []
