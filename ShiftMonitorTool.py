@@ -32,7 +32,7 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
+                                                       "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate="])
         except:
             print "Error getting options. Exiting."
@@ -82,8 +82,6 @@ class CommandLineParser:
             elif label == "--configFile":
                 self.cfgFile = str(op)
                 self.parseCFGFile()
-            elif label == "--requireLumi":
-                self.monitor.requireLumi = True
             elif label == "--quiet":
                 self.monitor.quiet = True
             elif label == "--noColors":
@@ -147,7 +145,6 @@ class CommandLineParser:
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
         print ""
         print "Formatt Options:"
-#        print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
 #        print "--quiet                   : Prints fewer messages."
         print ""

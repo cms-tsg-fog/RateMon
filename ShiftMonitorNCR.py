@@ -98,7 +98,6 @@ class ShiftMonitor:
         self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx"]
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
-        self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
         self.devAccept = 5              # The acceptance for deviation
@@ -486,11 +485,6 @@ class ShiftMonitor:
                 aveL1rate /= float(count)
             
             
-        # If we demand a non NONE ave lumi, check that here
-        if self.requireLumi and aveLumi == "NONE":
-            if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
-            return
-
         self.lumi_ave = aveLumi
         if self.numBunches[0] > 0 and not aveLumi == "NONE":
             self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
