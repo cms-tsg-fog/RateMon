@@ -618,6 +618,10 @@ class ShiftMonitor:
             print "Average inst. lumi: Not available"
         print "Total L1 rate: %.0f Hz" % (aveL1rate)
         print "Average dead time: %.2f %%" % (aveDeadTime)
+        try: 
+            print "Average PU: %.2f" % (self.pu_ave)
+        except: 
+            print "Average PU: %s" % (self.pu_ave)
         print '*' * self.hlength
 
     # Use: Prints the table header
@@ -745,7 +749,8 @@ class ShiftMonitor:
             avePS /= count
             aveDeadTime /= count
         else:
-            comment += "PS=0"
+            #comment += "PS=0"
+            comment += "No rate yet"
             doPred = False
         
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
