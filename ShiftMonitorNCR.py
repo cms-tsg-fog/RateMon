@@ -834,7 +834,7 @@ class ShiftMonitor:
                 if self.badRates.has_key(trigger): del self.badRates[trigger]
                     
         else:
-            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
+            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0.0:
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
