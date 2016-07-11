@@ -1,6 +1,6 @@
 
 full = [
-      'keep *_hltL1GtObjectMap_*_*',
+      'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_*',
       'keep FEDRawDataCollection_rawDataCollector_*_*',
       'keep FEDRawDataCollection_source_*_*',
       'keep edmTriggerResults_*_*_*',
@@ -16,16 +16,16 @@ requiredEventContent={
       'keep *_hltAlCaPi0EBUncalibrator_*_*',
       'keep *_hltAlCaPi0EEUncalibrator_*_*',
       'keep *_hltAlCaPi0RecHitsFilterEEonly_pi0EcalRecHitsES_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'AlcaPhiSym': [
       'keep *_hltAlCaPhiSymUncalibrator_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*',
       'keep triggerTriggerEvent_*_*_*'],
     'AlcaLumiPixel': [
       'keep *_hltFEDSelectorLumiPixels_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'Calibration': [#'drop *_hlt*_*_*',
       'keep *_hltEcalCalibrationRaw_*_*',
@@ -41,14 +41,13 @@ requiredEventContent={
     'HLTDQM':  [
       'keep *_hltTriggerSummaryAOD_*_*',
       'keep DcsStatuss_hltScalersRawToDigi_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep LumiScalerss_hltScalersRawToDigi_*_*',
       'keep edmTriggerResults_*_*_*'],
     #'HLTMON':HLTMONContent,
     'NanoDST':[
       'keep *_hltFEDSelector_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
-      'keep L1MuGMTReadoutCollection_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'PhysicsDST':[
       'keep *_hltActivityPhotonClusterShape_*_*',
@@ -66,7 +65,7 @@ requiredEventContent={
       'keep *_hltPixelMatchElectronsActivity_*_*',
       'keep *_hltPixelVertices_*_*',
       'keep *_hltRecoEcalSuperClusterActivityCandidate_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'RPCMON':[
       'keep *_hltCscSegments_*_*',
@@ -76,9 +75,7 @@ requiredEventContent={
       'keep *_hltMuonDTDigis_*_*',
       'keep *_hltMuonRPCDigis_*_*',
       'keep *_hltRpcRecHits_*_*',
-      'keep L1GlobalTriggerReadoutRecord_hltGtDigis_*_*',
-      'keep L1MuGMTCands_hltGtDigis_*_*',
-      'keep L1MuGMTReadoutCollection_hltGtDigis_*_*',
+      'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*',
       'keep triggerTriggerEvent_*_*_*'],
     'TrackerCalibration':[
