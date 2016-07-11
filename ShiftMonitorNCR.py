@@ -68,7 +68,7 @@ class ShiftMonitor:
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = []               # If we want to only look at a range of LS from the run
-        self.simulate = False           # Simulate running through and monitoring a previous run
+        ##self.simulate = False           # Simulate running through and monitoring a previous run
         # Lumisection control
         self.lastLS = 1                 # The last LS that was processed last segment
         self.currentLS = 1              # The latest LS written to the DB
@@ -210,7 +210,8 @@ class ShiftMonitor:
             # Info message
             print "The current run number is %s." % (self.runNumber)
         # If we are observing a single run from the past
-        elif not self.simulate:
+        ##elif not self.simulate:
+        else:
             try:
                 self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
             except:
@@ -221,9 +222,9 @@ class ShiftMonitor:
             return
 
         # If we are simulating a previous run
-        if self.simulate:
-            self.simulateRun()
-            return
+        #if self.simulate:
+        #    self.simulateRun()
+        #    return
 
         # Run as long as we can
         self.setMode()
@@ -241,34 +242,34 @@ class ShiftMonitor:
                 print "Quitting. Bye."
                 break
             
-    def simulateRun(self):
-        modTime = 0
-        # Get the rates
-        self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
-        # Set the trigger mode
-        self.setMode()
-        # Get the rates for the entire run
-        self.getRates()
-        # Find the max LS for that run
-        trig = self.Rates.keys()[0]
-        self.lastLS = self.currentLS
-        maxLS = max(self.Rates[trig].keys())
-        # Simulate the run
-        self.lastRunNumber = self.runNumber
-        self.lastLS = 1
-        while self.currentLS < maxLS:
-            modTime += 23.3
-            self.currentLS += 1
-            if modTime > 60 or self.currentLS == maxLS:
-                modTime -= 60
-                # Print table
-                self.runLoop()
-                # Check for bad triggers
-                self.checkTriggers()
-                # We would sleep here if this was an online run
-                if not self.quiet: print "Simulating 60 s of sleep..."
-                self.lastLS = self.currentLS
-        print "End of simulation"
+    ##def simulateRun(self):
+    ##    modTime = 0
+    ##    # Get the rates
+    ##    self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+    ##    # Set the trigger mode
+    ##    self.setMode()
+    ##    # Get the rates for the entire run
+    ##    self.getRates()
+    ##    # Find the max LS for that run
+    ##    trig = self.Rates.keys()[0]
+    ##    self.lastLS = self.currentLS
+    ##    maxLS = max(self.Rates[trig].keys())
+    ##    # Simulate the run
+    ##    self.lastRunNumber = self.runNumber
+    ##    self.lastLS = 1
+    ##    while self.currentLS < maxLS:
+    ##        modTime += 23.3
+    ##        self.currentLS += 1
+    ##        if modTime > 60 or self.currentLS == maxLS:
+    ##            modTime -= 60
+    ##            # Print table
+    ##            self.runLoop()
+    ##            # Check for bad triggers
+    ##            self.checkTriggers()
+    ##            # We would sleep here if this was an online run
+    ##            if not self.quiet: print "Simulating 60 s of sleep..."
+    ##            self.lastLS = self.currentLS
+    ##    print "End of simulation"
 
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
@@ -289,7 +290,8 @@ class ShiftMonitor:
             self.redoTriggerLists()
             
         # Get Rates: [triggerName][LS] { raw rate, prescale }
-        if not self.simulate: self.getRates()
+        ##if not self.simulate: self.getRates()
+        self.getRates()
         #Construct (or reconstruct) trigger lists
         if self.redoTList:
             self.redoTriggerLists()
@@ -304,19 +306,19 @@ class ShiftMonitor:
             return
         
         # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
-        if not self.simulate:
-            lslist = []
-            for trig in self.Rates.keys():
-                if len(self.Rates[trig])>0: lslist.append(max(self.Rates[trig]))
-            # Update lastLS
-            self.lastLS = self.currentLS
-            # Update current LS
-            if len(lslist)>0: self.currentLS = max(lslist)
-            
-            if self.useLSRange: # Adjust runs so we only look at those in our range
-                self.slidingLS = -1 # No sliding LS window
-                self.lastLS = max( [self.lastLS, self.LSRange[0]] )
-                self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
+        ##if not self.simulate:
+        lslist = []
+        for trig in self.Rates.keys():
+            if len(self.Rates[trig])>0: lslist.append(max(self.Rates[trig]))
+        # Update lastLS
+        self.lastLS = self.currentLS
+        # Update current LS
+        if len(lslist)>0: self.currentLS = max(lslist)
+        
+        if self.useLSRange: # Adjust runs so we only look at those in our range
+            self.slidingLS = -1 # No sliding LS window
+            self.lastLS = max( [self.lastLS, self.LSRange[0]] )
+            self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
 
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
@@ -750,7 +752,7 @@ class ShiftMonitor:
             aveDeadTime /= count
         else:
             #comment += "PS=0"
-            comment += "No rate yet"
+            comment += "No rate yet "
             doPred = False
         
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
@@ -834,7 +836,7 @@ class ShiftMonitor:
                 if self.badRates.has_key(trigger): del self.badRates[trigger]
                     
         else:
-            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0.0:
+            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0:
                 self.bad += 1
                 # Record if a trigger was bad
                 if not self.recordAllBadRates.has_key(trigger):
@@ -988,3 +990,4 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
