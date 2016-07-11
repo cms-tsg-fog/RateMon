@@ -17,8 +17,8 @@ import math
 import array
 # Not all these are necessary
 import ROOT
-from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
+#from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
+#from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
 import os
 import sys
 import shutil
@@ -53,7 +53,6 @@ class RateMonitor:
         self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
-        self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         self.logFile = ""
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
@@ -91,7 +90,6 @@ class RateMonitor:
         self.certifyMode = False # False -> Primary mode, True -> Secondary mode
         self.certifyDir = None
         self.runsToProcess = 12  # How many runs we are about to process
-        self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
         self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plot
         self.png = True          # If true, create png images of all plots
@@ -111,9 +109,6 @@ class RateMonitor:
         self.dataCol = 0         # The column of the input data that we want to use as our y values
  
         # Batch mode variables
-        self.batchSize = 12      # Number of runs to process in a single batch
-        self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
-        self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
         self.plot_steam_rates = False
         self.steamRates = {}
 
@@ -140,7 +135,7 @@ class RateMonitor:
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
     def setUp(self):
-        if self.outputOn: print "" # Formatting
+        print "" # Formatting
         length = len(self.runList)
         
         try:
@@ -255,7 +250,7 @@ class RateMonitor:
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
     def run(self,runNumber,plottingData):
-        if self.outputOn: print ""  # Print a newline (just for formatting)
+        print ""  # Print a newline (just for formatting)
         
         print "\nProcessing run: %d" % (runNumber)
 
@@ -341,7 +336,7 @@ class RateMonitor:
 
     def makeFits(self, plottingData):
         if self.fit: self.findFit(plottingData)
-        if self.outputOn: print "\n"
+        print "\n"
 
         # We have all our data, now plot it
         if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
