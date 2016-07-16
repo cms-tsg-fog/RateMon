@@ -323,7 +323,8 @@ class RateMonitor:
                     if plottingData[sumPhysics] != {}:
                         ls_number =0
                         for rate in plottingData[streamName][runNumber][1]:
-                            plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                            try: plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                            except: break
                             ls_number +=1
                         
         else: # Otherwise, make plots for each dataset
