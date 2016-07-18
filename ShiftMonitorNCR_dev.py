@@ -14,6 +14,7 @@
 #Issues: Prints "No useable triggers" when normally shouldn't
 #Issues: Records more total triggers then old code (777 vs 728 for Run 276794)
 #Issues: Displays same trouble getting deadtime, but less often --> problem?
+#Issues: Can't find triggers from fitfile --> seems to be because those triggers arent recording yet, problem?
 #Issues: Crashed when LS stopped updating
 #    Traceback (most recent call last):
 #      File "ShiftMonitorTool.py", line 254, in <module>
@@ -222,6 +223,8 @@ class ShiftMonitor:
                 self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
                 self.triggerMode = mode[0]
 
+## ---Run loop start---
+
                 is_new_run = ( previous_run_number != self.runNumber or self.runNumber < 0 ) 
                 if is_new_run:
                     print "Starting a new run: Run %s" % (self.runNumber)
@@ -232,6 +235,15 @@ class ShiftMonitor:
                     self.redoTriggerLists()
                 else:
                     physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol = self.queryDB()
+
+                self.lumi_ave = avgLumi
+
+                #Construct (or reconstruct) trigger lists
+                if self.redoTList:
+                    self.redoTriggerLists()
+
+                if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+                    self.redoTList = True
 
                 # Make sure there is info to use        
                 if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
@@ -249,7 +261,9 @@ class ShiftMonitor:
                 else:
                     self.isUpdating = False
                     print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
-                
+
+## ---Run loop start---
+
                 self.mailSender()
                 self.sleepWait()
 
@@ -435,7 +449,7 @@ class ShiftMonitor:
                     
                 if prescale > 0: 
                     properAvePSRate += rate/prescale
-                else: 
+                else:
                     properAvePSRate += rate
 
                 aveRate += rate
@@ -519,6 +533,7 @@ class ShiftMonitor:
             else:
                 tmp_list.append(elem)
 
+        #Remove any duplicates
         for elem in self.fullL1HLTMenu:
             if elem in tmp_list:
                 continue
@@ -672,7 +687,7 @@ class ShiftMonitor:
         fullMenu_fits = False
         #for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, avgLumi)
 
-        # Print the triggers that we can't make predictions for
+        # Print the triggers that we can't make predictions for (only for certain modes)
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
             print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
@@ -888,6 +903,7 @@ class ShiftMonitor:
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
+        if psrate == 0.0: return False
         if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
         or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
         or (isL1 and psrate>self.maxL1Rate)\
@@ -1030,4 +1046,5 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
 
