@@ -148,6 +148,9 @@ class MonitorController:
             print "Fit file needed for certification. Exiting."
             exit(0)
             
+        if self.rateMonitor.fitFile == "":
+            self.rateMonitor.useFit = False
+
         # Check JSON file exists
         if self.rateMonitor.jsonFilter:
             if not os.path.exists(self.rateMonitor.jsonFile):
@@ -259,3 +262,4 @@ if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
     
+
