@@ -16,10 +16,8 @@ HLT_PFJet450
 HLT_Photon175
 HLT_Photon36_R9Id85_OR_CaloId24b40e_Iso50T80L_Photon22_AND_HE10_R9Id65_Eta2_Mass15
 HLT_QuadJet45_TripleBTagCSV_p087
-
-
 L1_SingleMu16er    
-#L1_DoubleMu_12_5
+L1_DoubleMu_12_5
 #L1_QuadMu0
 L1_SingleEG24 	
 L1_SingleEG40 	
@@ -31,3 +29,4 @@ L1_SingleJet120
 #L1_HTT200
 #L1_QuadJetC40
 L1_TripleJet_84_68_48_VBF
+L1_DoubleMu0er1p6_dEta_Max1p8
