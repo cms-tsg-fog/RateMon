@@ -58,6 +58,7 @@ class RateMonitor:
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,419,46,20,28,862,874,38,32,40,41,5,3] # List of colors that we can use for graphing
+        self.colorMap = {} # Map certain colors to certain runs
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
@@ -235,11 +236,15 @@ class RateMonitor:
         plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
         self.setUp() # Set up parameters and data structures
 
+        color_counter = 0
         for run_number in self.runList:
             self.run(run_number, plottingData)
+            self.colorMap[run_number] = self.colorList[color_counter % len(self.colorList)]
             if self.certifyMode:
                 self.makeFits(plottingData)
                 plottingData = {}
+                color_counter = -1
+            color_counter += 1
             print "-----" # Newline for formatting
                 
         if self.certifyMode:
@@ -659,7 +664,8 @@ class RateMonitor:
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
 
             # Set some stylistic settings for dataGraph
-            graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            #graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            graphColor = self.colorMap[runNumber]
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
             graphList[-1].SetLineColor(graphColor)
@@ -956,4 +962,5 @@ class RateMonitor:
 #                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
                 
 ## ----------- End of class RateMonitor ------------ ##
+
 
