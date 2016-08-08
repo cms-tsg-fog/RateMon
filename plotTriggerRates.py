@@ -16,6 +16,7 @@ import getopt # For getting command line options
 # Import the RateMonitor object
 from DBParser import *
 from RateMonitorNCR import *
+#from RateMonitorNCR_multifit import *
 
 ## ----------- End Imports ------------ #
 
@@ -33,10 +34,11 @@ class MonitorController:
         # Get the command line arguments
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["fitFile=", "triggerList=", "runList=", "jsonFile=",
-                                                       "runFile=","sigma=", "preferLinear=",
+                                                       "runFile=","saveDirectory=","sigma=", "preferLinear=",
                                                        "Secondary", "updateOnlineFits", "All", "Raw", "Help", "createFit",
                                                        "debugFitter", "nonLinear","vsInstLumi",
-                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth", "streamSize"])
+                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth",
+                                                       "streamSize", "useFills"])
                                                    
         except:
             print "Error geting options: command unrecognized. Exiting."
@@ -75,6 +77,8 @@ class MonitorController:
                 self.rateMonitor.processAll = True
             elif label == "--Raw":
                 self.rateMonitor.varY = "rawRate"
+            elif label == "--saveDirectory":
+                self.rateMonitor.saveDirectory = str(op)
             elif label == "--triggerList":
                 self.loadTriggersFromFile(str(op))
                 self.rateMonitor.useTrigList = True
@@ -111,6 +115,8 @@ class MonitorController:
                 self.rateMonitor.labelY = "primary dataset rate [Hz]"
                 self.rateMonitor.plotDatasets = True
                 self.rateMonitor.dataCol = 0
+            elif label == "--useFills":
+                self.rateMonitor.useFills = True
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -131,6 +137,13 @@ class MonitorController:
                         except:
                             print "Error: Could not parse run range"
                             return False
+                elif self.rateMonitor.useFills:
+                    try:
+                        if not int(item) in self.rateMonitor.fillList:
+                            self.rateMonitor.fillList.append(int(item))
+                    except:
+                        print "Error: Could not parse fill arguments."
+                        return False
                 else: # Not a range, but a single run
                     try:
                         if not int(item) in self.rateMonitor.runList:
@@ -140,8 +153,8 @@ class MonitorController:
                         return False
 
         # If no runs were specified, we cannot run rate monitoring
-        if len(self.rateMonitor.runList) == 0:
-            print "Error: No runs were specified."
+        if len(self.rateMonitor.runList) == 0 and len(self.rateMonitor.fillList) == 0:
+            print "Error: No runs/fills were specified."
             return False
         # If no fit file was specified, don't try to make a fit
         if self.rateMonitor.fitFile == "" and self.rateMonitor.certifyMode:
@@ -261,5 +274,3 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
-    
-
