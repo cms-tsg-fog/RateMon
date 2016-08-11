@@ -133,8 +133,8 @@ class RateMonitor:
         self.useTrigList = False
 
         self.useFills = False
-        self.fillMap = {}       # Maps a fill to a set of runs
-        self.fillRange = {}     # Maps a run to a fill
+        self.runMap = {}       # Maps a run to a fill
+        self.fillMap = {}     # Maps a fill to a set of runs
 
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
@@ -243,9 +243,9 @@ class RateMonitor:
 
                 new_runs = self.parser.getFillRuns(fill)
                 for run in new_runs:
-                    self.fillMap[run] = fill
+                    self.runMap[run] = fill
                     self.runList.append(run)
-                self.fillRange[fill] = new_runs
+                self.fillMap[fill] = new_runs
             print "Using Runs: ",self.runList
         else:
             for run_number in self.runList:
@@ -559,6 +559,21 @@ class RateMonitor:
         yVals = array.array('f')
         xVals = array.array('f')
 
+        if self.useFills:
+            # List of fills that actually had data for this particular plot
+            fills_used = []
+            # Maps the runs that were actually used to their respective fills
+            fill_ranges = {}
+            for run in plottingData:
+                fill = self.runMap[run]
+                if not fill_ranges.has_key(fill):
+                    fill_ranges[fill] = []
+
+                fill_ranges[fill].append(run)
+
+                if not fill in fills_used:
+                    fills_used.append(fill)
+
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
             xVals, yVals = self.fitFinder.getGoodPoints(plottingData[runNumber][0], plottingData[runNumber][1]) 
@@ -657,14 +672,17 @@ class RateMonitor:
                     fitErrorBand.SetFillColor(2)
                     fitErrorBand.SetFillStyle(3003)
 
-
         counter = 0
         old_fill = -1
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
         # Create legend
         left = 0.81; right = 0.98; top = 0.9; scaleFactor = 0.05; minimum = 0.1
-        bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
+        if self.useFills:
+            bottom = max( [top-scaleFactor*(len(fills_used)+1),minimum])
+        else:
+            bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum])
+        #bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
         legend = TLegend(left,top,right,bottom)
 
         for runNumber in sorted(plottingData):
@@ -676,9 +694,11 @@ class RateMonitor:
             # Set some stylistic settings for dataGraph
             #graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
             if self.useFills:
-                fillNumber = self.fillMap[runNumber]
-                startRun = self.fillRange[fillNumber][0]
-                endRun = self.fillRange[fillNumber][-1]
+                fillNumber = self.runMap[runNumber]
+                #startRun = self.fillMap[fillNumber][0]
+                #endRun = self.fillMap[fillNumber][-1]
+                startRun = fill_ranges[fillNumber][0]
+                endRun = fill_ranges[fillNumber][-1]
                 graphColor = self.colorMap[fillNumber]
                 if old_fill != fillNumber:
                     old_fill = fillNumber
@@ -761,7 +781,10 @@ class RateMonitor:
 
         canvas.Update()
         # Draw Legend
-        legend.SetHeader("%s runs:" % (len(plottingData)))
+        if self.useFills:
+            legend.SetHeader("%s fills (%s runs):" % (len(fills_used),len(plottingData)))
+        else:
+            legend.SetHeader("%s runs:" % (len(plottingData)))
         legend.SetFillColor(0)
         legend.Draw() 
         canvas.Update()
