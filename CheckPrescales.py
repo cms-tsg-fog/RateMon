@@ -253,11 +253,11 @@ def GetL1AlgoPrescales(curs,RS_Key,L1CSV):
                     for row in ggchild:
                         if row.tag == 'row':
                             line = row.text.replace('\n','').replace(' ','').split(',')
-                            line = [ int(x) for x in line ]
+                            try: line = [ int(x) for x in line ]
+                            except: print "\n\nERROR IN PRESCALE TABLE!!!!!!\nPlease check row: %s\n\n" % (line)
                             bit = line[0]
                             prescales = line[1:]
                             L1PrescaleTable[bit] = prescales
-                        
     else:
         with open(L1CSV,'r') as psfile:
             for row in psfile:
