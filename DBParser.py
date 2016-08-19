@@ -227,7 +227,7 @@ class DBParser:
 
     # Use: Gets data related to L1 trigger rates
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
-    def getL1RawRates(self, runNumber, minLS=-1, maxLS=9999999):
+    def getL1RawRates(self, runNumber, preDeadTime = True):
         # Get information that we will need to use
         self.getRunInfo(runNumber)
         self.getL1Prescales(runNumber)
@@ -241,9 +241,11 @@ class DBParser:
         #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
         #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
+        if preDeadTime: rate_type = '%d' % ( 0 )
+        else: rate_type = '%d' % ( 4 )
         run_str = '0%d' % (runNumber)
         query_before_ps = """SELECT LUMI_SECTIONS_ID, ALGO_RATE, ALGO_INDEX FROM CMS_UGT_MON.VIEW_ALGO_SCALERS WHERE
-        SCALER_TYPE=0 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
+        SCALER_TYPE=%s AND LUMI_SECTIONS_ID LIKE '%s""" %(rate_type,run_str) +"""%' """
 
         self.curs.execute(query_before_ps)
         l1_rates_preDT_ps = self.curs.fetchall()

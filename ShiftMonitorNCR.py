@@ -403,12 +403,12 @@ class ShiftMonitor:
     def getRates(self):
         if not self.useLSRange:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber)
             self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
             self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber)
             self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.totalStreams = len(self.streamData.keys())
