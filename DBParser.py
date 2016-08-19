@@ -647,20 +647,62 @@ class DBParser:
         return PrimaryDatasets
 
     def getFillRuns(self, fillNumber):
-        query = """SELECT A.FILL_NUMBER, A.RUN_NUMBER, B.PHYSICS_FLAG*B.BEAM1_STABLE*B.BEAM2_STABLE, A.SECTION_NUMBER FROM CMS_TCDS_MONITORING.tcds_cpm_counts_v A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE A.FILL_NUMBER=%s AND A.RUN_NUMBER=B.RUNNUMBER""" % (fillNumber)
+        #query = """SELECT A.FILL_NUMBER, A.RUN_NUMBER, B.PHYSICS_FLAG*B.BEAM1_STABLE*B.BEAM2_STABLE, A.SECTION_NUMBER 
+        #            FROM CMS_TCDS_MONITORING.tcds_cpm_counts_v A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B
+        #            WHERE A.FILL_NUMBER=%s AND A.RUN_NUMBER=B.RUNNUMBER""" % (fillNumber)
+        #self.curs.execute(query)
+        #output = self.curs.fetchone()
+        #run_list = []
+        #while (not output is None):
+        #    if output is None:
+        #        break
+        #    run_number = output[1]
+        #    flag = output[2]
+        #    if not run_number in run_list and flag == 1:
+        #        run_list.append(run_number)
+        #    output = self.curs.fetchone()
 
-        self.curs.execute(query)
-
-        output = self.curs.fetchone()
+        tmp_list = []
         run_list = []
-        while (not output is None):
-            if output is None:
-                break
-            run_number = output[1]
-            flag = output[2]
-            if not run_number in run_list and flag == 1:
-                run_list.append(run_number)
-            output = self.curs.fetchone()
+        query = """
+                SELECT 
+                    DISTINCT A.RUN_NUMBER,
+                    B.RUNNUMBER
+                FROM 
+                    CMS_TCDS_MONITORING.tcds_cpm_counts_v A,
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B
+                WHERE 
+                    A.FILL_NUMBER=%s AND
+                    A.RUN_NUMBER=B.RUNNUMBER
+                ORDER BY 
+                    A.RUN_NUMBER
+                """ % (fillNumber)
+        self.curs.execute(query)
+        self.curs.fetchone()    # Discard the first run as it is actually from the previous fill
+        for item in self.curs.fetchall():
+            tmp_list.append(item[0])
+
+        # We make the same query, but this time filter out runs w/o stable beam
+        # NOTE: Might be able to bundle this into a single query, but for now this should work
+        query = """
+                SELECT 
+                    DISTINCT A.RUN_NUMBER,
+                    B.RUNNUMBER
+                FROM 
+                    CMS_TCDS_MONITORING.tcds_cpm_counts_v A,
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B
+                WHERE 
+                    A.FILL_NUMBER=%s AND
+                    A.RUN_NUMBER=B.RUNNUMBER AND
+                    B.PHYSICS_FLAG*B.BEAM1_STABLE*B.BEAM2_STABLE=1
+                ORDER BY 
+                    A.RUN_NUMBER
+                """ % (fillNumber)
+        self.curs.execute(query)
+        for item in self.curs.fetchall():
+            # We only include runs that are actually in this fill!
+            if item[0] in tmp_list:
+                run_list.append(item[0])
 
         return run_list
 
