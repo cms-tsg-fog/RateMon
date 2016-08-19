@@ -219,6 +219,7 @@ class RateMonitor:
             command_line_str+="python plotTriggerRates.py "
             for tuple in self.ops:
                 if tuple[0].find('--updateOnlineFits') > -1: continue #never record when we update online fits
+                if tuple[0].find('--useFills') > -1: continue #never record when we update online fits
                 if len(tuple[1]) == 0: command_line_str+= "%s " % (tuple[0])
                 else: command_line_str+= "%s=%s " % (tuple[0],tuple[1])
             for run in self.runList: command_line_str+= "%d " % (run)
@@ -410,7 +411,7 @@ class RateMonitor:
             if self.correctForDT: self.correctForDeadtime(Rates, runNumber) # Correct HLT Rates for deadtime
 
         if self.L1Triggers:
-            L1Rates = self.parser.getL1RawRates(runNumber) # Get the L1 raw rate vs LS
+            L1Rates = self.parser.getL1RawRates(runNumber, self.correctForDT) # Get the L1 raw rate vs LS
             Rates.update(L1Rates)
 
         if Rates == {}:
@@ -613,10 +614,17 @@ class RateMonitor:
         if self.pileUp:
             nameX = "< PU >"
             xunits = ""
-            self.labelY = "unprescaled rate / num colliding bx [Hz]"
+            if self.correctForDT:
+                self.labelY = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+            else:
+                self.labelY = "post-deadtime unprescaled rate / num colliding bx [Hz]"
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "instantaneous luminosity"
+        if self.plotStreams:
+            self.labelY = "stream rate / num colliding bx [Hz]"
+        if self.plotDatasets:
+            self.labelY = "dataset rate / num colliding bx [Hz]"            
         if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
