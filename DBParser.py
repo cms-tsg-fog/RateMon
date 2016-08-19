@@ -18,10 +18,10 @@ import re
 
 # Key version stripper
 def stripVersion(name):
-    #if re.match('.*_v[0-9]+',name): name = name[:name.rfind('_')]
+    if re.match('.*_v[0-9]+',name): name = name[:name.rfind('_')]
     #name = str(name.split('_v[0-9]')[0])
-    p = re.compile(r"_v[0-9]\b")
-    name = p.sub('',name,)
+    #p = re.compile(r"_v[0-9]\b")
+    #name = p.sub('',name,)
     return name
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
@@ -227,7 +227,7 @@ class DBParser:
 
     # Use: Gets data related to L1 trigger rates
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
-    def getL1RawRates(self, runNumber, minLS=-1, maxLS=9999999):
+    def getL1RawRates(self, runNumber, preDeadTime = True):
         # Get information that we will need to use
         self.getRunInfo(runNumber)
         self.getL1Prescales(runNumber)
@@ -241,9 +241,11 @@ class DBParser:
         #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
         #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
+        if preDeadTime: rate_type = '%d' % ( 0 )
+        else: rate_type = '%d' % ( 4 )
         run_str = '0%d' % (runNumber)
         query_before_ps = """SELECT LUMI_SECTIONS_ID, ALGO_RATE, ALGO_INDEX FROM CMS_UGT_MON.VIEW_ALGO_SCALERS WHERE
-        SCALER_TYPE=0 AND LUMI_SECTIONS_ID LIKE '%s""" %(run_str) +"""%' """
+        SCALER_TYPE=%s AND LUMI_SECTIONS_ID LIKE '%s""" %(rate_type,run_str) +"""%' """
 
         self.curs.execute(query_before_ps)
         l1_rates_preDT_ps = self.curs.fetchall()
@@ -643,6 +645,24 @@ class DBParser:
             PrimaryDatasets[pd].append( [LS, rate] )
 
         return PrimaryDatasets
+
+    def getFillRuns(self, fillNumber):
+        query = """SELECT A.FILL_NUMBER, A.RUN_NUMBER, B.PHYSICS_FLAG*B.BEAM1_STABLE*B.BEAM2_STABLE, A.SECTION_NUMBER FROM CMS_TCDS_MONITORING.tcds_cpm_counts_v A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE A.FILL_NUMBER=%s AND A.RUN_NUMBER=B.RUNNUMBER""" % (fillNumber)
+
+        self.curs.execute(query)
+
+        output = self.curs.fetchone()
+        run_list = []
+        while (not output is None):
+            if output is None:
+                break
+            run_number = output[1]
+            flag = output[2]
+            if not run_number in run_list and flag == 1:
+                run_list.append(run_number)
+            output = self.curs.fetchone()
+
+        return run_list
 
             
 # -------------------- End of class DBParsing -------------------- #

@@ -17,8 +17,8 @@ import math
 import array
 # Not all these are necessary
 import ROOT
-from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
+#from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
+#from ROOT import TFile, TPaveText, TBrowser, TLatex, TPaveLabel
 import os
 import sys
 import shutil
@@ -50,15 +50,16 @@ class RateMonitor:
         # Member variables
         self.runFile = "" # The name of the file that a list of runs is contained in
         self.runList = [] # A list of runs to process
+        self.fillList = [] # A list of fills to process
         self.jsonFilter = False
         self.jsonFile = ""
         self.jsonData = {}
-        self.maxRuns = 9999999 # The maximum number of runs that we will process
         self.fitFile = "" # The name of the file that the fit info is contained in
         self.logFile = ""
         #self.colorList = [602, 856, 410, 419, 801, 798, 881, 803, 626, 920, 922] #[2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         #self.colorList = [2,3,4,6,7,8,9,28,38,30,40,46] # List of colors that we can use for graphing
         self.colorList = [4,6,8,7,9,419,46,20,28,862,874,38,32,40,41,5,3] # List of colors that we can use for graphing
+        self.colorMap = {} # Map certain colors to certain runs
         self.processAll = False  # If true, we process all the runs in the run list
         self.varX = "instLumi"   # Plot the instantaneous luminosity on the x axis
         self.varY = "rawRate"     # Plot the unprescaled rate on the y axis
@@ -91,7 +92,6 @@ class RateMonitor:
         self.certifyMode = False # False -> Primary mode, True -> Secondary mode
         self.certifyDir = None
         self.runsToProcess = 12  # How many runs we are about to process
-        self.outputOn = True     # If true, print messages to the screen
         self.sigmas = 3.0        # How many sigmas the error bars should be
         self.errorBands = True   # display error self.sigmas bands on the rate vs inst lumi plot
         self.png = True          # If true, create png images of all plots
@@ -111,9 +111,6 @@ class RateMonitor:
         self.dataCol = 0         # The column of the input data that we want to use as our y values
  
         # Batch mode variables
-        self.batchSize = 12      # Number of runs to process in a single batch
-        self.batchMode = False   # If true, we will process all the runs in batches of size (self.batchSize)
-        self.maxBatches = 9999   # Then maximum number of batches we will do when using batch mode
         self.plot_steam_rates = False
         self.steamRates = {}
 
@@ -135,12 +132,14 @@ class RateMonitor:
         # If True, only use triggers in self.triggerList
         self.useTrigList = False
 
-
+        self.useFills = False
+        self.runMap = {}       # Maps a run to a fill
+        self.fillMap = {}     # Maps a fill to a set of runs
 
     # Use: sets up the variables before the main loop in run()
     # Returns: (void)
     def setUp(self):
-        if self.outputOn: print "" # Formatting
+        print "" # Formatting
         length = len(self.runList)
         
         try:
@@ -220,6 +219,7 @@ class RateMonitor:
             command_line_str+="python plotTriggerRates.py "
             for tuple in self.ops:
                 if tuple[0].find('--updateOnlineFits') > -1: continue #never record when we update online fits
+                if tuple[0].find('--useFills') > -1: continue #never record when we update online fits
                 if len(tuple[1]) == 0: command_line_str+= "%s " % (tuple[0])
                 else: command_line_str+= "%s=%s " % (tuple[0],tuple[1])
             for run in self.runList: command_line_str+= "%d " % (run)
@@ -228,8 +228,7 @@ class RateMonitor:
             command_line_log_file = open(self.logFile, "w")
             command_line_log_file.write(command_line_str)
             command_line_log_file.close()
-        
-        
+       
     def runBatch(self):
         
         if self.certifyMode: 
@@ -237,15 +236,36 @@ class RateMonitor:
             if os.path.exists(self.certifyDir): shutil.rmtree(self.certifyDir)
             os.mkdir(self.certifyDir)
 
+        color_counter = 0
+        if self.useFills:
+            for fill in self.fillList:
+                self.colorMap[fill] = self.colorList[color_counter % len(self.colorList)]
+                color_counter += 1
+
+                new_runs = self.parser.getFillRuns(fill)
+                for run in new_runs:
+                    self.runMap[run] = fill
+                    self.runList.append(run)
+                self.fillMap[fill] = new_runs
+            print "Using Runs: ",self.runList
+        else:
+            for run_number in self.runList:
+                self.colorMap[run_number] = self.colorList[color_counter % len(self.colorList)]
+                color_counter += 1
+
         plottingData = {} # A dictionary [ trigger name ] [ run number ] { ( inst lumi's || LS ), ( data ) }
         self.setUp() # Set up parameters and data structures
 
+        count = 1
         for run_number in self.runList:
+            print ""  # Print a newline (just for formatting)
+            print "\nProcessing run: %d (%d/%d)" % (run_number,count,len(self.runList))
             self.run(run_number, plottingData)
             if self.certifyMode:
                 self.makeFits(plottingData)
                 plottingData = {}
             print "-----" # Newline for formatting
+            count += 1
                 
         if self.certifyMode:
             self.doChecks()
@@ -255,11 +275,6 @@ class RateMonitor:
     # Use: Created graphs based on the information stored in the class (list of runs, fit file, etc)
     # Returns: (void)
     def run(self,runNumber,plottingData):
-        if self.outputOn: print ""  # Print a newline (just for formatting)
-        
-        print "\nProcessing run: %d" % (runNumber)
-
-
         if self.certifyMode: #should probably find a better place for this...
             self.saveDirectory = "run%s" % (str(runNumber))
             if os.path.exists(self.saveDirectory):
@@ -328,7 +343,8 @@ class RateMonitor:
                     if plottingData[sumPhysics] != {}:
                         ls_number =0
                         for rate in plottingData[streamName][runNumber][1]:
-                            plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                            try: plottingData[sumPhysics][runNumber][1][ls_number] += rate
+                            except: break
                             ls_number +=1
                         
         else: # Otherwise, make plots for each dataset
@@ -337,11 +353,9 @@ class RateMonitor:
                         plottingData[pdName] = {}
                     plottingData[pdName][runNumber] = dataList[pdName]
 
-
-
     def makeFits(self, plottingData):
         if self.fit: self.findFit(plottingData)
-        if self.outputOn: print "\n"
+        print "\n"
 
         # We have all our data, now plot it
         if self.useFit or (self.certifyMode and not self.InputFit is None): fitparams = self.InputFit
@@ -385,9 +399,7 @@ class RateMonitor:
             shutil.copytree(png_dir,online_plots_dir)
             shutil.copy(self.outFitFile,online_fit_file) #copy fit
             shutil.copy(self.logFile,online_cmd_line_file) #copy command line
-
-
-        
+    
     # Use: Gets the data we desire in primary mode (rawrate vs inst lumi) or secondary mode (rawrate vs LS)
     # Parameters:
     # -- runNumber: The number of the run we want data from
@@ -399,7 +411,7 @@ class RateMonitor:
             if self.correctForDT: self.correctForDeadtime(Rates, runNumber) # Correct HLT Rates for deadtime
 
         if self.L1Triggers:
-            L1Rates = self.parser.getL1RawRates(runNumber) # Get the L1 raw rate vs LS
+            L1Rates = self.parser.getL1RawRates(runNumber, self.correctForDT) # Get the L1 raw rate vs LS
             Rates.update(L1Rates)
 
         if Rates == {}:
@@ -476,7 +488,6 @@ class RateMonitor:
                     Rates[triggerName][LS][0] *= (1. + deadTime[LS]/100.)
                     if deadTime[LS] > self.maxDeadTime and not self.certifyMode: del Rates[triggerName][LS] #do not plot lumis where deadtime is greater than                
 
-
     # Use: Combines the Rate data and instant luminosity data into a form that we can make a graph from
     # Parameters:
     # -- Data: A dictionary [ triggerName ] [ LS ] { col 0, col 1, ... }
@@ -540,7 +551,7 @@ class RateMonitor:
     # -- triggerName: The name of the trigger that we are examining
     # Returns: (void)
  
-    def graphAllData(self, plottingData, paramlist, triggerName):        
+    def graphAllData(self, plottingData, paramlist, triggerName):
         # Find max and min values
         maximumRR = array.array('f')
         maximumVals = array.array('f')
@@ -548,6 +559,21 @@ class RateMonitor:
 
         yVals = array.array('f')
         xVals = array.array('f')
+
+        if self.useFills:
+            # List of fills that actually had data for this particular plot
+            fills_used = []
+            # Maps the runs that were actually used to their respective fills
+            fill_ranges = {}
+            for run in plottingData:
+                fill = self.runMap[run]
+                if not fill_ranges.has_key(fill):
+                    fill_ranges[fill] = []
+
+                fill_ranges[fill].append(run)
+
+                if not fill in fills_used:
+                    fills_used.append(fill)
 
         # Find minima and maxima so we create graphs of the right size
         for runNumber in plottingData:
@@ -588,10 +614,17 @@ class RateMonitor:
         if self.pileUp:
             nameX = "< PU >"
             xunits = ""
-            self.labelY = "unprescaled rate / num colliding bx [Hz]"
+            if self.correctForDT:
+                self.labelY = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+            else:
+                self.labelY = "post-deadtime unprescaled rate / num colliding bx [Hz]"
         else:
             xunits = "[10^{30} Hz/cm^{2}]"
             nameX = "instantaneous luminosity"
+        if self.plotStreams:
+            self.labelY = "stream rate / num colliding bx [Hz]"
+        if self.plotDatasets:
+            self.labelY = "dataset rate / num colliding bx [Hz]"            
         if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
@@ -647,13 +680,17 @@ class RateMonitor:
                     fitErrorBand.SetFillColor(2)
                     fitErrorBand.SetFillStyle(3003)
 
-
-        counter = 0        
+        counter = 0
+        old_fill = -1
         # This is the only way I have found to get an arbitrary number of graphs to be plotted on the same canvas. This took a while to get to work.
         graphList = []
         # Create legend
         left = 0.81; right = 0.98; top = 0.9; scaleFactor = 0.05; minimum = 0.1
-        bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
+        if self.useFills:
+            bottom = max( [top-scaleFactor*(len(fills_used)+1),minimum])
+        else:
+            bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum])
+        #bottom = max( [top-scaleFactor*(len(plottingData)+1), minimum]) # Height we desire for the legend, adjust for number of entries
         legend = TLegend(left,top,right,bottom)
 
         for runNumber in sorted(plottingData):
@@ -663,7 +700,21 @@ class RateMonitor:
             graphList.append(TGraph(numLS, plottingData[runNumber][0], plottingData[runNumber][1]))
 
             # Set some stylistic settings for dataGraph
-            graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            #graphColor = self.colorList[counter % len(self.colorList)]# + (counter // len(self.colorList)) # If we have more runs then colors, we just reuse colors (instead of crashing the program)
+            if self.useFills:
+                fillNumber = self.runMap[runNumber]
+                #startRun = self.fillMap[fillNumber][0]
+                #endRun = self.fillMap[fillNumber][-1]
+                startRun = fill_ranges[fillNumber][0]
+                endRun = fill_ranges[fillNumber][-1]
+                graphColor = self.colorMap[fillNumber]
+                if old_fill != fillNumber:
+                    old_fill = fillNumber
+                    new_legend_entry = True
+            else:
+                graphColor = self.colorMap[runNumber]
+                new_legend_entry = True
+
             graphList[-1].SetMarkerStyle(7)
             graphList[-1].SetMarkerSize(1.0)
             graphList[-1].SetLineColor(graphColor)
@@ -680,8 +731,24 @@ class RateMonitor:
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
             canvas.Update()
-            if bunchesForLegend > 0: legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
-            else: legend.AddEntry(graphList[-1], "%s (- b)" %(runNumber), "f")
+            legendStr = ""
+            if self.useFills:
+                if bunchesForLegend > 0:
+                    legendStr = "%s (%s-%s) (%s b)" % (fillNumber,startRun,endRun,bunchesForLegend)
+                else:
+                    legendStr = "%s (%s-%s) (- b)" % (fillNumber,startRun,endRun)
+            else:
+                if bunchesForLegend > 0:
+                    legendStr = "%s (%s b)" % (runNumber,bunchesForLegend)
+                else:
+                    legendStr = "%s (- b)" % (runNumber)
+            if new_legend_entry:
+                legend.AddEntry(graphList[-1],legendStr,"f")
+                new_legend_entry = False
+            #if bunchesForLegend > 0: 
+            #    legend.AddEntry(graphList[-1], "%s (%s b)" %(runNumber,bunchesForLegend), "f")
+            #else: 
+            #    legend.AddEntry(graphList[-1], "%s (- b)" %(runNumber), "f")
             counter += 1
 
         if (self.useFit or self.fit) and not paramlist is None:
@@ -722,7 +789,10 @@ class RateMonitor:
 
         canvas.Update()
         # Draw Legend
-        legend.SetHeader("%s runs:" % (len(plottingData)))
+        if self.useFills:
+            legend.SetHeader("%s fills (%s runs):" % (len(fills_used),len(plottingData)))
+        else:
+            legend.SetHeader("%s runs:" % (len(plottingData)))
         legend.SetFillColor(0)
         legend.Draw() 
         canvas.Update()
@@ -735,7 +805,6 @@ class RateMonitor:
         canvas.Write()
         file.Close()
         self.savedAFile = True
-       
 
     # Use: Get a fit for all the data that we have collected
     # Parameters:
@@ -770,7 +839,6 @@ class RateMonitor:
         outputFile.close()
         self.sortFit()
         print "\nFit file saved to", self.outFitFile
-
 
     # Use: Sorts trigger fits by their chi squared value and writes it to a file
     def sortFit(self):
@@ -866,8 +934,6 @@ class RateMonitor:
             print "Error: could not open fit file: %s" % (self.fitFile)
         return InputFit
 
-
-
     def getSteamRates(self):
         import csv
         file = "steamRate_forRateMon.csv"
@@ -886,8 +952,6 @@ class RateMonitor:
                         
                     if rate >0.: self.steamRates[path] = [rate, rateErr]
 
-
-
     def getBrilCalcLumi(self, run_number):
         import csv
         file = "lumi.csv"
@@ -903,9 +967,6 @@ class RateMonitor:
                 lumi_array.append((lumi_section,recorded,0,1,1))
         return lumi_array
 
-                
-
-                    
     # Use: Check raw rates in lumisections against the prediction, take note if any are outside a certain sigma range
     # Returns: (void)
     def doChecks(self):
@@ -960,4 +1021,5 @@ class RateMonitor:
 #                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
                 
 ## ----------- End of class RateMonitor ------------ ##
+
 

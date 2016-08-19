@@ -31,8 +31,8 @@ class CommandLineParser:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=", "triggerListHLT=", "triggerListL1=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=",
-                                                       "window=","AllTriggers", "L1Triggers", "run=", "simulate=", "keepZeros",
-                                                       "requireLumi", "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
+                                                       "window=","AllTriggers", "L1Triggers", "run=", "keepZeros",
+                                                       "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate="])
         except:
             print "Error getting options. Exiting."
@@ -63,11 +63,11 @@ class CommandLineParser:
                 self.monitor.sendMailAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
-            elif label == "--simulate":
-                self.monitor.sendMailAlerts = True
-                self.monitor.runNumber = int(op)
-                self.monitor.simulate = True
-                self.monitor.assignedNum = True
+            ##elif label == "--simulate":
+            ##    self.monitor.sendMailAlerts = True
+            ##    self.monitor.runNumber = int(op)
+            ##    self.monitor.simulate = True
+            ##    self.monitor.assignedNum = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--AllTriggers":
@@ -82,8 +82,6 @@ class CommandLineParser:
             elif label == "--configFile":
                 self.cfgFile = str(op)
                 self.parseCFGFile()
-            elif label == "--requireLumi":
-                self.monitor.requireLumi = True
             elif label == "--quiet":
                 self.monitor.quiet = True
             elif label == "--noColors":
@@ -147,7 +145,6 @@ class CommandLineParser:
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
         print ""
         print "Formatt Options:"
-#        print "--requireLumi             : Only prints out a table when the ave Lumi is not None"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
 #        print "--quiet                   : Prints fewer messages."
         print ""
@@ -255,4 +252,5 @@ if __name__ == "__main__":
     parser = CommandLineParser()
     parser.parseArgs()
     parser.run()
+
 

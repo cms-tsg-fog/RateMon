@@ -11,6 +11,22 @@
 #    ( object )          -- denotes a list of objects
 #######################################################
 
+#Issues: Prints "No useable triggers" when normally shouldn't
+#Issues: Records more total triggers then old code (777 vs 728 for Run 276794)
+#Issues: Displays same trouble getting deadtime, but less often --> problem?
+#Issues: Can't find triggers from fitfile --> seems to be because those triggers arent recording yet, problem?
+#Issues: Crashed when LS stopped updating
+#    Traceback (most recent call last):
+#      File "ShiftMonitorTool.py", line 254, in <module>
+#        parser.run()
+#      File "ShiftMonitorTool.py", line 157, in run
+#        self.monitor.run()
+#      File "/afs/cern.ch/work/a/awightma/RateMon/ShiftMonitorNCR_dev.py", line 233, in run
+#        self.checkTriggers_dev(avgLumi,trigger_table)
+#      File "/afs/cern.ch/work/a/awightma/RateMon/ShiftMonitorNCR_dev.py", line 543, in checkTriggers_dev
+#        if self.badRates.has_key(trigger): del self.badRates
+#    AttributeError: ShiftMonitor instance has no attribute 'badRates'
+
 # Imports
 from DBParser import *
 import ROOT
@@ -49,7 +65,7 @@ class ShiftMonitor:
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
-        self.fitFile = ""               # The fit file, can contain both HLT and L1 triggers
+        self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
         # DBParser
@@ -65,6 +81,8 @@ class ShiftMonitor:
         # Lumisection control
         self.lastLS = 1                 # The last LS that was processed last segment
         self.currentLS = 1              # The latest LS written to the DB
+        self.slidingLS = -1             # The number of LS to average over, use -1 for no sliding LS
+        self.useLSRange = False         # Only look at LS in a certain range
         # Mode
         self.triggerMode = None         # The trigger mode
         self.mode = None                # Mode: cosmics, circulate, physics
@@ -92,7 +110,7 @@ class ShiftMonitor:
         self.requireLumi = False        # If true, we only display tables when aveLumi is not None
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
-        self.devAccept = 3              # The acceptance for deviation
+        self.devAccept = 5              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
         self.maxCBR = 3                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
@@ -104,7 +122,8 @@ class ShiftMonitor:
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts = True      # Whether we should send alert mails
+        self.sendMailAlerts_static = True      # Whether we should send alert mails
+        self.sendMailAlerts_dynamic = self.sendMailAlerts_static 
         self.sendAudioAlerts = False     # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
         self.showStreams = False        # Whether we should print stream information
@@ -115,7 +134,10 @@ class ShiftMonitor:
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
         self.deadTimeCorrection = True  # correct the rates for dead time
+        self.scale_sleeptime = 1.0      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
 
+
+        self.badTriggers = {}       #[trigger name] <List of trigger infos>
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -167,25 +189,24 @@ class ShiftMonitor:
         self.header += stringSegment("* COMMENTS", self.spacing[6])
         self.hlength = 181 #sum(self.spacing)
         
-
     # Use: Runs the program
     # Returns: (void)
     def run(self):
         # Load the fit and trigger list
-        if self.fitFile!="":
+        if self.fitFile != "":
             inputFit = self.loadFit(self.fitFile)
             for triggerName in inputFit:
-                if triggerName[0:3]=="L1_":
+                if triggerName[0:3] == "L1_":
                     if self.InputFitL1 is None: self.InputFitL1 = {}
                     self.InputFitL1[triggerName] = inputFit[triggerName]
-                elif triggerName[0:4] =="HLT_":
+                elif triggerName[0:4] == "HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
                     self.InputFitHLT[triggerName] = inputFit[triggerName]
         
         # Sort trigger list into HLT and L1 trigger lists
-        if self.triggerList!="":
+        if self.triggerList != "":
             for triggerName in self.triggerList:
-                if triggerName[0:3]=="L1_":
+                if triggerName[0:3] == "L1_":
                     self.TriggerListL1.append(triggerName)
                 else:
                     self.TriggerListHLT.append(triggerName)
@@ -198,29 +219,71 @@ class ShiftMonitor:
             try:
                 previous_run_number = self.runNumber
                 
-                updateRunInfo(previous_run_number)
-                self.runLoop()      
-                self.checkTriggers()
+                #self.updateRunInfo(previous_run_number)
+                self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
+                self.triggerMode = mode[0]
+
+## ---Run loop start---
+
+                is_new_run = ( previous_run_number != self.runNumber or self.runNumber < 0 ) 
+                if is_new_run:
+                    print "Starting a new run: Run %s" % (self.runNumber)
+                    self.lastLS = 1
+                    self.currentLS = 0
+                    self.setMode()
+                    physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol = self.queryDB()
+                    self.redoTriggerLists()
+                else:
+                    physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol = self.queryDB()
+
+                self.lumi_ave = avgLumi
+
+                #Construct (or reconstruct) trigger lists
+                if self.redoTList:
+                    self.redoTriggerLists()
+
+                if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+                    self.redoTList = True
+
+                # Make sure there is info to use        
+                if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
+                    print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
+                    continue
+
+                trigger_table = self.getTriggerTable(physicsActive,avgLumi)
+
+                self.checkTriggers(avgLumi,trigger_table)
+
+                # If there are lumisection to show, print info for them
+                if self.currentLS > self.lastLS:
+                    self.printTable(trigger_table,physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol)
+                    self.isUpdating = True
+                else:
+                    self.isUpdating = False
+                    print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
+
+## ---Run loop start---
+
+                self.mailSender()
                 self.sleepWait()
 
             except KeyboardInterrupt:
                 print "Quitting. Bye."
                 break
-            
-
-    # Use: The main body of the main loop, creates trigger lists, prints tables
-    # Returns: (void)
-    def runLoop(self):
-        # Reset counting variable
-        self.normal = 0
-        self.bad = 0
-
+    
+    # Queries the Database and updates trigger entries
+    def queryDB(self):
         # Get Rates: [triggerName][LS] { raw rate, prescale }
-        self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-        self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
-        self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
-        self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
-
+        if not self.useLSRange:
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.lastLS)
+            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+        else:
+            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.L1Rates = self.parser.getL1RawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.totalStreams = len(self.streamData.keys())
         self.Rates = {}
         self.Rates.update(self.HLTRates)
@@ -229,233 +292,416 @@ class ShiftMonitor:
         self.totalL1Triggers = len(self.L1Rates.keys())
 
 
-        
-        #Construct (or reconstruct) trigger lists
-        if self.redoTList: self.redoTriggerLists()
-
-        # Make sure there is info to use        
-        if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
-            print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
-            return
-
-        
-        # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
         lslist = []
         for trig in self.Rates.keys():
-            if len(self.Rates[trig])>0: lslist.append(max(self.Rates[trig]))
+            if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
         # Update lastLS
         self.lastLS = self.currentLS
         # Update current LS
-        if len(lslist)>0: self.currentLS = max(lslist)
-        
-        # If there are lumisection to show, print info for them
-        if self.currentLS > self.lastLS:
-            self.printTable()
-            self.isUpdating = True
-        else:
-            self.isUpdating = False
-            print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
+        if len(lslist) > 0: self.currentLS = max(lslist)
 
+        if self.useLSRange: # Adjust runs so we only look at those in our range
+            self.slidingLS = -1 # No sliding LS window
+            self.lastLS = max( [self.lastLS, self.LSRange[0]] )
+            self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
 
-    def updateRunInfo(self, previous_run):
-        #updates:
-        #run number
-        #trigger mode (and trigger lists)
-
-        self.runNumber, self.triggerMode = self.parser.getLatestRunInfo()
-        
-        is_new_run = ( previous_run != self.runNumber or self.runNumber < 0 ) 
-        if is_new_run:
-            print "Starting a new run: Run %s" % (self.runNumber)
-            self.lastLS = 1
-            self.currentLS = 0
-            self.setMode()
-            self.redoTriggerLists()
-        
-    def setMode(self):
-        if self.triggerMode.find("cosmics") > -1:
-            self.mode = "cosmics"
-        elif self.triggerMode.find("circulate") > -1:
-            self.mode = "circulate"
-        elif self.triggerMode.find("collisions") > -1:
-            self.mode = "collisions"
-        elif self.triggerMode == "MANUAL":
-            self.mode = "MANUAL"
-        elif self.triggerMode.find("highrate") > -1:
-            self.mode = "other"
-            self.maxHLTRate = 100000
-            self.maxL1Rate = 100000
-        else: self.mode = "other"
-
-    # Use: Remakes the trigger lists
-    def redoTriggerLists(self):
-        self.redoTList = False
-        # Reset the trigger lists
-        self.usableHLTTriggers = []
-        self.otherHLTTriggers = []
-        self.usableL1Triggers = []
-        self.otherL1Triggers = []
-        self.fullL1HLTMenu = []
-        # Reset bad rate records
-        self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
-        self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-
-        #set trigger lists automatically based on mode
-        if not self.useAll and not self.userSpecTrigList:
-            if self.mode == "cosmics" or self.mode == "circulate":
-                self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
-                print "monitoring triggers in: ", self.cosmics_triggerList
-            elif self.mode == "collisions":
-                self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
-                print "monitoring triggers in: ", self.collisions_triggerList
-            else:
-                self.triggerList = ""
-                print "No lists to monitor: trigger mode not recognized"
-
-            self.TriggerListL1 = []
-            self.TriggerListHLT = []
-            for triggerName in self.triggerList:
-                if triggerName[0:3]=="L1_":
-                    self.TriggerListL1.append(triggerName)
-                elif triggerName[0:4]=="HLT_":
-                    self.TriggerListHLT.append(triggerName)
-
-        # Re-make trigger lists
-        for trigger in self.HLTRates.keys():
-            if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
-            (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
-                self.usableHLTTriggers.append(trigger)
-            elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
-                self.otherHLTTriggers.append(trigger)
-            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
-
-        for trigger in self.L1Rates.keys():
-            if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
-            (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
-                self.usableL1Triggers.append(trigger)
-            elif trigger[0:3] == "L1_" and (self.triggerList =="" or trigger in self.TriggerListL1):
-                self.otherL1Triggers.append(trigger)
-            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
-                        
-        self.getHeader()
-        
-                
-    # Use: Retrieves information and prints it in table form
-    def printTable(self):
-
-        self.startLS = self.lastLS
-
-        # Reset variable
-        self.normal = 0
-        self.bad = 0
-        PScol = -1
         # Get the inst lumi
-        aveLumi = 0
+        avgDeadTime = 0
         try:
             self.deadTimeData = self.parser.getDeadTime(self.runNumber)
-            aveDeadTime = 0
+            avgDeadTime = 0
         except:
             self.deadTimeData = {}
-            aveDeadTime = None
+            avgDeadTime = None
             print "Error getting deadtime data"
-        
         # Get total L1 rate
         l1rate = 0
         try:
             l1rateData = self.parser.getL1rate(self.runNumber)
-            aveL1rate = 0
+            avgL1rate = 0
         except:
             l1rateData = {}
-            aveL1rate = None
+            avgL1rate = None
             print "Error getting total L1 rate data"
-            
-        physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
+
+
+        self.startLS = self.lastLS
+        physicsActive = False
+        avgLumi = 0
+        PScol = -1
         if self.mode != "cosmics":
             lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
             self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, psi, physics in lumiData:
+            #for LS, instLumi, psi, physics in lumiData:
+            for LS, instLumi, psi, physics, all_subSys_good in lumiData:
+                # If we are watching a certain range, throw out other LS
+                if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
+
                 # Average our instLumi
                 if not instLumi is None and physics:
                     physicsActive = True
                     PScol = psi
-                    if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
-                    else: aveDeadTime = 0
-                    if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
-                    else: aveL1rate = 0
-                    aveLumi += instLumi
+                    if not avgDeadTime is None and self.deadTimeData.has_key(LS): 
+                        avgDeadTime += self.deadTimeData[LS]
+                    else: 
+                        avgDeadTime = 0
+                    if not avgL1rate is None and l1rateData.has_key(LS):
+                        avgL1rate += l1rateData[LS]
+                    else:
+                        avgL1rate = 0
+                    avgLumi += instLumi
                     count += 1
             if count == 0:
-                aveLumi = "NONE"
-                expected = "NONE"
+                avgLumi = None
             else:
-                aveLumi /= float(count)
-                aveDeadTime /= float(count)
-                aveL1rate /= float(count)
+                avgLumi /= float(count)
+                avgDeadTime /= float(count)
+                avgL1rate /= float(count)
         else:
             count = 0
+            avgLumi = None
             for LS in l1rateData.keys():
-                if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
-                else: aveDeadTime = 0
-                if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
-                else: aveL1rate = 0
-            if not count == 0:
-                aveDeadTime /= float(count)
-                aveL1rate /= float(count)
-            
-            
-        # If we demand a non NONE ave lumi, check that here
-        if self.requireLumi and aveLumi == "NONE":
-            if not self.quiet: print "Ave Lumi is None for LS %s - %s, skipping." % (self.startLS, self.currentLS)
-            return
+                if not avgDeadTime is None and self.deadTimeData.has_key(LS):
+                    avgDeadTime += self.deadTimeData[LS]
+                else:
+                    avgDeadTime = 0
 
-        self.lumi_ave = aveLumi
-        if self.numBunches[0] > 0 and not aveLumi == "NONE":
-            self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
+                if not avgL1rate is None and l1rateData.has_key(LS):
+                    avgL1rate += l1rateData[LS]
+                else:
+                    avgL1rate = 0
+            if not count == 0:
+                avgDeadTime /= float(count)
+                avgL1rate /= float(count)
+
+        if self.numBunches[0] > 0 and not avgLumi == None:
+            self.pu_ave = avgLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
             self.pu_ave = "NONE"
-        # We only do predictions when there were physics active LS in a collisions run
-        doPred = physicsActive and self.mode=="collisions"
-        # Print the header
+
+        return physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol
+
+    def getTriggerTable(self, physicsActive, avgLumi):
+        # A list of tuples, each a row in the table: 
+        #   ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma,
+        #       ave PS, doPred, comment } )
+        table = {}
+
+        #Calculate trigger information
+        #for trigger in self.triggerList:
+        tmp_trigger_list = []
+        tmp_trigger_list += self.HLTRates.keys()
+        tmp_trigger_list += self.L1Rates.keys()
+        #for trigger in self.fullL1HLTMenu:
+        for trigger in tmp_trigger_list:
+        #for trigger in self.Rates.keys():
+            perc = 0
+            dev = 0
+            aveRate = 0
+            properAvePSRate = 0
+            avePS = 0
+            avePSExpected = 0
+            count = 0
+            comment = ""
+            doPred = physicsActive and self.mode == "collisions"
+
+            if not self.Rates.has_key(trigger): continue
+
+            # If cosmics, don't do predictions
+            if self.mode == "cosmics": doPred = False
+
+            # Calculate rate
+            if self.mode != "cosmics" and doPred:
+                if not avgLumi is None:
+                    if trigger in self.TriggerListL1:
+                        self.L1 = True
+                    else:
+                        self.L1 = False
+                    expected = self.calculateRate(trigger, avgLumi)
+                    if expected < 0: expected = 0                # Don't let expected value be negative
+                    avePSExpected = expected
+                    # Get the mean square error (standard deviation)
+                    mse = self.getMSE(trigger)
+                else:
+                    expected = None
+                    avePSExpected = None
+                    mse = None
+
+            correct_for_deadtime = self.deadTimeCorrection
+            if trigger[0:3]=="L1_": correct_for_deadtime = False
+
+            for LS in self.Rates[trigger].keys():
+                if LS < self.startLS or LS > self.currentLS: continue
+
+                prescale = self.Rates[trigger][LS][1]
+                rate = self.Rates[trigger][LS][0]
+
+                try:
+                    deadTime = self.deadTimeData[LS]
+                except:
+                    print "trouble getting deadtime for LS: ", LS," setting DT to zero"
+                    deadTime = 0.0
+
+                if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+                    
+                if prescale > 0: 
+                    properAvePSRate += rate/prescale
+                else:
+                    properAvePSRate += rate
+
+                aveRate += rate
+                count += 1
+                avePS += prescale
+
+            if count > 0:
+                if aveRate == 0: comment += "0 counts "
+                aveRate /= count
+                properAvePSRate /= count
+                avePS /= count
+            else:
+                #comment += "PS=0"
+                comment += "No rate yet "
+                doPred = False
+
+            if doPred and not avePSExpected is None and avePS > 1: 
+                avePSExpected /= avePS
+
+            # skips if we are not making predictions for this trigger and we are throwing zeros
+            #if not doPred and self.removeZeros and aveRate == 0: 
+            #    continue
+
+            if self.displayRawRates:
+                rate_val = aveRate
+            else:
+                rate_val = properAvePSRate
+
+            if doPred and not expected is None: 
+                #Do nothing
+                xkcd = ""
+            else: 
+                avePSExpected = ""
+
+            if doPred:
+                if expected == None:
+                    perc = "UNDEF"
+                    dev = "UNDEF"
+                    sign = 1
+                else:
+                    diff = aveRate - expected
+                    if expected != 0: 
+                        perc = 100*diff/expected
+                    else: 
+                        perc = "INF"
+
+                    if mse != 0:
+                        dev = diff/mse
+                        if abs(dev)>1000000: dev = ">1E6"
+                    else: 
+                        dev = "INF"
+
+                    if perc > 0: 
+                        sign = 1
+                    else:
+                        sign = -1
+
+                    if perc != "INF":
+                        perc = abs(perc)
+
+                    if dev != "INF":
+                        dev = abs(dev)
+            else:
+                sign = "" # No prediction, so no sign of a % diff
+                perc = "" # No prediction, so no % diff
+                dev = ""  # No prediction, so no deviation
+
+            table[trigger] = [rate_val,avePSExpected,sign,perc,sign,dev,avePS,doPred,comment]
+
+        return table
+
+    def checkTriggers(self,avgLumi,trigger_table):
+        # Reset counting variable
+        self.normal = 0
+        self.bad = 0
+
+        tmp_list = []
+        for elem in self.triggerList:
+            if elem in tmp_list:
+                continue
+            else:
+                tmp_list.append(elem)
+
+        #Remove any duplicates
+        for elem in self.fullL1HLTMenu:
+            if elem in tmp_list:
+                continue
+            else:
+                tmp_list.append(elem)
+
+        #Check if the trigger is good or bad
+        for trigger in tmp_list:
+            #table[trigger] = [rate_val,avePSExpected,sign,perc,sign,dev,avPS,doPred,comment]
+            #if not self.Rates.has_key(trigger): continue
+            if not trigger_table.has_key(trigger): 
+                print "Table missing triggers: %s" % trigger
+                continue
+
+            properAvePSRate = trigger_table[trigger][0]
+            avePSExpected = trigger_table[trigger][1]
+            perc = trigger_table[trigger][3]
+            dev = trigger_table[trigger][5]
+            avePS = trigger_table[trigger][6]
+            doPred = trigger_table[trigger][7]
+
+            if doPred:
+                # Check for bad rates.
+                if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
+                    self.bad += 1
+                    # Record if a trigger was bad
+                    if not self.recordAllBadRates.has_key(trigger):
+                        self.recordAllBadRates[trigger] = 0
+                    self.recordAllBadRates[trigger] += 1
+                    # Record consecutive bad rates
+                    if not self.badRates.has_key(trigger):
+                        self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev, avePS ]
+                    else:
+                        last = self.badRates[trigger]
+                        self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev, avePS ]
+                else:
+                    self.normal += 1
+                    # Remove warning from badRates
+                    if self.badRates.has_key(trigger): del self.badRates[trigger]
+                        
+            else:
+                if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
+                    self.bad += 1
+                    # Record if a trigger was bad
+                    if not self.recordAllBadRates.has_key(trigger):
+                        self.recordAllBadRates[trigger] = 0
+                    self.recordAllBadRates[trigger] += 1
+                    # Record consecutive bad rates
+                    if not self.badRates.has_key(trigger):
+                        self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
+                    else:
+                        last = self.badRates[trigger]
+                        self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
+                else:
+                    self.normal += 1
+                    # Remove warning from badRates
+                    if self.badRates.has_key(trigger): del self.badRates[trigger]
+
+    # Use: Prints a section of a table, i.e. all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
+    def printTableSection(self, triggerList, trigger_table, hasPred, avgLumi=0):
+        tmp_dict = {}
+        # Find the correct triggers
+        for trigger in trigger_table:
+            if trigger in triggerList:
+                tmp_dict[trigger] = trigger_table[trigger]
+
+        sorted_list = tmp_dict.items()
+        #print "Trigger_table: ",trigger_table.keys()
+        #table --> [trigger]<rate_val,avePSExpected,sign,perc,sign,dev,avPS,doPred,comment>
+        if hasPred:
+            if self.usePerDiff:
+                #Sort by % diff
+                sorted_list.sort(key=lambda tup: tup[1][3], reverse = True)
+            else:
+                #Sort by deviation
+                sorted_list.sort(key=lambda tup: tup[1][5], reverse = True)
+        else:
+            sorted_list.sort(key=lambda tup: tup[1][0], reverse = True)
+
+        #for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
+        for tup in sorted_list:
+            trigger = tup[0]
+            rate = trigger_table[trigger][0]
+            pred = trigger_table[trigger][1]
+            sign = trigger_table[trigger][2]
+            perdiff = trigger_table[trigger][3]
+            dsign = trigger_table[trigger][4]
+            dev = trigger_table[trigger][5]
+            avePS = trigger_table[trigger][6]
+            doPred = trigger_table[trigger][7]
+            comment = trigger_table[trigger][8]
+
+            info = stringSegment("* "+trigger, self.spacing[0])
+            info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
+
+            if pred != "":
+                info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
+            else:
+                info += stringSegment("", self.spacing[2])
+
+            if perdiff == "":
+                info += stringSegment("", self.spacing[3])
+            elif perdiff == "INF":
+                info += stringSegment("* INF", self.spacing[3])
+            else:
+                info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
+
+            if dev == "":
+                info += stringSegment("", self.spacing[4])
+            elif dev == "INF" or dev == ">1E6":
+                info += stringSegment("* "+dev, self.spacing[4])
+            else:
+                info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
+
+            info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
+            info += stringSegment("* "+comment, self.spacing[6])
+
+            # Color the bad triggers with warning colors
+            #if avePS != 0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
+            if avePS != 0 and self.badRates.has_key(trigger):
+                if not self.noColors: write(bcolors.WARNING) # Write colored text 
+                print info
+                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
+            # Don't color normal triggers
+            else:
+                print info
+
+    def printTable(self,trigger_table,physicsActive,avgLumi,avgDeadTime,avgL1rate,PScol):
         self.printHeader()
+
+        hasPred = physicsActive and self.mode == "collisions"
         # Print the triggers that we can make predictions for
         anytriggers = False
-        if len(self.usableHLTTriggers)>0:
+        if len(self.usableHLTTriggers) > 0:
             print '*' * self.hlength
             print "Predictable HLT Triggers (ones we have a fit for)"
             print '*' * self.hlength
             anytriggers = True
         self.L1 = False
-        self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
-        if len(self.usableL1Triggers)>0:
+        self.printTableSection(self.usableHLTTriggers,trigger_table,hasPred,avgLumi)
+        if len(self.usableL1Triggers) > 0:
             print '*' * self.hlength
             print "Predictable L1 Triggers (ones we have a fit for)"
             print '*' * self.hlength
             anytriggers = True
         self.L1 = True
-        self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+        self.printTableSection(self.usableL1Triggers,trigger_table,hasPred,avgLumi)
+
 
         #check the full menu for paths deviating past thresholds
         fullMenu_fits = False
-        for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, aveLumi)
+        #for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, avgLumi)
 
-        # Print the triggers that we can't make predictions for
+        # Print the triggers that we can't make predictions for (only for certain modes)
         if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
             print '*' * self.hlength
             print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
             self.L1 = False
-            self.printTableSection(self.otherHLTTriggers, False)
-            self.printTableSection(self.otherL1Triggers, False)
+            self.printTableSection(self.otherHLTTriggers,trigger_table,False)
+            self.printTableSection(self.otherL1Triggers,trigger_table,False)
             anytriggers = True
         if self.useL1:
             print '*' * self.hlength
             print "Unpredictable L1 Triggers (ones we have no fit for or do not try to fit)"
             print '*' * self.hlength
             self.L1 = True
-            self.printTableSection(self.otherL1Triggers, False)
+            self.printTableSection(self.otherL1Triggers,trigger_table,False)
             anytriggers = True
 
         if not anytriggers:
@@ -529,23 +775,117 @@ class ShiftMonitor:
         # Closing information
         print '*' * self.hlength
         print "SUMMARY:"
-        if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
-        if self.mode=="collisions":
+        if self.mode == "collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
+        if self.mode == "collisions":
             print "Prescale column index:", 
             if PScol == 0:
-                if not self.noColors and PScol == 0: write(bcolors.WARNING) # Write colored text
+                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.WARNING) # Write colored text
                 print PScol, "\t0 - Column 0 is an emergency column in collision mode, please select the proper column"
-                if not self.noColors and PScol == 0: write(bcolors.ENDC)    # Stop writing colored text 
+                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
             else:
                 print PScol
         try:
-            print "Average inst. lumi: %.0f x 10^30 cm-2 s-1" % (aveLumi)
+            print "Average inst. lumi: %.0f x 10^30 cm-2 s-1" % (avgLumi)
         except:
             print "Average inst. lumi: Not available"
-        print "Total L1 rate: %.0f Hz" % (aveL1rate)
-        print "Average dead time: %.2f %%" % (aveDeadTime)
+        print "Total L1 rate: %.0f Hz" % (avgL1rate)
+        print "Average dead time: %.2f %%" % (avgDeadTime)
+        try: 
+            print "Average PU: %.2f" % (self.pu_ave)
+        except: 
+            print "Average PU: %s" % (self.pu_ave)
         print '*' * self.hlength
 
+    def updateRunInfo(self, previous_run):
+        #updates:
+        #run number
+        #trigger mode (and trigger lists)
+
+        #self.runNumber, self.triggerMode = self.parser.getLatestRunInfo()
+        self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
+        self.triggerMode = mode[0]
+        
+        is_new_run = ( previous_run != self.runNumber or self.runNumber < 0 ) 
+        if is_new_run:
+            print "Starting a new run: Run %s" % (self.runNumber)
+            self.lastLS = 1
+            self.currentLS = 0
+            self.setMode()
+            self.redoTriggerLists()
+        
+    def setMode(self):
+        self.sendMailAlerts_dynamic = self.sendMailAlerts_static
+        try:
+            self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+        except:
+            self.triggerMode = "Other"
+        if self.triggerMode.find("cosmics") > -1:
+            self.mode = "cosmics"
+        elif self.triggerMode.find("circulate") > -1:
+            self.mode = "circulate"
+        elif self.triggerMode.find("collisions") > -1:
+            self.mode = "collisions"
+        elif self.triggerMode == "MANUAL":
+            self.mode = "MANUAL"
+        elif self.triggerMode.find("highrate") > -1:
+            self.mode = "other"
+            #self.maxHLTRate = 100000
+            #self.maxL1Rate = 100000
+        else: self.mode = "other"
+
+    # Use: Remakes the trigger lists
+    def redoTriggerLists(self):
+        self.redoTList = False
+        # Reset the trigger lists
+        self.usableHLTTriggers = []
+        self.otherHLTTriggers = []
+        self.usableL1Triggers = []
+        self.otherL1Triggers = []
+        self.fullL1HLTMenu = []
+        # Reset bad rate records
+        self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
+        self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+
+        #set trigger lists automatically based on mode
+        if not self.useAll and not self.userSpecTrigList:
+            if self.mode == "cosmics" or self.mode == "circulate":
+                self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
+                print "monitoring triggers in: ", self.cosmics_triggerList
+            elif self.mode == "collisions":
+                self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
+                print "monitoring triggers in: ", self.collisions_triggerList
+            else:
+                self.triggerList = ""
+                print "No lists to monitor: trigger mode not recognized"
+
+            self.TriggerListL1 = []
+            self.TriggerListHLT = []
+            for triggerName in self.triggerList:
+                if triggerName[0:3]=="L1_":
+                    self.TriggerListL1.append(triggerName)
+                elif triggerName[0:4]=="HLT_":
+                    self.TriggerListHLT.append(triggerName)
+
+        # Re-make trigger lists
+        #print self.InputFitHLT.keys()
+        for trigger in self.HLTRates.keys():
+            if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
+            (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
+                self.usableHLTTriggers.append(trigger)
+            elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
+                self.otherHLTTriggers.append(trigger)
+            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
+
+        for trigger in self.L1Rates.keys():
+            if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
+            (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
+                self.usableL1Triggers.append(trigger)
+            elif trigger[0:3] == "L1_" and (self.triggerList =="" or trigger in self.TriggerListL1):
+                self.otherL1Triggers.append(trigger)
+            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger)
+                        
+        self.getHeader()
+        
     # Use: Prints the table header
     def printHeader(self):
         print "\n\n", '*' * self.hlength
@@ -560,209 +900,18 @@ class ShiftMonitor:
         print '*' * self.hlength
         print self.header
         
-    # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
-    def printTableSection(self, triggerList, doPred, aveLumi=0):
-        self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
-
-        # Get the trigger data
-        for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
-        
-        # Sort by % diff if need be
-        if doPred:
-            # [4] is % diff, [6] is deviation
-            if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4], reverse = True)
-            else: self.tableData.sort(key=lambda tup : tup[6], reverse = True)
-        elif self.sortRates:
-            self.tableData.sort(key=lambda tup: tup[1], reverse = True)
-        for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
-            info = stringSegment("* "+trigger, self.spacing[0])
-            info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
-            if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
-            else: info += stringSegment("", self.spacing[2])
-            if perdiff=="": info += stringSegment("", self.spacing[3])
-            elif perdiff=="INF": info += stringSegment("* INF", self.spacing[3])
-            else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
-            if dev=="": info += stringSegment("", self.spacing[4])
-            elif dev=="INF" or dev==">1E6": info += stringSegment("* "+dev, self.spacing[4])
-            else: info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
-            info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
-            info += stringSegment("* "+comment, self.spacing[6])
-
-            # Color the bad triggers with warning colors
-            if avePS != 0 and self.isBadTrigger(perdiff, dev, rate/avePS, trigger[0:3]=="L1_"):
-                if not self.noColors: write(bcolors.WARNING) # Write colored text 
-                print info
-                if not self.noColors: write(bcolors.ENDC)    # Stop writing colored text
-            # Don't color normal triggers
-            else:
-                print info
-
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
+        if psrate == 0.0: return False
         if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
         or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
         or (isL1 and psrate>self.maxL1Rate)\
         or (not isL1 and psrate>self.maxHLTRate): return True
         
         return False
-
-    # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
-    # Parameters:
-    # -- trigger : The name of the trigger
-    # -- doPred  : Whether we want to make a prediction for this trigger
-    # -- aveLumi : The average luminosity during the LS in question
-    # Returns: (void)
-    def getTriggerData(self, trigger, doPred, aveLumi):
-        # In case of critical error (this shouldn't occur)
-        if not self.Rates.has_key(trigger): return
-        # If cosmics, don't do predictions
-        if self.mode == "cosmics": doPred = False
-        # Calculate rate
-        if self.mode != "cosmics" and doPred:
-            if not aveLumi is None:
-                expected = self.calculateRate(trigger, aveLumi)
-                if expected<0: expected = 0                # Don't let expected value be negative
-                avePSExpected = expected
-                # Get the mean square error (standard deviation)
-                mse = self.getMSE(trigger)
-            else:
-                expected = None
-                avePSExpected = None
-                mse = None
-        # Find the ave rate since the last time we checked
-        aveRate = 0
-        properAvePSRate = 0
-        avePS = 0
-        aveDeadTime = 0
-        count = 0
-        comment = ""
-        for LS in self.Rates[trigger].keys():
-
-            if LS < self.startLS or LS > self.currentLS: continue
-
-            prescale = self.Rates[trigger][LS][1]
-            rate = self.Rates[trigger][LS][0]
-            try:
-                deadTime = self.deadTimeData[LS]
-            except:
-                print "trouble getting deadtime for LS: ", LS," setting DT to zero"
-                deadTime = 0                
-
-            if self.deadTimeCorrection: rate *= 1. + (deadTime/100.)
-                
-            if prescale > 0: properAvePSRate += rate/prescale
-            else: properAvePSRate += rate
-            aveRate += rate
-            count += 1
-            avePS += prescale
-            aveDeadTime += deadTime
-                
-        if count > 0:
-            if aveRate == 0: comment += "0 counts "
-            aveRate /= count
-            properAvePSRate /= count
-            avePS /= count
-            aveDeadTime /= count
-        else:
-            comment += "PS=0"
-        
-        if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
-        if not doPred and self.removeZeros and aveRate==0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
-
-        # We want this trigger to be in the table
-        row = [trigger]
-        if self.displayRawRates:
-            row.append(aveRate)
-        else:
-            row.append(properAvePSRate)
-        if doPred and not expected is None: row.append(avePSExpected)
-        else: row.append("") # No predicted rate
-        # Find the % diff
-        if doPred:
-            if expected == "NONE":
-                perc = "UNDEF"
-                dev = "UNDEF"
-                row.append(1)    # Sign of % diff
-                row.append(perc) # abs % diff
-                row.append(1)    # Sign of deviation
-                row.append(dev)  # abs deviation
-            else:
-                diff = aveRate-expected
-                if expected!=0: perc = 100*diff/expected
-                else: perc = "INF"
-                if mse!=0:
-                    dev = diff/mse
-                    if abs(dev)>1000000: dev = ">1E6"
-                else: dev = "INF"
-                if perc>0: sign=1
-                else: sign=-1
-                row.append(sign)       # Sign of % diff
-                if perc!="INF": row.append(abs(perc))  # abs % diff
-                else: row.append("INF")
-                #if mse>0: sign=1
-                #else: sign=-1
-                row.append(sign)       # Sign of the deviation
-                if dev!="INF" and dev!=">1E6":
-                    row.append(abs(dev))   # abs deviation
-                else: row.append(dev)
-        else:
-            row.append("") # No prediction, so no sign of a % diff
-            row.append("") # No prediction, so no % diff
-            row.append("") # No prediction, so no sign of deviation
-            row.append("") # No prediction, so no deviation
-        # Add the rest of the info to the row
-        row.append(avePS)
-        row.append(comment)
-        # Add row to the table data
-        self.tableData.append(row)
-
-        #do not warn on specific triggers
-        for vetoString in self.ignoreStrings:
-            if trigger.find(vetoString) > -1: return
-        # Check if the trigger is bad
-        if doPred:
-            # Check for bad rates.
-            #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
-            #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
-            if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
-                self.bad += 1
-                # Record if a trigger was bad
-                if not self.recordAllBadRates.has_key(trigger):
-                    self.recordAllBadRates[trigger] = 0
-                self.recordAllBadRates[trigger] += 1
-                # Record consecutive bad rates
-                if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev ]
-                else:
-                    last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev ]
-            else:
-                self.normal += 1
-                # Remove warning from badRates
-                if self.badRates.has_key(trigger): del self.badRates[trigger]
-                    
-        else:
-            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_"):
-                self.bad += 1
-                # Record if a trigger was bad
-                if not self.recordAllBadRates.has_key(trigger):
-                    self.recordAllBadRates[trigger] = 0
-                self.recordAllBadRates[trigger] += 1
-                # Record consecutive bad rates
-                if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999 ]
-                else:
-                    last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999 ]
-            else:
-                self.normal += 1
-                # Remove warning from badRates
-                if self.badRates.has_key(trigger): del self.badRates[trigger]
-                    
-
-    # Use: Checks triggers to make sure none have been bad for to long
-    def checkTriggers(self):
+            
+    def mailSender(self):
         if self.displayBadRates != 0:
             count = 0
             if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates)) 
@@ -783,26 +932,24 @@ class ShiftMonitor:
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= 1:
-                    print "Trigger %s has been out of line for more than %s minutes" % (trigger, self.badRates[trigger][0])
+                    print "Trigger %s has been out of line for more than %.1f minutes" % (trigger, float(self.badRates[trigger][0])*self.scale_sleeptime)
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
                 if self.badRates[trigger][0] == self.maxCBR:
-                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4] ] )
+                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
         # Send mail alerts
-        if len(mailTriggers)>0 and self.isUpdating:
-            if self.sendMailAlerts: self.sendMail(mailTriggers)
+        if len(mailTriggers) > 0 and self.isUpdating:
+            if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
             if self.sendAudioAlerts: audioAlert()
 
-            
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
-        if not self.quiet: print "Sleeping for 60 sec before next query  "
+        if not self.quiet: print "Sleeping for %.1f sec before next query" % (60.0*self.scale_sleeptime)
         for iSleep in range(20):
             if not self.quiet: write(".")
             sys.stdout.flush()
-            time.sleep(3)
+            time.sleep(3.0*self.scale_sleeptime)
         sys.stdout.flush()
         print ""
-
             
     # Use: Loads the fit data from the fit file
     # Parameters:
@@ -869,15 +1016,15 @@ class ShiftMonitor:
         
         mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
-        for triggerName, rate, expected, dev in mailTriggers:
+        for triggerName, rate, expected, dev, ps in mailTriggers:
         
             if self.numBunches[0] == 0:
                 mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
-                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Expected/nBunches: %.5f Hz, Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Expected/nBunches: %s Hz, Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected/self.numBunches[0], rate/self.numBunches[0], dev)
-                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2015/plots/%s.png>\n" % (triggerName)                    
+                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Unprescaled Expected/nBunches: %.5f Hz, Unprescaled Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
+                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Unprescaled Expected/nBunches: %s Hz, Unprescaled Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
+                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2016/plots/%s.png>\n" % (triggerName)                    
                 else:
                     try: mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
                     except: mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
@@ -899,3 +1046,5 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
+
