@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --createFit --nonLinear --useFills --triggerList=monitorlist_COLLISIONS.list 278808 278820 278821 278822 278873 278874 278875 278923 
+python plotTriggerRates.py --createFit --nonLinear --triggerList=monitorlist_COLLISIONS.list 279653 279654 279656 279657 279658 279667 279681 279682 279683 279684 279685 279691 279694 
