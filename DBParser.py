@@ -121,7 +121,6 @@ class DBParser:
         except:
             print "Unable to get L1 and HLT keys for this run"
             return False
-        
 
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
@@ -776,8 +775,93 @@ class DBParser:
             
         return deadTime
 
+    # Use: Gets the L1A physics lost rate as a function of lumisection
+    # Returns: A dictionary: [ LS ] <rate>
+    def getL1APhysicsLost(self,runNumber):
+        sqlquery =  """
+                    SELECT
+                        SECTION_NUMBER,
+                        SUP_TRG_RATE_TT1
+
+                    FROM
+                        CMS_TCDS_MONITORING.tcds_cpm_rates_v
+                    WHERE
+                        RUN_NUMBER=%s
+                    """ % (runNumber)
+        self.curs.execute(sqlquery)
+        
+        l1rate = {}
+        for ls, rate in self.curs.fetchall():
+            l1rate[ls] = rate
+            
+        return l1rate
+
+    # Use: Gets the total L1A physics rate as a function of lumisection
+    # Returns: A dictionary: [ LS ] <rate>
+    def getL1APhysics(self, runNumber):
+        sqlquery =  """
+                    SELECT
+                        SECTION_NUMBER,
+                        TRG_RATE_TT1
+
+                    FROM
+                        CMS_TCDS_MONITORING.tcds_cpm_rates_v
+                    WHERE
+                        RUN_NUMBER=%s
+                    """ % (runNumber)
+
+        self.curs.execute(sqlquery)
+        
+        l1rate = {}
+        for ls, rate in self.curs.fetchall():
+            l1rate[ls] = rate
+            
+        return l1rate
+
+    # Use: Gets the total L1A calibration rate as a function of lumisection
+    # Returns: A dictionary: [ LS ] <rate>
+    def getL1ACalib(self, runNumber):
+        sqlquery =  """
+                    SELECT
+                        SECTION_NUMBER,
+                        TRG_RATE_TT2
+
+                    FROM
+                        CMS_TCDS_MONITORING.tcds_cpm_rates_v
+                    WHERE
+                        RUN_NUMBER=%s
+                    """ % (runNumber)
+        self.curs.execute(sqlquery)
+        
+        l1rate = {}
+        for ls, rate in self.curs.fetchall():
+            l1rate[ls] = rate
+            
+        return l1rate
+
     # Use: Gets the total L1 rate as a function of lumisection
-    # Returns: A dictionary: [ LS ] <Deadtime>
+    # Returns: A dictionary: [ LS ] <rate>
+    def getL1ARand(self, runNumber):
+        sqlquery =  """
+                    SELECT
+                        SECTION_NUMBER,
+                        TRG_RATE_TT3
+
+                    FROM
+                        CMS_TCDS_MONITORING.tcds_cpm_rates_v
+                    WHERE
+                        RUN_NUMBER=%s
+                    """ % (runNumber)
+        self.curs.execute(sqlquery)
+        
+        l1rate = {}
+        for ls, rate in self.curs.fetchall():
+            l1rate[ls] = rate
+            
+        return l1rate
+
+    # Use: Gets the total L1 rate as a function of lumisection
+    # Returns: A dictionary: [ LS ] <rate>
     def getL1rate(self, runNumber):
         sqlquery =  """
                     SELECT

@@ -81,8 +81,9 @@ class RateMonitor:
         self.savedAFile = False  # True if we saved at least one file
 
         # Stream + PD Options
-        self.plotStreams = False # If true, we plot the streams
-        self.plotDatasets = False # If true, we plot the primary datasets
+        self.plotStreams = False    # If true, we plot the streams
+        self.plotDatasets = False   # If true, we plot the primary datasets
+        self.plotL1ARate  = False   # If true, we plot the L1APhysics rate
 
         # Error File Options
         self.makeErrFile = False # If true, we will write an error file
@@ -318,7 +319,7 @@ class RateMonitor:
             return
             
         # Make plots for each trigger
-        if not self.plotStreams and not self.plotDatasets:
+        if not self.plotStreams and not self.plotDatasets and not self.plotL1ARate:
             for triggerName in self.TriggerList:
                 if dataList.has_key(triggerName): # Add this run to plottingData[triggerName]
                     # Make sure the is an entry for this trigger in plottingData
@@ -329,7 +330,7 @@ class RateMonitor:
                     # This should not occur if useFit is false, all triggers should be processed
                     message = "For run %s Trigger %s could not be processed\n" % (runNumber, triggerName)
                     self.errFile.write(message)
-        elif not self.plotDatasets: # Otherwise, make plots for each stream
+        elif self.plotStreams: # Otherwise, make plots for each stream
             sumPhysics = "Sum_Physics_Streams"
             for streamName in dataList:
                 if not plottingData.has_key(streamName): plottingData[streamName] = {}
@@ -347,11 +348,16 @@ class RateMonitor:
                             except: break
                             ls_number +=1
                         
-        else: # Otherwise, make plots for each dataset
+        elif self.plotDatasets: # Otherwise, make plots for each dataset
                 for pdName in dataList:
                     if not plottingData.has_key(pdName):
                         plottingData[pdName] = {}
                     plottingData[pdName][runNumber] = dataList[pdName]
+        elif self.plotL1ARate:
+            for name in dataList:
+                if not plottingData.has_key(name):
+                    plottingData[name] = {}
+                plottingData[name][runNumber] = dataList[name]
 
     def makeFits(self, plottingData):
         if self.fit: self.findFit(plottingData)
@@ -467,6 +473,20 @@ class RateMonitor:
                 Data[name] = {}
                 for LS, rate in pdData[name]:
                     Data[name][LS] = [ rate ]
+        elif self.plotL1ARate:
+            # L1A_Rate: [ LS ] < rate >
+            L1A_physRate = self.parser.getL1APhysics(runNumber)
+            L1A_lostRate = self.parser.getL1APhysicsLost(runNumber)
+            # Format the data correctly: [ Name ][ LS ] < rate >
+            Data = {}
+            Data["L1APhysics"] = {}
+            Data["L1APhysics+Lost"] = {}
+            for LS in L1A_physRate:
+                if not L1A_lostRate.has_key(LS):
+                    print "Error: LS mismatch when plotting L1ARate"
+                    return {}
+                Data["L1APhysics"][LS] = [ L1A_physRate[LS] ]
+                Data["L1APhysics+Lost"][LS] = [ L1A_physRate[LS] + L1A_lostRate[LS] ]
         else: Data = Rates
 
         # Depending on the mode, we return different pairs of data
@@ -624,7 +644,9 @@ class RateMonitor:
         if self.plotStreams:
             self.labelY = "stream rate / num colliding bx [Hz]"
         if self.plotDatasets:
-            self.labelY = "dataset rate / num colliding bx [Hz]"            
+            self.labelY = "dataset rate / num colliding bx [Hz]"
+        if self.plotL1ARate:
+            self.labelY = "L1A rate / num colliding bx [Hz]"
         if self.certifyMode:
             xunits = ""
             nameX = "lumisection"
@@ -1021,5 +1043,6 @@ class RateMonitor:
 #                 extrapolations.write("%s, %s, %s, %s, %s\n" % (trigger,OutputFit[trigger][1],OutputFit[trigger][2],OutputFit[trigger][3],OutputFit[trigger][4])) 
                 
 ## ----------- End of class RateMonitor ------------ ##
+
 
 

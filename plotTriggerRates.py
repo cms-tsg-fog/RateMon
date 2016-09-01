@@ -37,7 +37,7 @@ class MonitorController:
                                                        "runFile=","saveDirectory=","sigma=", "preferLinear=",
                                                        "Secondary", "updateOnlineFits", "All", "Raw", "Help", "createFit",
                                                        "debugFitter", "nonLinear","vsInstLumi",
-                                                       "L1Triggers", "AllTriggers","datasetRate", "streamRate", "streamBandwidth",
+                                                       "L1Triggers", "AllTriggers","datasetRate", "L1ARate", "streamRate", "streamBandwidth",
                                                        "streamSize", "useFills"])
                                                    
         except:
@@ -114,6 +114,10 @@ class MonitorController:
             elif label == "--datasetRate":
                 self.rateMonitor.labelY = "primary dataset rate [Hz]"
                 self.rateMonitor.plotDatasets = True
+                self.rateMonitor.dataCol = 0
+            elif label == "--L1ARate":
+                self.rateMonitor.labelY = "L1Physics rate [Hz]"
+                self.rateMonitor.plotL1ARate = True
                 self.rateMonitor.dataCol = 0
             elif label == "--useFills":
                 self.rateMonitor.useFills = True
@@ -274,3 +278,4 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
+
