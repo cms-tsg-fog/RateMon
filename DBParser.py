@@ -131,7 +131,9 @@ class DBParser:
         # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
         sqlquery =  """
                     SELECT
-                        LUMISECTION, INSTLUMI, PRESCALE_INDEX,
+                        LUMISECTION,
+                        INSTLUMI,
+                        PRESCALE_INDEX,
                         PHYSICS_FLAG*BEAM1_PRESENT, 
                         PHYSICS_FLAG*BEAM1_PRESENT*EBP_READY*
                             EBM_READY*EEP_READY*EEM_READY*
@@ -300,6 +302,113 @@ class DBParser:
             TriggerRates[name][LS]= [ps*rate, ps]
 
         return TriggerRates
+
+#EXPERIMENTAL CODE: START
+    # This version is used in RateFitter.py
+    def getRawRatesV2(self, runNumber, minLS=-1, maxLS=9999999):
+        # First we need the HLT and L1 prescale rates and the HLT seed info
+        if not self.getRunInfo(runNumber):
+            print "Failed to get run info "
+            return {} # The run probably doesn't exist
+
+        # Get L1 info
+        self.getL1Prescales(runNumber)
+        self.getL1NameIndexAssoc(runNumber)
+        # Get HLT info
+        self.getHLTSeeds(runNumber)
+        self.getHLTPrescales(runNumber)
+
+        lumiInfo = self.getLumiInfo(runNumber)  # [ (LS, instLumi, psi, cms_ready) ]
+        bunches = float(self.getNumberCollidingBunches(runNumber)[0])
+
+        ## Get the prescale index as a function of LS
+        #for LS, psi in self.curs.fetchall():
+        #    self.PSColumnByLS[LS] = psi
+
+        # Transform lumiInfo into a LS map for faster indexing
+        lumiMap = {}    # {LS: (ilumi,psi,phys,cmsReady) }
+        for LS,ilumi,psi,phys,cmsReady in lumiInfo:
+            lumiMap[LS] = [ilumi,psi,phys,cmsReady]
+
+        ## A more complex version of the getRates query
+        sqlquery =  """
+                    SELECT
+                        A.LSNUMBER,
+                        SUM(A.L1PASS),
+                        SUM(A.PSPASS),
+                        SUM(A.PACCEPT),
+                        SUM(A.PEXCEPT),
+                        (
+                            SELECT
+                                M.NAME
+                            FROM
+                                CMS_HLT_GDR.U_PATHS M,
+                                CMS_HLT_GDR.U_PATHIDS L
+                            WHERE
+                                L.PATHID=A.PATHID AND
+                                M.ID=L.ID_PATH
+                        ) PATHNAME
+                    FROM
+                        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A
+                    WHERE
+                        RUNNUMBER = %s AND
+                        A.LSNUMBER >= %s AND
+                        A.LSNUMBER <= %s 
+                    GROUP BY 
+                        A.LSNUMBER, A.PATHID
+                    """ % (runNumber, minLS, maxLS)
+        try: self.curs.execute(sqlquery)
+        except:
+            print "Getting rates failed. Exiting."
+            exit(2) # Exit with error
+
+        TriggerRates = {} # Initialize TriggerRates
+        squelch = False
+        squelchList = []
+        for LS, L1Pass, PSPass, HLTPass, HLTExcept, triggerName in self.curs.fetchall():
+            name = stripVersion(triggerName)
+            if LS in squelchList:
+                squelch = True
+            else:
+                squelch = False
+
+            try:
+                ilumi,psi,phys,cmsReady = lumiMap[LS]
+                sig_pp = 80000.
+                orbit = 11246.
+                avgPU = ilumi*sig_pp/(bunches*orbit)
+            except KeyError:
+                if not squelch: # Only print once per LS
+                    print "Lumi Map doesn't have LS key: %s --> LS mis-match between getInfo and getRawRates queries! (squelching further errors)" % LS
+                    squelch = True
+                    if not LS in squelchList:
+                        squelchList.append(LS)
+                #continue
+
+            rate = float(HLTPass)/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
+            hltps = 0 # HLT Prescale
+
+            if not TriggerRates.has_key(name):
+                TriggerRates[name] = {} # Initialize dictionary
+            try:
+                hltps = self.HLTPrescales[name][psi]
+            except:
+                hltps = 1.
+            hltps = float(hltps)
+                    
+            try:
+                if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
+                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                else:
+                    l1ps = self.UnwindORSeed(self.HLTSeed[name],self.L1Prescales,psi)
+            except:
+                l1ps = 1
+
+            ps = l1ps*hltps
+            TriggerRates[name][LS] = [avgPU,ps*rate/bunches,l1ps,hltps,psi,bunches,phys]
+
+        return TriggerRates
+#EXPERIMENTAL CODE: END
 
     # Use: Gets data related to L1 trigger rates
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
@@ -1124,5 +1233,42 @@ class DBParser:
 
         return run_list
 
+    # Returns the runs from most recent fill with stable beams
+    def getRecentRuns(self):
+        query = """
+                SELECT
+                    DISTINCT A.RUN_NUMBER,
+                    A.FILL_NUMBER
+                FROM 
+                    CMS_TCDS_MONITORING.tcds_cpm_counts_v A,
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B
+                WHERE
+                    A.RUN_NUMBER=B.RUNNUMBER AND
+                    B.PHYSICS_FLAG*B.BEAM1_STABLE*B.BEAM2_STABLE=1
+                ORDER BY 
+                    A.RUN_NUMBER DESC
+                """
+        self.curs.execute(query)
+
+        noCandidates = False
+        last_fill = -1
+        while True:
+            row = self.curs.fetchone()
+            if row is None:
+                noCandidates = True
+                break
+            current_fill = row[1]
+            if current_fill == last_fill:
+                continue
+            else:
+                last_fill = current_fill
+            # Check if the fill has valid runs
+            run_list = []
+            run_list += self.getFillRuns(current_fill)
+            if len(run_list) > 0:
+                # We have valid runs!
+                break
+        return run_list
             
 # -------------------- End of class DBParsing -------------------- #
+
