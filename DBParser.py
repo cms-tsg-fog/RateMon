@@ -1268,7 +1268,7 @@ class DBParser:
             if len(run_list) > 0:
                 # We have valid runs!
                 break
-        return run_list
+        return run_list, last_fill
             
 # -------------------- End of class DBParsing -------------------- #
 
