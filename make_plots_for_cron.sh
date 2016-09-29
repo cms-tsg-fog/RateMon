@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd /afs/cern.ch/work/g/gesmith/runCert/RateMon3/RateMon/
-outputDirBase=/afs/cern.ch/user/g/gesmith/www/HLT/
+outputDirBase=/afs/cern.ch/user/g/gesmith/www/HLT/RateVsPU/
 
 theFillsAndRuns=$(python test_dump_fills_runs.py)
 

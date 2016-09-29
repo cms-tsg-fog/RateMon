@@ -1,5 +1,4 @@
 from DBParser import *
-import subprocess
 
 dbparser = DBParser()
 recentRunsFill = dbparser.getRecentRuns()
