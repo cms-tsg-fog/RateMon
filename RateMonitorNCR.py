@@ -886,7 +886,7 @@ class RateMonitor:
                 fileName = "%s/png/%s.png" % (self.saveDirectory,pathName)
                 if self.certifyMode: fileName = "%s/%s/png/%s.png" % (self.certifyDir,self.saveDirectory,pathName)
                 if os.access(fileName,os.F_OK):
-                    htmlFile.write("<div class=image><a href=\'png/%s.png\'><img width=398 height=229 border=0 src=\'png/%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
+                    htmlFile.write("<div class=image><a href=\'png/%s.png\' target='_blank'><img width=398 height=229 border=0 src=\'png/%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (pathName,pathName,pathName))
             htmlFile.write("</html>\n")
             htmlFile.close
         except:
