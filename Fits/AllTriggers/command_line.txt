@@ -1,0 +1,2 @@
+Results produced with:
+python plotTriggerRates.py --createFit --nonLinear --AllTriggers 281693 281707 281726 281727 
