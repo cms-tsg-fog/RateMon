@@ -16,7 +16,7 @@ theFill="${theFillsAndRuns[@]:0:4}"
 python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns
 
 # Do "All triggers" plots:
-python plotTriggerRates.py --triggerList=monitorlist_ALL.list --fitFile=Fits/AllTriggers/FOG.pkl --saveDirectory=$outputDirBase$theFill/AllTriggers $theRuns
+python plotTriggerRates.py --triggerList=monitorlist_ALL.list --fitFile=Fits/AllTriggers/FOG.pkl --saveDirectory=$outputDirBase$theFill/MoreTriggers $theRuns
 
 
 # This is just to grab the run numbers used in the fit:
@@ -30,7 +30,7 @@ match='<html>'
 insertFirst='<h3>Runs used to produce fits:<br>'
 insertSecond=$(echo $fitCommand | sed 's/python plotTriggerRates.py --createFit --nonLinear --triggerList=monitorlist_COLLISIONS.list//')
 insertThird='</h3>'
-insertFourth='<h3><a href="./AllTriggers/">Larger Subset of Triggers</a></h3>'
+insertFourth='<h3><a href="./MoreTriggers/">Larger Subset of Triggers</a></h3>'
 insertFifth='<h3>A Few Representative Triggers:</h3>'
 file=$outputDirBase$theFill/index.html
 
