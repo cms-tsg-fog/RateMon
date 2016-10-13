@@ -1269,6 +1269,45 @@ class DBParser:
                 # We have valid runs!
                 break
         return run_list, last_fill
+
+    # Returns a dictionary of streams that map to a list containing all the paths within that stream
+    def getPathsInStreams(self,runNumber):
+        if not self.getRunInfo(self, runNumber):
+            return None
+
+        query = """
+                SELECT
+                    D.NAME,
+                    G.NAME
+                FROM
+                    CMS_HLT_GDR.U_CONFVERSIONS A,
+                    CMS_HLT_GDR.U_PATHID2CONF B,
+                    CMS_HLT_GDR.U_PATHIDS C,
+                    CMS_HLT_GDR.U_PATHS D,
+                    CMS_HLT_GDR.U_PATHID2STRDST E,
+                    CMS_HLT_GDR.U_STREAMIDS F,
+                    CMS_HLT_GDR.U_STREAMS G
+                WHERE
+                    A.NAME = '%s' AND
+                    B.ID_CONFVER = A.ID AND
+                    C.ID = B.ID_PATHID AND
+                    D.ID = C.ID_PATH AND
+                    E.ID_PATHID = B.ID_PATHID AND
+                    F.ID = E.ID_STREAMID AND
+                    G.ID = F.ID_STREAM
+                ORDER BY
+                    G.NAME
+                """ % (self.HLT_key)
+
+        self.curs.execute(query)
+
+        stream_paths = {}
+        for trg,stream in self.curs.fetchall():
+            if not stream_paths.has_key(stream):
+                stream_paths[stream] = []
+            stream_paths[stream].append(trg)
+
+        return stream_paths
             
 # -------------------- End of class DBParsing -------------------- #
 
