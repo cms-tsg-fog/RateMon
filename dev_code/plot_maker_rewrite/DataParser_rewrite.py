@@ -81,7 +81,7 @@ class DataParser:
                 self.runs_used.append(run)
                 self.bunch_map[run] = bunches
                 self.lumi_info[run] = lumi_info
-                physics
+
         # We want to manually add data for the sum of physics streams/datasets
         if self.use_streams:
             object_list = []
@@ -101,8 +101,8 @@ class DataParser:
     # pair for bandwidth and size, so as to ensure that the structure is identical for every getter.
     # Although the value will be different (i.e. None type vs. an array type), but this should be fine
     def getRunData(self,run,bunches,lumi_info):
-        if not self.checkMode():
-            return None
+        #if not self.checkMode():
+        #    return None
 
         if self.use_streams:
             run_data = self.getStreamData(run,bunches,lumi_info)
@@ -110,15 +110,17 @@ class DataParser:
             run_data = self.getDatasetData(run,bunches,lumi_info)
         elif self.use_L1A_rate:
             run_data = self.getL1AData(run,bunches,lumi_info)
-
-        if self.mode == "triggers":
+        else:
             run_data = self.getTriggerData(run,bunches,lumi_info)
-        elif self.mode == "streams":
-            run_data = self.getStreamData(run,bunches,lumi_info)
-        elif self.mode == "datasets":
-            run_data = self.getDatasetData(run,bunches,lumi_info)
-        elif self.mode == "L1ARates":
-            run_data = self.getL1AData(run,bunches,lumi_info)
+
+        #if self.mode == "triggers":
+        #    run_data = self.getTriggerData(run,bunches,lumi_info)
+        #elif self.mode == "streams":
+        #    run_data = self.getStreamData(run,bunches,lumi_info)
+        #elif self.mode == "datasets":
+        #    run_data = self.getDatasetData(run,bunches,lumi_info)
+        #elif self.mode == "L1ARates":
+        #    run_data = self.getL1AData(run,bunches,lumi_info)
 
         return run_data
 

@@ -193,9 +193,8 @@ class MonitorController:
         # This needs to be done after we have our run_list, otherwise we can't get the group_map
         if self.do_cron_job:
             run_list = sorted(self.rate_monitor.run_list)
-            blacklist_streams = ["DQM"]
-            #whitelist_streams = ["PhysicsEGamma","PhysicsHadronsTaus","PhysicsMuons"]
-            whitelist_streams = ["PhysicsEGamma"]
+            blacklist_streams = ["DQM","Calibration","PhysicsCirculating","HLTMonitor","PhysicsEndOfFill","NanoDST","ALCALUMIPIXELS","RPCMON","ALCAELECTRON","EcalCalibration","ScoutingCalo","DQMCalibration","ALCAPHISYM","ALCAP0","ScoutingPF","DQMEventDisplay"]
+            whitelist_streams = ["PhysicsEGamma","PhysicsHadronsTaus","PhysicsMuons"]
             try:
                 stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
             except:
@@ -203,11 +202,14 @@ class MonitorController:
                 return False
 
             use_blacklist = False
-            use_whitelist = True
+            use_whitelist = False
 
             if use_blacklist:
                 for ignore in blacklist_streams:
-                    del stream_map[ignore]
+                    if stream_map.has_key(ignore):
+                        del stream_map[ignore]
+                    else:
+                        print "Unknown blacklist name: %s" % ignore
                 grp_map = stream_map
             elif use_whitelist:
                 grp_map = {}
@@ -217,8 +219,8 @@ class MonitorController:
             else:
                 grp_map = stream_map
 
-            #grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_COLLISIONS.list")
-            grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_TEST.list")
+            grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_COLLISIONS.list")
+            #grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_TEST.list")
             L1_triggers = []
             # We look for triggers in all runs to ensure we don't miss any (this is unnecessary for the cron job though)
             for run in sorted(run_list):
