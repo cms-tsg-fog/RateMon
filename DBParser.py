@@ -1308,6 +1308,25 @@ class DBParser:
             stream_paths[stream].append(trg)
 
         return stream_paths
+
+    # Returns a list of all L1 triggers used in the run
+    def getL1Triggers(self,runNumber):
+        query = """
+                SELECT
+                    ALGO_NAME
+                FROM
+                    CMS_UGT_MON.VIEW_UGT_RUN_ALGO_SETTING
+                WHERE
+                    RUN_NUMBER = %s
+                """ % (runNumber)
+
+        self.curs.execute(query)
+
+        L1_list = []
+        for item in self.curs.fetchall():
+            L1_list.append(item[0])
+
+        return L1_list
             
 # -------------------- End of class DBParsing -------------------- #
 
