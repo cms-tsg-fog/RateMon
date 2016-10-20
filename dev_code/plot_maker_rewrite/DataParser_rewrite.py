@@ -330,9 +330,7 @@ class DataParser:
     def sumObjects(self,new_name,sum_list):
         if not set(sum_list) <= set(self.name_list):
             print "ERROR: Specified objects that aren't in the name_list"
-            return
-        else:
-            self.name_list.append(new_name)
+            return False
 
         ref_name = sum_list[0]
 
@@ -346,11 +344,15 @@ class DataParser:
 
         for run in self.runs_used:
             # Use only LS that are in ALL objects
-            ls_set = set(self.ls_data[sum_list[0]][run])
-            for obj in sum_list:
-                ls_set = ls_set & set(self.ls_data[obj][run])
-            ls_array = array.array('f')
-            ls_array.extend(sorted(ls_set))
+            try:
+                ls_set = set(self.ls_data[sum_list[0]][run])
+                for obj in sum_list:
+                    ls_set = ls_set & set(self.ls_data[obj][run])
+                ls_array = array.array('f')
+                ls_array.extend(sorted(ls_set))
+            except KeyError:
+                print "WARNING: At least one object for summing has no data for run %d" % run
+                continue
 
             #pu   = self.pu_data[obj][run][LS]
             #lumi = self.lumi_data[obj][run][LS]
@@ -384,6 +386,9 @@ class DataParser:
                 self.rate_data[new_name][run][LS] = total_rate
                 self.bw_data[new_name][run][LS] = total_bw
                 self.size_data[new_name][run][LS] = total_size
+
+        self.name_list.append(new_name)
+        return True
 
     # Converts input: {'name': { run_number: { LS: raw_rates } } } --> {'name': run_number: [ data ] }
     def convertOutput(self,_input):
