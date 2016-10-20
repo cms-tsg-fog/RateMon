@@ -1,9 +1,12 @@
 from DBParser import *
+from PlotMaker import *
 
 class RateObject:
     def __init__(self):
         self.parser = DBParser()    # Could make this an inherited class
+        self.plotter = PlotMaker()
         self.name = ""              # Name of the objects
+        self.label_Y = ""
 
         # The Data
         self.ls = {}                # { run_number: [LS] }
@@ -54,12 +57,18 @@ class TriggerObject(RateObject):
         self.datasets = []      # Datasets this trigger is apart of
         self.streams = []       # Streams this trigger is apart of
 
+        self.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+
 class StreamObject(RateObject):
     def __init__(self):
         self.triggers = []      # Triggers that are contained in this Stream
         self.datasets = []      # Datasets that are contained in this Stream
 
+        self.label_Y = "stream rate / num colliding bx [Hz]"
+
 class DatasetObject(RateObject):
     def __init__(self):
         self.triggers = []      # Triggers that are contained in this dataset
         self.streams = []       # Streams this dataset is apart of
+
+        self.label_Y = "dataset rate / num colliding bx [Hz]"

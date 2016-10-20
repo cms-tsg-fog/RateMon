@@ -23,7 +23,7 @@ from ROOT import TFile, TPaveText, TBrowser
 class FitFinder:
     def __init__(self):
         self.fits_to_try = ["linear","quad","cube"]
-        self.usePointSelection = True
+        self.use_point_selection = True
 
     def getGoodPoints(self, xVals, yVals):
         goodX = array.array('f')
@@ -117,7 +117,7 @@ class FitFinder:
 
     def findFit(self, xVals, yVals, name, default="quad"):
         output_fits = {}
-        if self.usePointSelection:
+        if self.use_point_selection:
             goodX, goodY = self.getGoodPoints(xVals,yVals)
             goodX, goodY = self.removePoints(goodX,goodY,0)
         else:

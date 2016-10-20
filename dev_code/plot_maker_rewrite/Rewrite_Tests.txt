@@ -1,0 +1,7 @@
+Rewrite Tests
+------------------------------
+Tests for  python plotTriggerRates_rewrite.py
+    * --cronJob --fitFile=FOG.pkl --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/cron_test 283453
+    * --createFit --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/rewrite_test1 283453
+    * --createFit --useFills  --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/rewrite_test1 5352
+    * --streamRate --useFills --saveDirectory=/afs/.../dev/rewrite_test1 5352

@@ -39,26 +39,31 @@ class RateMonitor:
         self.use_pileup = True      # plot <PU> vs. rate
         self.use_lumi   = False     # plot iLumi vs. rate
 
-        # CURRENTLY NOT USED
-        self.use_datasets = False   # Plot dataset rates
-        self.use_streams  = False   # Plot stream rates
-        self.use_L1A_rate = False   # Plots the L1A rates
-
         self.use_grouping = False   # Creates sub directories to group the outputs, utilizes self.group_map
 
         # TESTING: START #
 
         self.certify_mode = False
 
+        self.object_map = {"triggers": [], "streams": [], "datasets": []}
+
+        self.trigger_list = []
+        self.stream_list  = []
+        self.dataset_list = []
+
+        self.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+        self.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
+        self.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
+        self.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+
         # TESTING: END #
 
-        self.plot_data = {}     # {'trigger': { run_number:  ( [iLumi], [raw_rates], [det_status] ) } }
         self.bunch_map = {}     # {run: bunches}
         self.group_map = {}     # {'group_name': [trigger_names] }
 
         self.fill_list   = []   # Fills to get data from
         self.run_list    = []   # Runs to get data from
-        self.object_list = []   # Objects to plot
+        self.object_list = []   # List of *ALL* Objects to plot
 
         self.ops = None         # The options specified at the command line
 
@@ -77,6 +82,42 @@ class RateMonitor:
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
         self.data_parser.parseRuns(self.run_list)
 
+        # We want to manually add the streams/datasets to the list of objects to plot
+        if self.data_parser.use_streams:
+            sum_list = []
+            stream_objs = set()
+            for obj in self.data_parser.getNameList():
+                if self.data_parser.type_map[obj] == "stream":
+                    stream_objs.add(obj)
+                if obj[:7] == "Physics":
+                    sum_list.append(obj)
+            # We add ALL objs of this type to the list of objects to plot
+            self.object_list += list(stream_objs)
+            self.data_parser.sumObjects("Combined_Physics_Streams",sum_list)
+            self.object_list.append("Combined_Physics_Streams")
+            # WARNING: This is just a crude work-around --> will want to implement this better
+            if self.use_grouping:
+                # We add the Streams and 'Combined_Physics_Streams' to the Streams directory here
+                self.group_map["Streams"] = []
+                self.group_map["Streams"] += list(stream_objs)
+                self.group_map["Streams"].append("Combined_Physics_Streams")
+        elif self.data_parser.use_datasets:
+            sum_list = []
+            dataset_objs = set()
+            for obj in self.data_parser.getNameList():
+                if self.data_parser.type_map[obj] == "dataset":
+                    dataset_objs.add(obj)
+            # We add ALL objs of this type to the list of objects to plot
+            self.object_list += list(dataset_objs)
+            self.data_parser.sumObjects("Combined_Physics_Datasets",sum_list)
+            self.object_list.append("Combined_Physics_Datasets")
+            # WARNING: This is just a crude work-around --> will want to implement this better
+            if self.use_grouping:
+                self.group_map["Datasets"] = []
+                self.group_map["Datasets"] += list(dataset_objs)
+                self.group_map["Datasets"].append("Combined_Physics_Datasets")
+
+        # Select the types of data we are going to plot
         bunch_map = self.data_parser.getBunchMap()
         det_status = self.data_parser.getDetectorStatus()
         if self.use_pileup: # plot PU vs. rate
@@ -89,26 +130,36 @@ class RateMonitor:
             x_vals = self.data_parser.getLSData()
             y_vals = self.data_parser.getRateData()
 
-        for trigger in self.data_parser.getNameList():
-            if not self.plot_data.has_key(trigger):
-                self.plot_data[trigger] = {}
+        # Now we fill plot_data with all the objects we have data for
+        plot_data = {}     # {'object': { run_number:  ( [iLumi], [raw_rates], [det_status] ) } }
+        for name in self.data_parser.getNameList():
+            if not plot_data.has_key(name):
+                plot_data[name] = {}
             for run in sorted(self.data_parser.getRunsUsed()):
-                if not x_vals[trigger].has_key(run):    # Might want to check y_vals and det_status as well...
+                if not x_vals[name].has_key(run):    # Might want to check y_vals and det_status as well...
                     continue
-                good_x, good_y = self.fitter.getGoodPoints(x_vals[trigger][run], y_vals[trigger][run])
-                self.plot_data[trigger][run] = [good_x,good_y, det_status[trigger][run] ]
+                good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
+                plot_data[name][run] = [good_x,good_y, det_status[name][run] ]
 
         # If no objects are specified, plot everything!
         if len(self.object_list) == 0:
             self.object_list = [x for x in self.data_parser.name_list]
 
-        self.plotter.setPlottingData(self.plot_data)
+        self.setupDirectory()
+
+        ### NOW SETUP PLOTMAKER ###
+        self.plotter.setPlottingData(plot_data)
         self.plotter.bunch_map = bunch_map
 
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
-            fits = self.makeFits(self.plot_data,self.object_list)
+            fits = self.makeFits(plot_data,self.object_list)
             self.saveFits(fits,"fit_file.pkl",self.save_dir)
+            self.plotter.setFits(fits)
+
+        # We want fits and no fits were specified --> make some
+        if self.plotter.use_fit and len(self.plotter.fits.keys()) == 0:
+            fits = self.makeFits(plot_data,plot_data.keys())
             self.plotter.setFits(fits)
         
         if self.update_online_fits:
@@ -116,26 +167,44 @@ class RateMonitor:
 
         # This is after update_online_fits, so as to ensure the proper save dir is set
         self.plotter.save_dir = self.save_dir
-
+        counter = 0
         # Specifies how we want to organize the plots in the output directory
         if self.use_grouping:
-            counter = 0
             for grp in self.group_map:
                 print "Plotting group: %s..." % grp
+
+                # WARNING: This is just a crude work-around --> will want to implement this better
+                if grp == "Streams":
+                    self.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+                elif grp == "Datasets":
+                    self.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
+                else:
+                    self.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+
                 grp_path = os.path.join(self.save_dir,grp)
                 self.plotter.save_dir = grp_path
-                plotted_objects = self.makePlots(self.group_map[grp])
+
+                objs_to_plot = []
+                for obj in self.object_list:
+                    if obj in self.group_map[grp]:
+                        objs_to_plot.append(obj)
+
+                #plotted_objects = self.makePlots(self.group_map[grp])
+                plotted_objects = self.makePlots(set(objs_to_plot))
                 self.printHtml(plotted_objects,grp_path)
                 counter += len(plotted_objects)
-            print "Total plot count: %d" % counter
+
         else:
+            print "Making plots..."
             plotted_objects = self.makePlots(self.object_list)
             self.printHtml(plotted_objects,self.plotter.save_dir)
+            counter += len(plotted_objects)
+        print "Total plot count: %d" % counter
 
     def setup(self):
         if not self.setupCheck():
             return False
-        self.setupDirectory()
+        #self.setupDirectory()
         return True
 
     # Sets up the save directories
@@ -188,9 +257,9 @@ class RateMonitor:
         if self.use_pileup and self.use_lumi:
             return False
 
-        # Kind of useless check here, but w/e
-        if not self.data_parser.checkMode():
-            return False
+        ## Kind of useless check here, but w/e
+        #if not self.data_parser.checkMode():
+        #    return False
 
         # If we specify a fit file, we don't want to make new fits
         if self.use_fit_file and self.update_online_fits:
@@ -200,10 +269,6 @@ class RateMonitor:
 
         # Check to see if the online fits directory exists
         if self.update_online_fits and not os.path.exists(self.online_fits_dir):
-            return False
-
-        # We don't want more then one type of path set at a time --> Would like to implement this functionality later
-        if int(self.use_datasets) + int(self.use_streams) + int(self.use_L1A_rate) > 1:
             return False
 
         # We need to make sure we have the map between the plot objects and directories
@@ -217,10 +282,6 @@ class RateMonitor:
         return True
 
     def makePlots(self,plot_list):
-        if self.plotter.use_fit and len(self.plotter.fits.keys()) == 0: # We want fits and no fits were specified --> make some
-            fits = self.makeFits(self.plotter.plotting_data,plot_list)
-            self.plotter.setFits(fits)
-
         plotted_objects = []
         counter = 1
         for _object in plot_list:
@@ -228,6 +289,7 @@ class RateMonitor:
                 print "\tWARNING: Unknown object, %s" % _object
                 continue
             #print "\t%d: Plotting - %s" % (counter,_object)
+            #time.sleep(3)
             plotted_objects.append(_object)
             self.plotter.plotAllData(_object)
             counter += 1
@@ -236,6 +298,8 @@ class RateMonitor:
 
     # Returns: {'trigger': fit_params}
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
+    # NOTE1: This has a lot of 'if' statements, would like to see if we can remedy this
+    # NOTE2: Need to figure out why the fitter is generating NaN's for the fits
     def makeFits(self,data,object_list):
         fits = {}   # {'trigger': fit_params}
         skipped_fits = []
@@ -255,12 +319,19 @@ class RateMonitor:
 
             x_fit_vals, y_fit_vals = self.fitter.removePoints(x_fit_vals,y_fit_vals,0)   # Don't use points with 0 rate
             if len(x_fit_vals) > min_plot_pts:
+                new_fit = []
                 try:
-                    fits[trigger] = self.fitter.findFit(x_fit_vals,y_fit_vals,trigger)
+                    new_fit = self.fitter.findFit(x_fit_vals,y_fit_vals,trigger)
                 except KeyError:
-                    print "Unable to create fit for: %s" % trigger
+                    print "\tUnable to create fit for: %s" % trigger
                     skipped_fits.append(trigger)
                     continue
+                for i in range(len(new_fit)):
+                    if i == 0:
+                        continue
+                    elif math.isnan(new_fit[i]):
+                        new_fit[i] = 0.0
+                fits[trigger] = new_fit
             else:
                 skipped_fits.append(trigger)
 
@@ -268,6 +339,9 @@ class RateMonitor:
             print "Skipped fits:"
             for item in sorted(skipped_fits):
                 print "\t%s" % item
+
+        #print "Sleeping..."
+        #time.sleep(2)
 
         return fits
 
