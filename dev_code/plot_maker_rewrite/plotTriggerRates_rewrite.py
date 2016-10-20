@@ -212,18 +212,16 @@ class MonitorController:
 
             # Add triggers to monitor to the group map, list of all objects from .list file
             grp_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
-            #grp_map["Monitored_Triggers"] = trigger_list
 
             # We look for triggers in all runs to ensure we don't miss any (this is unnecessary for the cron job though)
-            L1_triggers = []
+            L1_triggers = set()
             for run in sorted(run_list):
                 tmp_list = self.parser.getL1Triggers(run)
                 for item in tmp_list:
-                    if not item in L1_triggers:
-                        L1_triggers.append(item)
+                    L1_triggers.add(item)
 
             # Add L1 triggers to the group map, list of all L1 triggers
-            grp_map["L1_Triggers"] = L1_triggers
+            grp_map["L1_Triggers"] = list(L1_triggers)
             
             # Find which HLT paths are included in which streams
             try:
@@ -233,22 +231,16 @@ class MonitorController:
                 return False
 
             # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
-            phys_streams = []
             hlt_triggers = set()
             for stream in stream_map:
-                #phys_streams.append(stream)
                 if stream[:7] == "Physics":
                     grp_map[stream] = stream_map[stream]
-                    #hlt_triggers.add(stream_map[stream])
-                    hlt_triggers = hlt_triggers | set(stream_map[stream])
-                    #phys_streams.append(stream)
+                    for item in stream_map[stream]:
+                        hlt_triggers.add(item)
+                    #hlt_triggers = hlt_triggers | set(stream_map[stream])
 
-            # Add Streams to the group map, list of all (physics) streams
-            #grp_map["Streams"] = phys_streams
-
-            # Update the object_list to include all the things we want to plot
-            self.rate_monitor.object_list += L1_triggers
-            #self.rate_monitor.object_list += phys_streams
+            # Update the object_list to include all the L1/HLT triggers
+            self.rate_monitor.object_list += list(L1_triggers)
             self.rate_monitor.object_list += list(hlt_triggers)
 
             self.rate_monitor.group_map = grp_map

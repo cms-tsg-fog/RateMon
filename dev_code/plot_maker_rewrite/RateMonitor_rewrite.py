@@ -44,13 +44,7 @@ class RateMonitor:
         # TESTING: START #
 
         self.certify_mode = False
-
-        self.object_map = {"triggers": [], "streams": [], "datasets": []}
-
-        self.trigger_list = []
-        self.stream_list  = []
-        self.dataset_list = []
-
+        
         self.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
         self.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
         self.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
@@ -189,7 +183,6 @@ class RateMonitor:
                     if obj in self.group_map[grp]:
                         objs_to_plot.append(obj)
 
-                #plotted_objects = self.makePlots(self.group_map[grp])
                 plotted_objects = self.makePlots(set(objs_to_plot))
                 self.printHtml(plotted_objects,grp_path)
                 counter += len(plotted_objects)
