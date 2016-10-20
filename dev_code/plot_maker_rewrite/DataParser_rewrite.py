@@ -25,6 +25,9 @@ class DataParser:
         self.runs_used    = []
         self.runs_skipped = []
         self.name_list = []     # List of named objects to be plotted, e.g. triggers, datasets, streams, etc...
+        self.type_map = {}      # Maps each object name to a type: trigger, dataset, stream, or L1A
+                                # NOTE: Still need to handle the case where if two objects share the same name, but diff type
+                                # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
         self.normalize_bunches = True
         self.correct_for_DT = True
@@ -32,12 +35,10 @@ class DataParser:
 
         self.max_dead_time = 10.
 
+        self.use_triggers = False   # Plot trigger rates
         self.use_streams  = False   # Plot stream rates
         self.use_datasets = False   # Plot dataset rates
         self.use_L1A_rate = False   # Plots the L1A rates
-
-        self.supported_modes = ["streams","datasets","L1Arates","triggers"]
-        self.mode = "triggers"
 
     def parseRuns(self,run_list):
         counter = 1
@@ -82,16 +83,6 @@ class DataParser:
                 self.bunch_map[run] = bunches
                 self.lumi_info[run] = lumi_info
 
-        # We want to manually add data for the sum of physics streams/datasets
-        if self.use_streams:
-            object_list = []
-            for obj in self.name_list:
-                if obj[:7] == "Physics":
-                    object_list.append(obj)
-            self.sumObjects("Combined_Physics_Streams",object_list)
-        elif self.use_datasets:
-            self.sumObjects("Combined_Physics_Datasets",object_list)
-
     # This might be excessive, should think about reworking this section
     # ------
     # We could move self.parser.getLumiInfo out of the individual member functions and then use the
@@ -101,26 +92,16 @@ class DataParser:
     # pair for bandwidth and size, so as to ensure that the structure is identical for every getter.
     # Although the value will be different (i.e. None type vs. an array type), but this should be fine
     def getRunData(self,run,bunches,lumi_info):
-        #if not self.checkMode():
-        #    return None
+        run_data = {}
 
         if self.use_streams:
-            run_data = self.getStreamData(run,bunches,lumi_info)
-        elif self.use_datasets:
-            run_data = self.getDatasetData(run,bunches,lumi_info)
-        elif self.use_L1A_rate:
-            run_data = self.getL1AData(run,bunches,lumi_info)
-        else:
-            run_data = self.getTriggerData(run,bunches,lumi_info)
-
-        #if self.mode == "triggers":
-        #    run_data = self.getTriggerData(run,bunches,lumi_info)
-        #elif self.mode == "streams":
-        #    run_data = self.getStreamData(run,bunches,lumi_info)
-        #elif self.mode == "datasets":
-        #    run_data = self.getDatasetData(run,bunches,lumi_info)
-        #elif self.mode == "L1ARates":
-        #    run_data = self.getL1AData(run,bunches,lumi_info)
+            run_data.update(self.getStreamData(run,bunches,lumi_info))
+        if self.use_datasets:
+            run_data.update(self.getDatasetData(run,bunches,lumi_info))
+        if self.use_L1A_rate:
+            run_data.update(self.getL1AData(run,bunches,lumi_info))
+        if self.use_triggers:
+            run_data.update(self.getTriggerData(run,bunches,lumi_info))
 
         return run_data
 
@@ -144,6 +125,7 @@ class DataParser:
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
         for trigger in all_rates:
+            self.type_map[trigger] = "trigger"
             run_data[trigger] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
@@ -196,6 +178,7 @@ class DataParser:
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
         for _object in stream_rates:
+            self.type_map[_object] = "stream"
             run_data[_object] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
@@ -250,6 +233,7 @@ class DataParser:
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
         for _object in dataset_rates:
+            self.type_map[_object] = "dataset"
             run_data[_object] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
@@ -298,6 +282,7 @@ class DataParser:
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
         for _object in L1A_rates:
+            self.type_map[_object] = "L1A"
             run_data[_object] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
@@ -367,9 +352,9 @@ class DataParser:
             ls_array = array.array('f')
             ls_array.extend(sorted(ls_set))
 
-            pu   = self.pu_array[obj][run][LS]
-            lumi = self.lumi_data[obj][run][LS]
-            det_ready  = self.det_data[obj][run][LS]
+            #pu   = self.pu_data[obj][run][LS]
+            #lumi = self.lumi_data[obj][run][LS]
+            #det_ready  = self.det_data[obj][run][LS]
 
             self.ls_data[new_name][run]   = ls_array
 
@@ -383,7 +368,7 @@ class DataParser:
             for LS in ls_array:
                 self.pu_data[new_name][run][LS]   = self.pu_data[ref_name][run][LS]
                 self.lumi_data[new_name][run][LS] = self.lumi_data[ref_name][run][LS]
-                self.det_data[new_name][run][LS]  = self.det_data[new_name][run][LS]
+                self.det_data[new_name][run][LS]  = self.det_data[ref_name][run][LS]
 
                 total_rate = 0
                 total_bw = 0
@@ -399,13 +384,6 @@ class DataParser:
                 self.rate_data[new_name][run][LS] = total_rate
                 self.bw_data[new_name][run][LS] = total_bw
                 self.size_data[new_name][run][LS] = total_size
-
-    def checkMode(self):
-        if self.mode in self.supported_modes:
-            return True
-        else:
-            print "ERROR: Unsupported mode specified - %s" % self.mode
-            return False
 
     # Converts input: {'name': { run_number: { LS: raw_rates } } } --> {'name': run_number: [ data ] }
     def convertOutput(self,_input):

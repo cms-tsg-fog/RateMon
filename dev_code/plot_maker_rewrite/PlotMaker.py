@@ -100,13 +100,13 @@ class PlotMaker:
     # plots all the data for a given trigger
     def plotAllData(self,trigger):
         # paramlist == fits
-
+        missing_fit = False
         if not self.plotting_data.has_key(trigger):
             print "ERROR: Trigger not found in plotting data, %s" % trigger
             return
-        elif len(self.fits.keys()) == 0:
-            # No fits specified
-            self.use_fit = False
+        elif self.use_fit and not self.fits.has_key(trigger):
+            # No fit found for this plot
+            missing_fit = True
 
         data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [status] ) }
 
@@ -139,10 +139,7 @@ class PlotMaker:
         canvas = TCanvas((self.var_X+" "+self.units_X), self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
 
-        if self.use_fit:
-            if not self.fits.has_key(trigger):
-                #print "No fit for %s" % trigger
-                return
+        if self.use_fit and not missing_fit:
             plot_func_str,func_str = self.getFuncStr(self.fits[trigger])
             fit_func = TF1("Fit_"+trigger, plot_func_str, 0., 1.1*max_xaxis_val)
             fit_mse = self.fits[trigger][5]
@@ -201,7 +198,7 @@ class PlotMaker:
                 legend.AddEntry(graphList[-1],legendStr,"f")
             counter += 1
 
-        if self.use_fit: # Display the fit function
+        if self.use_fit and not missing_fit: # Display the fit function
             legend.AddEntry(fit_func, "Fit ( %s \sigma )" % (self.sigmas))
             fit_func.Draw("same")
             if self.show_errors: # Display the error band

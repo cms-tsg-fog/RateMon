@@ -29,6 +29,7 @@ class MonitorController:
         self.rate_monitor.make_fits          = False
         self.rate_monitor.update_online_fits = False
 
+        self.rate_monitor.data_parser.use_triggers = True
         self.rate_monitor.data_parser.use_streams  = False 
         self.rate_monitor.data_parser.use_datasets = False
         self.rate_monitor.data_parser.use_L1A_rate = False
@@ -76,6 +77,7 @@ class MonitorController:
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 xkcd = ""
             elif label == "--datasetRate":
+                self.rate_monitor.data_parser.use_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -83,6 +85,7 @@ class MonitorController:
                 self.rate_monitor.plotter.file_name   = "Dataset_Rates.root"
                 self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
             elif label == "--L1ARate":
+                self.rate_monitor.data_parser.use_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = True
@@ -90,6 +93,7 @@ class MonitorController:
                 self.rate_monitor.plotter.file_name   = "L1A_Rates.root"
                 self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
             elif label == "--streamRate":
+                self.rate_monitor.data_parser.use_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -98,6 +102,7 @@ class MonitorController:
                 self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
             elif label == "--streamBandwidth" or label == "--streamSize":
                 # NEEDS TO BE TESTED
+                self.rate_monitor.data_parser.use_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -109,6 +114,7 @@ class MonitorController:
                 self.rate_monitor.plotter.label_Y = "stream bandwidth [bytes]"
             elif label == "--streamSize":
                 # NEEDS TO BE TESTED
+                self.rate_monitor.data_parser.use_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -127,7 +133,8 @@ class MonitorController:
 
                 self.rate_monitor.use_grouping = True
 
-                self.rate_monitor.data_parser.use_streams  = False 
+                self.rate_monitor.data_parser.use_triggers = True
+                self.rate_monitor.data_parser.use_streams  = True
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
 
@@ -192,43 +199,58 @@ class MonitorController:
 
         # This needs to be done after we have our run_list, otherwise we can't get the group_map
         if self.do_cron_job:
+            if len(self.rate_monitor.plotter.fits.keys()) == 0:
+                print "ERROR: Must specify a fit file, --fitFile=path/to/file"
+                return False
+            elif len(self.rate_monitor.object_list) == 0:
+                print "ERROR: Must specify a monitor list, --triggerList=path/to/file"
+                return False
+
             run_list = sorted(self.rate_monitor.run_list)
-            blacklist_streams = ["DQM","Calibration","PhysicsCirculating","HLTMonitor","PhysicsEndOfFill","NanoDST","ALCALUMIPIXELS","RPCMON","ALCAELECTRON","EcalCalibration","ScoutingCalo","DQMCalibration","ALCAPHISYM","ALCAP0","ScoutingPF","DQMEventDisplay"]
-            whitelist_streams = ["PhysicsEGamma","PhysicsHadronsTaus","PhysicsMuons"]
+
+            grp_map = {}
+
+            # Add triggers to monitor to the group map, list of all objects from .list file
+            grp_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
+            #grp_map["Monitored_Triggers"] = trigger_list
+
+            # We look for triggers in all runs to ensure we don't miss any (this is unnecessary for the cron job though)
+            L1_triggers = []
+            for run in sorted(run_list):
+                tmp_list = self.parser.getL1Triggers(run)
+                for item in tmp_list:
+                    if not item in L1_triggers:
+                        L1_triggers.append(item)
+
+            # Add L1 triggers to the group map, list of all L1 triggers
+            grp_map["L1_Triggers"] = L1_triggers
+            
+            # Find which HLT paths are included in which streams
             try:
                 stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
             except:
                 print "ERROR: Failed to get stream map"
                 return False
 
-            use_blacklist = False
-            use_whitelist = False
+            # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
+            phys_streams = []
+            hlt_triggers = set()
+            for stream in stream_map:
+                #phys_streams.append(stream)
+                if stream[:7] == "Physics":
+                    grp_map[stream] = stream_map[stream]
+                    #hlt_triggers.add(stream_map[stream])
+                    hlt_triggers = hlt_triggers | set(stream_map[stream])
+                    #phys_streams.append(stream)
 
-            if use_blacklist:
-                for ignore in blacklist_streams:
-                    if stream_map.has_key(ignore):
-                        del stream_map[ignore]
-                    else:
-                        print "Unknown blacklist name: %s" % ignore
-                grp_map = stream_map
-            elif use_whitelist:
-                grp_map = {}
-                for stream in stream_map:
-                    if stream in whitelist_streams:
-                        grp_map[stream] = stream_map[stream]
-            else:
-                grp_map = stream_map
+            # Add Streams to the group map, list of all (physics) streams
+            #grp_map["Streams"] = phys_streams
 
-            grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_COLLISIONS.list")
-            #grp_map["Monitored_Triggers"] = self.readTriggerList("monitorlist_TEST.list")
-            L1_triggers = []
-            # We look for triggers in all runs to ensure we don't miss any (this is unnecessary for the cron job though)
-            for run in sorted(run_list):
-                tmp_list = self.parser.getL1Triggers(run)
-                for item in tmp_list:
-                    if not item in L1_triggers:
-                        L1_triggers.append(item)
-            grp_map["L1_Triggers"] = L1_triggers
+            # Update the object_list to include all the things we want to plot
+            self.rate_monitor.object_list += L1_triggers
+            #self.rate_monitor.object_list += phys_streams
+            self.rate_monitor.object_list += list(hlt_triggers)
+
             self.rate_monitor.group_map = grp_map
 
         return True
@@ -247,7 +269,6 @@ class MonitorController:
             return {}
 
     def readTriggerList(self,trigger_file):
-        #path = os.path.join(self.file_dir,self.file_name)
         path = trigger_file
         f = open(path,'r')
 
@@ -283,7 +304,6 @@ class MonitorController:
         return run_list
 
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
-    # Returns: (void)
     def run(self):
         if self.parseArgs(): self.rate_monitor.run()
 
