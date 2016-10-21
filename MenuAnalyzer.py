@@ -20,10 +20,12 @@ class MenuAnalyzer:
         self.maxModuleNameLength = 300
         self.maxModulesPerPath   = 50
         self.maxPaths = 1000
-        self.maxEndPaths = 30
+        self.maxEndPaths = 50 # It was 30, Thiago changed 2016-10-12
 
         ##required streams
-        self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcalDT'],'EcalCalibration' : ['EcalLaser'],
+        self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcalDT'],
+                                       'EcalCalibration' : ['EcalLaser'],
+                                       'DQMCalibration' : ['TestEnablesEcalHcalDQM'],
                                        'DQM' : 'OnlineMonitor'}
         self.ExpressStreamName = 'Express'
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
@@ -191,9 +193,15 @@ class MenuAnalyzer:
                 self.Results['checkEventContent'].append(stream+'::drop *')
             if not eventContent.requiredEventContent.has_key(stream): continue
             requiredContent = eventContent.requiredEventContent[stream]
+            #check to see if stream contains required content
             for entry in requiredContent:
                 if not entry in content:
                     self.Results['checkEventContent'].append(stream+'::'+entry)
+            #check to make sure there is no extra (not-required) content
+            for entry in content:
+                if (entry!='drop *' and entry!='drop *_hlt*_*_*'):
+                    if not entry in requiredContent:
+                        self.Results['checkEventContent'].append(stream+'::'+entry)
 
     def checkL1Unmask(self):
         self.Results['checkL1Unmask']=[]
