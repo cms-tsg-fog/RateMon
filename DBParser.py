@@ -1272,7 +1272,7 @@ class DBParser:
 
     # Returns a dictionary of streams that map to a list containing all the paths within that stream
     def getPathsInStreams(self,runNumber):
-        if not self.getRunInfo(self, runNumber):
+        if not self.getRunInfo(runNumber):
             return None
 
         query = """
@@ -1297,15 +1297,18 @@ class DBParser:
                     G.ID = F.ID_STREAM
                 ORDER BY
                     G.NAME
-                """ % (self.HLT_key)
+                """ % (self.HLT_Key)
 
         self.curs.execute(query)
 
         stream_paths = {}
         for trg,stream in self.curs.fetchall():
+            trg = stripVersion(trg)
             if not stream_paths.has_key(stream):
                 stream_paths[stream] = []
-            stream_paths[stream].append(trg)
+
+            if not trg in stream_paths[stream]:
+                stream_paths[stream].append(trg)
 
         return stream_paths
 
@@ -1329,4 +1332,3 @@ class DBParser:
         return L1_list
             
 # -------------------- End of class DBParsing -------------------- #
-
