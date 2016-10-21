@@ -1,276 +1,303 @@
 #######################################################
 # File: plotTriggerRates.py
-# Author: Nathaniel Carl Rupprecht, Charlie Mueller
+# Author: Charlie Mueller, Andrew Wightman
 # Date Created: June 19, 2015
 #
 # Dependencies: RateMonitor.py DBParser.py
 #
-# Data Type Key:
-#    { a, b, c, ... }    -- denotes a tuple
-#    [ key ] <object>  -- denotes a dictionary of keys associated with objects 
-#    ( object )          -- denotes a list of objects
 #######################################################
 
 # Imports
 import getopt # For getting command line options
-# Import the RateMonitor object
+
 from DBParser import *
-from RateMonitorNCR import *
-#from RateMonitorNCR_multifit import *
+from RateMonitor import *
 
-## ----------- End Imports ------------ #
-
-# Class MonitorController:
-# Parsers command line input and uses it to set the parameters of an instance of RateMonitor which it contains. It then runs rateMonitor.
 class MonitorController:
-
-    # Default constructor for Monitor Controller class
     def __init__(self):
-        self.rateMonitor = RateMonitor()
+        self.parser = DBParser()
+        self.rate_monitor = RateMonitor()
+
+        self.do_cron_job = False
+
+        # Set the default state for the rate_monitor and plotter to produce plots for triggers
+        self.rate_monitor.object_list = []
+
+        self.rate_monitor.use_fills          = False
+        self.rate_monitor.use_pileup         = True
+        self.rate_monitor.use_lumi           = False
+        self.rate_monitor.make_fits          = False
+        self.rate_monitor.update_online_fits = False
+
+        self.rate_monitor.data_parser.use_triggers = True
+        self.rate_monitor.data_parser.use_streams  = False 
+        self.rate_monitor.data_parser.use_datasets = False
+        self.rate_monitor.data_parser.use_L1A_rate = False
+
+        self.rate_monitor.plotter.use_fills      = False       # Determines how to color the plots
+        self.rate_monitor.plotter.use_fit        = False
+        self.rate_monitor.plotter.show_errors    = False
+        self.rate_monitor.plotter.show_eq        = False
+        self.rate_monitor.plotter.save_png       = True
+        self.rate_monitor.plotter.save_root_file = False
+
+        self.rate_monitor.plotter.file_name   = "testing_plot_rewrite.root"
+        self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+        self.rate_monitor.plotter.name_X = "< PU >"
+        self.rate_monitor.plotter.units_X = ""
 
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["fitFile=", "triggerList=", "runList=", "jsonFile=",
-                                                       "runFile=","saveDirectory=","sigma=", "preferLinear=",
-                                                       "Secondary", "updateOnlineFits", "All", "Raw", "Help", "createFit",
-                                                       "debugFitter", "nonLinear","vsInstLumi",
-                                                       "L1Triggers", "AllTriggers","datasetRate", "L1ARate", "streamRate", "streamBandwidth",
-                                                       "streamSize", "useFills"])
-                                                   
+            opt, args = getopt.getopt(sys.argv[1:],"",["fitFile=","triggerList=","saveDirectory=","Secondary",
+                                                        "datasetRate","L1ARate","streamRate","streamBandwidth",
+                                                        "streamSize","cronJob","updateOnlineFits","createFit","nonLinear",
+                                                        "vsInstLumi","useFills"])
         except:
-            print "Error geting options: command unrecognized. Exiting."
+            print "Error getting options: command unrecognized. Exiting."
             return False
 
-        if len(opt) == 0 and len(args) == 0:
-            self.printOptions()
-            return False
-        
-        # Process Options
-        self.rateMonitor.ops = opt
-        for label, op in opt:
-            if label == "--Secondary":
-                self.rateMonitor.certifyMode = True # Run in secondary mode
-                self.rateMonitor.fit = False # We don't make fits in secondary mode
-                self.rateMonitor.useFit = True 
-                self.rateMonitor.L1Triggers = True
-            elif label == "--fitFile":
-                self.rateMonitor.fitFile = str(op)
-                print "Using fit file:", self.rateMonitor.fitFile
-            elif label == "--runList" or label == "--runFile":
-                self.rateMonitor.runFile = str(op)
-                print "Using the runs in file", self.rateMonitor.runFile
-                self.loadRunsFromFile()
-            elif label == "--jsonFile":
-                self.rateMonitor.jsonFilter = True
-                self.rateMonitor.jsonFile = str(op)
-            elif label == "--Help":
-                self.printOptions()
-                return False
-            elif label == "--sigma":
-                self.rateMonitor.sigmas = float(op)
-            #elif label == "--preferLinear":
-                #self.rateMonitor.fitFinder.preferLinear = float(op)
-            elif label == "--All":
-                self.rateMonitor.processAll = True
-            elif label == "--Raw":
-                self.rateMonitor.varY = "rawRate"
-            elif label == "--saveDirectory":
-                self.rateMonitor.saveDirectory = str(op)
+        self.rate_monitor.ops = opt
+        for label,op in opt:
+            if label == "--fitFile":
+                fits = self.readFits(str(op))
+                self.rate_monitor.plotter.setFits(fits)
+
+                self.rate_monitor.plotter.use_fit     = True
+                self.rate_monitor.plotter.show_errors = True
+                self.rate_monitor.plotter.show_eq     = True
             elif label == "--triggerList":
-                self.loadTriggersFromFile(str(op))
-                self.rateMonitor.useTrigList = True
-                self.rateMonitor.L1Triggers = True
-            elif label == "--L1Triggers":
-                self.rateMonitor.L1Triggers = True
-                self.rateMonitor.HLTTriggers = False
-            elif label == "--AllTriggers":
-                self.rateMonitor.L1Triggers = True
-            elif label == "--updateOnlineFits":
-                self.rateMonitor.updateOnlineFits = True
-            elif label == "--createFit":
-                if not self.rateMonitor.certifyMode: self.rateMonitor.fit = True
-                else: print "We do not create fits in secondary mode"
-            elif label == "--debugFitter":
-                self.rateMonitor.fitFinder.saveDebug = True
-            elif label == "--nonLinear":
-                self.rateMonitor.fitFinder.forceLinear = False
-            elif label == "--vsInstLumi":
-                self.rateMonitor.pileUp = False
-            elif label == "--streamRate":
-                self.rateMonitor.labelY = "rate [Hz]"
-                self.rateMonitor.plotStreams = True
-                self.rateMonitor.dataCol = 0
-            elif label == "--streamSize":
-                self.rateMonitor.labelY = "stream size [bytes]"
-                self.rateMonitor.plotStreams = True
-                self.rateMonitor.dataCol = 1
-            elif label == "--streamBandwidth":
-                self.rateMonitor.labelY = "stream bandwidth [bytes]"
-                self.rateMonitor.dataCol = 2
-                self.rateMonitor.plotStreams = True
+                trigger_list = self.readTriggerList(str(op))
+                self.rate_monitor.object_list = trigger_list
+            elif label == "--saveDirectory":
+                self.rate_monitor.save_dir = str(op)
+            elif label == "--Secondary":
+                # NEEDS TO BE IMPLEMENTED/TESTED
+                xkcd = ""
             elif label == "--datasetRate":
-                self.rateMonitor.labelY = "primary dataset rate [Hz]"
-                self.rateMonitor.plotDatasets = True
-                self.rateMonitor.dataCol = 0
+                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_streams  = False 
+                self.rate_monitor.data_parser.use_datasets = True
+                self.rate_monitor.data_parser.use_L1A_rate = False
+                
+                self.rate_monitor.plotter.file_name   = "Dataset_Rates.root"
+                self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
             elif label == "--L1ARate":
-                self.rateMonitor.labelY = "L1Physics rate [Hz]"
-                self.rateMonitor.plotL1ARate = True
-                self.rateMonitor.dataCol = 0
+                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_streams  = False 
+                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_L1A_rate = True
+                
+                self.rate_monitor.plotter.file_name   = "L1A_Rates.root"
+                self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
+            elif label == "--streamRate":
+                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_streams  = True 
+                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_L1A_rate = False
+                
+                self.rate_monitor.plotter.file_name   = "Stream_Rates.root"
+                self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+            elif label == "--streamBandwidth" or label == "--streamSize":
+                # NEEDS TO BE TESTED
+                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_streams  = True 
+                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_L1A_rate = False
+                
+                self.rate_monitor.data_parser.normalize_bunches = False
+
+                self.rate_monitor.plotter.file_name   = "Stream_Bandwidth.root"
+                #self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+                self.rate_monitor.plotter.label_Y = "stream bandwidth [bytes]"
+            elif label == "--streamSize":
+                # NEEDS TO BE TESTED
+                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_streams  = True 
+                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_L1A_rate = False
+
+                self.rate_monitor.data_parser.normalize_bunches = False
+                
+                self.rate_monitor.plotter.file_name   = "Stream_Size.root"
+                self.rate_monitor.plotter.label_Y = "stream size [bytes]"
+            elif label == "--cronJob":
+                # NEEDS MORE TESTING
+                self.do_cron_job = True
+
+                self.rate_monitor.use_pileup       = True
+                self.rate_monitor.use_fills        = False
+                self.rate_monitor.make_fits        = False
+
+                self.rate_monitor.use_grouping = True
+
+                self.rate_monitor.data_parser.use_triggers = True
+                self.rate_monitor.data_parser.use_streams  = True
+                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_L1A_rate = False
+
+                self.rate_monitor.plotter.use_fills   = False       # Determines how to color the plots
+
+                self.rate_monitor.plotter.use_fit     = True
+                self.rate_monitor.plotter.show_errors = True
+                self.rate_monitor.plotter.show_eq     = True
+
+                self.rate_monitor.plotter.file_name = "Cron_Job_Rates.root"
+                self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+                self.rate_monitor.plotter.name_X = "< PU >"
+
+            elif label == "--updateOnlineFits":
+                # NEEDS TO BE IMPLEMENTED/TESTED
+                self.rate_monitor.update_online_fits = True
+
+                self.rate_monitor.use_pileup = True
+                self.rate_monitor.make_fits  = False
+
+                self.rate_monitor.plotter.use_fit     = True
+                self.rate_monitor.plotter.show_errors = True
+                self.rate_monitor.plotter.show_eq     = True
+
+                self.rate_monitor.object_list = self.readTriggerList("monitorlist_TEST.list")
+            elif label == "--createFit":
+                # NEEDS TO BE FINISHED
+                self.rate_monitor.make_fits = True
+
+                self.rate_monitor.plotter.use_fit     = True
+                self.rate_monitor.plotter.show_errors = True
+                self.rate_monitor.plotter.show_eq     = True
+
+            elif label == "--nonLinear":
+                # This is always true by default --> might no longer need this option (could rework it)
+                xkcd = ""
+            elif label == "--vsInstLumi":
+                self.rate_monitor.use_pileup = False
+                self.rate_monitor.use_lumi = True
             elif label == "--useFills":
-                self.rateMonitor.useFills = True
+                self.rate_monitor.use_fills = True
+                self.rate_monitor.plotter.use_fills = True  # Might want to make this an optional switch
             else:
                 print "Unimplemented option '%s'." % label
                 return False
-            
+
         # Process Arguments
         if len(args) > 0: # There are arguments to look at
+            arg_list = []
             for item in args:
-                if item.find('-') != -1:
-                    rng = item.split('-')
-                    if len(rng) != 2:
-                        print "Error: Invalid range format."
-                        return False
-                    else: # Add the runs in the range to the run list
-                        try:
-                            for r in range(int(rng[0]), int(rng[1])+1):
-                                if not int(r) in self.rateMonitor.runList:
-                                    self.rateMonitor.runList.append(int(r))
-                        except:
-                            print "Error: Could not parse run range"
-                            return False
-                elif self.rateMonitor.useFills:
-                    try:
-                        if not int(item) in self.rateMonitor.fillList:
-                            self.rateMonitor.fillList.append(int(item))
-                    except:
-                        print "Error: Could not parse fill arguments."
-                        return False
-                else: # Not a range, but a single run
-                    try:
-                        if not int(item) in self.rateMonitor.runList:
-                            self.rateMonitor.runList.append(int(item))
-                    except:
-                        print "Error: Could not parse run arguments."
-                        return False
+                arg_list.append(int(item))
+            if self.rate_monitor.use_fills:
+                self.rate_monitor.fill_list = arg_list
+                self.rate_monitor.run_list = self.getRuns(arg_list)
+            else:
+                self.rate_monitor.fill_list = []
+                self.rate_monitor.run_list = arg_list
 
-        # If no runs were specified, we cannot run rate monitoring
-        if len(self.rateMonitor.runList) == 0 and len(self.rateMonitor.fillList) == 0:
-            print "Error: No runs/fills were specified."
+        if len(self.rate_monitor.run_list) == 0:
+            print "ERROR: No runs specified!"
             return False
-        # If no fit file was specified, don't try to make a fit
-        if self.rateMonitor.fitFile == "" and self.rateMonitor.certifyMode:
-            print "Fit file needed for certification. Exiting."
-            exit(0)
-            
-        if self.rateMonitor.fitFile == "":
-            self.rateMonitor.useFit = False
 
-        # Check JSON file exists
-        if self.rateMonitor.jsonFilter:
-            if not os.path.exists(self.rateMonitor.jsonFile):
-                print "The specifed JSON file does not exist. Exiting."
-                exit(0)
-        
+        # This needs to be done after we have our run_list, otherwise we can't get the group_map
+        if self.do_cron_job:
+            if len(self.rate_monitor.plotter.fits.keys()) == 0:
+                print "ERROR: Must specify a fit file, --fitFile=path/to/file"
+                return False
+            elif len(self.rate_monitor.object_list) == 0:
+                print "ERROR: Must specify a monitor list, --triggerList=path/to/file"
+                return False
+
+            run_list = sorted(self.rate_monitor.run_list)
+
+            grp_map = {}
+
+            # Add triggers to monitor to the group map, list of all objects from .list file
+            grp_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
+
+            # We look for triggers in all runs to ensure we don't miss any (this is unnecessary for the cron job though)
+            L1_triggers = set()
+            for run in sorted(run_list):
+                tmp_list = self.parser.getL1Triggers(run)
+                for item in tmp_list:
+                    L1_triggers.add(item)
+
+            # Add L1 triggers to the group map, list of all L1 triggers
+            grp_map["L1_Triggers"] = list(L1_triggers)
+            
+            # Find which HLT paths are included in which streams
+            try:
+                stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
+            except:
+                print "ERROR: Failed to get stream map"
+                return False
+
+            # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
+            hlt_triggers = set()
+            for stream in stream_map:
+                if stream[:7] == "Physics":
+                    grp_map[stream] = stream_map[stream]
+                    for item in stream_map[stream]:
+                        hlt_triggers.add(item)
+                    #hlt_triggers = hlt_triggers | set(stream_map[stream])
+
+            # Update the object_list to include all the L1/HLT triggers
+            self.rate_monitor.object_list += list(L1_triggers)
+            self.rate_monitor.object_list += list(hlt_triggers)
+
+            self.rate_monitor.group_map = grp_map
+
         return True
 
-    # Use: Prints out all the possible options that you can specify in the command line
-    # Returns: (void)
-    def printOptions(self):
-        print ""
-        print "Usage: python plotTriggerRates.py [Options] <list of runs (optional)>"
-        print "\n<list of runs>        : Either single runs (like '10000 10003 10007'), or ranges (like '10001-10003')"
-        print ""
-        print "OPTIONS:"
-        print "\n--Help                 : Prints this display"
-        #print "\nFile Options:"
-        print "--fitFile=<name>       : Loads fit information from the file named <name>."
-        print "--jsonFile=<name>      : Filter runs and lumisections according the to provided JSON file."
-        print "--triggerList=<name>   : Loads a list of triggers to process from the file <name>. We will only process the triggers listed in triggerfiles."
-        #print "\nRun Options:"
-        print "--Secondary            : Run the program in 'secondary mode,' making plots of raw rate vs lumisection."
-        #        print "\nFitting Options:"
-        print "--createFit            : Make a fit for the data we plot. Only a primary mode feature."
-        print "--sigma=<num>          : The acceptable tolerance for the fit. default is 3 sigma"
-        #        print "--debugFitter          : Creates a root file showing all the points labeled as good and bad when doing the fit"
-        print "--nonLinear            : Forces fits to be nonLinear"
-        print "--vsInstLumi           : Plot rates vs inst. lumi"
-        print "--L1Triggers           : ONLY L1 triggers are plotted for the runs."
-        print "--AllTriggers          : Both L1 and HLT triggers are plotted for the runs."
-        #        print "--preferLinear=<num>   : If the MSE for the linear fit is less then <num> worse then the best fit, we will use the linear fit."
-        print "--streamRate           : Plots the stream rate vs inst lumi."
-        print "--streamSize           : Plots the stream size vs inst lumi."
-        #print "--streamBandwidth      : Plots the stream bandwidth vs inst lumi."
-        print "--datasetRate          : Plots the PD rate vs inst lumi."
-        #        print "\nCut/Normalization Options:" 
-        #print "                         we skip that run. This overrides that functionality."
-        print ""
-        print "EXAMPLES:"
-        print ""
-        print "fit making mode:\n python plotTriggerRates.py --createFit --triggerList=monitorlist_COLLISIONS.list 251643 251638 251883 251244 251562\n"
-        print "certification mode:\n python plotTriggerRates.py --Secondary --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl 276437 276453 276454 276455 276456 276457 276458"
-        #print "You can specify runs by typing them in the form <run1> (single runs), or <run2>-<run3> (ranges), or both. Do this after all other arguments"
-        #print "Multiple runFiles can be specified, and you can add more runs to the run list by specifying them on the command line as described in the above line."
-        print ""
-
-    # Use: Opens a file containing a list of runs and adds them to the RateMonitor class's run list
-    # Note: We do not clear the run list, this way we could add runs from multiple files to the run list
-    # Arguments:
-    # -- fileName (Default=None): The name of the file that runs are contained in
-    # Returns: (void)
-    def loadRunsFromFile(self, fileName = None):
-        # Use self.fileName as the default fileName
-        if fileName == None:
-            fileName = self.rateMonitor.runFile
+    def readFits(self,fit_file):
+        fits = {} # {'trigger': fit_params}
+        # Try to open the file containing the fit info
         try:
-            file = open(fileName, 'r')
+            pkl_file = open(fit_file, 'rb')
+            fits = pickle.load(pkl_file)
+            pkl_file.close()
+            return fits
         except:
-            print "File", fileName, "(a run list file) failed to open."
-            return
-        # Load all the runs. There should only be run numbers and whitespaces in the run list file
-        allRunNumbers = file.read().split() # Get all the numbers on the line, no argument -> split on any whitespace
-        for run in allRunNumbers:
-            # Check if the run is a range
-            if run.find('-') != -1:
-                try:
-                    start, end = run.split('-')
-                    for rn in range(start, end+1):
-                        if not int(run) in self.rateMonitor.runList:
-                            self.rateMonitor.runList.append(int(rn))
-                except:
-                    print "Range specified in file", fileName, "could not be parsed."
-            else:
-                try:
-                    if not int(run) in self.rateMonitor.runList:
-                        self.rateMonitor.runList.append(int(run))
-                except:
-                    print "Error in parsing run in file", fileName
+            # File failed to open
+            print "Error: could not open fit file: %s" % (self.fitFile)
+            return {}
 
-    # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
-    # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
-    # -- fileName: The name of the file that trigger names are contained in
-    # Returns: (void) 
-    def loadTriggersFromFile(self, fileName):
-        try:
-            file = open(fileName, 'r')
-        except:
-            print "File", fileName, "(a trigger list file) failed to open."
-            return
+    def readTriggerList(self,trigger_file):
+        path = trigger_file
+        f = open(path,'r')
 
-        allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
-        for triggerName in allTriggerNames:
-            try:
-                if not str(triggerName) in self.rateMonitor.TriggerList:
-                    self.rateMonitor.TriggerList.append(stripVersion(str(triggerName)))
-            except:
-                print "Error parsing trigger name in file", fileName
+        print "Reading trigger file: %s" % path
+
+        output_list = []
+        for line in f:
+            line = line.strip() # Remove whitespace/EOL chars
+            if line[0] == "#":
+                continue
+            output_list.append(line)
+        f.close()
+        return output_list
+
+    # Gets the runs from each fill specified in arg_list
+    def getRuns(self,arg_list):
+        if len(arg_list) == 0:
+            print "No fills specified!"
+            return []
+
+        run_list = []
+        fill_map = {}   # {run_number: fill_number}
+        for fill in sorted(arg_list):
+            print "Getting runs from fill %d" % fill
+            new_runs = self.parser.getFillRuns(fill)
+            if len(new_runs) == 0:
+                print "\tFill %d has no eligible runs!"
+                continue
+            for run in new_runs:
+                fill_map[run] = fill
+            run_list += new_runs
+        self.rate_monitor.plotter.fill_map = fill_map
+        return run_list
 
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
-    # Returns: (void)
     def run(self):
-        if self.parseArgs(): self.rateMonitor.runBatch()
+        if self.parseArgs(): self.rate_monitor.run()
 
 ## ----------- End of class MonitorController ------------ #
 
@@ -278,4 +305,3 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
-
