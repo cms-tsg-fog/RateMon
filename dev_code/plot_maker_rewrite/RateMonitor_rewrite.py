@@ -44,7 +44,7 @@ class RateMonitor:
         # TESTING: START #
 
         self.certify_mode = False
-        
+
         self.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
         self.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
         self.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
@@ -78,12 +78,13 @@ class RateMonitor:
 
         # We want to manually add the streams/datasets to the list of objects to plot
         if self.data_parser.use_streams:
+            blacklist = ["PhysicsEndOfFill","PhysicsMinimumBias0","PhysicsMinimumBias1","PhysicsMinimumBias2"]
             sum_list = []
             stream_objs = set()
             for obj in self.data_parser.getNameList():
                 if self.data_parser.type_map[obj] == "stream":
                     stream_objs.add(obj)
-                if obj[:7] == "Physics":
+                if obj[:7] == "Physics" and not obj in blacklist:
                     sum_list.append(obj)
             # We add ALL objs of this type to the list of objects to plot
             self.object_list += list(stream_objs)
