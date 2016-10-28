@@ -32,17 +32,37 @@ insertFirst='<h3>Runs used to produce fits:<br>'
 #insertSecond=$(echo $fitCommand | sed 's/python plotTriggerRates.py --createFit --nonLinear --triggerList=monitorlist_COLLISIONS.list//')
 insertSecond=$(echo $fitCommand | sed 's/python plotTriggerRates.py --createFit --nonLinear --AllTriggers//')
 insertThird='</h3>'
-
 insertFourth='<h4><a href="./MoreTriggers/Streams/">Stream Rates</a></h4>'
-insertFifth='<h4><a href="./MoreTriggers/L1_Triggers/">L1 Trigger Rates</a></h4>'
-insertSixth='<h4><a href="./MoreTriggers/PhysicsCommissioning/">HLT Rates (PhysicsCommissioning)</a></h4>'
-insertSeventh='<h4><a href="./MoreTriggers/PhysicsEGamma/">HLT Rates (PhysicsEGamma)</a></h4>'
-insertEighth='<h4><a href="./MoreTriggers/PhysicsMuons/">HLT Rates (PhysicsMuons)</a></h4>'
-insertNineth='<h4><a href="./MoreTriggers/PhysicsHadronsTaus/">HLT Rates (PhysicsHadronsTaus)</a></h4>'
-insertTenth='<h4><a href="./MoreTriggers/PhysicsParkingScoutingMonitor/">HLT Rates (PhysicsParkingScoutingMonitor)</a></h4>'
-insertEleventh='<h4><a href="./MoreTriggers/PhysicsCirculating/">HLT Rates (PhysicsCirculating)</a></h4>'
-insertTwelfth='<h4><a href="./MoreTriggers/PhysicsEndOfFill/">HLT Rates (PhysicsEndOfFill)</a></h4>'
-insertThirteenth='<h3>A Few Representative Triggers:</h3>'
+insertFifth='<h4><a href="./MoreTriggers/Datasets/">Dataset Rates</a></h4>'
+insertSixth='<h4><a href="./MoreTriggers/L1_Triggers/">L1 Trigger Rates</a></h4>'
+
+cd $outputDirBase$theFill
+appendString=''
+
+for D in `find ./MoreTriggers/ -maxdepth 1 -mindepth 1 -type d`
+do
+    Dstrip=${D#./MoreTriggers/}
+    if [ $Dstrip == 'Monitored_Triggers' ] || [ $Dstrip == 'Streams' ] || [ $Dstrip == 'Datasets' ] || [ $Dstrip == 'L1_Triggers' ]
+        then
+            continue
+    fi
+    appendString=$appendString'<h4><a href="'$D'/">'
+    appendString=$appendString$Dstrip'</a></h4>\n'
+    echo $appendString
+done
+
+#insertFourth='<h4><a href="./MoreTriggers/Streams/">Stream Rates</a></h4>'
+#insertFifth='<h4><a href="./MoreTriggers/L1_Triggers/">L1 Trigger Rates</a></h4>'
+#insertSixth='<h4><a href="./MoreTriggers/PhysicsCommissioning/">HLT Rates (PhysicsCommissioning)</a></h4>'
+#insertSeventh='<h4><a href="./MoreTriggers/PhysicsEGamma/">HLT Rates (PhysicsEGamma)</a></h4>'
+#insertEighth='<h4><a href="./MoreTriggers/PhysicsMuons/">HLT Rates (PhysicsMuons)</a></h4>'
+#insertNineth='<h4><a href="./MoreTriggers/PhysicsHadronsTaus/">HLT Rates (PhysicsHadronsTaus)</a></h4>'
+#insertTenth='<h4><a href="./MoreTriggers/PhysicsParkingScoutingMonitor/">HLT Rates (PhysicsParkingScoutingMonitor)</a></h4>'
+#insertEleventh='<h4><a href="./MoreTriggers/PhysicsCirculating/">HLT Rates (PhysicsCirculating)</a></h4>'
+#insertTwelfth='<h4><a href="./MoreTriggers/PhysicsEndOfFill/">HLT Rates (PhysicsEndOfFill)</a></h4>'
+
+insertThirteenth='<h3>Monitored Triggers:</h3>'
 file=$outputDirBase$theFill/index.html
 
-sed -i "s#$match#$match\n$insertFirst\n$insertSecond$insertThird\n$insertFourth\n$insertFifth\n$insertSixth\n$insertSeventh\n$insertEighth\n$insertNineth\n$insertTenth\n$insertEleventh\n$insertTwelfth\n$insertThirteenth#" $file
+#sed -i "s#$match#$match\n$insertFirst\n$insertSecond$insertThird\n$insertFourth\n$insertFifth\n$insertSixth\n$insertSeventh\n$insertEighth\n$insertNineth\n$insertTenth\n$insertEleventh\n$insertTwelfth\n$insertThirteenth#" $file
+sed -i "s#$match#$match\n$insertFirst\n$insertSecond$insertThird\n$insertFourth\n$insertFifth\n$insertSixth\n$appendString$insertThirteenth#" $file
