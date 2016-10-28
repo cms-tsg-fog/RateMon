@@ -1,12 +1,11 @@
 ##################################
 # DB.py
-# Author: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
+# Author: Charlie Mueller, Nathaniel Rupprecht, Andrew Wightman
 # Date: June 11, 2015
-# Last Modified: July 16, 2015
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
-#    [ key ] <object>  -- denotes a dictionary of keys associated with objects
+#    [ key ] <object>    -- denotes a dictionary of keys associated with objects
 #    ( object )          -- denotes a list of objects 
 ##################################
 
@@ -423,8 +422,8 @@ class DBParser:
         #(1, 'ALGORITHM_RATE_BEFORE_PRESCALE'),
         #(2, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE'),
         #(3, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_BY_HLT'),
-        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
+        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
         if preDeadTime: rate_type = '%d' % ( 0 )
         else: rate_type = '%d' % ( 4 )
