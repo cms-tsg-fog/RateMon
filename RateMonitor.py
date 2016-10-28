@@ -105,7 +105,8 @@ class RateMonitor:
                 # We add the Streams and 'Combined_Physics_Streams' to the Streams directory here
                 self.group_map["Streams"] = list(stream_objs)
                 self.group_map["Streams"].append("Combined_Physics_Streams")
-        elif self.data_parser.use_datasets:
+        
+        if self.data_parser.use_datasets:
             # Same concept, but for datasets
             sum_list = []
             dataset_objs = set()
@@ -113,11 +114,11 @@ class RateMonitor:
                 if self.data_parser.type_map[obj] == "dataset":
                     dataset_objs.add(obj)
             self.object_list += list(dataset_objs)
-            self.data_parser.sumObjects("Combined_Physics_Datasets",sum_list,"dataset")
-            self.object_list.append("Combined_Physics_Datasets")
+            #self.data_parser.sumObjects("Combined_Physics_Datasets",sum_list,"dataset")
+            #self.object_list.append("Combined_Physics_Datasets")
             if self.use_grouping:
                 self.group_map["Datasets"] = list(dataset_objs)
-                self.group_map["Datasets"].append("Combined_Physics_Datasets")
+                #self.group_map["Datasets"].append("Combined_Physics_Datasets")
 
         bunch_map = self.data_parser.getBunchMap()
         det_status = self.data_parser.getDetectorStatus()

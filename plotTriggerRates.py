@@ -143,7 +143,7 @@ class MonitorController:
 
                 self.rate_monitor.data_parser.use_triggers = True
                 self.rate_monitor.data_parser.use_streams  = True
-                self.rate_monitor.data_parser.use_datasets = False
+                self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
 
                 self.rate_monitor.plotter.use_fills   = False       # Determines how to color the plots

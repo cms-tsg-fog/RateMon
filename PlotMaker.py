@@ -30,7 +30,6 @@ class PlotMaker:
 
         self.plotting_data = {}     #    {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
 
-        #self.fits = {}              # {'trigger': fit_params }
         self.fits = {}              # {'trigger': { 'fit_type': fit_params } }
         self.bunch_map = {}         # {run_number:  bunches }
         self.fill_map = {}          # {run_number: fill_number }

@@ -99,11 +99,8 @@ class DataParser:
 
     # This might be excessive, should think about reworking this section
     # ------
-    # We could move self.parser.getLumiInfo out of the individual member functions and then use the
-    # output directly in the member functions. We then just need to ensure that none of object names
-    # overlap with one another (i.e. dataset names overlap with stream names) for the rate data.
-    # getTriggerData(...) and getDatasetData(...) would still need to make sure to create a key:value
-    # pair for bandwidth and size, so as to ensure that the structure is identical for every getter.
+    # We need to ensure that none of object names overlap with one another
+    # (i.e. dataset names overlap with stream names) for the rate data.
     def getRunData(self,run,bunches,lumi_info):
         run_data = {}
 
@@ -349,6 +346,7 @@ class DataParser:
 
         for run in self.runs_used:
             # Use only LS that are in ALL objects
+            # Possible alternative, is to instead assume rate = 0 for objects missing LS
             try:
                 ls_set = set(self.ls_data[sum_list[0]][run])
                 for obj in sum_list:
