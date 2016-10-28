@@ -1,3 +1,16 @@
+#####################################################################
+# File: DataParser.py
+# Author: Andrew Wightman
+# Date Created: September 15, 2016
+#
+# Dependencies: DBParser.py
+#
+# Data Type Key:
+#    ( a, b, c, ... )        -- denotes a tuple
+#    [ a, b, c, ... ]        -- denotes a list
+#    { key:obj }             -- denotes a dictionary
+#    { key1: { key2:obj } }  -- denotes a nested dictionary
+#####################################################################
 import array
 
 from DBParser import *
@@ -31,7 +44,7 @@ class DataParser:
 
         self.normalize_bunches = True
         self.correct_for_DT = True
-        self.convert_output = True
+        self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
 
         self.max_dead_time = 10.
 
@@ -45,8 +58,9 @@ class DataParser:
         for run in sorted(run_list):
             print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
             counter += 1
-            bunches = self.parser.getNumberCollidingBunches(run)[0]
+            print "\tGetting lumi info..."
             lumi_info = self.parser.getLumiInfo(run)                        # [( LS,ilum,psi,phys,cms_ready ) ]
+            bunches = self.parser.getNumberCollidingBunches(run)[0]
             run_data = self.getRunData(run,bunches,lumi_info)
             for name in run_data:
                 ls_array   = run_data[name]["LS"]
@@ -90,9 +104,12 @@ class DataParser:
     # overlap with one another (i.e. dataset names overlap with stream names) for the rate data.
     # getTriggerData(...) and getDatasetData(...) would still need to make sure to create a key:value
     # pair for bandwidth and size, so as to ensure that the structure is identical for every getter.
-    # Although the value will be different (i.e. None type vs. an array type), but this should be fine
     def getRunData(self,run,bunches,lumi_info):
         run_data = {}
+
+        if bunches is None or bunches is 0:
+            print "Unable to get bunches"
+            return {}
 
         if self.use_streams:
             run_data.update(self.getStreamData(run,bunches,lumi_info))
@@ -107,10 +124,6 @@ class DataParser:
 
     # Returns information related to L1/HLT triggers 
     def getTriggerData(self,run,bunches,lumi_info):
-        if bunches is None or bunches is 0:
-            print "Unable to get bunches"
-            return {}
-
         print "\tGetting HLT rates..."
         HLT_rates = self.parser.getRawRates(run)
         if self.correct_for_DT:
@@ -160,10 +173,6 @@ class DataParser:
         return run_data
 
     def getStreamData(self,run,bunches,lumi_info):
-        if bunches is None or bunches is 0:
-            print "Unable to get bunches"
-            return {}
-
         print "\tGetting Stream rates..."
         data = self.parser.getStreamData(run)   # {'stream': [ (LS,rate,size,bandwidth) ] }
 
@@ -215,10 +224,6 @@ class DataParser:
         return run_data
 
     def getDatasetData(self,run,bunches,lumi_info):
-        if bunches is None or bunches is 0:
-            print "Unable to get bunches"
-            return {}
-
         print "\tGetting Dataset rates..."
         data = self.parser.getPrimaryDatasets(run)   # {'dataset': [ (LS,rate) ] }
 
@@ -269,10 +274,6 @@ class DataParser:
 
     # NOTE: L1A_rates has a slightly different dict format, the value-pair for the LS keys is NOT a list
     def getL1AData(self,run,bunches,lumi_info):
-        if bunches is None or bunches is 0:
-            print "Unable to get bunches"
-            return {}
-
         L1A_rates = {}   # {'L1A': {LS: rate } }
         print "\tGetting L1APhysics rates..."
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
@@ -289,6 +290,8 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            bw_dict    = {}
+            size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if phys and not ilum is None and L1A_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
@@ -302,14 +305,16 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    bw_dict[LS] = None
+                    size_dict[LS] = None
 
             run_data[_object]["LS"] = ls_array
             run_data[_object]["rate"] = rate_dict
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
-            run_data[_object]["bandwidth"] = None
-            run_data[_object]["size"] = None
+            run_data[_object]["bandwidth"] = bw_dict
+            run_data[_object]["size"] = size_dict
         return run_data
 
     # Use: Modifies the rates in Rates, correcting them for deadtime
@@ -327,7 +332,7 @@ class DataParser:
                         del Rates[trigger][LS]
 
     # Creates a new dictionary key, that corresponds to the summed rates of all the specified objects
-    def sumObjects(self,new_name,sum_list):
+    def sumObjects(self,new_name,sum_list,obj_type):
         if not set(sum_list) <= set(self.name_list):
             print "ERROR: Specified objects that aren't in the name_list"
             return False
@@ -353,10 +358,6 @@ class DataParser:
             except KeyError:
                 print "WARNING: At least one object for summing has no data for run %d" % run
                 continue
-
-            #pu   = self.pu_data[obj][run][LS]
-            #lumi = self.lumi_data[obj][run][LS]
-            #det_ready  = self.det_data[obj][run][LS]
 
             self.ls_data[new_name][run]   = ls_array
 
@@ -388,9 +389,10 @@ class DataParser:
                 self.size_data[new_name][run][LS] = total_size
 
         self.name_list.append(new_name)
+        self.type_map[new_name] = obj_type
         return True
 
-    # Converts input: {'name': { run_number: { LS: raw_rates } } } --> {'name': run_number: [ data ] }
+    # Converts input: {'name': { run_number: { LS: data } } } --> {'name': run_number: [ data ] }
     def convertOutput(self,_input):
         output = {}
         for name in _input:
@@ -401,6 +403,9 @@ class DataParser:
                     output[name][run].append(_input[name][run][LS])
         return output
 
+####################################################################################################
+
+    # --- All the 'getters' ---
     def getLSData(self):
         return self.ls_data
 
@@ -428,6 +433,20 @@ class DataParser:
     def getDetectorStatus(self):
         if self.convert_output:
             output = self.convertOutput(self.det_data)
+        else:
+            output = self.det_data
+        return output
+
+    def getBandwidthData(self):
+        if self.convert_output:
+            output = self.convertOutput(self.bw_data)
+        else:
+            output = self.det_data
+        return output
+
+    def getSizeData(self):
+        if self.convert_output:
+            output = self.convertOutput(self.size_data)
         else:
             output = self.det_data
         return output
