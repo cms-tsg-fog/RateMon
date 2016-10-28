@@ -239,12 +239,12 @@ class MonitorController:
             run_list = sorted(self.rate_monitor.run_list)
 
             # We check that each run used a physics menu
-            tmp_list = []
-            for run in run_list:
-                if self.parser.getRunInfo(run):
-                    if self.parser.HLT_Key[:14] == "/cdaq/physics/":
-                        tmp_list.append(run)
-            run_list = list(tmp_list)
+            #tmp_list = []
+            #for run in run_list:
+            #    if self.parser.getRunInfo(run):
+            #        if self.parser.HLT_Key[:14] == "/cdaq/physics/":
+            #            tmp_list.append(run)
+            #run_list = list(tmp_list)
 
             if len(run_list) == 0:
                 print "No valid runs. Exiting"
