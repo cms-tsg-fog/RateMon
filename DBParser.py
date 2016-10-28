@@ -1,6 +1,6 @@
 ##################################
 # DB.py
-# Author: Charlie Mueller, Nathaniel Rupprecht, Andrew Wightman
+# Author: Charlie Mueller, Nathaniel Rupprecht, Alberto Zucchetta, Andrew Wightman
 # Date: June 11, 2015
 #
 # Data Type Key:

@@ -164,10 +164,10 @@ class FitFinder:
             fit_func = TF1("Linear Fit","pol1",0,maxX)
         elif fit_type == "quad":
             fit_func = TF1("Quadratic Fit","pol2",0,maxX)
-            fit_func.SetParameter(0,0.0)
-            fit_func.FixParameter(0,0.0)
         elif fit_type == "quad2":
             fit_func = TF1("Quadratic Fit","pol2",0,maxX)
+            fit_func.SetParameter(0,0.0)
+            fit_func.FixParameter(0,0.0)
         elif fit_type == "cube":
             fit_func = TF1("Cubic Fit" ,"pol3",0,maxX)
             fit_func.SetParameter(0,0.0)
