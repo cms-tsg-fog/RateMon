@@ -286,7 +286,7 @@ class MonitorController:
             # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
             hlt_triggers = set()
             for stream in stream_map:
-                if stream[:7] == "Physics":
+                #if stream[:7] == "Physics":
                     grp_map[stream] = stream_map[stream]
                     for item in stream_map[stream]:
                         hlt_triggers.add(item)
