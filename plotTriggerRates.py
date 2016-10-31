@@ -34,10 +34,13 @@ class MonitorController:
 
         self.rate_monitor.data_parser.normalize_bunches = True
 
-        self.rate_monitor.data_parser.use_triggers = True
+        self.rate_monitor.data_parser.use_L1_triggers  = True
+        self.rate_monitor.data_parser.use_HLT_triggers = True
         self.rate_monitor.data_parser.use_streams  = False 
         self.rate_monitor.data_parser.use_datasets = False
         self.rate_monitor.data_parser.use_L1A_rate = False
+
+        self.rate_monitor.fitter.use_best_fit = False
 
         self.rate_monitor.plotter.use_fills      = False       # Determines how to color the plots
         self.rate_monitor.plotter.use_fit        = False
@@ -84,7 +87,8 @@ class MonitorController:
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 xkcd = ""
             elif label == "--datasetRate":
-                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_L1_triggers  = False
+                self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -92,7 +96,8 @@ class MonitorController:
                 self.rate_monitor.plotter.file_name   = "Dataset_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
             elif label == "--L1ARate":
-                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_L1_triggers  = False
+                self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = True
@@ -100,7 +105,8 @@ class MonitorController:
                 self.rate_monitor.plotter.file_name   = "L1A_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
             elif label == "--streamRate":
-                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_L1_triggers  = False
+                self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -111,7 +117,8 @@ class MonitorController:
                 # NEEDS TO BE TESTED
                 self.rate_monitor.use_stream_bandwidth = True
 
-                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_L1_triggers  = False
+                self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -123,7 +130,8 @@ class MonitorController:
                 # NEEDS TO BE TESTED
                 self.rate_monitor.use_stream_size = True
 
-                self.rate_monitor.data_parser.use_triggers = False
+                self.rate_monitor.data_parser.use_L1_triggers  = False
+                self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -141,7 +149,8 @@ class MonitorController:
 
                 self.rate_monitor.use_grouping = True
 
-                self.rate_monitor.data_parser.use_triggers = True
+                self.rate_monitor.data_parser.use_L1_triggers  = True
+                self.rate_monitor.data_parser.use_HLT_triggers = True
                 self.rate_monitor.data_parser.use_streams  = True
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -164,7 +173,8 @@ class MonitorController:
                 self.rate_monitor.use_pileup = True
                 self.rate_monitor.make_fits  = False    # We make this false, since we need to make more then one fit file
 
-                self.rate_monitor.data_parser.use_triggers = True
+                self.rate_monitor.data_parser.use_L1_triggers  = True
+                self.rate_monitor.data_parser.use_HLT_triggers = True
                 self.rate_monitor.data_parser.use_streams  = False
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
@@ -267,6 +277,7 @@ class MonitorController:
             
             # Find which HLT paths are included in which streams
             try:
+                # {'stream': ['trigger_name'] }
                 stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
             except:
                 print "ERROR: Failed to get stream map"
