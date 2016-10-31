@@ -1,7 +1,103 @@
 Rewrite Tests
 ------------------------------
-Tests for  python plotTriggerRates_rewrite.py
-    * --cronJob --fitFile=FOG.pkl --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/cron_test 283453
-    * --createFit --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/rewrite_test1 283453
-    * --createFit --useFills  --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/.../dev/rewrite_test1 5352
-    * --streamRate --useFills --saveDirectory=/afs/.../dev/rewrite_test1 5352
+Tests for  python plotTriggerRates.py
+* CRON JOB TESTS
+    * --cronJob --fitFile=FOG.pkl --triggerList=monitorlist_COLLISIONS.list
+
+* FITTER OPTIONS
+    * --useFills
+    * --createFit
+    * --multiFit
+    * --bestFit
+    * --triggerList=
+
+* TRIGGER LISTS
+    * --triggerList=monitorlist_COLLISIONS.list
+    * --triggerList=monitorlist_HI.list
+
+* FIT FILES
+    * --fitFile=Fits/2016/Monitor_Triggers/FOG.pkl
+    * --fitFile=Fits/2016/All_Triggers/FOG.pkl
+
+* UPDATE ONLINE FITS OPTIONS
+    * --useFills
+    * --updateOnlineFits
+    * --fitFile=
+    * --triggerList=
+
+* MISC TESTS
+    * --fitFile=FOG.pkl --triggerList=monitorlist_COLLISIONS.list
+    * --streamRate --useFills
+
+Save Directories
+* CRON DIRECTORIES
+    * --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/cron_test
+
+* ONLINE FIT DIRECTORIES
+    * --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/online_fit_check
+
+* MISC DIRECTORIES
+    * --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test1
+
+Sample Inputs
+* SINGLE RUNS
+    * 283453
+        - Quick, good amount of data
+        - Covers Fill: 5424
+        - All runs are from AFTER the lumi ratio issue
+* MULTI RUNS
+    * 283453 283478 283481
+        - Fairly quick, good amount of data
+        - Covers Fills: 5424 5427
+        - All runs are from AFTER the lumi ratio issue
+    * 283933 283934 283946 283964
+        - Fairly long, covers two long fills
+        - Covers Fills: 5446 5448
+        - All runs are from AFTER the lumi ratio issue
+
+* SINGLE FILLS
+    * 5352
+        - Somewhat quick
+        - All fills are from BEFORE the lumi ratio issue
+    * 5424
+        - Fairly quick
+        - <PU> = 36 - 47
+        - All fills are from AFTER the lumi ratio issue
+    * 5451
+        - Fairly quick
+        - <PU> = 20 - 44
+        - All fill are from AFTER the lumi ratio issue
+
+* MULTI FILLS
+    * 5352 5355
+        - Fairly long
+        - <PU> = 16 - 42
+        - All fills are from BEFORE the lumi ratio issue
+    * 5446 5448
+        - Fairly long
+        - Same data as one of the above multi run entries
+        - All fills are from AFTER the lumi ratio issue
+    * 5442 5443 5451
+        - Quite long
+        - <PU> = 18 - 45
+        - All fills are from AFTER the lumi ratio issue
+
+Full String Tests:
+
+python plotTriggerRates.py --createFit --multiFit --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test1 283453 283478 283481
+
+python plotTriggerRates.py --createFit --multiFit --useFills  --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test2 5352 5355
+
+python plotTriggerRates.py --createFit --multiFit --useFills --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test3 5442
+
+python plotTriggerRates.py --cronJob --fitFile=FOG.pkl --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/cron_test 283453
+
+python plotTriggerRates.py --updateOnlineFits 283933 283934 283946 283964
+
+python plotTriggerRates.py --updateOnlineFits --useFills 5446 5448
+
+python plotTriggerRates.py --fitFile=Fits/2016/Monitor_Triggers/FOG.pkl --useFills --triggerList=monitorlist_COLLISIONS.list --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/online_fit_check 5352 5355
+
+python plotTriggerRates.py --multiFit --useFills --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test1 5446 5448
+
+python plotTriggerRates.py --bestFit --useFills --saveDirectory=/afs/cern.ch/user/a/awightma/www/dev/rewrite_test2 5446
