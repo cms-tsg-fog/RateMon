@@ -836,7 +836,6 @@ class DBParser:
             #print "database error querying for num colliding bx" 
             return [0, 0]
 
-    
     # Use: Gets the last LHC status
     # Returns: A dictionary: [ status ] <text_value>
     def getLHCStatus(self):
@@ -1037,7 +1036,6 @@ class DBParser:
             print "Please check if tier0 transfer is supposed to be off."
             
         return [runNumber[0], isCol, isGood, mode]
-
 
     def getWbmUrl(self,runNumber,pathName,LS):
         if pathName[0:4]=="HLT_":
@@ -1329,5 +1327,51 @@ class DBParser:
             L1_list.append(item[0])
 
         return L1_list
-            
+
+    # Functionally very similar to getL1RawRates, but allows for specifying which scalar type to query, also does no un-prescaling
+    def getL1Rates(self,runNumber,scaler_type):
+        self.getRunInfo(runNumber)
+        self.getL1Prescales(runNumber)
+        self.getL1NameIndexAssoc(runNumber)
+
+        #pre-DT rates query (new uGT)
+        #(0, 'ALGORITHM_RATE_AFTER_PRESCALE'),
+        #(1, 'ALGORITHM_RATE_BEFORE_PRESCALE'),
+        #(2, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE'),
+        #(3, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_BY_HLT'),
+        #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
+        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
+        #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
+
+        run_str = "0%d" % runNumber
+        query = """
+                SELECT
+                    LUMI_SECTIONS_ID,
+                    ALGO_RATE,
+                    ALGO_INDEX
+                FROM
+                    CMS_UGT_MON.VIEW_ALGO_SCALERS
+                WHERE
+                    SCALER_TYPE = %d AND
+                    LUMI_SECTIONS_ID LIKE '%s%%'
+                """ % (scaler_type,run_str)
+        self.curs.execute(query)
+
+        L1Triggers = {}
+        for tup in self.curs.fetchall():
+            ls = int(tup[0].split('_')[1].lstrip('0'))
+            rate = tup[1]
+            algo_bit = tup[2]
+
+            algo_name = self.L1NameIndexMap[algo_bit]
+            psi = self.PSColumnByLS[ls]
+            algo_ps = self.L1Prescales[algo_bit][psi]
+
+            if not L1Triggers.has_key(algo_name):
+                L1Triggers[algo_name] = {}
+
+            L1Triggers[algo_name][ls] = [rate, algo_ps]
+
+        return L1Triggers        # {'trigger': {LS: (rate,ps) } }
+
 # -------------------- End of class DBParsing -------------------- #

@@ -67,6 +67,7 @@ class PlotMaker:
     def setPlottingData(self,data):
         self.plotting_data = data
 
+    # This setter is trying to handle a lot of 'if' cases --> might want to move the logic into RateMonitor.py
     def setFits(self,fits):
         if self.use_multi_fit:
             # We want to plot all the fits
@@ -146,7 +147,6 @@ class PlotMaker:
         run_count = 0
         num_pts = 0
         for run in data:
-            #num_pts += len(data[run][0])
             x_pts,y_pts = self.fitFinder.removePoints(data[run][0],data[run][1])
             x_pts,y_pts = self.fitFinder.getGoodPoints(x_pts,y_pts)
             num_pts += len(y_pts)

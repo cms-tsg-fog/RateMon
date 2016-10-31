@@ -23,7 +23,7 @@ class FitFinder:
     def __init__(self):
         #self.fits_to_try = ["linear","quad"]
         self.fits_to_try = ["linear","quad","cube","exp"]
-        #self.fits_to_try = ["quad","quad2","cube"]
+        #self.fits_to_try = ["quad","cube","exp"]
 
         self.use_point_selection = True
         self.use_best_fit = False
@@ -196,9 +196,9 @@ class FitFinder:
             goodX, goodY = xVals, yVals
 
         if len(goodX) == 0 or len(goodY) == 0:
-            print "%s: No points - generating empty fit..." % name
-            print "\tlen(xVals): %s" % len(goodX)
-            print "\tlen(yVals): %s" % len(goodY)
+            #print "%s: No points - generating empty fit..." % name
+            #print "\tlen(xVals): %s" % len(goodX)
+            #print "\tlen(yVals): %s" % len(goodY)
             output_fits["empty"] = self.emptyFit()
             return output_fits
 
@@ -236,21 +236,6 @@ class FitFinder:
     # If no fit_type is specified, we save the fit with the smallest MSE
     def saveFits(self,fits,fname,fdir,fit_type=None):
         fits_to_save = {}           # {'trigger': fit_params}
-        #for trigger in fits:
-        #    if not fit_type is None:
-        #        fits_to_save[trigger] = fits[trigger][fit_type]
-        #    else:
-        #        min_MSE = None
-        #        best_fit = None
-        #        for f_type in fits[trigger]:
-        #            mse = fits[trigger][f_type][int(5)]
-        #            if min_MSE is None:
-        #                min_MSE = mse
-        #                best_fit = f_type
-        #            elif mse < min_MSE:
-        #                min_MSE = mse
-        #                best_fit = f_type
-        #        fits_to_save[trigger] = fits[trigger][best_fit]
         for trigger in fits:
             if fit_type is None:
                 b_type, b_fit = self.getBestFit(fits[trigger])

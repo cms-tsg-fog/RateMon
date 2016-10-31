@@ -48,10 +48,11 @@ class DataParser:
 
         self.max_dead_time = 10.
 
-        self.use_triggers = False   # Plot trigger rates
-        self.use_streams  = False   # Plot stream rates
-        self.use_datasets = False   # Plot dataset rates
-        self.use_L1A_rate = False   # Plots the L1A rates
+        self.use_L1_triggers  = False   # Plot L1 rates
+        self.use_HLT_triggers = False   # Plot HLT rates
+        self.use_streams      = False   # Plot stream rates
+        self.use_datasets     = False   # Plot dataset rates
+        self.use_L1A_rate     = False   # Plots the L1A rates
 
     def parseRuns(self,run_list):
         counter = 1
@@ -99,7 +100,7 @@ class DataParser:
 
     # This might be excessive, should think about reworking this section
     # ------
-    # We need to ensure that none of object names overlap with one another
+    # TODO: We need to ensure that none of object names overlap with one another
     # (i.e. dataset names overlap with stream names) for the rate data.
     def getRunData(self,run,bunches,lumi_info):
         run_data = {}
@@ -114,27 +115,21 @@ class DataParser:
             run_data.update(self.getDatasetData(run,bunches,lumi_info))
         if self.use_L1A_rate:
             run_data.update(self.getL1AData(run,bunches,lumi_info))
-        if self.use_triggers:
-            run_data.update(self.getTriggerData(run,bunches,lumi_info))
+        if self.use_HLT_triggers:
+            run_data.update(self.getHLTTriggerData(run,bunches,lumi_info))
+        if self.use_L1_triggers:
+            run_data.update(self.getL1TriggerData(run,bunches,lumi_info))
 
         return run_data
 
-    # Returns information related to L1/HLT triggers 
-    def getTriggerData(self,run,bunches,lumi_info):
-        print "\tGetting HLT rates..."
-        HLT_rates = self.parser.getRawRates(run)
-        if self.correct_for_DT:
-            self.correctForDeadtime(HLT_rates,run)
+    # Returns information related to L1 triggers 
+    def getL1TriggerData(self,run,bunches,lumi_info):
         print "\tGetting L1 rates..."
-        L1_rates = self.parser.getL1RawRates(run,self.correct_for_DT)
-
-        all_rates = {}  # {'trigger': {LS: (raw_rate, prescale) } }
-        all_rates.update(HLT_rates)
-        all_rates.update(L1_rates)
+        L1_rates = self.parser.getL1Rates(run,scaler_type=1)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
-        for trigger in all_rates:
+        for trigger in L1_rates:
             self.type_map[trigger] = "trigger"
             run_data[trigger] = {}
             ls_array   = array.array('f')
@@ -145,9 +140,53 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
-                if phys and not ilum is None and all_rates[trigger].has_key(LS):
+                if phys and not ilum is None and L1_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
-                    rate = all_rates[trigger][LS][0]
+                    rate = L1_rates[trigger][LS][0]
+
+                    if self.normalize_bunches:
+                        rate = rate/bunches
+
+                    ls_array.append(LS)
+                    rate_dict[LS] = rate
+                    pu_dict[LS] = pu
+                    lumi_dict[LS] = ilum
+                    det_dict[LS] = cms_ready
+                    bw_dict[LS] = None
+                    size_dict[LS] = None
+
+            run_data[trigger]["LS"] = ls_array
+            run_data[trigger]["rate"] = rate_dict
+            run_data[trigger]["PU"] = pu_dict
+            run_data[trigger]["ilumi"] = lumi_dict
+            run_data[trigger]["status"] = det_dict
+            run_data[trigger]["bandwidth"] = bw_dict
+            run_data[trigger]["size"] = size_dict
+        return run_data
+
+    # Returns information related to HLT triggers 
+    def getHLTTriggerData(self,run,bunches,lumi_info):
+        print "\tGetting HLT rates..."
+        HLT_rates = self.parser.getRawRates(run)
+        if self.correct_for_DT:
+            self.correctForDeadtime(HLT_rates,run)
+
+        run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
+
+        for trigger in HLT_rates:
+            self.type_map[trigger] = "trigger"
+            run_data[trigger] = {}
+            ls_array   = array.array('f')
+            rate_dict  = {}
+            pu_dict    = {}
+            lumi_dict  = {}
+            det_dict   = {}
+            bw_dict    = {}
+            size_dict  = {}
+            for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if phys and not ilum is None and HLT_rates[trigger].has_key(LS):
+                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    rate = HLT_rates[trigger][LS][0]
 
                     if self.normalize_bunches:
                         rate = rate/bunches

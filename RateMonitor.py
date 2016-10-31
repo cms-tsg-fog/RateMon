@@ -128,7 +128,7 @@ class RateMonitor:
             x_vals = self.data_parser.getPUData()
         elif self.use_lumi: # plot iLumi vs. rate
             x_vals = self.data_parser.getLumiData()
-        else:   # plot LS vs. rate
+        else:               # plot LS vs. rate
             x_vals = self.data_parser.getLSData()
 
         if self.use_stream_size:
@@ -219,7 +219,7 @@ class RateMonitor:
 
         # Check to see if the online fits directory exists
         if self.update_online_fits and not os.path.exists(self.online_fits_dir):
-            print "ERROR SETUP: Could not find online fit directory"
+            print "ERROR SETUP: Could not find fit directory"
             return False
 
         # We need to make sure we have the map between the plot objects and directories
@@ -337,15 +337,6 @@ class RateMonitor:
         self.plotter.units_X = x_units
         self.plotter.units_Y = y_units
 
-    # TODO: Might want to move this to FitFinder.py
-    def saveFits(self,fits,fname,fdir):
-        path = os.path.join(fdir,fname)
-        f = open(path, "wb")
-        pickle.dump(fits,f, 2)
-        f.close()
-        print "Fit file saved to %s" % path
-
-    ### UNFINISHED
     def updateOnlineFits(self,plot_data):
         # NOTE: self.object_list, contains *ONLY* the list of triggers from 'monitorlist_COLLISIONS.list'
         mon_trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
