@@ -61,10 +61,24 @@ class MonitorController:
     def parseArgs(self):
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["fitFile=","triggerList=","saveDirectory=","Secondary",
-                                                        "datasetRate","L1ARate","streamRate","streamBandwidth",
-                                                        "streamSize","cronJob","updateOnlineFits","createFit","multiFit",
-                                                        "bestFit","nonLinear","vsInstLumi","useFills"])
+            opt, args = getopt.getopt(sys.argv[1:],"",[ "fitFile=",
+                                                        "triggerList=",
+                                                        "saveDirectory=",
+                                                        "useFit=",
+                                                        "Secondary",
+                                                        "datasetRate",
+                                                        "L1ARate",
+                                                        "streamRate",
+                                                        "streamBandwidth",
+                                                        "streamSize",
+                                                        "cronJob",
+                                                        "updateOnlineFits",
+                                                        "createFit",
+                                                        "multiFit",
+                                                        "bestFit",
+                                                        "nonLinear",
+                                                        "vsInstLumi",
+                                                        "useFills"])
         except:
             print "Error getting options: command unrecognized. Exiting."
             return False
@@ -84,6 +98,16 @@ class MonitorController:
                 self.rate_monitor.object_list = trigger_list
             elif label == "--saveDirectory":
                 self.rate_monitor.save_dir = str(op)
+            elif label == "--useFit":
+                # NEEDS TO BE IMPLEMENTED/TESTED
+                self.rate_monitor.make_fits  = True
+
+                self.rate_monitor.plotter.default_fit = str(op)
+
+                self.rate_monitor.plotter.use_multi_fit = False
+                self.rate_monitor.plotter.use_fit     = True
+                self.rate_monitor.plotter.show_errors = True
+                self.rate_monitor.plotter.show_eq     = True
             elif label == "--Secondary":
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 xkcd = ""
@@ -279,7 +303,16 @@ class MonitorController:
             # Find which HLT paths are included in which streams
             try:
                 # {'stream': ['trigger_name'] }
-                stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
+                #stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
+                stream_map = {}
+                for run in run_list:
+                    tmp_map = self.parser.getPathsInStreams(run)
+                    for stream in tmp_map:
+                        if not stream_map.has_key(stream):
+                            stream_map[stream] = set()
+                        stream_map[stream] = stream_map[stream] | set(tmp_map[stream])
+                for stream in stream_map:
+                    stream_map[stream] = list(stream_map[stream])
             except:
                 print "ERROR: Failed to get stream map"
                 return False

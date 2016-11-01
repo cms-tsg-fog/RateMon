@@ -38,7 +38,7 @@ class DataParser:
 
         self.runs_used    = []
         self.runs_skipped = []
-        self.name_list = []     # List of named objects to be plotted, e.g. triggers, datasets, streams, etc...
+        self.name_list = []     # List of named objects for which we have data, e.g. triggers, datasets, streams, etc...
         self.type_map = {}      # Maps each object name to a type: trigger, dataset, stream, or L1A
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
@@ -54,6 +54,10 @@ class DataParser:
         self.use_streams      = False   # Plot stream rates
         self.use_datasets     = False   # Plot dataset rates
         self.use_L1A_rate     = False   # Plots the L1A rates
+
+        self.use_PLTZ_lumi = False
+        self.use_HF_lumi   = False
+        self.use_best_lumi = True
 
     def parseRuns(self,run_list):
         counter = 1
@@ -437,7 +441,7 @@ class DataParser:
             output[name] = {}
             for run in _input[name]:
                 output[name][run] = array.array('f')
-                for LS in sorted(_input[name][run].keys()):
+                for LS in sorted(_input[name][run].keys()):     # iterating over sorted LS is extremely important here
                     output[name][run].append(_input[name][run][LS])
         return output
 
@@ -497,3 +501,6 @@ class DataParser:
 
     def getNameList(self):
         return self.name_list
+
+    def getTypeMap(self):
+        return self.type_map
