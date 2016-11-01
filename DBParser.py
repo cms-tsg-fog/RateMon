@@ -125,40 +125,50 @@ class DBParser:
     # Parameters:
     # -- runNumber: the number of the run that we want data for
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
-    def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999):
-
-        # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
-        sqlquery =  """
-                    SELECT
-                        LUMISECTION,
-                        INSTLUMI,
-                        PRESCALE_INDEX,
-                        PHYSICS_FLAG*BEAM1_PRESENT, 
-                        PHYSICS_FLAG*BEAM1_PRESENT*EBP_READY*
-                            EBM_READY*EEP_READY*EEM_READY*
-                            HBHEA_READY*HBHEB_READY*HBHEC_READY*
-                            HF_READY*HO_READY*RPC_READY*
-                            DT0_READY*DTP_READY*DTM_READY*
-                            CSCP_READY*CSCM_READY*TOB_READY*
-                            TIBTID_READY*TECP_READY*TECM_READY*
-                            BPIX_READY*FPIX_READY*ESP_READY*ESM_READY 
-                    FROM
-                        CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,
-                        CMS_UGT_MON.VIEW_LUMI_SECTIONS B
-                    WHERE
-                        A.RUNNUMBER=%s AND
-                        B.RUN_NUMBER(+)=A.RUNNUMBER AND
-                        B.LUMI_SECTION(+)=A.LUMISECTION AND
-                        A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s AND
-                        A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
-                    """ % (runNumber, minLS, minLS, maxLS, maxLS)
-
-        try:
-            self.curs.execute(sqlquery) # Execute the query
-        except:
-            print "Getting LumiInfo failed. Exiting."
-            exit(2) # Exit with error
-        return self.curs.fetchall() # Return the results
+    def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999, lumi_source=0):
+        lumi_nibble = 16        # This is the value that WBM uses for lumi sections
+        query = """
+                SELECT
+                    B.INSTLUMI,
+                    A.PLTZERO_INSTLUMI,
+                    A.HF_INSTLUMI,
+                    B.LUMISECTION,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT*B.EBP_READY*
+                        B.EBM_READY*B.EEP_READY*B.EEM_READY*
+                        B.HBHEA_READY*B.HBHEB_READY*B.HBHEC_READY*
+                        B.HF_READY*B.HO_READY*B.RPC_READY*
+                        B.DT0_READY*B.DTP_READY*B.DTM_READY*
+                        B.CSCP_READY*B.CSCM_READY*B.TOB_READY*
+                        B.TIBTID_READY*B.TECP_READY*B.TECM_READY*
+                        B.BPIX_READY*B.FPIX_READY*B.ESP_READY*B.ESM_READY,
+                    C.PRESCALE_INDEX
+                FROM
+                    CMS_BEAM_COND.CMS_BRIL_LUMINOSITY A,
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B,
+                    CMS_UGT_MON.VIEW_LUMI_SECTIONS C
+                WHERE
+                    A.RUN = %s AND
+                    A.LUMINIBBLE = %s AND
+                    A.RUN = B.RUNNUMBER AND
+                    A.LUMISECTION = B.LUMISECTION AND
+                    C.RUN_NUMBER(+) = B.RUNNUMBER AND
+                    C.LUMI_SECTION(+) = B.LUMISECTION AND
+                    B.LUMISECTION >= %s AND C.LUMI_SECTION >= %s AND
+                    B.LUMISECTION <= %s AND C.LUMI_SECTION <= %s
+                ORDER BY
+                    LUMISECTION
+                """ % (runNumber,lumi_nibble,minLS,minLS,maxLS,maxLS)
+        self.curs.execute(query) # Execute the query
+        _list = []
+        for item in self.curs.fetchall():
+            ilum = item[lumi_source]
+            LS = item[3]
+            phys = item[4]
+            cms_ready = item[5]
+            psi = item[6]
+            _list.append([LS,ilum,psi,phys,cms_ready])
+        return _list
 
     # Use: Get the prescaled rate as a function 
     # Parameters: runNumber: the number of the run that we want data for
