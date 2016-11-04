@@ -57,7 +57,7 @@ class PlotMaker:
 
         self.default_fit = "quad"
 
-        self.use_fills = False
+        self.color_by_fill = False
         self.use_fit = False
         self.use_multi_fit = False
         self.show_errors = False
@@ -104,14 +104,14 @@ class PlotMaker:
 
         run_list = self.getRunList()
         
-        if len(self.fill_map.keys()) == 0 and self.use_fills:
+        if len(self.fill_map.keys()) == 0 and self.color_by_fill:
             print "WARNING: Unable to find fill map, will color by runs instead"
-            self.use_fills = False
+            self.color_by_fill = False
 
         old_fill = -1
         counter = 0
         for run in sorted(run_list):    # Ensures that runs will be grouped by fill_number
-            if self.use_fills:
+            if self.color_by_fill:
                 new_fill = self.fill_map[run]
                 if new_fill != old_fill:    # Only increment based on fill_numbers
                     old_fill = new_fill
@@ -208,7 +208,7 @@ class PlotMaker:
         color_map = self.getColorMap()
 
         leg_entries = 0
-        if self.use_fills:
+        if self.color_by_fill:
             leg_entries += self.fill_count
         else:
             leg_entries += run_count
@@ -257,7 +257,7 @@ class PlotMaker:
                 bunches = "-"
 
             legendStr = ""
-            if self.use_fills:
+            if self.color_by_fill:
                 new_fill = self.fill_map[run]
                 if new_fill != old_fill:
                     old_fill = new_fill
@@ -304,7 +304,7 @@ class PlotMaker:
         canvas.Update()
 
         # Draw Legend
-        if self.use_fills:
+        if self.color_by_fill:
             legend.SetHeader("%s fills (%s runs):" % (self.fill_count,run_count))
         else:
             legend.SetHeader("%s runs:" % (run_count) )
@@ -354,9 +354,57 @@ class PlotMaker:
 
         return err_graph
 
-    def getPredictionGraph(self):
+    def getPredictionGraph(self,trigger):
         # This is for Certify Mode
-        xkcd = ""
+        # This is just a mess of code ripped from RateMonitorNCR.py, simply so I can see what all is needed
+
+        self.predictionRec = {}  # A dict used to store predictions and prediction errors: [ 'name' ] { (LS), (pred), (err) }
+
+        runNum_cert = plottingData.keys()[0]
+
+
+        # Initialize our point arrays
+        lumisecs = array.array('f')
+        predictions = array.array('f')
+        lsError = array.array('f')
+        predError = array.array('f')
+        # Unpack values
+        fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
+        # Create our point arrays
+        iLumi = self.parser.getLumiInfo(runNumber) # iLumi is a list: ( { LS, instLumi } )
+        for LS, ilum, psi, phys, cms_ready in iLumi:
+            if not ilum is None and phys:
+                lumisecs.append(LS)
+                pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
+                # Either we have an exponential fit, or a polynomial fit
+                if fit_type == "exp":
+                    rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
+                else:
+                    rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                if rr<0: rr=0 # Make sure prediction is non negative
+                predictions.append(rr)
+                lsError.append(0)
+                predError.append(self.bunches*self.sigmas*sigma)
+        # Record for the purpose of doing checks
+        self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError)
+        # Set some graph options
+        fitGraph = TGraphErrors(len(lumisecs), lumisecs, predictions, lsError, predError)
+        fitGraph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
+        fitGraph.SetMarkerStyle(8)
+        fitGraph.SetMarkerSize(0.8)
+        fitGraph.SetMarkerColor(2) # Red
+        fitGraph.SetFillColor(4)
+        fitGraph.SetFillStyle(3003)
+        fitGraph.GetXaxis().SetLimits(min_xaxis_val, 1.1*max_xaxis_val)
+
+        predictionTGraph = fitGraph
+
+        maxPred = self.predictionRec[triggerName][runNum_cert][0][1]
+        if maxPred > max_yaxis_value: max_yaxis_value = maxPred
+
+        predictionTGraph.Draw("PZ3")
+        canvas.Update()
+        legend.AddEntry(predictionTGraph, "Fit ( %s \sigma )" % (self.sigmas))
 
     def getCertifyPlots(self):
         # Maybe
