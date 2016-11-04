@@ -20,9 +20,10 @@ from DBParser import *
 ppInelXsec = 80000.
 orbitsPerSec = 11246.
 
-# This is an interface for DBParser() to select and manage the data returned by DBParser()
 class DataParser:
+    # This is an interface for DBParser() to select and manage the data returned by DBParser()
     def __init__(self):
+        # type: () -> None
         self.parser = DBParser()
 
         # The lists all have the same number of elements, e.g.: len(self.lumi_data[trg][run]) == len(self.pu_data[trg][run])
@@ -55,18 +56,27 @@ class DataParser:
         self.use_datasets     = False   # Plot dataset rates
         self.use_L1A_rate     = False   # Plots the L1A rates
 
+        self.use_best_lumi = True
         self.use_PLTZ_lumi = False
         self.use_HF_lumi   = False
-        self.use_best_lumi = True
 
     def parseRuns(self,run_list):
+        # type: (List[int]) -> None
         counter = 1
         for run in sorted(run_list):
             print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
             counter += 1
             print "\tGetting lumi info..."
-            lumi_info = self.parser.getLumiInfo(run)                        # [( LS,ilum,psi,phys,cms_ready ) ]
             bunches = self.parser.getNumberCollidingBunches(run)[0]
+
+            # [( LS,ilum,psi,phys,cms_ready ) ]
+            if self.use_best_lumi:
+                lumi_info = self.parser.getLumiInfo(run,lumi_source=0)
+            elif self.use_PLTZ_lumi:
+                lumi_info = self.parser.getLumiInfo(run,lumi_source=1)
+            elif self.use_HF_lumi:
+                lumi_info = self.parser.getLumiInfo(run,lumi_source=2)
+
             run_data = self.getRunData(run,bunches,lumi_info)
             for name in run_data:
                 ls_array   = run_data[name]["LS"]
@@ -105,11 +115,11 @@ class DataParser:
 
     # This might be excessive, should think about reworking this section
     # ------
-    # TODO: We need to ensure that none of object names overlap with one another
-    # (i.e. dataset names overlap with stream names) for the rate data.
+    # TODO: We need to ensure that none of the object names overlap with one another
+    # (i.e. dataset names that overlap with stream names) for the rate data.
     def getRunData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         run_data = {}
-
         if bunches is None or bunches is 0:
             print "Unable to get bunches"
             return {}
@@ -129,6 +139,7 @@ class DataParser:
 
     # Returns information related to L1 triggers 
     def getL1TriggerData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         print "\tGetting L1 rates..."
         L1_rates = self.parser.getL1Rates(run,scaler_type=1)
 
@@ -171,6 +182,7 @@ class DataParser:
 
     # Returns information related to HLT triggers 
     def getHLTTriggerData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         print "\tGetting HLT rates..."
         HLT_rates = self.parser.getRawRates(run)
         if self.correct_for_DT:
@@ -214,6 +226,7 @@ class DataParser:
         return run_data
 
     def getStreamData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         print "\tGetting Stream rates..."
         data = self.parser.getStreamData(run)   # {'stream': [ (LS,rate,size,bandwidth) ] }
 
@@ -226,10 +239,17 @@ class DataParser:
                 stream_rates[name][LS] = [ rate, size, bandwidth ]
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
+        
+        blacklist = ["PhysicsEndOfFill","PhysicsMinimumBias0","PhysicsMinimumBias1","PhysicsMinimumBias2"]
+        sum_list = []
 
         for _object in stream_rates:
             self.type_map[_object] = "stream"
             run_data[_object] = {}
+
+            if _object[:7] == "Physics" and not _object in blacklist:
+                sum_list.append(_object)
+
             ls_array   = array.array('f')
             rate_dict  = {}
             pu_dict    = {}
@@ -262,9 +282,13 @@ class DataParser:
             run_data[_object]["status"] = det_dict
             run_data[_object]["bandwidth"] = bw_dict
             run_data[_object]["size"] = size_dict
+
+        self.sumObjects(run_data=run_data,new_name="Combined_Physics_Streams",sum_list=sum_list,obj_type="stream")
+
         return run_data
 
     def getDatasetData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         print "\tGetting Dataset rates..."
         data = self.parser.getPrimaryDatasets(run)   # {'dataset': [ (LS,rate) ] }
 
@@ -315,6 +339,7 @@ class DataParser:
 
     # NOTE: L1A_rates has a slightly different dict format, the value-pair for the LS keys is NOT a list
     def getL1AData(self,run,bunches,lumi_info):
+        # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         L1A_rates = {}   # {'L1A': {LS: rate } }
         print "\tGetting L1APhysics rates..."
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
@@ -362,86 +387,76 @@ class DataParser:
     # Parameters:
     # -- Rates: A dict - {'trigger': {LS: (raw_rate,prescale) } }
     def correctForDeadtime(self,Rates,run_number):
-        # Get the deadtime
+        # type: (Dict[str,object],int) -> None
         dead_time = self.parser.getDeadTime(run_number)
         for LS in dead_time:
             for trigger in Rates:
                 if Rates[trigger].has_key(LS): # Sometimes, LS's are missing
                     Rates[trigger][LS][0] *= (1. + dead_time[LS]/100.)
-                    #if deadTime[LS] > self.maxDeadTime and not self.certifyMode:
                     if dead_time[LS] > self.max_dead_time: # Do not plot lumis where deadtime is greater than 10%
                         del Rates[trigger][LS]
 
     # Creates a new dictionary key, that corresponds to the summed rates of all the specified objects
-    def sumObjects(self,new_name,sum_list,obj_type):
-        if not set(sum_list) <= set(self.name_list):
-            print "ERROR: Specified objects that aren't in the name_list"
+    # data: {'object': {"LS": list, "rate": {...}, ... } }
+    def sumObjects(self,run_data,new_name,sum_list,obj_type):
+        # type: (Dict[str,object],str,List[str],str) -> bool
+        if not set(sum_list) <= set(run_data.keys()):
+            print "\tERROR: Specified objects that aren't in the run_data"
             return False
-
         ref_name = sum_list[0]
+        ls_array   = array.array('f')
+        rate_dict  = {}
+        pu_dict    = {}
+        lumi_dict  = {}
+        det_dict   = {}
+        bw_dict    = {}
+        size_dict  = {}
 
-        self.ls_data[new_name]   = {}
-        self.rate_data[new_name] = {}
-        self.pu_data[new_name]   = {}
-        self.lumi_data[new_name] = {}
-        self.det_data[new_name]  = {}
-        self.bw_data[new_name]   = {}
-        self.size_data[new_name] = {}
+        # We only use LS that are in *all* of the objects
+        ls_set = set(run_data[ref_name]["LS"])
+        for name in sum_list:
+            ls_set = ls_set & set(run_data[name]["LS"])
+        ls_array.extend(sorted(ls_set))
 
-        for run in self.runs_used:
-            # Use only LS that are in ALL objects
-            # Possible alternative, is to instead assume rate = 0 for objects missing LS
-            try:
-                ls_set = set(self.ls_data[sum_list[0]][run])
-                for obj in sum_list:
-                    ls_set = ls_set & set(self.ls_data[obj][run])
-                ls_array = array.array('f')
-                ls_array.extend(sorted(ls_set))
-            except KeyError:
-                print "WARNING: At least one object for summing has no data for run %d" % run
-                continue
+        for LS in ls_array:
+            total_rate = 0
+            total_bw   = 0
+            total_size = 0
+            for name in sum_list:
+                total_rate += run_data[name]["rate"][LS]
+                try: total_bw     += run_data[name]["bandwidth"][LS]
+                except: total_bw   = None
 
-            self.ls_data[new_name][run]   = ls_array
+                try: total_size   += run_data[name]["size"][LS]
+                except: total_size = None
+            rate_dict[LS] = total_rate
+            bw_dict[LS]   = total_bw
+            size_dict[LS] = total_size
+            pu_dict[LS]   = run_data[ref_name]["PU"][LS]
+            lumi_dict[LS] = run_data[ref_name]["ilumi"][LS]
+            det_dict[LS]  = run_data[ref_name]["status"][LS]
 
-            self.rate_data[new_name][run] = {}
-            self.pu_data[new_name][run]   = {}
-            self.lumi_data[new_name][run] = {}
-            self.det_data[new_name][run]  = {}
-            self.bw_data[new_name][run]   = {}
-            self.size_data[new_name][run] = {}
-
-            for LS in ls_array:
-                self.pu_data[new_name][run][LS]   = self.pu_data[ref_name][run][LS]
-                self.lumi_data[new_name][run][LS] = self.lumi_data[ref_name][run][LS]
-                self.det_data[new_name][run][LS]  = self.det_data[ref_name][run][LS]
-
-                total_rate = 0
-                total_bw = 0
-                total_size = 0
-                for obj in sum_list:
-                    total_rate += self.rate_data[obj][run][LS]
-                    try:
-                        total_bw   += self.bw_data[obj][run][LS]
-                        total_size += self.size_data[obj][run][LS]
-                    except:
-                        total_bw = None
-                        total_size = None
-                self.rate_data[new_name][run][LS] = total_rate
-                self.bw_data[new_name][run][LS] = total_bw
-                self.size_data[new_name][run][LS] = total_size
-
-        self.name_list.append(new_name)
         self.type_map[new_name] = obj_type
+        run_data[new_name] = {}
+        run_data[new_name]["LS"]        = ls_array
+        run_data[new_name]["rate"]      = rate_dict
+        run_data[new_name]["PU"]        = pu_dict
+        run_data[new_name]["ilumi"]     = lumi_dict
+        run_data[new_name]["status"]    = det_dict
+        run_data[new_name]["bandwidth"] = bw_dict
+        run_data[new_name]["size"]      = size_dict
+
         return True
 
-    # Converts input: {'name': { run_number: { LS: data } } } --> {'name': run_number: [ data ] }
+    # Converts input: {'name': { run_number: { LS: data } } } --> {'name': {run_number: [ data ] } }
     def convertOutput(self,_input):
+        # type: (Dict[str,object]) -> Dict[str,object]
         output = {}
         for name in _input:
             output[name] = {}
             for run in _input[name]:
                 output[name][run] = array.array('f')
-                for LS in sorted(_input[name][run].keys()):     # iterating over sorted LS is extremely important here
+                for LS in sorted(_input[name][run].keys()):     # iterating over *sorted* LS is extremely important here
                     output[name][run].append(_input[name][run][LS])
         return output
 
@@ -449,9 +464,11 @@ class DataParser:
 
     # --- All the 'getters' ---
     def getLSData(self):
+        # type: () -> Dict[str,object]
         return self.ls_data
 
     def getRateData(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.rate_data)
         else:
@@ -459,6 +476,7 @@ class DataParser:
         return output
 
     def getPUData(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.pu_data)
         else:
@@ -466,6 +484,7 @@ class DataParser:
         return output
 
     def getLumiData(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.lumi_data)
         else:
@@ -473,6 +492,7 @@ class DataParser:
         return output
 
     def getDetectorStatus(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.det_data)
         else:
@@ -480,6 +500,7 @@ class DataParser:
         return output
 
     def getBandwidthData(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.bw_data)
         else:
@@ -487,6 +508,7 @@ class DataParser:
         return output
 
     def getSizeData(self):
+        # type: () -> Dict[str,object]
         if self.convert_output:
             output = self.convertOutput(self.size_data)
         else:
@@ -494,13 +516,25 @@ class DataParser:
         return output
 
     def getBunchMap(self):
+        # type: () -> Dict[int,int]
         return self.bunch_map
 
     def getRunsUsed(self):
+        # type: () -> List[int]
         return self.runs_used
 
     def getNameList(self):
+        # type: () -> List[int]
         return self.name_list
 
+    def getObjectList(self,obj_type):
+        # type: (str) -> List[str]
+        _list = []
+        for obj in self.name_list:
+            if self.type_map[obj] == obj_type:
+                _list.append(obj)
+        return _list
+
     def getTypeMap(self):
+        # type: () -> Dict[str,str]
         return self.type_map

@@ -19,6 +19,8 @@ from RateMonitor import *
 
 class MonitorController:
     def __init__(self):
+        # type: () -> None
+
         self.parser = DBParser()
         self.rate_monitor = RateMonitor()
 
@@ -43,7 +45,7 @@ class MonitorController:
 
         self.rate_monitor.fitter.use_best_fit = False
 
-        self.rate_monitor.plotter.use_fills      = False       # Determines how to color the plots
+        self.rate_monitor.plotter.color_by_fill  = False       # Determines how to color the plots
         self.rate_monitor.plotter.use_fit        = False
         self.rate_monitor.plotter.use_multi_fit  = False
         self.rate_monitor.plotter.show_errors    = False
@@ -59,6 +61,8 @@ class MonitorController:
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
+        # type: () -> bool
+
         # Get the command line arguments
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",[ "fitFile=",
@@ -110,7 +114,19 @@ class MonitorController:
                 self.rate_monitor.plotter.show_eq     = True
             elif label == "--Secondary":
                 # NEEDS TO BE IMPLEMENTED/TESTED
-                xkcd = ""
+                self.rate_monitor.certify_mode = True
+
+                self.rate_monitor.use_pileup = False
+                self.rate_monitor.use_lumi   = False
+                self.rate_monitor.use_fills  = False
+                self.rate_monitor.make_fits  = False
+
+                self.rate_monitor.data_parser.use_L1_triggers   = True
+                self.rate_monitor.data_parser.use_HLT_triggers  = True
+                self.rate_monitor.data_parser.normalize_bunches = False
+
+                self.rate_monitor.plotter.use_fit = True
+
             elif label == "--datasetRate":
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
@@ -180,7 +196,7 @@ class MonitorController:
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
 
-                self.rate_monitor.plotter.use_fills   = False       # Determines how to color the plots
+                self.rate_monitor.plotter.color_by_fill = False       # Determines how to color the plots
 
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
@@ -241,7 +257,7 @@ class MonitorController:
                 self.rate_monitor.use_lumi = True
             elif label == "--useFills":
                 self.rate_monitor.use_fills = True
-                self.rate_monitor.plotter.use_fills = True  # Might want to make this an optional switch
+                self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -333,6 +349,8 @@ class MonitorController:
         return True
 
     def readFits(self,fit_file):
+        # type: (str) -> Dict[str,Dict[str,List[Any]]]
+
         fits = {}
         # Try to open the file containing the fit info
         try:
@@ -352,6 +370,8 @@ class MonitorController:
             return {}
 
     def readTriggerList(self,trigger_file):
+        # type: (str) -> List[str]
+
         path = trigger_file
         f = open(path,'r')
 
@@ -368,6 +388,8 @@ class MonitorController:
 
     # Gets the runs from each fill specified in arg_list
     def getRuns(self,arg_list):
+        # type: (List[int]) -> List[int]
+
         if len(arg_list) == 0:
             print "No fills specified!"
             return []
@@ -388,6 +410,7 @@ class MonitorController:
 
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     def run(self):
+        # type: () -> None
         if self.parseArgs(): self.rate_monitor.run()
 
 ## ----------- End of class MonitorController ------------ #
