@@ -50,8 +50,6 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
         self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
-        #self.fitFile = "../HLT_Fit_Run275911-276244_Tot12_fit.pkl"
-        #        self.fitFile = ""#fits__273013-273017/HLT_Fit_Run273013-273017_Tot12_fit.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
         # DBParser
@@ -64,7 +62,7 @@ class ShiftMonitor:
         # Run control
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
-        self.numBunches = [-1, -1]     # Number of [target, colliding] bunches
+        self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = []               # If we want to only look at a range of LS from the run
@@ -82,7 +80,8 @@ class ShiftMonitor:
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
-        self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode 
+        #self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
+        self.collisions_triggerList = "monitorlist_HI.list"
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list 
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -181,13 +180,13 @@ class ShiftMonitor:
     # Returns: (void)
     def run(self):
         # Load the fit and trigger list
-        if self.fitFile!="":
+        if self.fitFile != "":
             inputFit = self.loadFit(self.fitFile)
             for triggerName in inputFit:
-                if triggerName[0:3]=="L1_":
+                if triggerName[0:3] == "L1_":
                     if self.InputFitL1 is None: self.InputFitL1 = {}
                     self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
-                elif triggerName[0:4] =="HLT_":
+                elif triggerName[0:4] == "HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
                     self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
         
@@ -210,7 +209,6 @@ class ShiftMonitor:
             # Info message
             print "The current run number is %s." % (self.runNumber)
         # If we are observing a single run from the past
-        ##elif not self.simulate:
         else:
             try:
                 self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
@@ -220,11 +218,6 @@ class ShiftMonitor:
             self.runLoop()
             self.checkTriggers()
             return
-
-        # If we are simulating a previous run
-        #if self.simulate:
-        #    self.simulateRun()
-        #    return
 
         # Run as long as we can
         self.setMode()
@@ -290,30 +283,26 @@ class ShiftMonitor:
             self.redoTriggerLists()
             
         # Get Rates: [triggerName][LS] { raw rate, prescale }
-        ##if not self.simulate: self.getRates()
         self.getRates()
-        #Construct (or reconstruct) trigger lists
+        # Construct (or reconstruct) trigger lists
         if self.redoTList:
             self.redoTriggerLists()
 
         # Make sure there is info to use
-        
         if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
             self.redoTList = True
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
             self.redoTList = True
             return
-        
-        # If we are not simulating a previous run. Otherwise, we already set lastLS and currentLS
-        ##if not self.simulate:
+
         lslist = []
         for trig in self.Rates.keys():
-            if len(self.Rates[trig])>0: lslist.append(max(self.Rates[trig]))
+            if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
         # Update lastLS
         self.lastLS = self.currentLS
         # Update current LS
-        if len(lslist)>0: self.currentLS = max(lslist)
+        if len(lslist) > 0: self.currentLS = max(lslist)
         
         if self.useLSRange: # Adjust runs so we only look at those in our range
             self.slidingLS = -1 # No sliding LS window
@@ -485,27 +474,26 @@ class ShiftMonitor:
             if not count == 0:
                 aveDeadTime /= float(count)
                 aveL1rate /= float(count)
-            
-            
+
         self.lumi_ave = aveLumi
         if self.numBunches[0] > 0 and not aveLumi == "NONE":
             self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
             self.pu_ave = "NONE"
         # We only do predictions when there were physics active LS in a collisions run
-        doPred = physicsActive and self.mode=="collisions"
+        doPred = physicsActive and self.mode == "collisions"
         # Print the header
         self.printHeader()
         # Print the triggers that we can make predictions for
         anytriggers = False
-        if len(self.usableHLTTriggers)>0:
+        if len(self.usableHLTTriggers) > 0:
             print '*' * self.hlength
             print "Predictable HLT Triggers (ones we have a fit for)"
             print '*' * self.hlength
             anytriggers = True
         self.L1 = False
         self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
-        if len(self.usableL1Triggers)>0:
+        if len(self.usableL1Triggers) > 0:
             print '*' * self.hlength
             print "Predictable L1 Triggers (ones we have a fit for)"
             print '*' * self.hlength
@@ -642,7 +630,8 @@ class ShiftMonitor:
         
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0):
-        self.tableData = [] # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+        # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+        self.tableData = []
 
         # Get the trigger data
         for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
