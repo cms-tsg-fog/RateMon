@@ -483,7 +483,8 @@ class ShiftMonitor:
         else:
             self.pu_ave = "NONE"
         # We only do predictions when there were physics active LS in a collisions run
-        doPred = physicsActive and self.mode == "collisions"
+        #doPred = physicsActive and self.mode == "collisions"
+        doPred = False
         # Print the header
         self.printHeader()
         # Print the triggers that we can make predictions for
