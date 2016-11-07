@@ -371,18 +371,20 @@ class ShiftMonitor:
 
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
-            if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
-            (len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
+            #if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
+            #(len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
+            if trigger in self.TriggerListHLT:
                 self.usableHLTTriggers.append(trigger)
             elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
             elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
 
         for trigger in self.L1Rates.keys():
-            if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
-            (len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
+            #if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
+            #(len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
+            if trigger in self.TriggerListL1:
                 self.usableL1Triggers.append(trigger)
-            elif trigger[0:3] == "L1_" and (self.triggerList =="" or trigger in self.TriggerListL1):
+            elif trigger[0:3] == "L1_" and (self.triggerList == "" or trigger in self.TriggerListL1):
                 self.otherL1Triggers.append(trigger)
             elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
                         
