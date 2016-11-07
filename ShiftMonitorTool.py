@@ -144,7 +144,7 @@ class CommandLineParser:
         print "--AllTriggers             : We will list the rates from unpredictable HLT Triggers."
         print "--L1Triggers              : We will monitor the unpredictable L1 Triggers as well."
         print ""
-        print "Formatt Options:"
+        print "Format Options:"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
 #        print "--quiet                   : Prints fewer messages."
         print ""
