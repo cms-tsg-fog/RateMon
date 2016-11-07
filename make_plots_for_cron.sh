@@ -13,6 +13,9 @@ theFillsAndRuns=$(python test_dump_fills_runs.py)
 theRuns="${theFillsAndRuns[@]:5}"
 theFill="${theFillsAndRuns[@]:0:4}"
 
+#theRuns="284006 284014"
+#theFill=5450
+
 # Do subset of triggers:
 python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns
 
@@ -39,7 +42,7 @@ insertSixth='<h4><a href="./MoreTriggers/L1_Triggers/">L1 Trigger Rates</a></h4>
 cd $outputDirBase$theFill
 appendString=''
 
-for D in `find ./MoreTriggers/ -maxdepth 1 -mindepth 1 -type d`
+for D in `find ./MoreTriggers/ -maxdepth 1 -mindepth 1 -type d | sort`
 do
     Dstrip=${D#./MoreTriggers/}
     if [ $Dstrip == 'Monitored_Triggers' ] || [ $Dstrip == 'Streams' ] || [ $Dstrip == 'Datasets' ] || [ $Dstrip == 'L1_Triggers' ]
