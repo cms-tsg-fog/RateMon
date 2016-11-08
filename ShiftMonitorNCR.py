@@ -106,8 +106,10 @@ class ShiftMonitor:
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
-        self.maxHLTRate = 500           # The maximum prescaled rate we allow an HLT Trigger to have
-        self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
+        #self.maxHLTRate = 500           # The maximum prescaled rate we allow an HLT Trigger to have
+        #self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
+        self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
+        self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
@@ -115,8 +117,8 @@ class ShiftMonitor:
         self.sendMailAlerts_dynamic = self.sendMailAlerts_static      
         self.sendAudioAlerts = False    # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
-        self.showStreams = False         # Whether we should print stream information
-        self.showPDs = False             # Whether we should print pd information
+        self.showStreams = False        # Whether we should print stream information
+        self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have        
@@ -140,7 +142,7 @@ class ShiftMonitor:
         TriggerList = []
         for triggerName in allTriggerNames:
             # Recognize comments
-            if triggerName[0]=='#': continue
+            if triggerName[0] == '#': continue
             try:
                 if not str(triggerName) in TriggerList:
                     TriggerList.append(stripVersion(str(triggerName)))
@@ -349,7 +351,7 @@ class ShiftMonitor:
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
 
-        #set trigger lists automatically based on mode
+        # Set trigger lists automatically based on mode
         if not self.useAll and not self.userSpecTrigList:
             if self.mode == "cosmics" or self.mode == "circulate":
                 self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
@@ -749,7 +751,7 @@ class ShiftMonitor:
             doPred = False
         
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
-        if not doPred and self.removeZeros and aveRate==0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
+        if not doPred and self.removeZeros and aveRate == 0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
 
         # We want this trigger to be in the table
         row = [trigger]
