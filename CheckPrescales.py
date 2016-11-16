@@ -282,20 +282,22 @@ def GetExpressHLTPhysicsSmartPS(cursor,HLT_Key):
     cursor.execute(query)
     expressSet = set()
     for HLTPath,smartPSs in cursor.fetchall():
-        if (HLTPath=="ExpressOutput"):
+        if (HLTPath=="ExpressOutput" or HLTPath=="ExpressPAOutput"):
             expressSet = smartPSs
             
     trysomething = str(expressSet)
     trysomething = trysomething.lstrip('{  ').rstrip('  }')
     smartVect = [x.strip() for x in trysomething.split(" , ")]
     smartPS = []
-    
+
     for elem in smartVect:
         if 'HLT_Physics_v' in elem:
             elem = elem.lstrip('"').rstrip('"')
             smartPS = [x.strip() for x in elem.split(" / ")]
-
-    return int(smartPS[1])
+    
+    if (len(smartPS)==2):
+        return int(smartPS[1])  #<--smart PS found
+    return 1                    #<--no smart PS
 
 def isSequential(row,ignore):
     seq = True
