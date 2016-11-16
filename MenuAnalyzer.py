@@ -28,8 +28,11 @@ class MenuAnalyzer:
                                        'DQMCalibration' : ['TestEnablesEcalHcalDQM'],
                                        'DQM' : 'OnlineMonitor'}
         self.ExpressStreamName = 'Express'
+        if ('Protonion' in name):
+            self.ExpressStreamName = 'ExpressPA'
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
-                                 'ExpressCosmics' : 'Cosmics' }
+                                 'ExpressCosmics' : 'Cosmics', 
+                                 'ExpressPhysicsPA' : 'pPb Collisions' }
 
         self.expressType = ''
 
