@@ -204,7 +204,7 @@ class MenuAnalyzer:
                 self.Results['checkEventContent'].append(stream+'::drop *')
             if not eventContent.requiredEventContent.has_key(stream):
                 continue
-            elif ('Protonion' in name) and stream == 'DQM':
+            elif ('Protonion' in self.menuName) and stream == 'DQM':
                 stream = 'DQM_PA'
             requiredContent = eventContent.requiredEventContent[stream]
             #check to see if stream contains required content
