@@ -202,7 +202,10 @@ class MenuAnalyzer:
             #first check for a drop statement
             if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
                 self.Results['checkEventContent'].append(stream+'::drop *')
-            if not eventContent.requiredEventContent.has_key(stream): continue
+            if not eventContent.requiredEventContent.has_key(stream):
+                continue
+            elif ('Protonion' in name) and stream == 'DQM':
+                stream = 'DQM_PA'
             requiredContent = eventContent.requiredEventContent[stream]
             #check to see if stream contains required content
             for entry in requiredContent:
