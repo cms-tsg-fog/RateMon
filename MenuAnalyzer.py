@@ -153,7 +153,7 @@ class MenuAnalyzer:
         self.Results['reqEndPaths'] = []
         for endpath in self.requiredEndPaths:
             if not endpath in self.endPathList:
-                self.Results.['reqEndPaths'].append(endpath)
+                self.Results['reqEndPaths'].append(endpath)
 
     def checkExpress(self):
         self.Results['checkExpress'] = []
