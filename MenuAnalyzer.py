@@ -27,6 +27,7 @@ class MenuAnalyzer:
                                        'EcalCalibration' : ['EcalLaser'],
                                        'DQMCalibration' : ['TestEnablesEcalHcalDQM'],
                                        'DQM' : 'OnlineMonitor'}
+        self.requiredEndPaths = ['DQMHistograms']
         self.ExpressStreamName = 'Express'
         if ('Protonion' in name):
             self.ExpressStreamName = 'ExpressPA'
@@ -58,6 +59,7 @@ class MenuAnalyzer:
             'numberOfPaths' : self.checkNumPaths,
             'numberOfEndPaths' : self.checkNumEndPaths,
             'reqStreamsAndPDs' : self.reqStreamsAndPDs,
+            'reqEndPaths' : self.reqEndPaths,
             'checkExpress' : self.checkExpress,
             'checkNameFormats' :self.checkNameFormats,
             'checkEventContent':self.checkEventContent,
@@ -147,6 +149,12 @@ class MenuAnalyzer:
             for PD in PDList:
                 if not PD in self.requiredStreamsAndPDs[stream]: self.Results['reqStreamsAndPDs'].append(stream+'::'+PD)
     
+    def reqEndPaths(self):
+        self.Results['reqEndPaths'] = []
+        for endpath in self.requiredEndPaths:
+            if not endpath in self.endPathList:
+                self.Results.['reqEndPaths'].append(endpath)
+
     def checkExpress(self):
         self.Results['checkExpress'] = []
         if not self.perStreamPDList.has_key(self.ExpressStreamName):
