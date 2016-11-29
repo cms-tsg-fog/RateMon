@@ -29,13 +29,14 @@ class DataParser:
         # The lists all have the same number of elements, e.g.: len(self.lumi_data[trg][run]) == len(self.pu_data[trg][run])
         self.ls_data   = {}    # {'name': { run_number: [LS] } }
         self.rate_data = {}    # {'name': { run_number: { LS: raw_rates } } }
+        self.ps_data   = {}    # {'name': { run_number: { LS: prescale  } } }
         self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
         self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
         self.det_data  = {}    # {'name': { run_number: { LS: detecotr_ready } } }
         self.bw_data   = {}    # {'name': { run_number: { LS: bandwidth } } }
         self.size_data = {}    # {'name': { run_number: { LS: size } } }
         self.lumi_info = {}    # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
-        self.bunch_map = {}    # {run_number: nBunches}
+        self.bunch_map = {}    # {run_number: nBunches }
 
         self.runs_used    = []
         self.runs_skipped = []
@@ -44,11 +45,14 @@ class DataParser:
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
-        self.normalize_bunches = True
+        self.use_prescaled_rate = False
+        self.normalize_bunches  = True
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
 
-        self.max_dead_time = 10.
+        self.max_deadtime = 10.
+        self.min_ls = -1
+        self.max_ls = 9999999
 
         self.use_L1_triggers  = False   # Plot L1 rates
         self.use_HLT_triggers = False   # Plot HLT rates
@@ -60,27 +64,30 @@ class DataParser:
         self.use_PLTZ_lumi = False
         self.use_HF_lumi   = False
 
+        self.verbose = True
+
     def parseRuns(self,run_list):
         # type: (List[int]) -> None
         counter = 1
         for run in sorted(run_list):
-            print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
+            if self.verbose: print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
             counter += 1
-            print "\tGetting lumi info..."
             bunches = self.parser.getNumberCollidingBunches(run)[0]
 
+            if self.verbose: print "\tGetting lumi info..."
             # [( LS,ilum,psi,phys,cms_ready ) ]
             if self.use_best_lumi:
-                lumi_info = self.parser.getLumiInfo(run,lumi_source=0)
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
             elif self.use_PLTZ_lumi:
-                lumi_info = self.parser.getLumiInfo(run,lumi_source=1)
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
             elif self.use_HF_lumi:
-                lumi_info = self.parser.getLumiInfo(run,lumi_source=2)
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
 
             run_data = self.getRunData(run,bunches,lumi_info)
             for name in run_data:
                 ls_array   = run_data[name]["LS"]
                 rate       = run_data[name]["rate"]
+                prescale   = run_data[name]["prescale"]
                 pu         = run_data[name]["PU"]
                 lumi       = run_data[name]["ilumi"]
                 det_status = run_data[name]["status"]
@@ -92,6 +99,7 @@ class DataParser:
 
                     self.ls_data[name]   = {}
                     self.rate_data[name] = {}
+                    self.ps_data[name]   = {}
                     self.pu_data[name]   = {}
                     self.lumi_data[name] = {}
                     self.det_data[name]  = {}
@@ -100,6 +108,7 @@ class DataParser:
 
                 self.ls_data[name][run]   = ls_array
                 self.rate_data[name][run] = rate
+                self.ps_data[name][run]   = prescale
                 self.pu_data[name][run]   = pu
                 self.lumi_data[name][run] = lumi
                 self.det_data[name][run]  = det_status
@@ -121,7 +130,7 @@ class DataParser:
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         run_data = {}
         if bunches is None or bunches is 0:
-            print "Unable to get bunches"
+            if self.verbose: print "Unable to get bunches"
             return {}
 
         if self.use_streams:
@@ -140,8 +149,8 @@ class DataParser:
     # Returns information related to L1 triggers 
     def getL1TriggerData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        print "\tGetting L1 rates..."
-        L1_rates = self.parser.getL1Rates(run,scaler_type=1)
+        if self.verbose: print "\tGetting L1 rates..."
+        L1_rates = self.parser.getL1Rates(run,minLS=self.min_ls,maxLS=self.max_ls,scaler_type=1)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
@@ -150,6 +159,7 @@ class DataParser:
             run_data[trigger] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
@@ -159,12 +169,20 @@ class DataParser:
                 if phys and not ilum is None and L1_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1_rates[trigger][LS][0]
+                    prescale = L1_rates[trigger][LS][1]
 
                     if self.normalize_bunches:
                         rate = rate/bunches
 
+                    if self.use_prescaled_rate:
+                        if prescale != 0:
+                            rate = rate/prescale
+                        #else:
+                        #    rate = 0
+
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    ps_dict[LS] = prescale
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
@@ -173,6 +191,7 @@ class DataParser:
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
+            run_data[trigger]["prescale"] = ps_dict
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
             run_data[trigger]["status"] = det_dict
@@ -183,8 +202,8 @@ class DataParser:
     # Returns information related to HLT triggers 
     def getHLTTriggerData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        print "\tGetting HLT rates..."
-        HLT_rates = self.parser.getRawRates(run)
+        if self.verbose: print "\tGetting HLT rates..."
+        HLT_rates = self.parser.getRawRates(run,minLS=self.min_ls,maxLS=self.max_ls)
         if self.correct_for_DT:
             self.correctForDeadtime(HLT_rates,run)
 
@@ -195,6 +214,7 @@ class DataParser:
             run_data[trigger] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
@@ -204,12 +224,20 @@ class DataParser:
                 if phys and not ilum is None and HLT_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = HLT_rates[trigger][LS][0]
+                    prescale = HLT_rates[trigger][LS][1]
 
                     if self.normalize_bunches:
                         rate = rate/bunches
 
+                    if self.use_prescaled_rate:
+                        if prescale != 0:
+                            rate = rate/prescale
+                        #else:
+                        #    rate = 0
+
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    ps_dict[LS] = prescale
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
@@ -218,6 +246,7 @@ class DataParser:
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
+            run_data[trigger]["prescale"] = ps_dict
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
             run_data[trigger]["status"] = det_dict
@@ -227,8 +256,8 @@ class DataParser:
 
     def getStreamData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        print "\tGetting Stream rates..."
-        data = self.parser.getStreamData(run)   # {'stream': [ (LS,rate,size,bandwidth) ] }
+        if self.verbose: print "\tGetting Stream rates..."
+        data = self.parser.getStreamData(run,minLS=self.min_ls,maxLS=self.max_ls)   # {'stream': [ (LS,rate,size,bandwidth) ] }
 
         stream_rates = {}   # {'stream': {LS: (rate,size,bandwidth) } }
 
@@ -252,6 +281,7 @@ class DataParser:
 
             ls_array   = array.array('f')
             rate_dict  = {}
+            ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
@@ -269,6 +299,7 @@ class DataParser:
 
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    ps_dict[LS] = None
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
@@ -277,6 +308,7 @@ class DataParser:
 
             run_data[_object]["LS"] = ls_array
             run_data[_object]["rate"] = rate_dict
+            run_data[_object]["prescale"] = ps_dict
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
@@ -289,8 +321,8 @@ class DataParser:
 
     def getDatasetData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        print "\tGetting Dataset rates..."
-        data = self.parser.getPrimaryDatasets(run)   # {'dataset': [ (LS,rate) ] }
+        if self.verbose: print "\tGetting Dataset rates..."
+        data = self.parser.getPrimaryDatasets(run,minLS=self.min_ls,maxLS=self.max_ls)   # {'dataset': [ (LS,rate) ] }
 
         dataset_rates = {}   # {'dataset': {LS: (rate) } }
 
@@ -307,6 +339,7 @@ class DataParser:
             run_data[_object] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
@@ -322,6 +355,7 @@ class DataParser:
 
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    ps_dict[LS] = None
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
@@ -330,6 +364,7 @@ class DataParser:
 
             run_data[_object]["LS"] = ls_array
             run_data[_object]["rate"] = rate_dict
+            run_data[_object]["prescale"] = ps_dict
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
@@ -341,9 +376,9 @@ class DataParser:
     def getL1AData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         L1A_rates = {}   # {'L1A': {LS: rate } }
-        print "\tGetting L1APhysics rates..."
+        if self.verbose: print "\tGetting L1APhysics rates..."
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
-        print "\tGetting L1APhysics+Lost rates..."
+        if self.verbose: print "\tGetting L1APhysics+Lost rates..."
         L1A_rates["L1APhysics+Lost"] = self.parser.getL1APhysicsLost(run)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
@@ -353,6 +388,7 @@ class DataParser:
             run_data[_object] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
@@ -368,6 +404,7 @@ class DataParser:
 
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    ps_dict[LS] = None
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
@@ -376,6 +413,7 @@ class DataParser:
 
             run_data[_object]["LS"] = ls_array
             run_data[_object]["rate"] = rate_dict
+            run_data[_object]["prescale"] = ps_dict
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
@@ -393,7 +431,7 @@ class DataParser:
             for trigger in Rates:
                 if Rates[trigger].has_key(LS): # Sometimes, LS's are missing
                     Rates[trigger][LS][0] *= (1. + dead_time[LS]/100.)
-                    if dead_time[LS] > self.max_dead_time: # Do not plot lumis where deadtime is greater than 10%
+                    if dead_time[LS] > self.max_deadtime: # Do not plot lumis where deadtime is greater than 10%
                         del Rates[trigger][LS]
 
     # Creates a new dictionary key, that corresponds to the summed rates of all the specified objects
@@ -401,15 +439,15 @@ class DataParser:
     def sumObjects(self,run_data,new_name,sum_list,obj_type):
         # type: (Dict[str,object],str,List[str],str) -> bool
         if not set(sum_list) <= set(run_data.keys()):
-            print "\tERROR: Specified objects that aren't in the run_data"
+            if self.verbose: print "\tERROR: Specified objects that aren't in the run_data"
             return False
         if (len(sum_list)==0):
             print "\tERROR: sum_list has size=0 (see sumObjects in DataParser.py). May be that there were no streams for this run."
             return False
-            
         ref_name = sum_list[0]
         ls_array   = array.array('f')
         rate_dict  = {}
+        ps_dict    = {}
         pu_dict    = {}
         lumi_dict  = {}
         det_dict   = {}
@@ -436,6 +474,7 @@ class DataParser:
             rate_dict[LS] = total_rate
             bw_dict[LS]   = total_bw
             size_dict[LS] = total_size
+            ps_dict[LS]   = None
             pu_dict[LS]   = run_data[ref_name]["PU"][LS]
             lumi_dict[LS] = run_data[ref_name]["ilumi"][LS]
             det_dict[LS]  = run_data[ref_name]["status"][LS]
@@ -444,6 +483,7 @@ class DataParser:
         run_data[new_name] = {}
         run_data[new_name]["LS"]        = ls_array
         run_data[new_name]["rate"]      = rate_dict
+        run_data[new_name]["prescale"]  = ps_dict
         run_data[new_name]["PU"]        = pu_dict
         run_data[new_name]["ilumi"]     = lumi_dict
         run_data[new_name]["status"]    = det_dict
@@ -464,6 +504,24 @@ class DataParser:
                     output[name][run].append(_input[name][run][LS])
         return output
 
+    def resetData(self):
+        # type: () -> None
+        self.ls_data   = {}    # {'name': { run_number: [LS] } }
+        self.rate_data = {}    # {'name': { run_number: { LS: raw_rates } } }
+        self.ps_data   = {}    # {'name': { run_number: { LS: prescale } } }
+        self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
+        self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
+        self.det_data  = {}    # {'name': { run_number: { LS: detecotr_ready } } }
+        self.bw_data   = {}    # {'name': { run_number: { LS: bandwidth } } }
+        self.size_data = {}    # {'name': { run_number: { LS: size } } }
+        self.lumi_info = {}    # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
+        self.bunch_map = {}    # {run_number: nBunches }
+
+        self.runs_used    = []
+        self.runs_skipped = []
+        self.name_list = []
+        self.type_map = {}
+
 ####################################################################################################
 
     # --- All the 'getters' ---
@@ -477,6 +535,14 @@ class DataParser:
             output = self.convertOutput(self.rate_data)
         else:
             output = self.rate_data
+        return output
+
+    def getPSData(self):
+        # type: () -> Dict[str,object]
+        if self.convert_output:
+            output = self.convertOutput(self.ps_data)
+        else:
+            output = self.ps_data
         return output
 
     def getPUData(self):
@@ -518,6 +584,10 @@ class DataParser:
         else:
             output = self.det_data
         return output
+
+    def getLumiInfo(self):
+        # type: () -> Dict[int,List[Tuple]]
+        return self.lumi_info
 
     def getBunchMap(self):
         # type: () -> Dict[int,int]
