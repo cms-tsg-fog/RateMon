@@ -403,6 +403,10 @@ class DataParser:
         if not set(sum_list) <= set(run_data.keys()):
             print "\tERROR: Specified objects that aren't in the run_data"
             return False
+        if (len(sum_list)==0):
+            print "\tERROR: sum_list has size=0 (see sumObjects in DataParser.py). May be that there were no streams for this run."
+            return False
+            
         ref_name = sum_list[0]
         ls_array   = array.array('f')
         rate_dict  = {}
