@@ -24,6 +24,8 @@ class FitFinder:
     def __init__(self):
         #self.fits_to_try = ["linear","quad"]
         self.fits_to_try = ["linear","quad","cube","exp"]
+        #self.fits_to_try = ["cube","exp","sinh"]
+        #self.fits_to_try = ["linear"]
         #self.fits_to_try = ["quad","cube","exp"]
 
         self.use_point_selection = True
@@ -44,7 +46,7 @@ class FitFinder:
         prog_counter = 0
         for trigger in object_list:
             if counter % (len(object_list)/10) == 0:
-                print "\tProgress: %d%%" % (prog_counter*10)
+                print "\tProgress: %d%% (%d/%d)" % (prog_counter*10,counter,len(object_list))
                 prog_counter += 1
             counter += 1
 
@@ -152,7 +154,7 @@ class FitFinder:
         return OutputFit
 
     def tryFit(self, xVals, yVals, name, fit_type):
-        supported_fits = ["linear","quad","quad2","cube","exp"]
+        supported_fits = ["linear","quad","quad2","cube","exp","sinh"]
         if not fit_type in supported_fits:
             print "Fit not supported, generating empty fit..."
             return self.emptyFit()
@@ -177,9 +179,24 @@ class FitFinder:
             fit_func = TF1("Exp Fit","[0]+[1]*expo(2)",0,maxX)
             fit_func.SetParameter(1,1.0)
             fit_func.FixParameter(1,1.0)
+        elif fit_type == "sinh":
+            fit_func = TF1("Sinh Fit","[0]*sinh([1]*x)+[2]+[3]",0,maxX)
+            #fit_func = TF1("Sinh Fit","[0]*(exp([1]*x) - exp(-[2]*x))+[3]")
+            fit_func.SetParameter(0,1.0/2208.0)
+            fit_func.SetParameter(1,1.0/50.0)
+            fit_func.SetParameter(2,0.0)
+            fit_func.FixParameter(2,0.0)
+            fit_func.SetParameter(3,0.0)
+            fit_func.FixParameter(3,0.0)
 
         fitGraph.Fit(fit_func,"QNM","rob=0.90")
         fitMSE = self.getMSE(fit_func,xVals,yVals)
+
+        #if fit_type == "sinh":
+        #    print "0 fit param:",fit_func.GetParameter(0)
+        #    print "1 fit param:",fit_func.GetParameter(1)
+        #    print "2 fit param:",fit_func.GetParameter(2)
+        #    print "3 fit param:",fit_func.GetParameter(3)
 
         OutputFit = [fit_type]
         OutputFit += [fit_func.GetParameter(0),fit_func.GetParameter(1),fit_func.GetParameter(2),fit_func.GetParameter(3)]
@@ -215,7 +232,7 @@ class FitFinder:
 
         return output_fits
 
-    # Selects only the best fit from the set of fits generated
+    # Selects only the best fit from the set of fits generated, uses MSE as comparison
     def getBestFit(self,fits):
         min_MSE = None
         best_type = None

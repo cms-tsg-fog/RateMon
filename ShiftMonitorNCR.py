@@ -854,7 +854,6 @@ class ShiftMonitor:
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger): del self.badRates[trigger]
                     
-
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
         if self.displayBadRates != 0:

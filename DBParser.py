@@ -1339,7 +1339,7 @@ class DBParser:
         return L1_list
 
     # Functionally very similar to getL1RawRates, but allows for specifying which scalar type to query, also does no un-prescaling
-    def getL1Rates(self,runNumber,scaler_type):
+    def getL1Rates(self,runNumber,minLS=-1,maxLS=9999999,scaler_type=0):
         self.getRunInfo(runNumber)
         self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)

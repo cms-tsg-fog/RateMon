@@ -15,7 +15,8 @@
 import os
 import sys
 import shutil
-import time
+#import time
+import datetime
 
 from FitFinder import *
 from DataParser import *
@@ -28,7 +29,6 @@ orbitsPerSec = 11246.
 # Use: Writes a string in a fixed length margin string (pads with spaces)
 def stringSegment(strng, tot):
     # type: (str,int) -> str
-
     string = str(strng)
     if len(string) > tot:
         string  = string[:tot-3]
@@ -63,14 +63,13 @@ class RateMonitor:
 
         # TESTING: END #
 
-        self.bunch_map = {}     # {run: bunches}
-        self.group_map = {}     # {'group_name': [trigger_names] }
+        self.group_map = {}     # {'group_name': [trigger_name] }
 
-        self.fill_list   = []   # Fills to get data from --> might remove this, as it is properly owned by DataParser
-        self.run_list    = []   # Runs to get data from --> might remove this, b/c same as above
-        self.object_list = []   # List of *ALL* objects to plot
+        self.fill_list   = []   # Fills to get data from, Currently Unused
+        self.run_list    = []   # Runs to get data from
+        self.object_list = []   # List of *ALL* objects to plot, except for when using grouping
 
-        self.ops = None         # The options specified at the command line
+        self.ops = None         # The options specified at the command line, current unused
 
         self.rate_mon_dir    = os.getcwd()
         self.save_dir        = os.path.join(os.getcwd(),"tmp_rate_plots")
@@ -88,6 +87,7 @@ class RateMonitor:
             return
         
         print "Using runs:",self.run_list
+        print "Using Prescaled rates:",self.data_parser.use_prescaled_rate
 
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
         self.data_parser.parseRuns(self.run_list)
@@ -130,7 +130,14 @@ class RateMonitor:
             for run in sorted(self.data_parser.getRunsUsed()):
                 if not x_vals[name].has_key(run):
                     continue
-                good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
+
+                if not self.certify_mode:
+                    # Filter out cert
+                    good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
+                else:
+                    # Use all fetched points
+                    good_x, good_y = (x_vals[name][run],y_vals[name][run])
+
                 plot_data[name][run] = [good_x,good_y, det_status[name][run] ]
 
         # If no objects are specified, plot everything!
@@ -153,7 +160,7 @@ class RateMonitor:
             return  # This keeps us from having to worry about any additional output plots
         elif self.certify_mode:
             self.certifyRuns(plot_data)
-            return
+            return  # Same as above
 
         # We want fits and no fits were specified --> make some
         # NOTE: This 'if' is true only when ZERO fits exist
@@ -189,11 +196,17 @@ class RateMonitor:
             counter += len(plotted_objects)
         print "Total plot count: %d" % counter
 
+    # Makes some basic checks to ensure that the specified options don't create conflicting problems
     def setupCheck(self):
         # type: () -> bool
 
-        # These two options are mutually exclusive
-        if not (self.use_pileup ^ self.use_lumi): # ^ == XOR
+        ## These two options are mutually exclusive
+        #if not (self.use_pileup ^ self.use_lumi): # ^ == XOR
+        #    print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
+        #    return False
+
+        # We can't specify two different x_axis at the same time
+        if self.use_pileup and self.use_lumi:
             print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
             return False
 
@@ -220,9 +233,19 @@ class RateMonitor:
             print "ERROR SETUP: Save directory is the same as RateMon directory"
             return False
 
+        # Certify mode doesn't create any fits, so we shouldn't be updating any existing fits
+        if self.update_online_fits + self.certify_mode > 1:
+            print "ERROR SETUP: Can't update online fits and user certify mode at the same time"
+            return False
+
+        # In certify_mode we need to specify pre-made fits to use
+        if self.certify_mode and len(self.plotter.fits.keys()) == 0:
+            print "ERROR SETUP: No fits were found while in certify mode"
+            return False
+
         return True
 
-    # Sets up the save directories
+    # Sets up the save directories, will setup the directories based on CLI options
     def setupDirectory(self):
         # type: () -> None
         print "Setting up directories..."
@@ -246,33 +269,51 @@ class RateMonitor:
             os.chdir(all_trg_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
-            return
 
-        if self.certify_mode:
-            #certify_dir = 
             return
-
-        if os.path.exists(self.save_dir):
-            shutil.rmtree(self.save_dir)
-            print "\tRemoving existing directory: %s " % (self.save_dir)
-        os.mkdir(self.save_dir)
-        os.chdir(self.save_dir)
-        print "\tCreating directory: %s " % (self.save_dir)
-        if self.use_grouping:
-            for grp_dir in self.group_map.keys():
-                os.mkdir(grp_dir)
-                print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
-                os.chdir(grp_dir)
+        elif self.certify_mode:
+            # Ex: Certification_1runs_2016-11-02_13_27
+            dir_str = "Certification_%druns_%s" % (len(self.run_list),datetime.datetime.now().strftime("%Y-%m-%d_%H_%M"))
+            self.certify_dir = os.path.join(self.rate_mon_dir,dir_str)
+            if os.path.exists(self.certify_dir):
+                shutil.rmtree(self.certify_dir)
+                print "\tRemoving existing directory: %s " % (self.certify_dir)
+            print "\tCreating directory: %s " % (self.certify_dir)
+            os.mkdir(self.certify_dir)
+            os.chdir(self.certify_dir)
+            for run in self.run_list:
+                run_str = "run%d" % run
+                run_dir = os.path.join(self.certify_dir,run_str)
+                print "\tCreating directory: %s " % (run_dir)
+                os.mkdir(run_dir)
+                os.chdir(run_dir)
                 os.mkdir("png")
-                os.chdir("../")
-        else:
-            os.mkdir("png")
-        os.chdir("../")
-        return
+                os.chdir(self.certify_dir)
 
+            return
+        else:   
+            if os.path.exists(self.save_dir):
+                shutil.rmtree(self.save_dir)
+                print "\tRemoving existing directory: %s " % (self.save_dir)
+            os.mkdir(self.save_dir)
+            os.chdir(self.save_dir)
+            print "\tCreating directory: %s " % (self.save_dir)
+            if self.use_grouping:
+                for grp_dir in self.group_map.keys():
+                    os.mkdir(grp_dir)
+                    print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
+                    os.chdir(grp_dir)
+                    os.mkdir("png")
+                    os.chdir("../")
+            else:
+                os.mkdir("png")
+            os.chdir("../")
+
+            return
+
+    # Stiching function that interfaces with the plotter object
     def makePlots(self,plot_list):
         # type: (List[str]) -> List[str]
-
         plotted_objects = []
         counter = 1
         for _object in sorted(plot_list):
@@ -286,7 +327,8 @@ class RateMonitor:
         return plotted_objects
 
     # Formats the plot labels based on the type of object being plotted
-    # TODO: This seems like a bit of a mess of 'if' statements --> might want to re-work it
+    # TODO: Might want to move this (along with makePlots() into PlotMaker.py),
+    #       would require specifying a type_map within the plotter object
     def formatLabels(self,_object):
         # type: (str) -> None
 
@@ -304,12 +346,16 @@ class RateMonitor:
         elif self.use_lumi: # plot iLumi vs. rate
             x_axis_var = "instLumi"
         else:               # plot LS vs. rate
-            x_axis_var = "LS"
+            x_axis_var = "lumisection"
 
         if self.data_parser.type_map[_object] == "trigger":
             if self.data_parser.correct_for_DT == True:
                 y_axis_var = "pre-deadtime "
-            y_axis_var += "unprescaled rate"
+
+            if self.data_parser.use_prescaled_rate:
+                y_axis_var += "prescaled rate"
+            else:
+                y_axis_var += "unprescaled rate"
         elif self.data_parser.type_map[_object] == "stream":
             if self.use_stream_size or self.use_stream_bandwidth:
                 y_units = "[bytes]"
@@ -368,9 +414,100 @@ class RateMonitor:
 
     def certifyRuns(self,plot_data):
         # type: (Dict[str,Dict[int,object]]) -> None
-        
-        # Certification_1runs_2016-11-02_13_27
-        certify_dir = os.path.join(self.rate_mon_dir,"Certification")
+
+        #self.plotter.save_dir = self.certify_dir
+        #self.plotter.root_file_name = "CertificationSumaries.root"
+
+        # {'name': {run: [ (LS,pred,err) ] } }
+
+        lumi_info = self.data_parser.getLumiInfo()
+        sorted_run_list = sorted(self.run_list)
+        log_file_name = "CertificationSummary_run"+str(sorted_run_list[0])+"_run"+str(sorted_run_list[-1])+".txt"
+        log_file = open(self.certify_dir+"/"+log_file_name,'w')
+        for run in self.run_list:
+            log_file.write("Run Number: %s\n" % (run))
+
+            self.plotter.save_dir = self.certify_dir
+            self.plotter.root_file_name = "CertificationSummaries.root"
+
+            pred_data = self.getPredictionData(run)
+
+            self.plotter.makeCertifySummary(run,pred_data,log_file)
+
+            print "Making certification plots for run %d..." % run
+            run_dir = os.path.join(self.certify_dir,"run%d" % run)
+            self.plotter.save_dir = run_dir
+            self.plotter.plot_dir = "png"
+            self.plotter.root_file_name = "HLT_LS_vs_rawRate_Fitted_Run%d_CERTIFICATION.root" % run
+            plotted_objects = []
+            for obj in self.object_list:
+                self.formatLabels(obj)
+                if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
+                    print "Plotting %s..." % obj
+                    plotted_objects.append(obj)
+            self.printHtml(plotted_objects,run_dir)
+
+    # We create a prediction dictionary on a per run basis, which covers all triggers in that run
+    # TODO: Should move this to DataParser.py
+    def getPredictionData(self,run):
+        # UNFINISHED
+        prev_state = self.data_parser.convert_output
+        self.data_parser.convert_output = False
+
+        print "Prev state: %s" % prev_state
+        print "Parser state 1: %s" % self.data_parser.convert_output
+
+        lumi_info = self.data_parser.getLumiInfo()  # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
+        #ls_data = self.data_parser.getLSData()      # {'name': { run_number: [ LS ] } }
+        pu_data = self.data_parser.getPUData()      # {'name': { run_number: { LS: PU } } }
+        bunch_map = self.data_parser.getBunchMap()  # {run_number: bunches}
+
+        plotter_sigmas = self.plotter.sigmas
+
+        # --- 13 TeV constant values ---
+        ppInelXsec = 80000.
+        orbitsPerSec = 11246.
+
+        pred_dict = {}                              # {'name': [ (LS,pred,err) ] }
+
+        for obj in self.plotter.fits:
+            if not pu_data.has_key(obj):
+                continue
+
+            # Initialize our point arrays
+            lumisecs    = array.array('f')
+            predictions = array.array('f')
+            ls_error    = array.array('f')
+            pred_error  = array.array('f')
+
+            all_fits = self.plotter.fits[obj]
+            best_fit_type,best_fit = self.fitter.getBestFit(all_fits)
+
+            # Unpack values
+            fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = best_fit
+
+            # Create our point arrays
+            for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
+                if not ilum is None and phys:
+                    if not pu_data[obj][run].has_key(LS):
+                        continue
+                    lumisecs.append(LS)
+                    #pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
+                    pu = pu_data[obj][run][LS]
+                    # Either we have an exponential fit, or a polynomial fit
+                    if fit_type == "exp":
+                        rr = bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
+                    else:
+                        rr = bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                    if rr < 0: rr = 0 # Make sure prediction is non negative
+                    predictions.append(rr)
+                    ls_error.append(0)
+                    pred_error.append(bunch_map[run]*plotter_sigmas*sigma)
+            pred_dict[obj] = zip(lumisecs,predictions,pred_error)
+
+        self.data_parser.convert_output = prev_state
+        print "Parser state 2: %s" % self.data_parser.convert_output
+        return pred_dict
 
     # NOTE1: This requires the .png file to be in the proper directory, as specified by self.group_map
     # NOTE2: This function assumes that the sub-directory where the plots are located is named 'png'
