@@ -35,8 +35,9 @@ class MonitorController:
         self.rate_monitor.make_fits          = False
         self.rate_monitor.update_online_fits = False
 
-        self.rate_monitor.data_parser.normalize_bunches = True
+        self.rate_monitor.data_parser.normalize_bunches  = True
         self.rate_monitor.data_parser.use_prescaled_rate = False
+        self.rate_monitor.data_parser.use_cross_section  = False
 
         self.rate_monitor.data_parser.use_L1_triggers  = True
         self.rate_monitor.data_parser.use_HLT_triggers = True
@@ -84,6 +85,7 @@ class MonitorController:
                                                         "bestFit",
                                                         "nonLinear",
                                                         "vsInstLumi",
+                                                        "useCrossSection",
                                                         "useFills"])
         except:
             print "Error getting options: command unrecognized. Exiting."
@@ -283,6 +285,9 @@ class MonitorController:
                 # Plot vs the instantaenous luminosity
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = True
+            elif label == "--useCrossSection":
+                # Plot the (rate/inst. lumi) vs. <PU>
+                self.rate_monitor.data_parser.use_cross_section = True
             elif label == "--useFills":
                 # Specify that the data should fetched by fill number
                 self.rate_monitor.use_fills = True

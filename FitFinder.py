@@ -45,9 +45,10 @@ class FitFinder:
         counter = 0
         prog_counter = 0
         for trigger in object_list:
-            if counter % (len(object_list)/10) == 0:
-                print "\tProgress: %d%% (%d/%d)" % (prog_counter*10,counter,len(object_list))
-                prog_counter += 1
+            if len(object_list) > 10:
+                if counter % (len(object_list)/10) == 0:
+                    print "\tProgress: %d%% (%d/%d)" % (prog_counter*10,counter,len(object_list))
+                    prog_counter += 1
             counter += 1
 
             if not data.has_key(trigger):
