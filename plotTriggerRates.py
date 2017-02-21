@@ -36,6 +36,7 @@ class MonitorController:
         self.rate_monitor.update_online_fits = False
 
         self.rate_monitor.data_parser.normalize_bunches = True
+        self.rate_monitor.data_parser.use_prescaled_rate = False
 
         self.rate_monitor.data_parser.use_L1_triggers  = True
         self.rate_monitor.data_parser.use_HLT_triggers = True
@@ -51,11 +52,11 @@ class MonitorController:
         self.rate_monitor.plotter.show_errors    = False
         self.rate_monitor.plotter.show_eq        = False
         self.rate_monitor.plotter.save_png       = True
-        self.rate_monitor.plotter.save_root_file = False
+        self.rate_monitor.plotter.save_root_file = True
 
-        self.rate_monitor.plotter.file_name   = "testing_plot_rewrite.root"
+        self.rate_monitor.plotter.root_file_name   = "testing_plot_rewrite.root"
         self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
-        self.rate_monitor.plotter.name_X = "< PU >"
+        self.rate_monitor.plotter.name_X  = "< PU >"
         self.rate_monitor.plotter.units_X = ""
 
     # Use: Parses arguments from the command line and sets class variables
@@ -69,6 +70,7 @@ class MonitorController:
                                                         "triggerList=",
                                                         "saveDirectory=",
                                                         "useFit=",
+                                                        "psFilter=",
                                                         "Secondary",
                                                         "datasetRate",
                                                         "L1ARate",
@@ -90,7 +92,8 @@ class MonitorController:
         self.rate_monitor.ops = opt
         for label,op in opt:
             if label == "--fitFile":
-                # Needs to be updated to account for the fact that the plotter is expecting a different input
+                # Specify the .pkl file to be used to extract fits from
+                # TODO: Needs to be updated to account for the fact that the plotter is expecting a different input
                 fits = self.readFits(str(op))
                 self.rate_monitor.plotter.setFits(fits)
 
@@ -98,11 +101,15 @@ class MonitorController:
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
             elif label == "--triggerList":
+                # Specify the .list file that determines which triggers will be plotted
                 trigger_list = self.readTriggerList(str(op))
                 self.rate_monitor.object_list = trigger_list
             elif label == "--saveDirectory":
+                # Specify the directory that the plots will be saved to
+                # NOTE: Doesn't work with --Secondary option
                 self.rate_monitor.save_dir = str(op)
             elif label == "--useFit":
+                # TODO: Figure out what this does
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 self.rate_monitor.make_fits  = True
 
@@ -112,7 +119,13 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+            elif label == "--psFilter":
+                # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
+                self.rate_monitor.data_parser.use_ps_mask = True
+                self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
             elif label == "--Secondary":
+                # Set the code to produce certification plots
+                # NOTE: Still need to specify --fitFile and --triggerList
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 self.rate_monitor.certify_mode = True
 
@@ -121,40 +134,47 @@ class MonitorController:
                 self.rate_monitor.use_fills  = False
                 self.rate_monitor.make_fits  = False
 
-                self.rate_monitor.data_parser.use_L1_triggers   = True
-                self.rate_monitor.data_parser.use_HLT_triggers  = True
-                self.rate_monitor.data_parser.normalize_bunches = False
+                self.rate_monitor.data_parser.use_L1_triggers    = True
+                self.rate_monitor.data_parser.use_HLT_triggers   = True
+                self.rate_monitor.data_parser.normalize_bunches  = False
+                self.rate_monitor.data_parser.use_prescaled_rate = False
+
+                self.rate_monitor.data_parser.max_deadtime = 100.
 
                 self.rate_monitor.plotter.use_fit = True
-
+                self.rate_monitor.plotter.save_root_file = True
             elif label == "--datasetRate":
+                # Make plots of dataset rates
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
                 
-                self.rate_monitor.plotter.file_name   = "Dataset_Rates.root"
+                self.rate_monitor.plotter.root_file_name   = "Dataset_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
             elif label == "--L1ARate":
+                # Make plots of the L1A rate
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = True
                 
-                self.rate_monitor.plotter.file_name   = "L1A_Rates.root"
+                self.rate_monitor.plotter.root_file_name   = "L1A_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
             elif label == "--streamRate":
+                # Make plots of the stream rates
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
                 self.rate_monitor.data_parser.use_datasets = False
                 self.rate_monitor.data_parser.use_L1A_rate = False
                 
-                self.rate_monitor.plotter.file_name   = "Stream_Rates.root"
+                self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
             elif label == "--streamBandwidth":
+                # Make plots of the stream bandwidths
                 # NEEDS TO BE TESTED
                 self.rate_monitor.use_stream_bandwidth = True
 
@@ -166,8 +186,9 @@ class MonitorController:
                 
                 self.rate_monitor.data_parser.normalize_bunches = False
 
-                self.rate_monitor.plotter.file_name   = "Stream_Bandwidth.root"
+                self.rate_monitor.plotter.root_file_name   = "Stream_Bandwidth.root"
             elif label == "--streamSize":
+                # Make plots of stream sizes
                 # NEEDS TO BE TESTED
                 self.rate_monitor.use_stream_size = True
 
@@ -179,8 +200,10 @@ class MonitorController:
 
                 self.rate_monitor.data_parser.normalize_bunches = False
                 
-                self.rate_monitor.plotter.file_name   = "Stream_Size.root"
+                self.rate_monitor.plotter.root_file_name   = "Stream_Size.root"
             elif label == "--cronJob":
+                # Set the code to produce plots for the cron jobs
+                # NOTE: Still need to specify --triggerList, --saveDirectory, and --fitFile
                 # NEEDS MORE TESTING
                 self.do_cron_job = True
 
@@ -202,12 +225,13 @@ class MonitorController:
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
 
-                self.rate_monitor.plotter.file_name = "Cron_Job_Rates.root"
+                self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
                 self.rate_monitor.plotter.name_X = "< PU >"
                 self.rate_monitor.plotter.label_Y = "< PU >"
-
             elif label == "--updateOnlineFits":
+                # Creates fits and saves them to the Fits directory
+                # NOTE: Still need to specify --triggerList
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 self.rate_monitor.update_online_fits = True
 
@@ -228,6 +252,7 @@ class MonitorController:
 
                 self.rate_monitor.object_list = self.readTriggerList("monitorlist_COLLISIONS.list")
             elif label == "--createFit":
+                # Specify that we should create fits
                 # NEEDS TO BE FINISHED
                 self.rate_monitor.make_fits = True
 
@@ -235,6 +260,7 @@ class MonitorController:
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
             elif label == "--multiFit":
+                # Specify that we should plot all of the fit functions on the same plot
                 self.rate_monitor.make_fits = True
 
                 self.rate_monitor.plotter.use_fit       = True
@@ -242,6 +268,7 @@ class MonitorController:
                 self.rate_monitor.plotter.show_errors   = False
                 self.rate_monitor.plotter.show_eq       = False
             elif label == "--bestFit":
+                # Specify that only the best fit is to be used (as opposed to only the default one)
                 self.rate_monitor.make_fits = True
 
                 self.rate_monitor.fitter.use_best_fit = True
@@ -253,9 +280,11 @@ class MonitorController:
                 # This is always true by default --> might no longer need this option (could rework it)
                 xkcd = ""
             elif label == "--vsInstLumi":
+                # Plot vs the instantaenous luminosity
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = True
             elif label == "--useFills":
+                # Specify that the data should fetched by fill number
                 self.rate_monitor.use_fills = True
                 self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
             else:

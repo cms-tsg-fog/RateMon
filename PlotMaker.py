@@ -16,7 +16,7 @@ import math
 import array
 import ROOT
 
-from ROOT import TLatex
+from ROOT import TLatex, TH1D, TLine
 
 from FitFinder import *
 
@@ -51,7 +51,7 @@ class PlotMaker:
         self.units_X = "[unit]"
         self.units_Y = "[unit]"
 
-        self.file_name = "a.root"
+        self.root_file_name = "a.root"
         self.save_dir = "."
         self.plot_dir = "png"
 
@@ -68,7 +68,8 @@ class PlotMaker:
     def setPlottingData(self,data):
         self.plotting_data = data
 
-    # This setter is trying to handle a lot of 'if' cases --> might want to move the logic into RateMonitor.py
+    # Sets the fits to be used in the plot making
+    # TODO: Instead of just using a default_fit, could instead make use of self.fitFinder.getBestFit()
     def setFits(self,fits):
         if self.use_multi_fit:
             # We want to plot all the fits
@@ -128,7 +129,10 @@ class PlotMaker:
              funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
         elif fit_params[0] == "linear":     # Linear
             plotFuncStr = "%.15f + x*%.15f" % (fit_params[1], fit_params[2])
-            funcStr = "%.5f + x*%.5f" % (fit_params[1], fit_params[2])                   
+            funcStr = "%.5f + x*%.5f" % (fit_params[1], fit_params[2])  
+        elif fit_params[0] == "sinh":
+            plotFuncStr = "%.5f*sinh(%.5f*x)" % (fit_params[1],fit_params[2])
+            funcStr = "%.5f*sinh( %.5f*x)" % (fit_params[1],fit_params[2])
         else:                               # Polynomial
             plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
             funcStr = "%.5f+x*(%.5f+ x*(%.5f+x*%.5f))" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
@@ -180,14 +184,14 @@ class PlotMaker:
                 minimumVals.append(min(xVals))
 
         if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)
-        else: return
+        else: return False
 
         if len(maximumVals) > 0:
             max_xaxis_val = max(maximumVals)
             min_xaxis_val = min(minimumVals)
-        else: return
+        else: return False
 
-        if max_xaxis_val == 0 or max_yaxis_value == 0: return
+        if max_xaxis_val == 0 or max_yaxis_value == 0: return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
@@ -268,7 +272,7 @@ class PlotMaker:
                 legend.AddEntry(graphList[-1],legendStr,"f")
             counter += 1
 
-        if self.use_fit and not missing_fit: # Display the fit function
+        if self.use_fit and not missing_fit: # Display all the fit functions
             color_counter = 0
             for fit_type in sorted(self.fits[trigger]):
                 legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
@@ -313,7 +317,7 @@ class PlotMaker:
         canvas.Update()
 
         if self.save_root_file:
-            self.saveRootFile(trigger,canvas)
+            self.saveRootFile(canvas)
 
         if self.save_png:
             self.savePlot(trigger,canvas)
@@ -354,65 +358,331 @@ class PlotMaker:
 
         return err_graph
 
-    def getPredictionGraph(self,trigger):
-        # This is for Certify Mode
-        # This is just a mess of code ripped from RateMonitorNCR.py, simply so I can see what all is needed
+    # Note1: This function will also modify the value of max_y_val
+    def getPredictionGraph(self,paramlist,min_x_val,max_x_val,max_y_val,trigger_name,run,lumi_info):
+        # {'name': {run: [ (LS,pred,err) ] } }
+        prediction_rec = {}  # A dict used to store predictions and prediction errors: [ 'name' ] { (LS), (pred), (err) }
 
-        self.predictionRec = {}  # A dict used to store predictions and prediction errors: [ 'name' ] { (LS), (pred), (err) }
-
-        runNum_cert = plottingData.keys()[0]
-
+        # --- 13 TeV constant values ---
+        ppInelXsec = 80000.
+        orbitsPerSec = 11246.
 
         # Initialize our point arrays
-        lumisecs = array.array('f')
+        lumisecs    = array.array('f')
         predictions = array.array('f')
-        lsError = array.array('f')
-        predError = array.array('f')
+        ls_error    = array.array('f')
+        pred_error  = array.array('f')
         # Unpack values
         fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
         # Create our point arrays
-        iLumi = self.parser.getLumiInfo(runNumber) # iLumi is a list: ( { LS, instLumi } )
-        for LS, ilum, psi, phys, cms_ready in iLumi:
+        for LS, ilum, psi, phys, cms_ready in lumi_info:
             if not ilum is None and phys:
                 lumisecs.append(LS)
-                pu = (ilum * ppInelXsec) / ( self.bunches * orbitsPerSec )
+                pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
                 # Either we have an exponential fit, or a polynomial fit
                 if fit_type == "exp":
-                    rr = self.bunches * (X0 + X1*math.exp(X2+X3*pu))
+                    rr = self.bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
                 else:
-                    rr = self.bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
-                if rr<0: rr=0 # Make sure prediction is non negative
+                    rr = self.bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                if rr < 0: rr = 0 # Make sure prediction is non negative
                 predictions.append(rr)
-                lsError.append(0)
-                predError.append(self.bunches*self.sigmas*sigma)
+                ls_error.append(0)
+                pred_error.append(self.bunch_map[run]*self.sigmas*sigma)
         # Record for the purpose of doing checks
-        self.predictionRec.setdefault(triggerName,{})[runNumber] = zip(lumisecs, predictions, predError)
+        prediction_rec.setdefault(trigger_name,{})[run] = zip(lumisecs, predictions, pred_error)
         # Set some graph options
-        fitGraph = TGraphErrors(len(lumisecs), lumisecs, predictions, lsError, predError)
-        fitGraph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
-        fitGraph.SetMarkerStyle(8)
-        fitGraph.SetMarkerSize(0.8)
-        fitGraph.SetMarkerColor(2) # Red
-        fitGraph.SetFillColor(4)
-        fitGraph.SetFillStyle(3003)
-        fitGraph.GetXaxis().SetLimits(min_xaxis_val, 1.1*max_xaxis_val)
+        fit_graph = TGraphErrors(len(lumisecs), lumisecs, predictions, ls_error, pred_error)
+        fit_graph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
+        fit_graph.SetMarkerStyle(8)
+        fit_graph.SetMarkerSize(0.8)
+        fit_graph.SetMarkerColor(2) # Red
+        fit_graph.SetFillColor(4)
+        fit_graph.SetFillStyle(3003)
+        fit_graph.GetXaxis().SetLimits(min_x_val, 1.1*max_x_val)
 
-        predictionTGraph = fitGraph
+        max_pred = prediction_rec[trigger_name][run][0][1]
+        if max_pred > max_y_val: max_y_val = max_pred
 
-        maxPred = self.predictionRec[triggerName][runNum_cert][0][1]
-        if maxPred > max_yaxis_value: max_yaxis_value = maxPred
+        return fit_graph
+
+    # Note1: I would like to remove the dependance on lumi_info from this function, but for now this works
+    # lumi_info - [ (LS,ilum,psi,phys,cms_ready) ]
+    def makeCertifyPlot(self,trigger,run,lumi_info):
+        if not self.fits.has_key(trigger):
+            # Missing the fit for this trigger, so skip it
+            return False
+        elif not self.plotting_data.has_key(trigger):
+            print "\tERROR: Trigger not found in plotting data, %s" % trigger
+            return False
+        elif not self.plotting_data[trigger].has_key(run):
+            print "\tERROR: Trigger is missing run, %s" % run
+            return False
+        else:
+            data = self.plotting_data[trigger][run]  # ([x_vals], [y_vals], [status])
+
+        maximumRR = array.array('f')
+        maximumVals = array.array('f')
+        minimumVals = array.array('f')
+
+        yVals = array.array('f')
+        xVals = array.array('f')
+
+        xVals, yVals = self.fitFinder.getGoodPoints(data[0], data[1]) 
+        if len(xVals) > 0:
+            maximumRR.append(max(yVals))
+            maximumVals.append(max(xVals))
+            minimumVals.append(min(xVals))
+
+        if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)
+        else: return False
+        
+        if len(maximumVals) > 0:
+            max_xaxis_val = max(maximumVals)
+            min_xaxis_val = min(minimumVals)
+        else: return False
+
+        if max_xaxis_val == 0 or max_yaxis_value == 0: return
+
+        canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
+        canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
+
+        best_fit_type,best_fit = self.fitFinder.getBestFit(self.fits[trigger])
+        predictionTGraph = self.getPredictionGraph( best_fit,
+                                                    min_xaxis_val,
+                                                    max_xaxis_val,
+                                                    max_yaxis_value,
+                                                    trigger,
+                                                    run,
+                                                    lumi_info)
+        num_LS = len(data[0])
+        legend = self.getLegend(num_entries=2)
+        plotTGraph = TGraph(num_LS, data[0], data[1])
+
+        graph_color = self.getColorMap()[run]
+
+        plotTGraph.SetMarkerStyle(7)
+        plotTGraph.SetMarkerSize(1.0)
+        plotTGraph.SetLineColor(graph_color)
+        plotTGraph.SetFillColor(graph_color)
+        plotTGraph.SetMarkerColor(graph_color)
+        plotTGraph.SetLineWidth(2)
+        #plotTGraph.GetXaxis().SetTitle(self.name_X+" "+self.units_X)
+        plotTGraph.GetXaxis().SetTitle(self.label_X)
+        plotTGraph.GetXaxis().SetLimits(0, 1.1*max_xaxis_val)
+        plotTGraph.GetYaxis().SetTitle(self.label_Y)
+        plotTGraph.GetYaxis().SetTitleOffset(1.2)
+        plotTGraph.SetMinimum(0)
+        plotTGraph.SetMaximum(1.2*max_yaxis_value)
+        plotTGraph.SetTitle(trigger)
+
+        plotTGraph.Draw("AP")
+        canvas.Update()
+
+        if self.bunch_map.has_key(run):
+            bunches = str(self.bunch_map[run])
+        else:
+            bunches = "-"
+
+        legend_str = ""
+        legend_str = "%s (%s b)" % (run,bunches)
+        legend.AddEntry(plotTGraph,legend_str,"f")
+
+        legend.SetHeader("%s runs:" % 1 )
 
         predictionTGraph.Draw("PZ3")
         canvas.Update()
         legend.AddEntry(predictionTGraph, "Fit ( %s \sigma )" % (self.sigmas))
 
-    def getCertifyPlots(self):
-        # Maybe
-        xkcd = ""
+        # draw text
+        latex = TLatex()
+        latex.SetNDC()
+        latex.SetTextColor(1)
+        latex.SetTextAlign(11)
+        latex.SetTextFont(62)
+        latex.SetTextSize(0.05)
+        latex.DrawLatex(0.15, 0.84, "CMS")
+        latex.SetTextSize(0.035)
+        latex.SetTextFont(52)
+        latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
 
-    def saveRootFile(self,name,canvas):
+        canvas.SetGridx(1);
+        canvas.SetGridy(1);
+        canvas.Update()
+
+        legend.SetFillColor(0)
+        legend.Draw() 
+        canvas.Update()
+
+        if self.save_root_file:
+            self.saveRootFile(canvas)
+
+        if self.save_png:
+            self.savePlot(trigger,canvas)
+
+        return True
+
+    # Note1: This function assumes the x_vals correspond to LS
+    # Note2: Some of this function might be better placed elsewhere
+    # Note3: Searching for the bad LS would be made significantly easier if we switched to dictionaries
+    # pred_data - {'trigger name': [ (LS,pred,err) ] }
+    def makeCertifySummary(self,run,pred_data,log_file):
+        # NOTE: pred_data should have keys that only corresponds to triggers in the monitorlist, but self.plotting_data should have *ALL* trigger data
+        # UNFINISHED
+        
+        ### NOT DEFINED YET: START
+        ### NOT DEFINED YET: END
+
+        gStyle.SetOptStat(0)
+
+        max_bad_paths = len(pred_data.keys())
+
+        ls_set = set()
+        bad_ls = {}         # The total number of bad paths in a given LS, {LS: int}
+        trg_bad_ls = {}     # List of bad LS for each trigger
+        for trigger in pred_data:
+            # data - ( [x_vals], [y_vals], [status] )
+            data = self.plotting_data[trigger][run]
+            ls_set.update(data[0])
+            for LS,pred,err in pred_data[trigger]:
+                for data_ls,data_rate in zip(data[0],data[1]):
+                    if data_ls != LS:
+                        continue
+                    for pred_ls,pred_rate,pred_err in pred_data[trigger]:
+                        if pred_ls != data_ls:
+                            continue
+                        if abs(data_rate - pred_rate) > pred_err:
+                            if not trg_bad_ls.has_key(trigger):
+                                trg_bad_ls[trigger] = []
+                            trg_bad_ls[trigger].append(int(LS))
+
+                            if bad_ls.has_key(LS):
+                                bad_ls[LS] += 1
+                            else:
+                                bad_ls[LS] = 1
+
+        bad_ls_inverted = {}    # {int: [LS]}
+        for LS in bad_ls:
+            count = bad_ls[LS]
+            if not bad_ls_inverted.has_key(count):
+                bad_ls_inverted[count] = []
+            bad_ls_inverted[count].append(int(LS))
+
+        min_ls = min(ls_set)
+        max_ls = max(ls_set)
+        tot_ls = len(ls_set)
+
+        ### MAKE THE SUMMARY TEXT FILE ###
+        log_file.write("\n")
+        log_file.write("     TRIGGERS: BAD LUMIECTION(S)\n")
+        log_file.write("\n")
+
+        for trigger in sorted(trg_bad_ls.keys()):
+            log_file.write("     %s: " % trigger)
+            formatted_list = "["
+            sorted_ls = sorted(trg_bad_ls[trigger])
+            min_ls = sorted_ls[0]
+            max_ls = sorted_ls[-1]
+            for LS in sorted_ls:
+                if LS == max_ls + 1 or LS == min_ls:
+                    max_ls = LS
+                    continue
+                else:
+                    formatted_list += "[%d,%d], " % (min_ls,max_ls)
+                    min_ls = LS
+                    max_ls = LS
+            if formatted_list == "[":
+                # Only possible for ls lists of length 1 or a single contigous block of bad ls
+                formatted_list = "[[%d,%d]]" % (min_ls,max_ls)
+            else:
+                formatted_list += "[%d,%d]]" % (min_ls,max_ls)
+
+            log_file.write(formatted_list+"\n")
+
+        log_file.write("\n")
+        log_file.write("     # OF BAD PATHS : LUMISECTION(S)\n")
+        log_file.write("\n")
+
+        for count in sorted(bad_ls_inverted.keys(),reverse=True):
+            log_file.write("     %d : %s\n" % (count,str(bad_ls_inverted[count])))
+
+        log_file.write("\n")
+        log_file.write("BAD LS SUMMARY:\n")
+        log_file.write("\n")
+
+        bad_count = sum([bad_ls[x] for x in bad_ls.keys()])
+        total_count = len(ls_set)
+
+        log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )" % bad_count)
+        log_file.write("---- Total LS: %d\n" % total_count)
+        log_file.write("---- Fraction bad LS: %.2f\n" % bad_count/total_count)
+
+        log_file.write("\n")
+        log_file.write("BAD PATH SUMMARY:\n")
+        log_file.write("\n")
+
+        log_file.write("---- Total Bad Paths: %d\n" % bad_count)
+        log_file.write("---- Total Possible Paths: %d\n" % total_count)
+        log_file.write("---- Fraction that are Bad Paths: %.2f\n" % bad_count/total_count)
+
+        ### MAKE THE SUMMARY HISTOGRAM ###
+
+        canvas = TCanvas("canv", "canv", 1000, 600)
+        canvas.SetName("Certification Summary of Run %s" % run)
+        canvas.SetGridx(1)
+        canvas.SetGridy(1)
+
+        summary_hist = TH1D("Certification_Summary_of_Run%s" % (run), "Run %s" % (run), (tot_ls+2), (min_ls-1), (max_ls+1))
+        summary_hist.GetXaxis().SetTitle("LS")
+        summary_hist.GetYaxis().SetTitle("Number of bad paths")
+        summary_hist.SetMaximum(1.2 * max_bad_paths)
+
+        for LS in bad_ls:
+            summary_hist.Fill(LS,bad_ls[LS])
+
+        max_line = TLine(min_ls - 1, max_bad_paths, max_ls + 1, max_bad_paths)
+        max_line.SetLineStyle(9)
+        max_line.SetLineColor(2)
+        max_line.SetLineWidth(2)
+
+        summary_hist.Draw("hist")
+        summary_hist.SetLineColor(4)
+        summary_hist.SetFillColor(4)
+        summary_hist.SetFillStyle(3004)
+
+        canvas.Update()
+
+        latex = TLatex()
+        latex.SetNDC()
+        latex.SetTextColor(1)
+        latex.SetTextAlign(11)
+        latex.SetTextFont(62)
+        latex.SetTextSize(0.05)
+        latex.DrawLatex(0.15, 0.84, "CMS")
+        latex.SetTextSize(0.035)
+        latex.SetTextFont(52)
+        latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+
+        canvas.Update()
+
+        max_line.Draw("same")
+
+        canvas.Update()
+
+        #canvas.Modified()
+        #canvas.Write()
+        
+        if self.save_root_file:
+            self.saveRootFile(canvas)
+
+        if self.save_png:
+            canvas.Print(self.save_dir + "/" + "CertificationSummary_run%d" % run + ".png","png")
+            #self.savePlot("CertificationSummary_run%d" % run,canvas)
+
+        gStyle.SetOptStat(1)
+
+    def saveRootFile(self,canvas):
         # Update root file
-        path = self.save_dir + "/" + self.file_name
+        path = self.save_dir + "/" + self.root_file_name
         file = TFile(path,"UPDATE")
         canvas.Modified()
         canvas.Write()

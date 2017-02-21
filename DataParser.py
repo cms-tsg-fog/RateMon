@@ -41,12 +41,13 @@ class DataParser:
         self.runs_used    = []
         self.runs_skipped = []
         self.name_list = []     # List of named objects for which we have data, e.g. triggers, datasets, streams, etc...
+        self.psi_filter = []
         self.type_map = {}      # Maps each object name to a type: trigger, dataset, stream, or L1A
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
-        self.use_prescaled_rate = False
-        self.normalize_bunches  = True
+        self.use_prescaled_rate = False # If true, then rates are not un-prescaled
+        self.normalize_bunches  = True  # Normalize by the number of colliding bunches
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
 
@@ -60,9 +61,11 @@ class DataParser:
         self.use_datasets     = False   # Plot dataset rates
         self.use_L1A_rate     = False   # Plots the L1A rates
 
-        self.use_best_lumi = True
-        self.use_PLTZ_lumi = False
-        self.use_HF_lumi   = False
+        self.use_ps_mask = False        # Collects data only for LS in the specified prescale indices
+
+        self.use_best_lumi = True       # Uses best luminosity as determined by BRIL
+        self.use_PLTZ_lumi = False      # Uses luminosity reading from PLTZ
+        self.use_HF_lumi   = False      # Uses luminosity reading from HF
 
         self.verbose = True
 
@@ -166,6 +169,9 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if psi not in self.psi_filter and self.use_ps_mask:
+                    continue;
+
                 if phys and not ilum is None and L1_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1_rates[trigger][LS][0]
@@ -221,6 +227,9 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if psi not in self.psi_filter and self.use_ps_mask:
+                    continue;
+
                 if phys and not ilum is None and HLT_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = HLT_rates[trigger][LS][0]
@@ -288,6 +297,9 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if psi not in self.psi_filter and self.use_ps_mask:
+                    continue;
+
                 if phys and not ilum is None and stream_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = stream_rates[_object][LS][0]
@@ -346,6 +358,9 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if psi not in self.psi_filter and self.use_ps_mask:
+                    continue;
+
                 if phys and not ilum is None and dataset_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = dataset_rates[_object][LS][0]
@@ -395,6 +410,9 @@ class DataParser:
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if psi not in self.psi_filter and self.use_ps_mask:
+                    continue;
+
                 if phys and not ilum is None and L1A_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1A_rates[_object][LS]
