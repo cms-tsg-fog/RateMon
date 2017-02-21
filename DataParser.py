@@ -47,6 +47,7 @@ class DataParser:
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
         self.use_prescaled_rate = False # If true, then rates are not un-prescaled
+        self.use_cross_section  = False # If true, then divide the rate by inst. lumi (only for L1 and HLT trigger data)
         self.normalize_bunches  = True  # Normalize by the number of colliding bunches
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
@@ -186,6 +187,9 @@ class DataParser:
                         #else:
                         #    rate = 0
 
+                    if self.use_cross_section:
+                        rate = rate/ilum
+
                     ls_array.append(LS)
                     rate_dict[LS] = rate
                     ps_dict[LS] = prescale
@@ -243,6 +247,9 @@ class DataParser:
                             rate = rate/prescale
                         #else:
                         #    rate = 0
+
+                    if self.use_cross_section:
+                        rate = rate/ilum
 
                     ls_array.append(LS)
                     rate_dict[LS] = rate
