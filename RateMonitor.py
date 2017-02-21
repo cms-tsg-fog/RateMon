@@ -369,7 +369,7 @@ class RateMonitor:
         y_axis_label += y_axis_var
 
         # Format the y_axis_label denominator
-        if self.data_parser.normalize_bunches && self.data_parser.use_cross_section:
+        if self.data_parser.normalize_bunches and self.data_parser.use_cross_section:
             y_axis_label += " / (num bx*iLumi)"
         elif self.data_parser.normalize_bunches:
             y_axis_label += " / num colliding bx"
