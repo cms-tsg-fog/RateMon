@@ -83,7 +83,7 @@ class PlotMaker:
                         self.fits[trigger] = {}
                         self.fits[trigger][self.default_fit] = fits[trigger][self.default_fit]
                     except KeyError:
-                        print "WARNING: %s doesn't have the default fit type, %s. Skipping this fit" % self.default_fit
+                        print "WARNING: %s doesn't have the default fit type, %s. Skipping this fit" % (trigger,self.default_fit)
                         continue
                 else:
                     fit_type = fits[trigger].keys()[0]
