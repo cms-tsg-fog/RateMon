@@ -20,10 +20,41 @@ import os
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
 from ROOT import TFile, TPaveText, TBrowser
 
+
+def mySinh(x, par):
+    # Taylor expansion of A*sinh(B*x)+C, where:
+    # par[0] = B
+    # par[1] = A
+    # par[2] = C
+
+    # shorthand for various powers of x:
+    x1 = x[0]
+    x3 = x1*x1*x1
+    x5 = x1*x1*x1*x1*x1
+    x7 = x1*x1*x1*x1*x1*x1*x1
+    x9 = x1*x1*x1*x1*x1*x1*x1*x1*x1
+    x11 = x1*x1*x1*x1*x1*x1*x1*x1*x1*x1*x1
+    
+    # Adding (x) parameter:    
+    x1 = x1*par[0]
+    x3 = x3*par[0]*par[0]*par[0]
+    x5 = x5*par[0]*par[0]*par[0]*par[0]*par[0]
+    x7 = x7*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
+    x9 = x9*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
+    x11 = x11*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
+    
+    # The actual expansion:
+    #thefunc = par[2] + par[1]*(x1 + (x3/6.) + (x5/120.) + (x7/5040.) + (x9/362880.)) # + O(x)^11
+    thefunc = par[1]*( (x11/39916800.) + (x9/362880.) + (x7/5040.) + (x5/120.) + (x3/6.) + x1 ) + par[2] # + O(x)^13
+    
+    return thefunc
+
+
 class FitFinder:
     def __init__(self):
         #self.fits_to_try = ["linear","quad"]
-        self.fits_to_try = ["linear","quad","cube","exp"]
+        #self.fits_to_try = ["sinh"]
+        self.fits_to_try = ["linear","quad","sinh"]
         #self.fits_to_try = ["cube","exp","sinh"]
         #self.fits_to_try = ["linear"]
         #self.fits_to_try = ["quad","cube","exp"]
@@ -181,14 +212,10 @@ class FitFinder:
             fit_func.SetParameter(1,1.0)
             fit_func.FixParameter(1,1.0)
         elif fit_type == "sinh":
-            fit_func = TF1("Sinh Fit","[0]*sinh([1]*x)+[2]+[3]",0,maxX)
-            #fit_func = TF1("Sinh Fit","[0]*(exp([1]*x) - exp(-[2]*x))+[3]")
-            fit_func.SetParameter(0,1.0/2208.0)
-            fit_func.SetParameter(1,1.0/50.0)
-            fit_func.SetParameter(2,0.0)
-            fit_func.FixParameter(2,0.0)
-            fit_func.SetParameter(3,0.0)
-            fit_func.FixParameter(3,0.0)
+            fit_func = TF1("Sinh Fit", mySinh, 0, maxX, 3)
+            fit_func.SetParameter(0,0.05)
+            fit_func.SetParameter(1,0.5)
+            fit_func.SetParameter(2,0.0)            
 
         fitGraph.Fit(fit_func,"QNM","rob=0.90")
         fitMSE = self.getMSE(fit_func,xVals,yVals)
