@@ -18,36 +18,10 @@ import array
 import os
 
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
-from ROOT import TFile, TPaveText, TBrowser
+from ROOT import TFile, TPaveText, TBrowser, TString
 
-
-def mySinh(x, par):
-    # Taylor expansion of A*sinh(B*x)+C, where:
-    # par[0] = B
-    # par[1] = A
-    # par[2] = C
-
-    # shorthand for various powers of x:
-    x1 = x[0]
-    x3 = x1*x1*x1
-    x5 = x1*x1*x1*x1*x1
-    x7 = x1*x1*x1*x1*x1*x1*x1
-    x9 = x1*x1*x1*x1*x1*x1*x1*x1*x1
-    x11 = x1*x1*x1*x1*x1*x1*x1*x1*x1*x1*x1
-    
-    # Adding (x) parameter:    
-    x1 = x1*par[0]
-    x3 = x3*par[0]*par[0]*par[0]
-    x5 = x5*par[0]*par[0]*par[0]*par[0]*par[0]
-    x7 = x7*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
-    x9 = x9*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
-    x11 = x11*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]*par[0]
-    
-    # The actual expansion:
-    #thefunc = par[2] + par[1]*(x1 + (x3/6.) + (x5/120.) + (x7/5040.) + (x9/362880.)) # + O(x)^11
-    thefunc = par[1]*( (x11/39916800.) + (x9/362880.) + (x7/5040.) + (x5/120.) + (x3/6.) + x1 ) + par[2] # + O(x)^13
-    
-    return thefunc
+gROOT.ProcessLine(".L %s/functions.cc+" % os.getcwd())
+from ROOT import mySinh
 
 
 class FitFinder:
@@ -68,6 +42,8 @@ class FitFinder:
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
     # NOTE1: Need to figure out why the fitter is generating NaN's for the fits
     def makeFits(self,data,object_list):
+        #gROOT.ProcessLine(".L %s/functions.cc+" % os.getcwd())
+        
         fits = {}           # {'trigger': { 'fit_type': fit_params } }
         skipped_fits = {}   # {'trigger': 'reason'}
         nan_fits = {}       # {'trigger': { 'fit_type': param_index } }
@@ -138,7 +114,7 @@ class FitFinder:
         sigma_x = 4 #how many standard deviations before we cut out points
         sigma_y = 4 #how many standard deviations before we cut out points
         for x,y in zip(xVals,yVals):
-            if abs(x-average_x) < sigma_x*std_dev_x and abs(y-average_y) < sigma_y*std_dev_y:
+            if (abs(y-average_y) < sigma_y*std_dev_y):
                 goodX.append(x)
                 goodY.append(y)
 
@@ -219,12 +195,6 @@ class FitFinder:
 
         fitGraph.Fit(fit_func,"QNM","rob=0.90")
         fitMSE = self.getMSE(fit_func,xVals,yVals)
-
-        #if fit_type == "sinh":
-        #    print "0 fit param:",fit_func.GetParameter(0)
-        #    print "1 fit param:",fit_func.GetParameter(1)
-        #    print "2 fit param:",fit_func.GetParameter(2)
-        #    print "3 fit param:",fit_func.GetParameter(3)
 
         OutputFit = [fit_type]
         OutputFit += [fit_func.GetParameter(0),fit_func.GetParameter(1),fit_func.GetParameter(2),fit_func.GetParameter(3)]
