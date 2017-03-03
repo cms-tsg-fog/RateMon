@@ -41,9 +41,7 @@ class FitFinder:
     # Returns: {'trigger': fit_params}
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
     # NOTE1: Need to figure out why the fitter is generating NaN's for the fits
-    def makeFits(self,data,object_list):
-        #gROOT.ProcessLine(".L %s/functions.cc+" % os.getcwd())
-        
+    def makeFits(self,data,object_list,normalization):
         fits = {}           # {'trigger': { 'fit_type': fit_params } }
         skipped_fits = {}   # {'trigger': 'reason'}
         nan_fits = {}       # {'trigger': { 'fit_type': param_index } }
@@ -52,10 +50,8 @@ class FitFinder:
         counter = 0
         prog_counter = 0
         for trigger in object_list:
-            if len(object_list) > 10:
-                if counter % (len(object_list)/10) == 0:
-                    print "\tProgress: %d%% (%d/%d)" % (prog_counter*10,counter,len(object_list))
-                    prog_counter += 1
+            if counter % math.floor(len(object_list)/10.) == 0:
+                print "\tProgress: %.0f%% (%d/%d)" % (100.*counter/len(object_list),counter,len(object_list))
             counter += 1
 
             if not data.has_key(trigger):
@@ -67,9 +63,11 @@ class FitFinder:
                 for x,y,status in zip(data[trigger][run][0],data[trigger][run][1],data[trigger][run][2]):
                     if status: # only fit data points when ALL subsystems are IN.
                         x_fit_vals.append(x)
-                        y_fit_vals.append(y)
+                        # Remove the normalization during fitting (to avoid excessively small y-vals)
+                        y_fit_vals.append(y*normalization)
 
             x_fit_vals, y_fit_vals = self.removePoints(x_fit_vals,y_fit_vals,0)   # Don't fit points with 0 rate
+
             if len(x_fit_vals) > self.min_plot_pts:
                 new_fit = {}
                 try:
@@ -89,6 +87,34 @@ class FitFinder:
                             if not nan_fits[trigger].has_key(fit_type):
                                 nan_fits[trigger][fit_type] = i
                             new_fit[fit_type][i] = 0.0
+                        # Re-apply the normalization
+                        if fit_type == "sinh" or fit_type == "sinh2":
+                            # We need to scale all params EXCEPT param[0]
+                            if i == 0 or i == 1 or i == 7:
+                                # i == 0 is fit_type
+                                # i == 1 is param[0]
+                                # i == 7 is param_err[0]
+                                continue
+                            else:
+                                new_fit[fit_type][i] /= normalization
+                        elif fit_type == "exp":
+                            # We need to scale all params EXCEPT param[2] and param[3]
+                            if i == 0 or i == 3 or i == 4 or i == 9 or i == 10:
+                                # i == 0 is fit_type
+                                # i == 3 is param[2]
+                                # i == 4 is param[3]
+                                # i == 9 is param_err[2]
+                                # i == 10 is param_err[3]
+                                continue
+                            else:
+                                new_fit[fit_type][i] /= normalization
+                        else:
+                            # Scale all params
+                            if i == 0:
+                                # i == 0 is fit_type
+                                continue
+                            else:
+                                new_fit[fit_type][i] /= normalization
                 fits[trigger] = new_fit
             else:
                 skipped_fits[trigger] = "Not enough points"

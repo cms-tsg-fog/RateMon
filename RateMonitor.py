@@ -150,13 +150,19 @@ class RateMonitor:
         self.plotter.setPlottingData(plot_data)
         self.plotter.bunch_map = bunch_map
 
+        normalization = 1
+        if self.data_parser.normalize_bunches:
+            max_key = max(bunch_map.iterkeys(), key=(lambda key: bunch_map[key]))
+            normalization = bunch_map[max_key]
+        print "Fit Normalization: %d" % normalization
+
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
-            fits = self.fitter.makeFits(plot_data,self.object_list)
+            fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
             self.fitter.saveFits(fits,"fit_file.pkl",self.save_dir)
             self.plotter.setFits(fits)
         elif self.update_online_fits:
-            self.updateOnlineFits(plot_data)
+            self.updateOnlineFits(plot_data,normalization)
             return  # This keeps us from having to worry about any additional output plots
         elif self.certify_mode:
             self.certifyRuns(plot_data)
@@ -165,7 +171,7 @@ class RateMonitor:
         # We want fits and no fits were specified --> make some
         # NOTE: This 'if' is true only when ZERO fits exist
         if self.plotter.use_fit and len(self.plotter.fits.keys()) == 0:
-            fits = self.fitter.makeFits(plot_data,plot_data.keys())
+            fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
             self.plotter.setFits(fits)
 
         # This is after update_online_fits, so as to ensure the proper save dir is set
@@ -385,7 +391,7 @@ class RateMonitor:
         self.plotter.units_X = x_units
         self.plotter.units_Y = y_units
 
-    def updateOnlineFits(self,plot_data):
+    def updateOnlineFits(self,plot_data,normalization):
         # type: (Dict[str,Dict[int,object]]) -> None
 
         # NOTE: self.object_list, contains *ONLY* the list of triggers from 'monitorlist_COLLISIONS.list'
@@ -402,7 +408,7 @@ class RateMonitor:
         # Plots the monitored paths
         print "Updating monitored trigger fits..."
         self.plotter.save_dir = mon_trg_dir
-        fits = self.fitter.makeFits(plot_data,self.object_list)
+        fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         self.plotter.setFits(fits)
         self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
         print "Making plots..."
@@ -411,7 +417,7 @@ class RateMonitor:
         # Plots all trigger paths
         print "Updating all trigger fits..."
         self.plotter.save_dir = all_trg_dir
-        fits = self.fitter.makeFits(plot_data,all_triggers)
+        fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
         self.plotter.setFits(fits)
         self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
         print "Making plots..."
