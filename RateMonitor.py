@@ -154,7 +154,6 @@ class RateMonitor:
         if self.data_parser.normalize_bunches:
             max_key = max(bunch_map.iterkeys(), key=(lambda key: bunch_map[key]))
             normalization = bunch_map[max_key]
-        normalization = 1
         print "Fit Normalization: %d" % normalization
 
         # Make a fit of each object to be plotted, and save it to a .pkl file
@@ -190,6 +189,7 @@ class RateMonitor:
 
                 objs_to_plot = set()
                 for obj in self.object_list:
+                    # Get the the plot objs associated with this group
                     if obj in self.group_map[grp]:
                         objs_to_plot.add(obj)
 
@@ -249,6 +249,11 @@ class RateMonitor:
         if self.certify_mode and len(self.plotter.fits.keys()) == 0:
             print "ERROR SETUP: No fits were found while in certify mode"
             return False
+
+        # We are configured to only create/display the default fit, so only generate one fit
+        if self.make_fits and not self.fitter.use_best_fit and not self.plotter.use_multi_fit:
+            print "WARNING: Only creating the default fit, %s" % self.plotter.default_fit
+            self.fitter.fits_to_try = [self.plotter.default_fit]
 
         return True
 
