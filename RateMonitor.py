@@ -154,6 +154,7 @@ class RateMonitor:
         if self.data_parser.normalize_bunches:
             max_key = max(bunch_map.iterkeys(), key=(lambda key: bunch_map[key]))
             normalization = bunch_map[max_key]
+        normalization = 1
         print "Fit Normalization: %d" % normalization
 
         # Make a fit of each object to be plotted, and save it to a .pkl file

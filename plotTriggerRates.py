@@ -287,6 +287,7 @@ class MonitorController:
                 self.rate_monitor.use_lumi = True
             elif label == "--useCrossSection":
                 # Plot the (rate/inst. lumi) vs. <PU>
+                self.rate_monitor.data_parser.normalize_bunches = False
                 self.rate_monitor.data_parser.use_cross_section = True
             elif label == "--useFills":
                 # Specify that the data should fetched by fill number
