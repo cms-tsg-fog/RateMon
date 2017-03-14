@@ -20,8 +20,8 @@ import os
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
 from ROOT import TFile, TPaveText, TBrowser, TString
 
-gROOT.ProcessLine(".L %s/functions.cc+" % os.getcwd())
-from ROOT import mySinh
+#gROOT.ProcessLine(".L %s/functions.cc+" % os.getcwd())
+#from ROOT import mySinh
 
 
 class FitFinder:
@@ -214,7 +214,26 @@ class FitFinder:
             fit_func.SetParameter(1,1.0)
             fit_func.FixParameter(1,1.0)
         elif fit_type == "sinh":
-            fit_func = TF1("Sinh Fit", mySinh, 0, maxX, 3)
+            my_sinh = ""
+
+            my_sinh += "(x*[0])^11/39916800."
+            my_sinh += "+(x*[0])^9/362880."
+            my_sinh += "+(x*[0])^7/5040."
+            my_sinh += "+(x*[0])^5/120."
+            my_sinh += "+(x*[0])^3/6."
+            my_sinh += "+(x*[0])^1"
+            my_sinh = "[1]*(%s)+[2]" % (my_sinh)
+
+            #my_sinh += "(x*[0])^1"
+            #my_sinh += "+(x*[0])^3/6"
+            #my_sinh += "+(x*[0])^5/120"
+            #my_sinh += "+(x*[0])^7/5040"
+            #my_sinh += "+(x*[0])^9/362880"
+            #my_sinh += "+(x*[0])^11/39916800"
+            #my_sinh = "[1]*(%s)+[2]" % (my_sinh)
+
+            fit_func = TF1("Sinh Fit",my_sinh,0,maxX)
+            #fit_func = TF1("Sinh Fit", mySinh, 0, maxX, 3)
             fit_func.SetParameter(0,0.05)
             fit_func.SetParameter(1,0.5)
             fit_func.SetParameter(2,0.0)            
