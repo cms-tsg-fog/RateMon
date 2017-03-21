@@ -105,7 +105,7 @@ class DBParser:
                         C.UGT_KEY
                     FROM
                         CMS_WBM.RUNSUMMARY A,
-                        CMS_L1_HLT.L1_HLT_CONF_UPGRADE B,
+                        CMS_L1_HLT.L1_HLT_CONF B,
                         CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
                     WHERE
                         B.ID = A.TRIGGERMODE AND
@@ -1214,7 +1214,7 @@ class DBParser:
         self.curs.execute(query)
         self.curs.fetchone()    # Discard the first run as it is actually from the previous fill
         for item in self.curs.fetchall():
-            tmp_list.append(item[0])
+            tmp_list.append(item[0])    # Add all runs from the fill to the list
 
         # We make the same query, but this time filter out runs w/o stable beam
         # NOTE: Might be able to bundle this into a single query, but for now this should work
@@ -1234,7 +1234,7 @@ class DBParser:
                 """ % (fillNumber)
         self.curs.execute(query)
         for item in self.curs.fetchall():
-            # We only include runs that are actually in this fill!
+            # We only include runs that are actually in this fill (i.e. runs with stable beams)!
             if item[0] in tmp_list:
                 run_list.append(item[0])
 
@@ -1308,7 +1308,7 @@ class DBParser:
 
         self.curs.execute(query)
 
-        stream_paths = {}
+        stream_paths = {}       # {'stream_name': [trg_paths] }
         for trg,stream in self.curs.fetchall():
             trg = stripVersion(trg)
             if not stream_paths.has_key(stream):
