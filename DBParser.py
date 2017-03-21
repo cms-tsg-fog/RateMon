@@ -106,7 +106,7 @@ class DBParser:
                         C.UGT_KEY
                     FROM
                         CMS_WBM.RUNSUMMARY A,
-                        CMS_L1_HLT.L1_HLT_CONF_UPGRADE B,
+                        CMS_L1_HLT.L1_HLT_CONF B,
                         CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
                     WHERE
                         B.ID = A.TRIGGERMODE AND
