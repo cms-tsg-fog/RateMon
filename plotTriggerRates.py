@@ -67,26 +67,29 @@ class MonitorController:
 
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",[ "fitFile=",
-                                                        "triggerList=",
-                                                        "saveDirectory=",
-                                                        "useFit=",
-                                                        "psFilter=",
-                                                        "Secondary",
-                                                        "datasetRate",
-                                                        "L1ARate",
-                                                        "streamRate",
-                                                        "streamBandwidth",
-                                                        "streamSize",
-                                                        "cronJob",
-                                                        "updateOnlineFits",
-                                                        "createFit",
-                                                        "multiFit",
-                                                        "bestFit",
-                                                        "nonLinear",
-                                                        "vsInstLumi",
-                                                        "useCrossSection",
-                                                        "useFills"])
+            opt, args = getopt.getopt(sys.argv[1:],"",[ 
+                "fitFile=",
+                "triggerList=",
+                "saveDirectory=",
+                "useFit=",
+                "psFilter=",
+                "Secondary",
+                "datasetRate",
+                "L1ARate",
+                "streamRate",
+                "streamBandwidth",
+                "streamSize",
+                "cronJob",
+                "updateOnlineFits",
+                "createFit",
+                "multiFit",
+                "bestFit",
+                "nonLinear",
+                "vsInstLumi",
+                "useCrossSection",
+                "useFills"
+            ])
+
         except:
             print "Error getting options: command unrecognized. Exiting."
             return False
@@ -278,9 +281,6 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
-            elif label == "--nonLinear":
-                # This is always true by default --> might no longer need this option (could rework it)
-                xkcd = ""
             elif label == "--vsInstLumi":
                 # Plot vs the instantaenous luminosity
                 self.rate_monitor.use_pileup = False
@@ -376,7 +376,10 @@ class MonitorController:
                     for item in stream_map[stream]:
                         hlt_triggers.add(item)
 
-            # Update the object_list to include all the L1/HLT triggers
+            # Make a group for all HLT triggers
+            grp_map["HLT_Triggers"] = list(hlt_triggers)
+
+            # Update the object_list to include all the L1/HLT triggers in the menu
             self.rate_monitor.object_list += list(L1_triggers)
             self.rate_monitor.object_list += list(hlt_triggers)
             self.rate_monitor.group_map = grp_map

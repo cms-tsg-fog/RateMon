@@ -56,7 +56,6 @@ class FitFinder:
 
             if not data.has_key(trigger):
                 continue
-            #print "\tFitting: %s..." % trigger
             x_fit_vals = array.array('f')
             y_fit_vals = array.array('f')
             for run in sorted(data[trigger]):
@@ -126,9 +125,6 @@ class FitFinder:
 
         if len(nan_fits) > 0:
             print "NaN fits: %d" % len(nan_fits.keys())
-            #for name in sorted(nan_fits.keys()):
-            #    for fit_type in nan_fits[name]:
-            #        print "\t%s: %s at %s" % (name,fit_type,nan_fits[name][fit_type])
 
         return fits
 
@@ -224,14 +220,6 @@ class FitFinder:
             my_sinh += "+(x*[0])^1"
             my_sinh = "[1]*(%s)+[2]" % (my_sinh)
 
-            #my_sinh += "(x*[0])^1"
-            #my_sinh += "+(x*[0])^3/6"
-            #my_sinh += "+(x*[0])^5/120"
-            #my_sinh += "+(x*[0])^7/5040"
-            #my_sinh += "+(x*[0])^9/362880"
-            #my_sinh += "+(x*[0])^11/39916800"
-            #my_sinh = "[1]*(%s)+[2]" % (my_sinh)
-
             fit_func = TF1("Sinh Fit",my_sinh,0,maxX)
             #fit_func = TF1("Sinh Fit", mySinh, 0, maxX, 3)
             fit_func.SetParameter(0,0.05)
@@ -257,9 +245,6 @@ class FitFinder:
             goodX, goodY = xVals, yVals
 
         if len(goodX) == 0 or len(goodY) == 0:
-            #print "%s: No points - generating empty fit..." % name
-            #print "\tlen(xVals): %s" % len(goodX)
-            #print "\tlen(yVals): %s" % len(goodY)
             output_fits["empty"] = self.emptyFit()
             return output_fits
 
