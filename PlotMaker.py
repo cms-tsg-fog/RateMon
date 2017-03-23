@@ -20,7 +20,6 @@ from ROOT import TLatex, TH1D, TLine
 
 from FitFinder import *
 
-
 # Generates ROOT based plots
 class PlotMaker:
     def __init__(self):
@@ -38,6 +37,7 @@ class PlotMaker:
         self.fitFinder = FitFinder()
 
         self.sigmas = 3.0
+        # Fix: [8,9,10,12]
         self.color_list = [4,6,8,7,9,419,46,20,28,862,874,38,32,40,41,5,3]  # List of colors that we can use for graphing
         self.fit_color_list = [2,1,3,5]                                     # List of colors to use for the fits
         self.fill_count = 0
@@ -86,6 +86,7 @@ class PlotMaker:
                         print "WARNING: %s doesn't have the default fit type, %s. Skipping this fit" % (trigger,self.default_fit)
                         continue
                 else:
+                    # If only 1 fit is available use it
                     fit_type = fits[trigger].keys()[0]
                     self.fits[trigger] = {}
                     self.fits[trigger][fit_type] = fits[trigger][fit_type]
@@ -533,13 +534,8 @@ class PlotMaker:
     def makeCertifySummary(self,run,pred_data,log_file):
         # NOTE: pred_data should have keys that only corresponds to triggers in the monitorlist, but self.plotting_data should have *ALL* trigger data
         # UNFINISHED
-        
-        ### NOT DEFINED YET: START
-        ### NOT DEFINED YET: END
 
         gStyle.SetOptStat(0)
-
-        max_bad_paths = len(pred_data.keys())
 
         ls_set = set()
         bad_ls = {}         # The total number of bad paths in a given LS, {LS: int}
@@ -565,16 +561,16 @@ class PlotMaker:
                             else:
                                 bad_ls[LS] = 1
 
+        max_bad_paths = 1
         bad_ls_inverted = {}    # {int: [LS]}
         for LS in bad_ls:
             count = bad_ls[LS]
+            if count > max_bad_paths:
+                max_bad_paths = count
+                
             if not bad_ls_inverted.has_key(count):
                 bad_ls_inverted[count] = []
             bad_ls_inverted[count].append(int(LS))
-
-        min_ls = min(ls_set)
-        max_ls = max(ls_set)
-        tot_ls = len(ls_set)
 
         ### MAKE THE SUMMARY TEXT FILE ###
         log_file.write("\n")
@@ -607,6 +603,10 @@ class PlotMaker:
         log_file.write("     # OF BAD PATHS : LUMISECTION(S)\n")
         log_file.write("\n")
 
+        min_ls = min(ls_set)
+        max_ls = max(ls_set)
+        tot_ls = len(ls_set)
+
         for count in sorted(bad_ls_inverted.keys(),reverse=True):
             log_file.write("     %d : %s\n" % (count,str(bad_ls_inverted[count])))
 
@@ -614,20 +614,24 @@ class PlotMaker:
         log_file.write("BAD LS SUMMARY:\n")
         log_file.write("\n")
 
-        bad_count = sum([bad_ls[x] for x in bad_ls.keys()])
+        #bad_count = sum([bad_ls[x] for x in bad_ls.keys()])
+        bad_count = len(bad_ls.keys())
         total_count = len(ls_set)
 
-        log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )" % bad_count)
+        log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % bad_count)
         log_file.write("---- Total LS: %d\n" % total_count)
-        log_file.write("---- Fraction bad LS: %.2f\n" % bad_count/total_count)
+        log_file.write("---- Fraction bad LS: %.2f\n" % (100.*float(bad_count)/float(total_count)))
 
         log_file.write("\n")
         log_file.write("BAD PATH SUMMARY:\n")
         log_file.write("\n")
 
+        bad_count = len(trg_bad_ls.keys())
+        total_count = len(pred_data.keys())
+
         log_file.write("---- Total Bad Paths: %d\n" % bad_count)
         log_file.write("---- Total Possible Paths: %d\n" % total_count)
-        log_file.write("---- Fraction that are Bad Paths: %.2f\n" % bad_count/total_count)
+        log_file.write("---- Fraction that are Bad Paths: %.2f\n" % (100.*float(bad_count)/float(total_count)))
 
         ### MAKE THE SUMMARY HISTOGRAM ###
 

@@ -447,7 +447,7 @@ class RateMonitor:
             self.plotter.save_dir = self.certify_dir
             self.plotter.root_file_name = "CertificationSummaries.root"
 
-            pred_data = self.getPredictionData(run)
+            pred_data = self.getPredictionData(run)     # {'name': [ (LS,pred,err) ] }
 
             self.plotter.makeCertifySummary(run,pred_data,log_file)
 
@@ -468,14 +468,13 @@ class RateMonitor:
     # TODO: Should move this to DataParser.py
     def getPredictionData(self,run):
         # UNFINISHED
+
+        # We need to disable converting the output
         prev_state = self.data_parser.convert_output
         self.data_parser.convert_output = False
 
-        print "Prev state: %s" % prev_state
-        print "Parser state 1: %s" % self.data_parser.convert_output
-
         lumi_info = self.data_parser.getLumiInfo()  # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
-        #ls_data = self.data_parser.getLSData()      # {'name': { run_number: [ LS ] } }
+        ls_data = self.data_parser.getLSData()      # {'name': { run_number: [ LS ] } }
         pu_data = self.data_parser.getPUData()      # {'name': { run_number: { LS: PU } } }
         bunch_map = self.data_parser.getBunchMap()  # {run_number: bunches}
 
@@ -485,7 +484,7 @@ class RateMonitor:
         ppInelXsec = 80000.
         orbitsPerSec = 11246.
 
-        pred_dict = {}                              # {'name': [ (LS,pred,err) ] }
+        pred_dict = {}  # {'name': [ (LS,pred,err) ] }
 
         for obj in self.plotter.fits:
             if not pu_data.has_key(obj):
@@ -514,6 +513,16 @@ class RateMonitor:
                     # Either we have an exponential fit, or a polynomial fit
                     if fit_type == "exp":
                         rr = bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
+                    elif fit_type == "sinh":
+                        var = 0
+                        val += math.pow(X0*pu,11)/39916800.
+                        val += math.pow(X0*pu,9)/362880.
+                        val += math.pow(X0*pu,7)/5040.
+                        val += math.pow(X0*pu,5)/120.
+                        val += math.pow(X0*pu,3)/6.
+                        val += math.pow(X0*pu,1)
+                        val = X1*val + X2
+                        rr = bunch_map[run] * (val)
                     else:
                         rr = bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
                     if rr < 0: rr = 0 # Make sure prediction is non negative
@@ -522,8 +531,8 @@ class RateMonitor:
                     pred_error.append(bunch_map[run]*plotter_sigmas*sigma)
             pred_dict[obj] = zip(lumisecs,predictions,pred_error)
 
+        # Revert back to the previous convert_output setting
         self.data_parser.convert_output = prev_state
-        print "Parser state 2: %s" % self.data_parser.convert_output
         return pred_dict
 
     # NOTE1: This requires the .png file to be in the proper directory, as specified by self.group_map
