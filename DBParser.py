@@ -1,12 +1,11 @@
 ##################################
 # DB.py
-# Author: Nathaniel Carl Rupprecht Charlie Mueller Alberto Zucchetta
+# Author: Charlie Mueller, Nathaniel Rupprecht, Alberto Zucchetta, Andrew Wightman
 # Date: June 11, 2015
-# Last Modified: July 16, 2015
 #
 # Data Type Key:
 #    { a, b, c, ... }    -- denotes a tuple
-#    [ key ] <object>  -- denotes a dictionary of keys associated with objects
+#    [ key ] <object>    -- denotes a dictionary of keys associated with objects
 #    ( object )          -- denotes a list of objects 
 ##################################
 
@@ -37,8 +36,8 @@ class DBParser:
         # Create a DB cursor
         self.curs = orcl.cursor()
 
-        self.L1Prescales = {}
-        self.HLTPrescales = {}
+        self.L1Prescales = {}       # {algo_index: {psi: prescale}}
+        self.HLTPrescales = {}      # {'trigger': [prescales]}
         self.HLTSequenceMap = {}
         self.GTRS_Key = ""
         self.HLT_Key = ""
@@ -126,40 +125,50 @@ class DBParser:
     # Parameters:
     # -- runNumber: the number of the run that we want data for
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
-    def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999):
-
-        # Define the SQL query that we will send to the database. We want to fetch Lumisection and instantaneous luminosity
-        sqlquery =  """
-                    SELECT
-                        LUMISECTION,
-                        INSTLUMI,
-                        PRESCALE_INDEX,
-                        PHYSICS_FLAG*BEAM1_PRESENT, 
-                        PHYSICS_FLAG*BEAM1_PRESENT*EBP_READY*
-                            EBM_READY*EEP_READY*EEM_READY*
-                            HBHEA_READY*HBHEB_READY*HBHEC_READY*
-                            HF_READY*HO_READY*RPC_READY*
-                            DT0_READY*DTP_READY*DTM_READY*
-                            CSCP_READY*CSCM_READY*TOB_READY*
-                            TIBTID_READY*TECP_READY*TECM_READY*
-                            BPIX_READY*FPIX_READY*ESP_READY*ESM_READY 
-                    FROM
-                        CMS_RUNTIME_LOGGER.LUMI_SECTIONS A,
-                        CMS_UGT_MON.VIEW_LUMI_SECTIONS B
-                    WHERE
-                        A.RUNNUMBER=%s AND
-                        B.RUN_NUMBER(+)=A.RUNNUMBER AND
-                        B.LUMI_SECTION(+)=A.LUMISECTION AND
-                        A.LUMISECTION>=%s AND B.LUMI_SECTION>=%s AND
-                        A.LUMISECTION<=%s AND B.LUMI_SECTION<=%s
-                    """ % (runNumber, minLS, minLS, maxLS, maxLS)
-
-        try:
-            self.curs.execute(sqlquery) # Execute the query
-        except:
-            print "Getting LumiInfo failed. Exiting."
-            exit(2) # Exit with error
-        return self.curs.fetchall() # Return the results
+    def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999, lumi_source=0):
+        lumi_nibble = 16        # This is the value that WBM uses for lumi sections
+        query = """
+                SELECT
+                    B.INSTLUMI,
+                    A.PLTZERO_INSTLUMI,
+                    A.HF_INSTLUMI,
+                    B.LUMISECTION,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT*B.EBP_READY*
+                        B.EBM_READY*B.EEP_READY*B.EEM_READY*
+                        B.HBHEA_READY*B.HBHEB_READY*B.HBHEC_READY*
+                        B.HF_READY*B.HO_READY*B.RPC_READY*
+                        B.DT0_READY*B.DTP_READY*B.DTM_READY*
+                        B.CSCP_READY*B.CSCM_READY*B.TOB_READY*
+                        B.TIBTID_READY*B.TECP_READY*B.TECM_READY*
+                        B.BPIX_READY*B.FPIX_READY*B.ESP_READY*B.ESM_READY,
+                    C.PRESCALE_INDEX
+                FROM
+                    CMS_BEAM_COND.CMS_BRIL_LUMINOSITY A,
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B,
+                    CMS_UGT_MON.VIEW_LUMI_SECTIONS C
+                WHERE
+                    A.RUN = %s AND
+                    A.LUMINIBBLE = %s AND
+                    A.RUN = B.RUNNUMBER AND
+                    A.LUMISECTION = B.LUMISECTION AND
+                    C.RUN_NUMBER(+) = B.RUNNUMBER AND
+                    C.LUMI_SECTION(+) = B.LUMISECTION AND
+                    B.LUMISECTION >= %s AND C.LUMI_SECTION >= %s AND
+                    B.LUMISECTION <= %s AND C.LUMI_SECTION <= %s
+                ORDER BY
+                    LUMISECTION
+                """ % (runNumber,lumi_nibble,minLS,minLS,maxLS,maxLS)
+        self.curs.execute(query) # Execute the query
+        _list = []
+        for item in self.curs.fetchall():
+            ilum = item[lumi_source]
+            LS = item[3]
+            phys = item[4]
+            cms_ready = item[5]
+            psi = item[6]
+            _list.append([LS,ilum,psi,phys,cms_ready])
+        return _list
 
     # Use: Get the prescaled rate as a function 
     # Parameters: runNumber: the number of the run that we want data for
@@ -423,8 +432,8 @@ class DBParser:
         #(1, 'ALGORITHM_RATE_BEFORE_PRESCALE'),
         #(2, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE'),
         #(3, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_BY_HLT'),
-        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
+        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
         #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
         if preDeadTime: rate_type = '%d' % ( 0 )
         else: rate_type = '%d' % ( 4 )
@@ -837,7 +846,6 @@ class DBParser:
             #print "database error querying for num colliding bx" 
             return [0, 0]
 
-    
     # Use: Gets the last LHC status
     # Returns: A dictionary: [ status ] <text_value>
     def getLHCStatus(self):
@@ -1039,7 +1047,6 @@ class DBParser:
             
         return [runNumber[0], isCol, isGood, mode]
 
-
     def getWbmUrl(self,runNumber,pathName,LS):
         if pathName[0:4]=="HLT_":
             sqlquery =  """
@@ -1207,7 +1214,7 @@ class DBParser:
         self.curs.execute(query)
         self.curs.fetchone()    # Discard the first run as it is actually from the previous fill
         for item in self.curs.fetchall():
-            tmp_list.append(item[0])
+            tmp_list.append(item[0])    # Add all runs from the fill to the list
 
         # We make the same query, but this time filter out runs w/o stable beam
         # NOTE: Might be able to bundle this into a single query, but for now this should work
@@ -1227,7 +1234,7 @@ class DBParser:
                 """ % (fillNumber)
         self.curs.execute(query)
         for item in self.curs.fetchall():
-            # We only include runs that are actually in this fill!
+            # We only include runs that are actually in this fill (i.e. runs with stable beams)!
             if item[0] in tmp_list:
                 run_list.append(item[0])
 
@@ -1272,7 +1279,7 @@ class DBParser:
 
     # Returns a dictionary of streams that map to a list containing all the paths within that stream
     def getPathsInStreams(self,runNumber):
-        if not self.getRunInfo(self, runNumber):
+        if not self.getRunInfo(runNumber):
             return None
 
         query = """
@@ -1297,17 +1304,84 @@ class DBParser:
                     G.ID = F.ID_STREAM
                 ORDER BY
                     G.NAME
-                """ % (self.HLT_key)
+                """ % (self.HLT_Key)
 
         self.curs.execute(query)
 
-        stream_paths = {}
+        stream_paths = {}       # {'stream_name': [trg_paths] }
         for trg,stream in self.curs.fetchall():
+            trg = stripVersion(trg)
             if not stream_paths.has_key(stream):
                 stream_paths[stream] = []
-            stream_paths[stream].append(trg)
+
+            if not trg in stream_paths[stream]:
+                stream_paths[stream].append(trg)
 
         return stream_paths
-            
-# -------------------- End of class DBParsing -------------------- #
 
+    # Returns a list of all L1 triggers used in the run
+    def getL1Triggers(self,runNumber):
+        query = """
+                SELECT
+                    ALGO_NAME
+                FROM
+                    CMS_UGT_MON.VIEW_UGT_RUN_ALGO_SETTING
+                WHERE
+                    RUN_NUMBER = %s
+                """ % (runNumber)
+
+        self.curs.execute(query)
+
+        L1_list = []
+        for item in self.curs.fetchall():
+            L1_list.append(item[0])
+
+        return L1_list
+
+    # Functionally very similar to getL1RawRates, but allows for specifying which scalar type to query, also does no un-prescaling
+    def getL1Rates(self,runNumber,minLS=-1,maxLS=9999999,scaler_type=0):
+        self.getRunInfo(runNumber)
+        self.getL1Prescales(runNumber)
+        self.getL1NameIndexAssoc(runNumber)
+
+        #pre-DT rates query (new uGT)
+        #(0, 'ALGORITHM_RATE_AFTER_PRESCALE'),
+        #(1, 'ALGORITHM_RATE_BEFORE_PRESCALE'),
+        #(2, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE'),
+        #(3, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_BY_HLT'),
+        #(4, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_PHYSICS'),
+        #(5, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_CALIBRATION'),
+        #(6, 'POST_DEADTIME_ALGORITHM_RATE_AFTER_PRESCALE_RANDOM')
+
+        run_str = "0%d" % runNumber
+        query = """
+                SELECT
+                    LUMI_SECTIONS_ID,
+                    ALGO_RATE,
+                    ALGO_INDEX
+                FROM
+                    CMS_UGT_MON.VIEW_ALGO_SCALERS
+                WHERE
+                    SCALER_TYPE = %d AND
+                    LUMI_SECTIONS_ID LIKE '%s%%'
+                """ % (scaler_type,run_str)
+        self.curs.execute(query)
+
+        L1Triggers = {}
+        for tup in self.curs.fetchall():
+            ls = int(tup[0].split('_')[1].lstrip('0'))
+            rate = tup[1]
+            algo_bit = tup[2]
+
+            algo_name = self.L1NameIndexMap[algo_bit]
+            psi = self.PSColumnByLS[ls]
+            algo_ps = self.L1Prescales[algo_bit][psi]
+
+            if not L1Triggers.has_key(algo_name):
+                L1Triggers[algo_name] = {}
+
+            L1Triggers[algo_name][ls] = [rate, algo_ps]
+
+        return L1Triggers        # {'trigger': {LS: (rate,ps) } }
+
+# -------------------- End of class DBParsing -------------------- #
