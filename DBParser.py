@@ -36,8 +36,8 @@ class DBParser:
         # Create a DB cursor
         self.curs = orcl.cursor()
 
-        self.L1Prescales = {}
-        self.HLTPrescales = {}
+        self.L1Prescales = {}       # {algo_index: {psi: prescale}}
+        self.HLTPrescales = {}      # {'trigger': [prescales]}
         self.HLTSequenceMap = {}
         self.GTRS_Key = ""
         self.HLT_Key = ""

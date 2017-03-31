@@ -55,7 +55,7 @@ class MonitorController:
         self.rate_monitor.plotter.save_png       = True
         self.rate_monitor.plotter.save_root_file = True
 
-        self.rate_monitor.plotter.root_file_name   = "testing_plot_rewrite.root"
+        self.rate_monitor.plotter.root_file_name   = "rate_plots.root"
         self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
         self.rate_monitor.plotter.name_X  = "< PU >"
         self.rate_monitor.plotter.units_X = ""
