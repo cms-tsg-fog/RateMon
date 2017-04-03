@@ -78,14 +78,17 @@ class DataParser:
             counter += 1
             bunches = self.parser.getNumberCollidingBunches(run)[0]
 
-            if self.verbose: print "\tGetting lumi info..."
+            if bunches is None or bunches is 0:
+                bunches = 1
+
             # [( LS,ilum,psi,phys,cms_ready ) ]
-            if self.use_best_lumi:
-                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
-            elif self.use_PLTZ_lumi:
-                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
-            elif self.use_HF_lumi:
-                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
+            lumi_info = self.parseLumiInfo(run)
+            #if self.use_best_lumi:
+            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
+            #elif self.use_PLTZ_lumi:
+            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
+            #elif self.use_HF_lumi:
+            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
 
             run_data = self.getRunData(run,bunches,lumi_info)
             for name in run_data:
@@ -125,6 +128,34 @@ class DataParser:
                 self.runs_used.append(run)
                 self.bunch_map[run] = bunches
                 self.lumi_info[run] = lumi_info
+
+    def parseLumiInfo(self,run):
+        # [( LS,ilum,psi,phys,cms_ready ) ]
+        lumi_info = []
+
+        trigger_mode = self.parser.getTriggerMode(run)[0]
+
+        if trigger_mode.find('cosmics') > 0:
+            # This is a cosmics menu
+            if self.verbose:
+                print "\tDetected cosmics run..."
+                print "\tGetting lumi info..."
+            for LS,psi in self.parser.getLSInfo(run):
+                # We hard code phys and cms_ready to both be true for all LS in the run
+                lumi_info.append([LS,0.0,psi,1,1])
+        elif trigger_mode.find('collisions') > 0:
+            # This is a collisions menu
+            if self.verbose:
+                print "\tDetected collisions run..."
+                print "\tGetting lumi info..."
+            if self.use_best_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
+            elif self.use_PLTZ_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
+            elif self.use_HF_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
+        
+        return lumi_info
 
     # This might be excessive, should think about reworking this section
     # ------
@@ -308,6 +339,7 @@ class DataParser:
                     continue;
 
                 if phys and not ilum is None and stream_rates[_object].has_key(LS):
+                #if not ilum is None and stream_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = stream_rates[_object][LS][0]
                     size = stream_rates[_object][LS][1]
@@ -599,7 +631,7 @@ class DataParser:
         if self.convert_output:
             output = self.convertOutput(self.bw_data)
         else:
-            output = self.det_data
+            output = self.bw_data
         return output
 
     def getSizeData(self):
@@ -607,7 +639,7 @@ class DataParser:
         if self.convert_output:
             output = self.convertOutput(self.size_data)
         else:
-            output = self.det_data
+            output = self.size_data
         return output
 
     def getLumiInfo(self):

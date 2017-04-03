@@ -86,6 +86,7 @@ class MonitorController:
                 "bestFit",
                 "nonLinear",
                 "vsInstLumi",
+                "vsLS",
                 "useCrossSection",
                 "useFills"
             ])
@@ -137,6 +138,7 @@ class MonitorController:
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi   = False
                 self.rate_monitor.use_fills  = False
+                self.rate_monitor.use_LS     = True
                 self.rate_monitor.make_fits  = False
 
                 self.rate_monitor.data_parser.use_L1_triggers    = True
@@ -285,6 +287,12 @@ class MonitorController:
                 # Plot vs the instantaenous luminosity
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = True
+                self.rate_monitor.use_LS = False
+            elif label == "--vsLS":
+                # Plot vs the LS
+                self.rate_monitor.use_pileup = False
+                self.rate_monitor.use_lumi = False
+                self.rate_monitor.use_LS = True
             elif label == "--useCrossSection":
                 # Plot the (rate/inst. lumi) vs. <PU>
                 self.rate_monitor.data_parser.normalize_bunches = False

@@ -63,6 +63,23 @@ class DBParser:
         orcl = cx_Oracle.connect(user='cms_trg_r',password='X3lmdvu4',dsn=self.dsn_)
         return orcl.cursor()
 
+    def getLSInfo(self, runNumber):
+        sqlquery =  """
+            SELECT
+                LUMI_SECTION,
+                PRESCALE_INDEX
+            FROM
+                CMS_UGT_MON.VIEW_LUMI_SECTIONS
+            WHERE
+                RUN_NUMBER = %s
+            """ % (runNumber)
+        ls_info = []
+        try:
+            self.curs.execute(sqlquery)
+            ls_info = self.curs.fetchall()
+        except:
+            print "Unable to get LS list for run %s" % runNumber
+        return ls_info
 
     # Returns: True if we succeded, false if the run doesn't exist (probably)
     def getRunInfo(self, runNumber):
@@ -92,7 +109,8 @@ class DBParser:
         try:
             self.curs.execute(sqlquery)
             self.PSColumnByLS = {} 
-            for lumi_section, prescale_column in self.curs.fetchall(): self.PSColumnByLS[lumi_section] = prescale_column
+            for lumi_section, prescale_column in self.curs.fetchall():
+                self.PSColumnByLS[lumi_section] = prescale_column
         except:
             print "Trouble getting PS column by LS"
 
