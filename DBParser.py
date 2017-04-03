@@ -330,6 +330,123 @@ class DBParser:
 
         return TriggerRates
 
+    # Similar to the 'getRawRates' query, but is restricted to triggers that appear in trigger_list
+    def getHLTRates(self, runNumber, trigger_list=[],minLS=-1, maxLS=9999999):
+        # First we need the HLT and L1 prescale rates and the HLT seed info
+        if not self.getRunInfo(runNumber):
+            print "Failed to get run info "
+            return {} # The run probably doesn't exist
+
+        # Get L1 info
+        self.getL1Prescales(runNumber)
+        self.getL1NameIndexAssoc(runNumber)
+        # Get HLT info
+        self.getHLTSeeds(runNumber)
+        self.getHLTPrescales(runNumber)
+
+        # Get the prescale index as a function of LS
+        for LS, psi in self.curs.fetchall():
+            self.PSColumnByLS[LS] = psi
+
+        self.HLT_name_map = self.getHLTNameMap(runNumber)
+
+        if len(trigger_list) == 0:
+            # If no list is given --> get rates for all HLT triggers
+            trigger_list = self.HLT_name_map.keys()
+
+        trigger_rates = {}
+        for name in trigger_list:
+            if not self.HLT_name_map.has_key(name):
+                # Ignore triggers which don't appear in this run
+                continue
+            trigger_rates[name] = self.getSingleHLTRate(runNumber,name,minLS,maxLS)
+
+        return trigger_rates
+
+    # Gets the HLT rate for a single trigger
+    # WARNING: This function is meant to be called by the wrapper funciton 'getHLTRates', since many of the 'self.' dictionaries change between runs
+    def getSingleHLTRate(self, runNumber, name, minLS=-1, maxLS=9999999):
+        # Cache the various dictionaries, so we don't have to repeat the queries
+        path_id = self.HLT_name_map[name]
+        sqlquery =  """
+                    SELECT
+                        A.LSNUMBER,
+                        SUM(A.L1PASS),
+                        SUM(A.PSPASS),
+                        SUM(A.PACCEPT),
+                        SUM(A.PEXCEPT)
+                    FROM
+                        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A
+                    WHERE
+                        A.RUNNUMBER = %s AND
+                        A.PATHID = %s AND
+                        A.LSNUMBER >= %s AND
+                        A.LSNUMBER <= %s
+                    GROUP BY
+                        A.LSNUMBER, A.PATHID
+                    """ % (runNumber,path_id,minLS,maxLS)
+        try: 
+            self.curs.execute(sqlquery)
+        except:
+            print "Getting rates for %s failed. Exiting." % name
+            exit(2) # Exit with error
+
+        trigger_rates = {}
+        for LS, L1Pass, PSPass, HLTPass, HLTExcept in self.curs.fetchall():
+            rate = HLTPass/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
+            hltps = 0 # HLT Prescale
+
+            # TODO: We can probably come up with a better solution then a try, except here
+            try: 
+                psi = self.PSColumnByLS[LS] # Get the prescale index
+            except:
+                psi = 0
+
+            if psi is None:
+                psi = 0
+            
+            try:
+                hltps = self.HLTPrescales[name][psi]
+            except:
+                hltps = 1.
+
+            hltps = float(hltps)
+                    
+            try:
+                if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
+                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                else:
+                    l1ps = self.UnwindORSeed(self.HLTSeed[name],self.L1Prescales,psi)
+            except:
+                l1ps = 1
+
+            ps = l1ps*hltps
+            trigger_rates[LS]= [ps*rate, ps]
+        return trigger_rates
+
+    # Generates a dictionary that maps HLT path names to the corresponding path_id
+    def getHLTNameMap(self,runNumber):
+        sqlquery =  """
+                    SELECT DISTINCT
+                        C.PATHID,
+                        B.NAME
+                    FROM
+                        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A,
+                        CMS_HLT_GDR.U_PATHS B,
+                        CMS_HLT_GDR.U_PATHIDS C
+                    WHERE
+                        A.RUNNUMBER = %s AND
+                        A.PATHID = C.PATHID AND
+                        B.ID = C.ID_PATH
+                    """ % (runNumber)
+
+        name_map = {}
+        curs.execute(sqlquery)
+        for path_id,path_name in curs.fetchall():
+            name = stripVersion(path_name)
+            name_map[name] = path_id
+        return name_map
+
 #EXPERIMENTAL CODE: START
     # This version is used in RateFitter.py
     def getRawRatesV2(self, runNumber, minLS=-1, maxLS=9999999):
@@ -974,7 +1091,7 @@ class DBParser:
             
         return l1rate
 
-    # Use: Gets the total L1 rate as a function of lumisection
+    # Use: Gets the total L1ARand rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
     def getL1ARand(self, runNumber):
         sqlquery =  """
@@ -995,7 +1112,7 @@ class DBParser:
             
         return l1rate
 
-    # Use: Gets the total L1 rate as a function of lumisection
+    # Use: Gets the TOTAL L1 rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
     def getL1rate(self, runNumber):
         sqlquery =  """
