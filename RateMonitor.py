@@ -51,6 +51,7 @@ class RateMonitor:
 
         self.use_pileup = True      # plot <PU> vs. rate
         self.use_lumi   = False     # plot iLumi vs. rate
+        self.use_LS     = False     # plot LS vs. rate
 
         self.use_stream_bandwidth = False
         self.use_stream_size      = False
@@ -112,7 +113,7 @@ class RateMonitor:
             x_vals = self.data_parser.getPUData()
         elif self.use_lumi: # plot iLumi vs. rate
             x_vals = self.data_parser.getLumiData()
-        else:               # plot LS vs. rate
+        elif self.use_LS:   # plot LS vs. rate
             x_vals = self.data_parser.getLSData()
 
         if self.use_stream_size:
@@ -333,6 +334,7 @@ class RateMonitor:
                 print "\tWARNING: Unknown object - %s" % _object
                 continue
             self.formatLabels(_object)
+
             if self.plotter.plotAllData(_object):
                 plotted_objects.append(_object)
                 counter += 1
