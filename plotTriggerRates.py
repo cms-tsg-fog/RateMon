@@ -110,6 +110,13 @@ class MonitorController:
                 # Specify the .list file that determines which triggers will be plotted
                 trigger_list = self.readTriggerList(str(op))
                 self.rate_monitor.object_list = trigger_list
+                self.rate_monitor.data_parser.hlt_triggers = []
+                self.rate_monitor.data_parser.l1_triggers = []
+                for name in trigger_list:
+                    if name[0:4] == "HLT_":
+                        self.rate_monitor.data_parser.hlt_triggers.append(name)
+                    elif name[0:3] == "L1_":
+                        self.rate_monitor.data_parser.l1_triggers.append(name)
             elif label == "--saveDirectory":
                 # Specify the directory that the plots will be saved to
                 # NOTE: Doesn't work with --Secondary option
@@ -260,7 +267,6 @@ class MonitorController:
                 self.rate_monitor.object_list = self.readTriggerList("monitorlist_COLLISIONS.list")
             elif label == "--createFit":
                 # Specify that we should create fits
-                # NEEDS TO BE FINISHED
                 self.rate_monitor.make_fits = True
 
                 self.rate_monitor.plotter.use_fit     = True
@@ -375,6 +381,22 @@ class MonitorController:
             except:
                 print "ERROR: Failed to get stream map"
                 return False
+
+            # Find which HLT paths are included in which datasets
+            try:
+                dataset_map = {}
+                for run in run_list:
+                    tmp_map = self.parser.getPathsInDatasets(run)
+                    for datset in tmp_map:
+                        if not dataset_map.has_key(dataset):
+                            dataset_map[dataset] = set()
+                        dataset_map[dataset] = dataset_map[dataset] | set(tmp_map[dataset])
+                    for dataset in dataset_map:
+                        dataset_map[dataset] = list(dataset_map[dataset])
+            except:
+                print "ERROR: Failed to get dataset map"
+                return False
+
 
             # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
             hlt_triggers = set()
