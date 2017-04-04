@@ -441,8 +441,8 @@ class DBParser:
                     """ % (runNumber)
 
         name_map = {}
-        curs.execute(sqlquery)
-        for path_id,path_name in curs.fetchall():
+        self.curs.execute(sqlquery)
+        for path_id,path_name in self.curs.fetchall():
             name = stripVersion(path_name)
             name_map[name] = path_id
         return name_map
@@ -1414,6 +1414,7 @@ class DBParser:
 
     # Returns a dictionary of streams that map to a list containing all the paths within that stream
     def getPathsInStreams(self,runNumber):
+        # WARNING: NEED TO TEST THIS QUERY
         if not self.getRunInfo(runNumber):
             return None
 
@@ -1453,6 +1454,45 @@ class DBParser:
                 stream_paths[stream].append(trg)
 
         return stream_paths
+
+    def getPathsInDatasets(self,runNumber):
+        if not self.getRunInfo(runNumber):
+            return None
+
+        query = """
+                SELECT
+                    D.NAME,
+                    G.NAME
+                FROM
+                    CMS_HLT_GDR.U_CONFVERSIONS A,
+                    CMS_HLT_GDR.U_PATHID2CONF B,
+                    CMS_HLT_GDR.U_PATHIDS C,
+                    CMS_HLT_GDR.U_PATHS D,
+                    CMS_HLT_GDR.U_U_PATHID2STRDST E,
+                    CMS_HLT_GDR.U_DATASETIDS F,
+                    CMS_HLT_GDR.U_DATASETS G,
+                WHERE
+                    A.NAME = '%s' AND
+                    B.ID_CONFVER = A.ID AND
+                    C.ID = B.ID_PATHID AND
+                    D.ID = C.ID_PATH AND 
+                    E.ID_PATHID = B.ID_PATHID AND
+                    F.ID = E.ID_DATASETID AND
+                    G.ID = F.ID_DATASET
+                """ % (self.HLT_Key)
+
+        self.curs.execute(query)
+
+        dataset_paths = {}      # {'dataset_name': [trg_paths] }
+        for trg,dataset in self.curs.fetchall():
+            trg = stripVersion(trg)
+            if not dataset_paths.has_key(dataset):
+                dataset_paths[dataset] = []
+
+            if not trg in dataset_paths[dataset]:
+                dataset_paths[dataset].append(trg)
+
+        return dataset_paths
 
     # Returns a list of all L1 triggers used in the run
     def getL1Triggers(self,runNumber):

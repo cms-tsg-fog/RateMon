@@ -38,6 +38,8 @@ class DataParser:
         self.lumi_info = {}    # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
         self.bunch_map = {}    # {run_number: nBunches }
 
+        self.hlt_triggers = []  # List of specific HLT triggers we want to get rates for, if empty --> get all HLT rates
+        self.l1_triggers  = []  # List of specific L1 triggers we want to get rates for, if empty --> get all L1 rates
         self.runs_used    = []
         self.runs_skipped = []
         self.name_list = []     # List of named objects for which we have data, e.g. triggers, datasets, streams, etc...
@@ -136,7 +138,7 @@ class DataParser:
         trigger_mode = self.parser.getTriggerMode(run)[0]
 
         if trigger_mode.find('cosmics') > 0:
-            # This is a cosmics menu
+            # This is a cosmics menu --> No luminosity info
             if self.verbose:
                 print "\tDetected cosmics run..."
                 print "\tGetting lumi info..."
@@ -244,7 +246,9 @@ class DataParser:
     def getHLTTriggerData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         if self.verbose: print "\tGetting HLT rates..."
-        HLT_rates = self.parser.getRawRates(run,minLS=self.min_ls,maxLS=self.max_ls)
+
+        HLT_rates = self.parser.getHLTRates(run,self.hlt_triggers,minLS=self.min_ls,maxLS=self.max_ls)
+
         if self.correct_for_DT:
             self.correctForDeadtime(HLT_rates,run)
 
