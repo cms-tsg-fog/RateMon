@@ -150,8 +150,8 @@ class MenuAnalyzer:
             if not self.perStreamPDList.has_key(stream):
                 self.Results['reqStreamsAndPDs'].append(stream)
                 continue
-            for PD in self.perStreamPDList[stream]:
-                if not PD in self.requiredStreamsAndPDs[stream]: self.Results['reqStreamsAndPDs'].append(stream+'::'+PD)
+            for PD in PDList:
+                if not PD in self.perStreamPDList[stream]: self.Results['reqStreamsAndPDs'].append(stream+'::'+PD)
     
     def reqEndPaths(self):
         self.Results['reqEndPaths'] = []
