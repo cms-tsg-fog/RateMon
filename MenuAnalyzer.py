@@ -31,6 +31,8 @@ class MenuAnalyzer:
         self.ExpressStreamName = 'Express'
         if ('Protonion' in name):
             self.ExpressStreamName = 'ExpressPA'
+        if ('cosmic' in name):
+            self.ExpressStreamName = 'ExpressCosmics'
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
                                  'ExpressCosmics' : 'Cosmics', 
                                  'ExpressPhysicsPA' : 'pPb Collisions' }
@@ -145,8 +147,10 @@ class MenuAnalyzer:
     def reqStreamsAndPDs(self):
         self.Results['reqStreamsAndPDs'] = []
         for stream,PDList in self.requiredStreamsAndPDs.iteritems():
-            if not self.perStreamPDList.has_key(stream): self.Results['reqStreamsAndPDs'].append(stream)
-            for PD in PDList:
+            if not self.perStreamPDList.has_key(stream):
+                self.Results['reqStreamsAndPDs'].append(stream)
+                continue
+            for PD in self.perStreamPDList[stream]:
                 if not PD in self.requiredStreamsAndPDs[stream]: self.Results['reqStreamsAndPDs'].append(stream+'::'+PD)
     
     def reqEndPaths(self):
