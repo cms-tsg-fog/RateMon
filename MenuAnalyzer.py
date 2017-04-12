@@ -23,10 +23,10 @@ class MenuAnalyzer:
         self.maxEndPaths = 50 # It was 30, Thiago changed 2016-10-12
 
         ##required streams
-        self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcalDT'],
+        self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcal'],
                                        'EcalCalibration' : ['EcalLaser'],
                                        'DQMCalibration' : ['TestEnablesEcalHcalDQM'],
-                                       'DQM' : 'OnlineMonitor'}
+                                       'DQM' : ['OnlineMonitor']}
         self.requiredEndPaths = ['DQMHistograms']
         self.ExpressStreamName = 'Express'
         if ('Protonion' in name):
