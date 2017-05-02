@@ -42,7 +42,7 @@ class DataParser:
         self.l1_triggers  = []  # List of specific L1 triggers we want to get rates for, if empty --> get all L1 rates
         self.runs_used    = []
         self.runs_skipped = []
-        self.name_list = []     # List of named objects for which we have data, e.g. triggers, datasets, streams, etc...
+        self.name_list = []     # List of all named objects for which we have data, e.g. triggers, datasets, streams, etc...
         self.psi_filter = []
         self.type_map = {}      # Maps each object name to a type: trigger, dataset, stream, or L1A
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
@@ -58,11 +58,11 @@ class DataParser:
         self.min_ls = -1
         self.max_ls = 9999999
 
-        self.use_L1_triggers  = False   # Plot L1 rates
-        self.use_HLT_triggers = False   # Plot HLT rates
-        self.use_streams      = False   # Plot stream rates
-        self.use_datasets     = False   # Plot dataset rates
-        self.use_L1A_rate     = False   # Plots the L1A rates
+        self.use_L1_triggers  = False   # Gets L1 rates
+        self.use_HLT_triggers = False   # Gets HLT rates
+        self.use_streams      = False   # Gets stream rates
+        self.use_datasets     = False   # Gets dataset rates
+        self.use_L1A_rate     = False   # Gets the L1A rates
 
         self.use_ps_mask = False        # Collects data only for LS in the specified prescale indices
 
@@ -662,6 +662,7 @@ class DataParser:
         # type: () -> List[int]
         return self.name_list
 
+    # Returns all the objects of type obj_type we have rate for
     def getObjectList(self,obj_type):
         # type: (str) -> List[str]
         _list = []

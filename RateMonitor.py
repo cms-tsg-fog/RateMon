@@ -133,7 +133,6 @@ class RateMonitor:
                     continue
 
                 if not self.certify_mode:
-                    # Filter out cert
                     good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
                 else:
                     # Use all fetched points
@@ -182,25 +181,38 @@ class RateMonitor:
         counter = 0
         # Specifies how we want to organize the plots in the output directory
         if self.use_grouping:
+
+            print "Making Plots..."
+            objs_to_plot = set()
+            for obj in self.object_list:
+                objs_to_plot.add(obj)
+            plotted_objects = self.makePlots(list(objs_to_plot))
+            counter += len(plotted_objects)
+
             for grp in self.group_map:
-                print "Plotting group: %s..." % grp
-
                 grp_path = os.path.join(self.save_dir,grp)
-                self.plotter.save_dir = grp_path
-
-                objs_to_plot = set()
-                for obj in self.object_list:
-                    # Get the the plot objs associated with this group
+                grp_objs = set()
+                for obj in plotted_objects:
                     if obj in self.group_map[grp]:
-                        objs_to_plot.add(obj)
+                        grp_objs.add(obj)
+                self.printHtml(png_list=grp_objs,save_dir=self.save_dir,index_dir=grp_path,png_dir="..")
 
-                plotted_objects = self.makePlots(list(objs_to_plot))
-                self.printHtml(plotted_objects,grp_path)
-                counter += len(plotted_objects)
+            #for grp in self.group_map:
+            #    print "Plotting group: %s..." % grp
+            #    grp_path = os.path.join(self.save_dir,grp)
+            #    self.plotter.save_dir = grp_path
+            #    objs_to_plot = set()
+            #    for obj in self.object_list:
+            #        # Get the the plot objs associated with this group
+            #        if obj in self.group_map[grp]:
+            #            objs_to_plot.add(obj)
+            #    plotted_objects = self.makePlots(list(objs_to_plot))
+            #    self.printHtml(plotted_objects,grp_path)
+            #    counter += len(plotted_objects)
         else:
-            print "Making plots..."
             plotted_objects = self.makePlots(self.object_list)
-            self.printHtml(plotted_objects,self.plotter.save_dir)
+            #self.printHtml(plotted_objects,self.plotter.save_dir)
+            self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
             counter += len(plotted_objects)
         print "Total plot count: %d" % counter
 
@@ -311,15 +323,22 @@ class RateMonitor:
             os.mkdir(self.save_dir)
             os.chdir(self.save_dir)
             print "\tCreating directory: %s " % (self.save_dir)
+            #if self.use_grouping:
+            #    for grp_dir in self.group_map.keys():
+            #        os.mkdir(grp_dir)
+            #        print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
+            #        os.chdir(grp_dir)
+            #        os.mkdir("png")
+            #        os.chdir("../")
+            #else:
+            #    os.mkdir("png")
+            #os.chdir("../")
+
+            os.mkdir("png")
             if self.use_grouping:
                 for grp_dir in self.group_map.keys():
                     os.mkdir(grp_dir)
                     print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
-                    os.chdir(grp_dir)
-                    os.mkdir("png")
-                    os.chdir("../")
-            else:
-                os.mkdir("png")
             os.chdir("../")
 
             return
@@ -327,10 +346,14 @@ class RateMonitor:
     # Stiching function that interfaces with the plotter object
     def makePlots(self,plot_list):
         # type: (List[str]) -> List[str]
+        if not self.use_grouping:
+            print "Making plots..."
+
         plotted_objects = []
         counter = 1
         for _object in sorted(plot_list):
             if not self.plotter.plotting_data.has_key(_object):
+                # No valid data points could be found for _object in any of the runs
                 print "\tWARNING: Unknown object - %s" % _object
                 continue
             self.formatLabels(_object)
@@ -419,7 +442,6 @@ class RateMonitor:
         fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         self.plotter.setFits(fits)
         self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
-        print "Making plots..."
         plotted_objects = self.makePlots(self.object_list)
 
         # Plots all trigger paths
@@ -428,7 +450,6 @@ class RateMonitor:
         fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
         self.plotter.setFits(fits)
         self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
-        print "Making plots..."
         plotted_objects = self.makePlots(all_triggers)
 
     def certifyRuns(self,plot_data):
@@ -464,7 +485,7 @@ class RateMonitor:
                 if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
                     print "Plotting %s..." % obj
                     plotted_objects.append(obj)
-            self.printHtml(plotted_objects,run_dir)
+            self.printHtml(png_list=plotted_objects,save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
 
     # We create a prediction dictionary on a per run basis, which covers all triggers in that run
     # TODO: Should move this to DataParser.py
@@ -537,23 +558,46 @@ class RateMonitor:
         self.data_parser.convert_output = prev_state
         return pred_dict
 
-    # NOTE1: This requires the .png file to be in the proper directory, as specified by self.group_map
-    # NOTE2: This function assumes that the sub-directory where the plots are located is named 'png'
-    def printHtml(self,png_list,save_dir):
-        # type: (List[str],str) -> None
+    ## NOTE1: This requires the .png file to be in the proper directory, as specified by self.group_map
+    ## NOTE2: This function assumes that the sub-directory where the plots are located is named 'png'
+    ##def printHtml(self,png_list,save_dir):
+    ##    # type: (List[str],str) -> None
+    ##    try:
+    ##        htmlFile = open(save_dir+"/index.html", "wb")
+    ##        htmlFile.write("<!DOCTYPE html>\n")
+    ##        htmlFile.write("<html>\n")
+    ##        htmlFile.write("<style>.image { float:right; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
+    ##        for path_name in sorted(png_list):  # This controls the order that the images will be displayed in
+    ##            file_name = "%s/png/%s.png" % (save_dir,path_name)
+    ##            if os.access(file_name,os.F_OK):
+    ##                htmlFile.write("<div class=image><a href=\'png/%s.png\' target='_blank'><img width=398 height=229 border=0 src=\'png/%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (path_name,path_name,path_name))
+    ##        htmlFile.write("</html>\n")
+    ##        htmlFile.close
+    ##    except:
+    ##        print "Unable to write index.html file"
+
+    # For this we want to be able to specify where the images are located, relative to the index.html file
+    def printHtml(self,png_list,save_dir,index_dir,png_dir="."):
+        # save_dir:  The full path to the save directory
+        # index_dir: The full path to the index.html file
+        # png_dir:   The relative path from the index.html file to the png_dir
         try:
-            htmlFile = open(save_dir+"/index.html", "wb")
+            htmlFile = open(index_dir+"/index.html","wb")
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:right; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
             for path_name in sorted(png_list):  # This controls the order that the images will be displayed in
                 file_name = "%s/png/%s.png" % (save_dir,path_name)
                 if os.access(file_name,os.F_OK):
-                    htmlFile.write("<div class=image><a href=\'png/%s.png\' target='_blank'><img width=398 height=229 border=0 src=\'png/%s.png\'></a><div style=\'width:398px\'>%s</div></div>\n" % (path_name,path_name,path_name))
+                    rel_dir = os.path.join(png_dir,"png/%s.png" % path_name)
+                    html_str = ""
+                    html_str += "<div class=image>"
+                    html_str += "<a href=\'%s\' target='_blank'>" % rel_dir
+                    html_str += "<img width=398 height=229 border=0 src=\'%s\'>" % rel_dir
+                    html_str += "</a><div style=\'width:398px\'>%s</div></div>\n" % path_name
+                    htmlFile.write(html_str)
             htmlFile.write("</html>\n")
-            htmlFile.close
         except:
             print "Unable to write index.html file"
-
 
 # --- End --- #
