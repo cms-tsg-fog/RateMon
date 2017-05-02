@@ -233,7 +233,7 @@ class MonitorController:
                 self.rate_monitor.data_parser.use_datasets = True
                 self.rate_monitor.data_parser.use_L1A_rate = False
 
-                self.rate_monitor.plotter.color_by_fill = False       # Determines how to color the plots
+                self.rate_monitor.plotter.color_by_fill = False
 
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
@@ -350,10 +350,57 @@ class MonitorController:
                 print "No valid runs. Exiting"
                 return False
 
-            grp_map = {}
+            ## Find which HLT paths are included in which streams
+            #try:
+            #    # {'stream': ['trigger_name'] }
+            #    #stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
+            #    stream_map = {}
+            #    for run in run_list:
+            #        tmp_map = self.parser.getPathsInStreams(run)
+            #        for stream in tmp_map:
+            #            if not stream_map.has_key(stream):
+            #                stream_map[stream] = set()
+            #            stream_map[stream] = stream_map[stream] | set(tmp_map[stream])
+            #    for stream in stream_map:
+            #        stream_map[stream] = list(stream_map[stream])
+            #except:
+            #    print "ERROR: Failed to get stream map"
+            #    return False
+            ## Find which HLT paths are included in which datasets
+            #try:
+            #    dataset_map = {}
+            #    for run in run_list:
+            #        tmp_map = self.parser.getPathsInDatasets(run)
+            #        for dataset in tmp_map:
+            #            if not dataset_map.has_key(dataset):
+            #                dataset_map[dataset] = set()
+            #            dataset_map[dataset] = dataset_map[dataset] | set(tmp_map[dataset])
+            #    for dataset in dataset_map:
+            #        dataset_map[dataset] = list(dataset_map[dataset])
+            #except:
+            #    print "ERROR: Failed to get dataset map"
+            #    return False
+
+            # Find which HLT paths are included in which streams/datasets
+            try:
+                path_mapping = {}
+                for run in run_list:
+                    tmp_map = self.parser.getPathsInDatasets(run)
+                    #tmp_map = self.parser.getPathsInStreams(run)
+                    for group_name in tmp_map:
+                        if not path_mapping.has_key(group_name):
+                            path_mapping[group_name] = set()
+                        path_mapping[group_name] = path_mapping[group_name] | set(tmp_map[group_name])
+                for group_name in path_mapping:
+                    path_mapping[group_name] = list(path_mapping[group_name])
+            except:
+                print "ERROR: Failed to get stream/dataset map"
+                return False
+
+            group_map = {}
 
             # Add triggers to monitor to the group map, list of all objects from .list file
-            grp_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
+            group_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
 
             # We look for triggers in all runs to ensure we don't miss any (this should be unnecessary for the cron job though)
             L1_triggers = set()
@@ -363,56 +410,24 @@ class MonitorController:
                     L1_triggers.add(item)
 
             # Add L1 triggers to the group map, list of all L1 triggers
-            grp_map["L1_Triggers"] = list(L1_triggers)
-            
-            # Find which HLT paths are included in which streams
-            try:
-                # {'stream': ['trigger_name'] }
-                #stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
-                stream_map = {}
-                for run in run_list:
-                    tmp_map = self.parser.getPathsInStreams(run)
-                    for stream in tmp_map:
-                        if not stream_map.has_key(stream):
-                            stream_map[stream] = set()
-                        stream_map[stream] = stream_map[stream] | set(tmp_map[stream])
-                for stream in stream_map:
-                    stream_map[stream] = list(stream_map[stream])
-            except:
-                print "ERROR: Failed to get stream map"
-                return False
+            group_map["L1_Triggers"] = list(L1_triggers)
+            self.rate_monitor.data_parser.l1_triggers = list(L1_triggers)
 
-            # Find which HLT paths are included in which datasets
-            try:
-                dataset_map = {}
-                for run in run_list:
-                    tmp_map = self.parser.getPathsInDatasets(run)
-                    for datset in tmp_map:
-                        if not dataset_map.has_key(dataset):
-                            dataset_map[dataset] = set()
-                        dataset_map[dataset] = dataset_map[dataset] | set(tmp_map[dataset])
-                    for dataset in dataset_map:
-                        dataset_map[dataset] = list(dataset_map[dataset])
-            except:
-                print "ERROR: Failed to get dataset map"
-                return False
-
-
-            # Add a Physics stream to the group map, list of all HLT triggers in a particular stream
+            # Add HLT triggers to the group map
             hlt_triggers = set()
-            for stream in stream_map:
-                #if stream[:7] == "Physics":
-                    grp_map[stream] = stream_map[stream]
-                    for item in stream_map[stream]:
-                        hlt_triggers.add(item)
+            for path_owner in path_mapping:
+                group_map[path_owner] = path_mapping[path_owner]
+                for item in path_mapping[path_owner]:
+                    hlt_triggers.add(item)
 
             # Make a group for all HLT triggers
-            grp_map["HLT_Triggers"] = list(hlt_triggers)
+            group_map["HLT_Triggers"] = list(hlt_triggers)
+            self.rate_monitor.data_parser.hlt_triggers = list(hlt_triggers)
 
             # Update the object_list to include all the L1/HLT triggers in the menu
             self.rate_monitor.object_list += list(L1_triggers)
             self.rate_monitor.object_list += list(hlt_triggers)
-            self.rate_monitor.group_map = grp_map
+            self.rate_monitor.group_map = group_map
 
         return True
 
