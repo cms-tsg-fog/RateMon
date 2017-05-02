@@ -1468,9 +1468,9 @@ class DBParser:
                     CMS_HLT_GDR.U_PATHID2CONF B,
                     CMS_HLT_GDR.U_PATHIDS C,
                     CMS_HLT_GDR.U_PATHS D,
-                    CMS_HLT_GDR.U_U_PATHID2STRDST E,
+                    CMS_HLT_GDR.U_PATHID2STRDST E,
                     CMS_HLT_GDR.U_DATASETIDS F,
-                    CMS_HLT_GDR.U_DATASETS G,
+                    CMS_HLT_GDR.U_DATASETS G
                 WHERE
                     A.NAME = '%s' AND
                     B.ID_CONFVER = A.ID AND
