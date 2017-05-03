@@ -132,7 +132,7 @@ class PlotMaker:
             plotFuncStr = "%.15f + x*%.15f" % (fit_params[1], fit_params[2])
             funcStr = "%.5f + x*%.5f" % (fit_params[1], fit_params[2])  
         elif fit_params[0] == "sinh":
-            plotFuncStr = "none"
+            plotFuncStr = "%.15f + %.15f*sinh(%.15f*x)" % (fit_params[3], fit_params[2], fit_params[1])
             funcStr = "%.5f + %.5f*sinh(%.5f*x)" % (fit_params[3], fit_params[2], fit_params[1])
         else:                               # Polynomial
             plotFuncStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
@@ -206,10 +206,10 @@ class PlotMaker:
                 fit_params = self.fits[trigger][fit_type]
                 plot_func_str[fit_type],func_str[fit_type] = self.getFuncStr(fit_params)
                 if fit_type=="sinh":
-                    fit_func[fit_type] = TF1("Fit_"+trigger, mySinh, 0., 1.1*max_xaxis_val, 3)
-                    fit_func[fit_type].SetParameter(0,fit_params[1])
-                    fit_func[fit_type].SetParameter(1,fit_params[2])
-                    fit_func[fit_type].SetParameter(2,fit_params[3])
+                    fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
+                    #fit_func[fit_type].SetParameter(0,fit_params[1])
+                    #fit_func[fit_type].SetParameter(1,fit_params[2])
+                    #fit_func[fit_type].SetParameter(2,fit_params[3])
                 else:
                     fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
                 fit_mse[fit_type] = fit_params[5]
