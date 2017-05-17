@@ -1,0 +1,83 @@
+body
+{
+  background-color: white;
+  font-family: Arial;
+  font-size: 16px;
+}
+
+a
+{
+  color: blue;
+  text-decoration: none;
+}
+
+a:hover
+{
+  background-color: #FFA;
+}
+
+table.params th
+{
+  font-size: 14px;
+  background-color: #DDF;
+}
+
+table.params td
+{
+  font-size: 14px;
+  background-color: #EEF;
+}
+
+table.histos {
+    border-width: 1px;
+    border-spacing: 2px;
+    border-style: hidden;
+    border-color: gray;
+    border-collapse: separate;
+    background-color: white;
+}
+table.histos td {
+    border-width: 3px;
+    padding: 1px;
+    border-style: double;
+    border-color: gray;
+    background-color: white;
+    -moz-border-radius: 6px 6px 6px 6px;
+}
+
+table.histos img {
+    border-width: 0;
+}
+
+table.histos2 {
+        border-width: 1px;
+        border-spacing: 2px;
+        border-style: hidden;
+        border-color: gray;
+        border-collapse: separate;
+        background-color: white;
+}
+table.histos2 td {
+        border-width: 3px;
+        padding: 1px;
+        border-style: double;
+        border-color: gray;
+        background-color: white;
+        -moz-border-radius: 6px 6px 6px 6px;
+        border-radius: 6px 6px 6px 6px;
+        width: 33%;
+}
+
+table.histos2 img {
+        border-width: 0;
+}
+
+.alignleft {
+    float: left;
+}
+.alignright {
+    float: right;
+}
+.aligncenter {
+        display: inline-block;
+}
