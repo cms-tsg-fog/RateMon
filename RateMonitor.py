@@ -131,13 +131,11 @@ class RateMonitor:
             for run in sorted(self.data_parser.getRunsUsed()):
                 if not x_vals[name].has_key(run):
                     continue
-
                 if not self.certify_mode:
                     good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
                 else:
                     # Use all fetched points
                     good_x, good_y = (x_vals[name][run],y_vals[name][run])
-
                 plot_data[name][run] = [good_x,good_y, det_status[name][run] ]
 
         # If no objects are specified, plot everything!
@@ -181,7 +179,6 @@ class RateMonitor:
         counter = 0
         # Specifies how we want to organize the plots in the output directory
         if self.use_grouping:
-
             print "Making Plots..."
             objs_to_plot = set()
             for obj in self.object_list:

@@ -145,7 +145,7 @@ class PlotMaker:
         # paramlist == fits
         missing_fit = False
         if not self.plotting_data.has_key(trigger):
-            print "\tERROR: Trigger not found in plotting data, %s" % trigger
+            print "\tERROR: Trigger not found in plotting data - %s" % trigger
             return False
         else:
             data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [status] ) }
@@ -160,7 +160,7 @@ class PlotMaker:
                 run_count += 1
 
         if num_pts < self.min_plot_pts:
-            #print "\tSkipping %s: Not enough plot points" % trigger
+            #print "\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts)
             return False
 
         if self.use_fit and not self.fits.has_key(trigger):
@@ -184,15 +184,19 @@ class PlotMaker:
                 maximumVals.append(max(xVals))
                 minimumVals.append(min(xVals))
 
-        if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)
-        else: return False
+        if len(maximumRR) > 0:
+            max_yaxis_value = max(maximumRR)
+        else:
+            return False
 
         if len(maximumVals) > 0:
             max_xaxis_val = max(maximumVals)
             min_xaxis_val = min(minimumVals)
-        else: return False
+        else:
+            return False
 
-        if max_xaxis_val == 0 or max_yaxis_value == 0: return False
+        if max_xaxis_val == 0 or max_yaxis_value == 0:
+            return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
