@@ -330,11 +330,11 @@ class MonitorController:
         # This needs to be done after we have our run_list, otherwise we can't get the run_list!
         if self.do_cron_job:
             if len(self.rate_monitor.plotter.fits.keys()) == 0:
-                print "ERROR: Must specify a fit file, --fitFile=path/to/file"
-                return False
-            elif len(self.rate_monitor.object_list) == 0:
-                print "ERROR: Must specify a monitor list, --triggerList=path/to/file"
-                return False
+                print "WARNING: No fit file specified!"
+                self.rate_monitor.plotter.use_fit = False
+
+            if len(self.rate_monitor.object_list) == 0:
+                print "WARNING: No trigger list specified! Plotting all triggers..."
 
             run_list = sorted(self.rate_monitor.run_list)
 
