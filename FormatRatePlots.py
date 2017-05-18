@@ -157,7 +157,7 @@ def getGroupList(save_dir):
         if (os.path.isdir(os.path.join(dir_path,out))):
             if not out in ignore_dirs:
                 dataset_list.append(out)
-    return dataset_list
+    return sorted(dataset_list)
 
 # Returns the list of runs used to produce the displayed fits, extracts from the 'command_line.txt' file
 def getFitRuns(fits_dir):
