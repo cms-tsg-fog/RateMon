@@ -1,6 +1,7 @@
 #!/bin/bash
 # crontab line for this is:
 # 59 * * * * lxplus.cern.ch /afs/cern.ch/work/g/gesmith/runCert/RateMon3/RateMon/make_plots_for_cron.sh > /dev/null
+# 59 * * * * /data/RateMon/make_plots_for_cron.sh > /dev/null
 
 #thisDir=/afs/cern.ch/work/g/gesmith/runCert/AndrewBranchCron/RateMon
 #thisDir=/afs/cern.ch/work/a/awightma/RateMon
@@ -13,6 +14,8 @@ outputDirBase=/cmsnfsrateplots/rateplots/
 
 cd $thisDir
 
+source set.sh
+
 theFillsAndRuns=$(python test_dump_fills_runs.py)
 
 theRuns="${theFillsAndRuns[@]:5}"
@@ -20,6 +23,9 @@ theFill="${theFillsAndRuns[@]:0:4}"
 
 #theRuns="284006 284014"
 #theFill=5450
+
+#theRuns="284025 284029 284035 284036 284037 284038 284039 284040 284041 284042 284043 284044"
+#theFill=5451
 
 # Do subset of triggers:
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns

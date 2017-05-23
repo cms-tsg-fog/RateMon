@@ -11,7 +11,9 @@ else
     cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/CMSSW_5_2_6/src
 fi
 
-cmsenv
+#cmsenv
+eval `scramv1 runtime -sh`
+
 cd -
 
 alias rateMon='python ShiftMonitorTool.py'
