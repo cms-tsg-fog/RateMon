@@ -29,11 +29,22 @@ theFill="${theFillsAndRuns[@]:0:4}"
 
 # Do subset of triggers:
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns
-python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory=$outputDirBase$theFill $theRuns
+#python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory=$outputDirBase$theFill $theRuns
+
+python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory="${thisDir}/${theFill}" $theRuns
 
 # Do "All triggers" plots:
 #python plotTriggerRates.py --triggerList=monitorlist_ALL.list --fitFile=Fits/AllTriggers/FOG.pkl --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
-python plotTriggerRates.py --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
+#python plotTriggerRates.py --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
+
+python plotTriggerRates.py --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
+
+if [ -d "${outputDirBase}${theFill}" ]; then
+    # The directory already exists!
+    rm -r "${outputDirBase}${theFill}"
+fi
+
+mv "${thisDir}/${theFill}" "${outputDirBase}${theFill}"
 
 # Generate the index.html file
 python FormatRatePlots.py "${outputDirBase}${theFill}"
