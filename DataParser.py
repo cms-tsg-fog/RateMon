@@ -156,6 +156,17 @@ class DataParser:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
             elif self.use_HF_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
+        else:
+            # Unknown menu --> For now we assume it's compatibale with collisions type menus
+            if self.verbose:
+                print "\tUnknown run type: %s" % (trigger_mode)
+                print "\tGetting lumi info..."
+            if self.use_best_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
+            elif self.use_PLTZ_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
+            elif self.use_HF_lumi:
+                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
         
         return lumi_info
 
