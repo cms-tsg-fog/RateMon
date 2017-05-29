@@ -48,6 +48,8 @@ class DataParser:
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
+        self.ls_filter = {}     # {run_number:[LS list]} - LS to ignore
+
         self.use_prescaled_rate = False # If true, then rates are not un-prescaled
         self.use_cross_section  = False # If true, then divide the rate by inst. lumi (only for L1 and HLT trigger data)
         self.normalize_bunches  = True  # Normalize by the number of colliding bunches
@@ -168,6 +170,14 @@ class DataParser:
             elif self.use_HF_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
         
+        if self.ls_filter.has_key(run):
+            new_lumi_info = []
+            for LS,ilum,psi,phys,cms_ready in lumi_info:
+                if LS in self.ls_filter[run]:
+                    continue
+                new_lumi_info.append([LS,ilum,psi,phys,cms_ready])
+            lumi_info = new_lumi_info
+
         return lumi_info
 
     # This might be excessive, should think about reworking this section

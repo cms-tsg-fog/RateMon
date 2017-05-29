@@ -421,7 +421,7 @@ class DBParser:
                 l1ps = 1
 
             ps = l1ps*hltps
-            trigger_rates[LS]= [ps*rate, ps]
+            trigger_rates[LS] = [ps*rate, ps]
         return trigger_rates
 
     # Generates a dictionary that maps HLT path names to the corresponding path_id

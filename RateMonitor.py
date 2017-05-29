@@ -124,18 +124,18 @@ class RateMonitor:
             y_vals = self.data_parser.getRateData()
 
         # Now we fill plot_data with *ALL* the objects we have data for
-        plot_data = {}     # {'object': { run_number:  ( [x_vals], [y_vals], [det_status] ) } }
+        plot_data = {}     # {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] ) } }
         for name in self.data_parser.getNameList():
             if not plot_data.has_key(name):
                 plot_data[name] = {}
             for run in sorted(self.data_parser.getRunsUsed()):
                 if not x_vals[name].has_key(run):
                     continue
-                if not self.certify_mode:
-                    good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
-                else:
+                if self.certify_mode:
                     # Use all fetched points
                     good_x, good_y = (x_vals[name][run],y_vals[name][run])
+                else:
+                    good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
                 plot_data[name][run] = [good_x,good_y, det_status[name][run] ]
 
         # If no objects are specified, plot everything!
@@ -348,13 +348,17 @@ class RateMonitor:
 
         plotted_objects = []
         counter = 1
+        prog_counter = 0
         for _object in sorted(plot_list):
+            if prog_counter % math.floor(len(plot_list)/10.) == 0:
+                print "\tProgress: %.0f%% (%d/%d)" % (100.*prog_counter/len(plot_list),prog_counter,len(plot_list))
+            prog_counter += 1
             if not self.plotter.plotting_data.has_key(_object):
                 # No valid data points could be found for _object in any of the runs
                 print "\tWARNING: Unknown object - %s" % _object
                 continue
             self.formatLabels(_object)
-
+            
             if self.plotter.plotAllData(_object):
                 plotted_objects.append(_object)
                 counter += 1

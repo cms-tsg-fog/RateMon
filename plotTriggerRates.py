@@ -13,6 +13,7 @@
 #####################################################################
 
 import getopt # For getting command line options
+import json
 
 from DBParser import *
 from RateMonitor import *
@@ -73,6 +74,7 @@ class MonitorController:
                 "saveDirectory=",
                 "useFit=",
                 "psFilter=",
+                "lsFilter=",
                 "Secondary",
                 "datasetRate",
                 "L1ARate",
@@ -122,7 +124,7 @@ class MonitorController:
                 # NOTE: Doesn't work with --Secondary option
                 self.rate_monitor.save_dir = str(op)
             elif label == "--useFit":
-                # TODO: Figure out what this does
+                # Use a specific fit type as the 'default' fit
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 self.rate_monitor.make_fits  = True
 
@@ -136,6 +138,9 @@ class MonitorController:
                 # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
                 self.rate_monitor.data_parser.use_ps_mask = True
                 self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
+            elif label == "--lsFilter":
+                ls_filter_obj = self.readLSFilterFile(str(op))
+                self.rate_monitor.data_parser.ls_filter = ls_filter_obj
             elif label == "--Secondary":
                 # Set the code to produce certification plots
                 # NOTE: Still need to specify --fitFile and --triggerList
@@ -399,7 +404,7 @@ class MonitorController:
 
             group_map = {}
 
-            # Add triggers to monitor to the group map, list of all objects from .list file
+            # Add specific triggers to monitor to the group map, list of all objects from .list file
             group_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
 
             # We look for triggers in all runs to ensure we don't miss any (this should be unnecessary for the cron job though)
@@ -422,6 +427,7 @@ class MonitorController:
 
             # Make a group for all HLT triggers
             group_map["HLT_Triggers"] = list(hlt_triggers)
+
             self.rate_monitor.data_parser.hlt_triggers = list(hlt_triggers)
 
             # Update the object_list to include all the L1/HLT triggers in the menu
@@ -468,6 +474,17 @@ class MonitorController:
             output_list.append(line)
         f.close()
         return output_list
+
+    # Creates a filter for the DataParser to exlude specific LS
+    def readLSFilterFile(self,ls_filter_file):
+        json_file = open(ls_filter_file)
+        json_data = json.load(json_file)
+        ls_filter = {}
+        for run_number in json_data:
+            ls_filter[int(run_number)] = []
+            for ls_low,ls_high in json_data[run_number]:
+                ls_filter[int(run_number)] += [x for x in range(ls_low,ls_high+1)]
+        return ls_filter
 
     # Gets the runs from each fill specified in arg_list
     def getRuns(self,arg_list):
