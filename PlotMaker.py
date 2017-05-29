@@ -187,15 +187,18 @@ class PlotMaker:
         if len(maximumRR) > 0:
             max_yaxis_value = max(maximumRR)
         else:
+            print "\tERROR: Invalid boundary for plot axis!"
             return False
 
         if len(maximumVals) > 0:
             max_xaxis_val = max(maximumVals)
             min_xaxis_val = min(minimumVals)
         else:
+            print "\tERROR: Invalid boundary for plot axis!"
             return False
 
         if max_xaxis_val == 0 or max_yaxis_value == 0:
+            print "\tERROR: Invalid boundary for plot axis!"
             return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
