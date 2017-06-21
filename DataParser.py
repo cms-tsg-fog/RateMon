@@ -48,7 +48,8 @@ class DataParser:
                                 # NOTE: Still need to handle the case where if two objects share the same name, but diff type
                                 # NOTE2: This approach should be fine, since DataParser owns the nameing, will need to be careful
 
-        self.ls_filter = {}     # {run_number:[LS list]} - LS to ignore
+        self.ls_veto = {}     # {run_number:[LS list]} - LS to ignore
+        self.name_veto = []   # List of paths/objects to remove from consideration
 
         self.use_prescaled_rate = False # If true, then rates are not un-prescaled
         self.use_cross_section  = False # If true, then divide the rate by inst. lumi (only for L1 and HLT trigger data)
@@ -96,6 +97,9 @@ class DataParser:
 
             run_data = self.getRunData(run,bunches,lumi_info)
             for name in run_data:
+                if name in self.name_veto:
+                    continue
+
                 ls_array   = run_data[name]["LS"]
                 rate       = run_data[name]["rate"]
                 prescale   = run_data[name]["prescale"]
@@ -170,10 +174,10 @@ class DataParser:
             elif self.use_HF_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
         
-        if self.ls_filter.has_key(run):
+        if self.ls_veto.has_key(run):
             new_lumi_info = []
             for LS,ilum,psi,phys,cms_ready in lumi_info:
-                if LS in self.ls_filter[run]:
+                if LS in self.ls_veto[run]:
                     continue
                 new_lumi_info.append([LS,ilum,psi,phys,cms_ready])
             lumi_info = new_lumi_info

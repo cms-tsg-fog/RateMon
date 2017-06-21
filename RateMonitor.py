@@ -70,7 +70,7 @@ class RateMonitor:
         self.run_list    = []   # Runs to get data from
         self.object_list = []   # List of *ALL* objects to plot, except for when using grouping
 
-        self.ops = None         # The options specified at the command line, current unused
+        self.ops = None         # The options specified at the command line
 
         self.rate_mon_dir    = os.getcwd()
         self.save_dir        = os.path.join(os.getcwd(),"tmp_rate_plots")
@@ -89,6 +89,11 @@ class RateMonitor:
         
         print "Using runs:",self.run_list
         print "Using Prescaled rates:",self.data_parser.use_prescaled_rate
+
+        if self.update_online_fits:
+            # Ensures that DataParser gets all triggers
+            self.data_parser.hlt_triggers = []
+            self.data_parser.l1_triggers = []
 
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
         self.data_parser.parseRuns(self.run_list)
@@ -350,7 +355,7 @@ class RateMonitor:
         counter = 1
         prog_counter = 0
         for _object in sorted(plot_list):
-            if prog_counter % math.floor(len(plot_list)/10.) == 0:
+            if prog_counter % max(1,math.floor(len(plot_list)/10.)) == 0:
                 print "\tProgress: %.0f%% (%d/%d)" % (100.*prog_counter/len(plot_list),prog_counter,len(plot_list))
             prog_counter += 1
             if not self.plotter.plotting_data.has_key(_object):
@@ -414,7 +419,7 @@ class RateMonitor:
         elif self.data_parser.use_cross_section:
             y_axis_label += " / iLumi"
 
-        y_axis_label += " "+y_units
+        y_axis_label += " " + y_units
 
         self.plotter.var_X = x_axis_var
         self.plotter.var_Y = y_axis_var
@@ -452,6 +457,30 @@ class RateMonitor:
         self.plotter.setFits(fits)
         self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
         plotted_objects = self.makePlots(all_triggers)
+
+        command_line_str  = "Results produced with:\n"
+        command_line_str += "python plotTriggerRates.py "
+        for tup in self.ops:
+            if tup[0].find('--updateOnlineFits') > -1:
+                # never record when we update online fits
+                continue
+            if len(tup[1]) == 0:
+                command_line_str += "%s " % (tup[0])
+            else:
+                command_line_str += "%s=%s " % (tup[0],tup[1])
+        for run in self.runList:
+            command_line_str += "%d " % (run)
+        command_line_str +="\n"
+        
+        command_line_file_name = os.path.join(mon_trg_dir,"command_line.txt")
+        log_file_mon = open(command_line_file_name, "w")
+        log_file_mon.write(command_line_str)
+        log_file_mon.close()
+
+        command_line_file_name = os.path.join(all_trg_dir,"command_line.txt")
+        log_file_all = open(command_line_file_name, "w")
+        log_file_all.write(command_line_str)
+        log_file_all.close()
 
     def certifyRuns(self,plot_data):
         # type: (Dict[str,Dict[int,object]]) -> None
