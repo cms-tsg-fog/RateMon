@@ -142,7 +142,7 @@ class MonitorController:
             elif label == "--lsVeto":
                 # Specifiy certain LS to veto/remove from consideration
                 ls_veto = self.readLSVetoFile(str(op))
-                self.rate_monitor.data_parser.ls_veto = ls_veto_obj
+                self.rate_monitor.data_parser.ls_veto = ls_veto
             elif label == "--pathVeto":
                 # Specify certain paths to veto/remove from consideration
                 path_veto_list = self.readTriggerList(str(op))
