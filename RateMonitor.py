@@ -75,7 +75,7 @@ class RateMonitor:
         self.rate_mon_dir    = os.getcwd()
         self.save_dir        = os.path.join(os.getcwd(),"tmp_rate_plots")
         self.certify_dir     = os.path.join(os.getcwd(),"tmp_certify_dir")
-        self.online_fits_dir = os.path.join(os.getcwd(),"Fits/2016")
+        self.online_fits_dir = os.path.join(os.getcwd(),"Fits")
         self.fit_file = None    # Currently Unused
 
     # The main function of RateMonitor, handles all the stitching together of the other pieces of code
@@ -278,17 +278,17 @@ class RateMonitor:
         print "Setting up directories..."
 
         if self.update_online_fits:
-            shift_mon_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")   # $rate_mon_dir/Fits/Monitor_Triggers
+            mon_trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")   # $rate_mon_dir/Fits/Monitor_Triggers
             all_trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")         # $rate_mon_dir/Fits/All_Triggers
-            if os.path.exists(shift_mon_dir):
-                shutil.rmtree(shift_mon_dir)
-                print "\tRemoving existing directory: %s " % (shift_mon_dir)
+            if os.path.exists(mon_trg_dir):
+                shutil.rmtree(mon_trg_dir)
+                print "\tRemoving existing directory: %s " % (mon_trg_dir)
             if os.path.exists(all_trg_dir):
                 shutil.rmtree(all_trg_dir)
                 print "\tRemoving existing directory: %s " % (all_trg_dir)
-            print "\tCreating directory: %s " % (shift_mon_dir)
-            os.mkdir(shift_mon_dir)
-            os.chdir(shift_mon_dir)
+            print "\tCreating directory: %s " % (mon_trg_dir)
+            os.mkdir(mon_trg_dir)
+            os.chdir(mon_trg_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
             print "\tCreating directory: %s " % (all_trg_dir)
@@ -296,7 +296,6 @@ class RateMonitor:
             os.chdir(all_trg_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
-
             return
         elif self.certify_mode:
             # Ex: Certification_1runs_2016-11-02_13_27
@@ -316,7 +315,6 @@ class RateMonitor:
                 os.chdir(run_dir)
                 os.mkdir("png")
                 os.chdir(self.certify_dir)
-
             return
         else:   
             if os.path.exists(self.save_dir):
@@ -325,24 +323,12 @@ class RateMonitor:
             os.mkdir(self.save_dir)
             os.chdir(self.save_dir)
             print "\tCreating directory: %s " % (self.save_dir)
-            #if self.use_grouping:
-            #    for grp_dir in self.group_map.keys():
-            #        os.mkdir(grp_dir)
-            #        print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
-            #        os.chdir(grp_dir)
-            #        os.mkdir("png")
-            #        os.chdir("../")
-            #else:
-            #    os.mkdir("png")
-            #os.chdir("../")
-
             os.mkdir("png")
             if self.use_grouping:
                 for grp_dir in self.group_map.keys():
                     os.mkdir(grp_dir)
                     print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
             os.chdir("../")
-
             return
 
     # Stiching function that interfaces with the plotter object
@@ -444,6 +430,7 @@ class RateMonitor:
 
         # Plots the monitored paths
         print "Updating monitored trigger fits..."
+        print "Total Triggers: %d" % (len(self.object_list))
         self.plotter.save_dir = mon_trg_dir
         fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         self.plotter.setFits(fits)
@@ -452,6 +439,7 @@ class RateMonitor:
 
         # Plots all trigger paths
         print "Updating all trigger fits..."
+        print "Total Triggers: %d" % (len(all_triggers))
         self.plotter.save_dir = all_trg_dir
         fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
         self.plotter.setFits(fits)
@@ -461,14 +449,16 @@ class RateMonitor:
         command_line_str  = "Results produced with:\n"
         command_line_str += "python plotTriggerRates.py "
         for tup in self.ops:
-            if tup[0].find('--updateOnlineFits') > -1:
-                # never record when we update online fits
-                continue
+            #if tup[0].find('--updateOnlineFits') > -1:
+            #    # never record when we update online fits
+            #    continue
+            #elif tup[0].find('--lsVeto') > -1:
+            #    continue
             if len(tup[1]) == 0:
                 command_line_str += "%s " % (tup[0])
             else:
                 command_line_str += "%s=%s " % (tup[0],tup[1])
-        for run in self.runList:
+        for run in self.run_list:
             command_line_str += "%d " % (run)
         command_line_str +="\n"
         

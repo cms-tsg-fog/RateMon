@@ -162,8 +162,9 @@ def getGroupList(save_dir):
 # Returns the list of runs used to produce the displayed fits, extracts from the 'command_line.txt' file
 def getFitRuns(fits_dir):
     f_name = 'command_line.txt'
-    search_str = 'python plotTriggerRates.py --createFit --nonLinear --AllTriggers'
-    
+    #search_str = 'python plotTriggerRates.py --createFit --nonLinear --AllTriggers'
+    search_str = '--updateOnlineFits'
+
     f_path = os.path.join(fits_dir,f_name)
     f = open(f_path,'r')
 
@@ -234,7 +235,7 @@ def formatRatePlots(monitored_triggers_list,dataset_list,run_list,save_dir):
     # Build the body of the HTML document
 
     # Don't add the runs_heading_tag yet...
-    #my_html.addBodyTag(runs_heading_tag)
+    my_html.addBodyTag(runs_heading_tag)
     my_html.addBodyTag(parent_table)
 
     # Save the HTML file
@@ -245,7 +246,7 @@ if __name__ == "__main__":
 
     save_dir = sys.argv[1]
     dataset_list = getGroupList(save_dir=save_dir)
-    run_list = getFitRuns(fits_dir='./Fits/AllTriggers/')
+    run_list = getFitRuns(fits_dir='./Fits/All_Triggers/')
 
     formatRatePlots(
         monitored_triggers_list=monitored_triggers,

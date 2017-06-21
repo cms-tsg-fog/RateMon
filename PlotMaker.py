@@ -126,7 +126,7 @@ class PlotMaker:
 
     def getFuncStr(self,fit_params):
         if fit_params[0] == "exp":          # Exponential
-             plotFuncStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
+             plotFuncStr = "%.15f + %.5f*exp( %.15f+%.15f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
              funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
         elif fit_params[0] == "linear":     # Linear
             plotFuncStr = "%.15f + x*%.15f" % (fit_params[1], fit_params[2])

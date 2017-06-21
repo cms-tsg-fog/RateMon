@@ -31,13 +31,15 @@ theFill="${theFillsAndRuns[@]:0:4}"
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory=$outputDirBase$theFill $theRuns
 
-python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory="${thisDir}/${theFill}" $theRuns
+python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/Monitor_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}" $theRuns
+#python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory="${thisDir}/${theFill}" $theRuns
 
 # Do "All triggers" plots:
 #python plotTriggerRates.py --triggerList=monitorlist_ALL.list --fitFile=Fits/AllTriggers/FOG.pkl --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
 #python plotTriggerRates.py --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
 
-python plotTriggerRates.py --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
+python plotTriggerRates.py --fitFile=Fits/All_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
+#python plotTriggerRates.py --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
 
 if [ -d "${outputDirBase}${theFill}" ]; then
     # The directory already exists!
