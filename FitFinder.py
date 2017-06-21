@@ -33,10 +33,17 @@ class FitFinder:
         #self.fits_to_try = ["linear"]
         #self.fits_to_try = ["quad","cube","exp"]
 
+        self.min_plot_pts = 10
+
+        self.weight_map = {
+            'linear': 0.00,
+            'quad': 0.03,
+            'sinh': 0.03,
+        }
+
         self.use_point_selection = True
         self.use_best_fit = False
-
-        self.min_plot_pts = 10
+        self.use_weighted_fit = True
 
     # Returns: {'trigger': fit_params}
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
@@ -48,9 +55,8 @@ class FitFinder:
 
         print "Making fits..."
         counter = 0
-        prog_counter = 0
         for trigger in object_list:
-            if counter % math.floor(len(object_list)/10.) == 0:
+            if counter % max(1,math.floor(len(object_list)/10.)) == 0:
                 print "\tProgress: %.0f%% (%d/%d)" % (100.*counter/len(object_list),counter,len(object_list))
             counter += 1
 
@@ -60,7 +66,7 @@ class FitFinder:
             y_fit_vals = array.array('f')
             for run in sorted(data[trigger]):
                 for x,y,status in zip(data[trigger][run][0],data[trigger][run][1],data[trigger][run][2]):
-                    if status: # only fit data points when ALL subsystems are IN.
+                    if status or True: # only fit data points when ALL subsystems are IN.
                         x_fit_vals.append(x)
                         # Remove the normalization during fitting (to avoid excessively small y-vals)
                         y_fit_vals.append(y*normalization)
@@ -227,6 +233,7 @@ class FitFinder:
             fit_func.SetParameter(2,0.0)            
 
         fitGraph.Fit(fit_func,"QNM","rob=0.90")
+
         fitMSE = self.getMSE(fit_func,xVals,yVals)
 
         OutputFit = [fit_type]
@@ -254,7 +261,8 @@ class FitFinder:
 
         if self.use_best_fit:
             best_type, best_fit = self.getBestFit(all_fits)
-            output_fits[best_type] = best_fit
+            if not best_type is None:
+                output_fits[best_type] = best_fit
         else:
             output_fits = all_fits
 
@@ -262,11 +270,19 @@ class FitFinder:
 
     # Selects only the best fit from the set of fits generated, uses MSE as comparison
     def getBestFit(self,fits):
+        fit_map = {}    # {'fit_type': {mse: fit_mse, weight: val}}
         min_MSE = None
         best_type = None
         best_fit = None
         for fit_type in fits:
             mse = fits[fit_type][5]
+            if mse == 0:
+                continue
+
+            fit_map[fit_type] = {
+                'mse': mse,
+                'weight': 0,
+            }
             if min_MSE is None:
                 min_MSE = mse
                 best_type = fit_type
@@ -276,7 +292,31 @@ class FitFinder:
                 best_type = fit_type
                 best_fit = fits[fit_type]
 
-        return best_type,best_fit
+        if best_type is None:
+            # All the fit mse were 0
+            return None,None,
+
+        if self.use_weighted_fit:
+            best_mse = fit_map[best_type]['mse']
+            weighted_best_type = None
+            weight_best_fit = None
+            min_val = None
+            for fit_type in fits:
+                fit_mse = fit_map[fit_type]['mse']
+                val = abs(fit_mse - best_mse)/best_mse
+                if self.weight_map.has_key(fit_type):
+                    val += self.weight_map[fit_type]
+                if min_val is None:
+                    min_val = val
+                    weighted_best_type = fit_type
+                    weighted_best_fit = fits[fit_type]
+                elif val < min_val:
+                    min_val = val
+                    weighted_best_type = fit_type
+                    weighted_best_fit = fits[fit_type]
+            return weighted_best_type,weighted_best_fit
+        else:
+            return best_type,best_fit
 
     # Saves the fits to a .pkl file, will *ONLY* save the specified fit_type
     # If no fit_type is specified, we save the fit with the smallest MSE

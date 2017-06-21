@@ -74,7 +74,8 @@ class MonitorController:
                 "saveDirectory=",
                 "useFit=",
                 "psFilter=",
-                "lsFilter=",
+                "lsVeto=",
+                "pathVeto=",
                 "Secondary",
                 "datasetRate",
                 "L1ARate",
@@ -138,9 +139,14 @@ class MonitorController:
                 # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
                 self.rate_monitor.data_parser.use_ps_mask = True
                 self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
-            elif label == "--lsFilter":
-                ls_filter_obj = self.readLSFilterFile(str(op))
-                self.rate_monitor.data_parser.ls_filter = ls_filter_obj
+            elif label == "--lsVeto":
+                # Specifiy certain LS to veto/remove from consideration
+                ls_veto = self.readLSVetoFile(str(op))
+                self.rate_monitor.data_parser.ls_veto = ls_veto_obj
+            elif label == "--pathVeto":
+                # Specify certain paths to veto/remove from consideration
+                path_veto_list = self.readTriggerList(str(op))
+                self.rate_monitor.data_parser.name_veto = path_veto_list
             elif label == "--Secondary":
                 # Set the code to produce certification plots
                 # NOTE: Still need to specify --fitFile and --triggerList
@@ -476,15 +482,15 @@ class MonitorController:
         return output_list
 
     # Creates a filter for the DataParser to exlude specific LS
-    def readLSFilterFile(self,ls_filter_file):
-        json_file = open(ls_filter_file)
+    def readLSVetoFile(self,ls_veto_file):
+        json_file = open(ls_veto_file)
         json_data = json.load(json_file)
-        ls_filter = {}
+        ls_veto = {}
         for run_number in json_data:
-            ls_filter[int(run_number)] = []
+            ls_veto[int(run_number)] = []
             for ls_low,ls_high in json_data[run_number]:
-                ls_filter[int(run_number)] += [x for x in range(ls_low,ls_high+1)]
-        return ls_filter
+                ls_veto[int(run_number)] += [x for x in range(ls_low,ls_high+1)]
+        return ls_veto
 
     # Gets the runs from each fill specified in arg_list
     def getRuns(self,arg_list):
