@@ -181,6 +181,15 @@ class DBParser:
         _list = []
         for item in self.curs.fetchall():
             ilum = item[lumi_source]
+            if ilum is None:
+                if item[1]:
+                    ilum = item[1]
+                elif item[2]:
+                    ilum = item[2]
+                else:
+                    ilum = None
+
+
             LS = item[3]
             phys = item[4]
             cms_ready = item[5]
@@ -975,7 +984,7 @@ class DBParser:
         try:
             self.curs.execute(sqlquery)
             bunches = self.curs.fetchall()[0]
-            bunches= [ int(bunches[0]), int(bunches[1]) ]
+            bunches = [ int(bunches[0]), int(bunches[1]) ]
             return bunches
         except:
             #print "database error querying for num colliding bx" 
@@ -1152,13 +1161,13 @@ class DBParser:
             return
 
         mode = self.getTriggerMode(runNumber)
-        isCol=0
-        isGood=1
+        isCol = 0
+        isGood = 1
         
         if mode is None:
-            isGood=0
+            isGood = 0
         elif mode[0].find('l1_hlt_collisions') != -1:
-            isCol=1
+            isCol = 1
                         
         Tier0xferQuery = """
             SELECT
@@ -1169,7 +1178,7 @@ class DBParser:
                 RUNNUMBER = %d
             """ % (runNumber)
         self.curs.execute(Tier0xferQuery)
-        tier0=1
+        tier0 = 1
         try:
             tier0 = self.curs.fetchone()
         except:
@@ -1183,7 +1192,7 @@ class DBParser:
         return [runNumber[0], isCol, isGood, mode]
 
     def getWbmUrl(self,runNumber,pathName,LS):
-        if pathName[0:4]=="HLT_":
+        if pathName[0:4] == "HLT_":
             sqlquery =  """
                         SELECT
                             A.PATHID,
@@ -1242,22 +1251,37 @@ class DBParser:
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
         cursor = self.getTrgCursor()
+        #StreamQuery =   """
+        #                SELECT
+        #                    A.lumisection,
+        #                    A.stream,
+        #                    B.nevents/23.31041,
+        #                    B.filesize,
+        #                    B.filesize/23.31041
+        #                FROM
+        #                    CMS_STOMGR.FILES_CREATED A,
+        #                    CMS_STOMGR.FILES_INJECTED B
+        #                WHERE
+        #                    A.filename = B.filename AND
+        #                    A.runnumber = %s AND
+        #                    A.lumisection >= %s AND
+        #                    A.lumisection <= %s
+        #                """ % (runNumber, minLS, maxLS)
+
         StreamQuery =   """
                         SELECT
-                            A.lumisection,
-                            A.stream,
-                            B.nevents/23.31041,
-                            B.filesize,
-                            B.filesize/23.31041
+                            A.LUMISECTION,
+                            A.STREAM,
+                            A.NEVENTS/23.31041,
+                            A.FILESIZE,
+                            A.FILESIZE/23.31041
                         FROM
-                            CMS_STOMGR.FILES_CREATED A,
-                            CMS_STOMGR.FILES_INJECTED B
+                            CMS_WBM.VIEW_SM_SUMMARY A
                         WHERE
-                            A.filename = B.filename AND
-                            A.runnumber = %s AND
-                            A.lumisection >= %s AND
-                            A.lumisection <= %s
-                        """ % (runNumber, minLS, maxLS)
+                        A.RUNNUMBER = %s AND
+                        A.LUMISECTION >= %s AND
+                        A.LUMISECTION <= %s
+                        """ % (runNumber,minLS,maxLS)
 
         try:
             cursor.execute(StreamQuery)
