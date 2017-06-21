@@ -14,6 +14,7 @@
 
 import getopt # For getting command line options
 import json
+import sys
 
 from DBParser import *
 from RateMonitor import *
@@ -256,7 +257,6 @@ class MonitorController:
                 self.rate_monitor.plotter.label_Y = "< PU >"
             elif label == "--updateOnlineFits":
                 # Creates fits and saves them to the Fits directory
-                # NOTE: Still need to specify --triggerList
                 # NEEDS TO BE IMPLEMENTED/TESTED
                 self.rate_monitor.update_online_fits = True
 
@@ -448,12 +448,18 @@ class MonitorController:
 
         fits = {}
         # Try to open the file containing the fit info
+
+        print "Reading fit file: %s" % (fit_file)
+
         try:
             pkl_file = open(fit_file, 'rb')
             fits = pickle.load(pkl_file)    # {'obj': fit_params}
             pkl_file.close()
             tmp_dict = {}                   # {'obj': {'fit_type': fit_params } }
             for obj in fits:
+                if fits[obj] is None:
+                    # We were unable to generate a proper fit for this trigger
+                    continue
                 fit_type = fits[obj][0]
                 tmp_dict[obj] = {}
                 tmp_dict[obj][fit_type] = fits[obj]
@@ -461,7 +467,8 @@ class MonitorController:
             return fits
         except:
             # File failed to open
-            print "Error: could not open fit file: %s" % (self.fitFile)
+            print "Error: could not open fit file: %s" % (fit_file)
+            print "Info:",sys.exc_info()[0]
             return {}
 
     def readTriggerList(self,trigger_file):
