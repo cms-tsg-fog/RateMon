@@ -49,7 +49,7 @@ class ShiftMonitor:
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
         # Fits and fit files
-        self.fitFile = "Fits/2016/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
         # DBParser
@@ -80,8 +80,8 @@ class ShiftMonitor:
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
-        #self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
-        self.collisions_triggerList = "monitorlist_HI.list"
+        self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
+        #self.collisions_triggerList = "monitorlist_HI.list"
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list 
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -485,8 +485,8 @@ class ShiftMonitor:
         else:
             self.pu_ave = "NONE"
         # We only do predictions when there were physics active LS in a collisions run
-        #doPred = physicsActive and self.mode == "collisions"
-        doPred = False
+        doPred = physicsActive and self.mode == "collisions"
+        #doPred = False
         # Print the header
         self.printHeader()
         # Print the triggers that we can make predictions for
@@ -693,13 +693,14 @@ class ShiftMonitor:
     def getTriggerData(self, trigger, doPred, aveLumi):
         # In case of critical error (this shouldn't occur)
         if not self.Rates.has_key(trigger): return
+
         # If cosmics, don't do predictions
         if self.mode == "cosmics": doPred = False
         # Calculate rate
         if self.mode != "cosmics" and doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
-                if expected<0: expected = 0                # Don't let expected value be negative
+                if expected < 0: expected = 0                # Don't let expected value be negative
                 avePSExpected = expected
                 # Get the mean square error (standard deviation)
                 mse = self.getMSE(trigger)
@@ -918,8 +919,17 @@ class ShiftMonitor:
         if self.L1: paramlist = self.InputFitL1[triggerName]
         else: paramlist = self.InputFitHLT[triggerName]
         # Calculate the rate
-        if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-        else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+        #if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
+        #else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
+        if paramlist[0] == "exp":          # Exponential
+             funcStr = "%.15f + %.5f*exp( %.15f+%.15f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+        elif paramlist[0] == "linear":     # Linear
+            funcStr = "%.15f + x*%.15f" % (paramlist[1], paramlist[2])
+        elif paramlist[0] == "sinh":
+            funcStr = "%.15f + %.15f*sinh(%.15f*x)" % (paramlist[3], paramlist[2], paramlist[1])
+        else:                               # Polynomial
+            funcStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
+
         fitFunc = TF1("Fit_"+triggerName, funcStr)
         if self.pileUp:
             if self.numBunches[0] > 0:
