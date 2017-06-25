@@ -557,7 +557,7 @@ class RateMonitor:
                     if fit_type == "exp":
                         rr = bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
                     elif fit_type == "sinh":
-                        var = 0
+                        val = 0
                         val += math.pow(X0*pu,11)/39916800.
                         val += math.pow(X0*pu,9)/362880.
                         val += math.pow(X0*pu,7)/5040.
