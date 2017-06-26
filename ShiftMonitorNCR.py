@@ -648,17 +648,37 @@ class ShiftMonitor:
             else: self.tableData.sort(key=lambda tup : tup[6], reverse = True)
         elif self.sortRates:
             self.tableData.sort(key=lambda tup: tup[1], reverse = True)
+
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
-            info = stringSegment("* "+trigger, self.spacing[0])
+            if self.mode != "collisions" and rate == 0:
+                # When not in collisions mode, ignore triggers with 0 rate
+                continue
+
+            info  = stringSegment("* "+trigger, self.spacing[0])
             info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
-            if pred!="": info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
-            else: info += stringSegment("", self.spacing[2])
-            if perdiff=="": info += stringSegment("", self.spacing[3])
-            elif perdiff=="INF": info += stringSegment("* INF", self.spacing[3])
-            else: info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
-            if dev=="": info += stringSegment("", self.spacing[4])
-            elif dev=="INF" or dev==">1E6": info += stringSegment("* "+dev, self.spacing[4])
-            else: info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
+            
+            # Prediction Column
+            if pred != "":
+                info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
+            else:
+                info += stringSegment("", self.spacing[2])
+
+            # % Diff Column
+            if perdiff == "":
+                info += stringSegment("", self.spacing[3])
+            elif perdiff == "INF":
+                info += stringSegment("* INF", self.spacing[3])
+            else:
+                info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
+            
+            # Deviation Column
+            if dev == "":
+                info += stringSegment("", self.spacing[4])
+            elif dev == "INF" or dev == ">1E6":
+                info += stringSegment("* "+dev, self.spacing[4])
+            else:
+                info += stringSegment("* "+"{0:.2f}".format(dsign*dev), self.spacing[4])
+
             info += stringSegment("* "+"{0:.2f}".format(avePS), self.spacing[5])
             info += stringSegment("* "+comment, self.spacing[6])
 
