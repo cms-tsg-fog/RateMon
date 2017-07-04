@@ -57,6 +57,8 @@ class DataParser:
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
 
+        self.l1_rate_cut = 10e6         # Ignore L1 rates above this threshold
+
         self.max_deadtime = 10.
         self.min_ls = -1
         self.max_ls = 9999999
@@ -235,6 +237,9 @@ class DataParser:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1_rates[trigger][LS][0]
                     prescale = L1_rates[trigger][LS][1]
+
+                    if rate > self.l1_rate_cut:
+                        continue
 
                     if self.normalize_bunches:
                         rate = rate/bunches

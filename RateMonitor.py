@@ -532,6 +532,8 @@ class RateMonitor:
         for obj in self.plotter.fits:
             if not pu_data.has_key(obj):
                 continue
+            elif not pu_data[obj].has_key(run):
+                continue
 
             # Initialize our point arrays
             lumisecs    = array.array('f')
