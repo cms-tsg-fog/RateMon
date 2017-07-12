@@ -40,6 +40,7 @@ class MenuAnalyzer:
         self.expressType = ''
 
         self.menuName = name
+        self.processName=''
         self.endPathList = set()
         self.perPathModuleList={}
         self.perModuleTypeList={}
@@ -67,7 +68,8 @@ class MenuAnalyzer:
             'checkEventContent':self.checkEventContent,
             'checkL1Unmask':self.checkL1Unmask,
             'checkDQMStream':self.checkDQMStream,
-            'checkStreamB':self.checkStreamB
+            'checkStreamB':self.checkStreamB,
+            'checkProcessName':self.checkProcessName
             }
         self.ProblemDescriptions = {
             'moduleLength':'Modules too long',
@@ -79,7 +81,8 @@ class MenuAnalyzer:
             'checkEventContent' : 'Invalid Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
             'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
-            'checkStreamB' : 'Check all parking triggers in stream B'
+            'checkStreamB' : 'Check all parking triggers in stream B',
+            'checkProcessName' : 'Check that process name is "HLT"'
             }
 
         self.T0REGEXP = { ## These are the regexps that T0 uses to access things
@@ -111,6 +114,7 @@ class MenuAnalyzer:
         self.GetESModules(cursor)
         self.GetStreamsPathsPDs(cursor)
         self.GetEventContent(cursor)
+        self.GetProcessName(cursor)
         isError = False
         if len(self.perStreamPDList) == 0:
             print "FATAL ERROR: Cannot find any streams in this menu"
@@ -262,6 +266,14 @@ class MenuAnalyzer:
         self.Results['checkStreamB']=[]
         for trig in self.ParkingTriggers:
             if not trig in self.perPDPathList["ParkingMonitor"]: self.Results['checkStreamB'].append("ParkingTriggerNotInStreamB::%s" %trig)
+
+    def checkProcessName(self):
+        self.Results['checkProcessName']=[]
+        if self.processName != "HLT":
+            if self.processName != None:
+                self.Results['checkProcessName'].append('process name is "'+self.processName+'"')
+            else:
+                self.Results['checkProcessName'].append('process name is EMPTY')
             
     def GetModules(self,cursor):
         sqlquery ="""  
@@ -400,3 +412,17 @@ class MenuAnalyzer:
             else: statement = "drop "+statement
             if not statement in self.eventContent[stream]:
                 self.eventContent[stream].append( statement )
+
+
+    def GetProcessName(self,cursor):
+
+        sqlquery = """
+        SELECT confver.ProcessName FROM  cms_hlt_gdr.u_confversions confver
+        WHERE 
+        confver.name = '%s'
+        """  % (self.menuName)
+
+        cursor.execute(sqlquery)
+        #should be exactly 1 entry and that will have a tuple with one entry "processName"
+        self.processName = cursor.fetchall()[0][0]
+        
