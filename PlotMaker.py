@@ -220,6 +220,7 @@ class PlotMaker:
                 else:
                     fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
                 fit_mse[fit_type] = fit_params[5]
+                #max_yaxis_value = max([fit_func[fit_type].Eval(56.0),max_yaxis_value])
 
         graphList = []
         color_map = self.getColorMap()
@@ -301,6 +302,7 @@ class PlotMaker:
                     func_leg = TLegend(.146, .71, .47, .769)
                     func_leg.SetHeader("f(x) = " + func_str[fit_type])
                     func_leg.SetFillColor(0)
+                    #func_leg.SetFillColorAlpha(0,0.5)
                     func_leg.Draw()
                     canvas.Update()
 
