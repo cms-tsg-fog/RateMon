@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --createFit --bestFit --updateOnlineFits 299061 299062 299064 299065 299067 299149 299178 299180 299183 299184 299185 
+python plotTriggerRates.py --createFit --bestFit --updateOnlineFits 299368 299369 299370 299477 299478 299479 299480 299481 
