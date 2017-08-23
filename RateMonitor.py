@@ -36,7 +36,7 @@ def stringSegment(strng, tot):
     for x in range(0, tot-len(str(strng))):
         string += " "
     return string
-
+    
 class RateMonitor:
     def __init__(self):
         # type: () -> None
@@ -109,6 +109,12 @@ class RateMonitor:
             self.object_list += self.data_parser.getObjectList(obj_type="dataset")
             if self.use_grouping:
                 self.group_map["Datasets"] = self.data_parser.getObjectList(obj_type="dataset")
+
+        if self.data_parser.use_L1A_rate:
+            # Manually add L1A rates to the list of objects to plot
+            self.object_list += self.data_parser.getObjectList(obj_type="L1A")
+            if self.use_grouping:
+                self.group_map["L1A_Rates"] = self.data_parser.getObjectList(obj_type="L1A")
 
         bunch_map = self.data_parser.getBunchMap()
         det_status = self.data_parser.getDetectorStatus()
@@ -185,12 +191,15 @@ class RateMonitor:
         # Specifies how we want to organize the plots in the output directory
         if self.use_grouping:
             print "Making Plots..."
+
+            # Create plots for *EVERYTHING* we've queried for
             objs_to_plot = set()
             for obj in self.object_list:
                 objs_to_plot.add(obj)
             plotted_objects = self.makePlots(list(objs_to_plot))
             counter += len(plotted_objects)
 
+            # Create index.html files to display specific groups of plots
             for grp in self.group_map:
                 grp_path = os.path.join(self.save_dir,grp)
                 grp_objs = set()
@@ -623,3 +632,4 @@ class RateMonitor:
             print "Unable to write index.html file"
 
 # --- End --- #
+

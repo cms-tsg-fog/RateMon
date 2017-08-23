@@ -29,6 +29,9 @@ def buildRateTables(dataset_list):
             {'tags': [HyperLinkTag('./MoreTriggers/Datasets/','Dataset Rates')]},
         ],
         [
+            {'tags': [HyperLinkTag('./MoreTriggers/L1A_Rates/','L1A Rates')]},
+        ],
+        [
             {'tags': [HyperLinkTag('./MoreTriggers/L1_Triggers/','L1 Trigger Rates')]},
         ],
         [
@@ -150,7 +153,7 @@ def getMonitoredTriggersList(f_name='monitorlist_COLLISIONS.list'):
 
 # Get the list of group directories
 def getGroupList(save_dir):
-    ignore_dirs = ['png','L1_Triggers','HLT_Triggers','Streams','Datasets','Monitored_Triggers']
+    ignore_dirs = ['png','L1_Triggers','HLT_Triggers','Streams','Datasets','L1A_Rates','Monitored_Triggers']
     dataset_list = []
     dir_path = os.path.join(save_dir,'MoreTriggers')
     for out in os.listdir(dir_path):
