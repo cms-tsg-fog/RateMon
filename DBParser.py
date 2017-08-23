@@ -1038,17 +1038,18 @@ class DBParser:
 
     # Use: Gets the L1A physics lost rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
-    def getL1APhysicsLost(self,runNumber):
+    def getL1APhysicsLost(self,runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
                         SUP_TRG_RATE_TT1
-
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_rates_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
         self.curs.execute(sqlquery)
         
         l1rate = {}
@@ -1059,17 +1060,18 @@ class DBParser:
 
     # Use: Gets the total L1A physics rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
-    def getL1APhysics(self, runNumber):
+    def getL1APhysics(self, runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
                         TRG_RATE_TT1
-
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_rates_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
 
         self.curs.execute(sqlquery)
         
@@ -1081,17 +1083,18 @@ class DBParser:
 
     # Use: Gets the total L1A calibration rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
-    def getL1ACalib(self, runNumber):
+    def getL1ACalib(self, runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
                         TRG_RATE_TT2
-
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_rates_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
         self.curs.execute(sqlquery)
         
         l1rate = {}
@@ -1102,17 +1105,18 @@ class DBParser:
 
     # Use: Gets the total L1ARand rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
-    def getL1ARand(self, runNumber):
+    def getL1ARand(self, runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
                         TRG_RATE_TT3
-
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_rates_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
         self.curs.execute(sqlquery)
         
         l1rate = {}
@@ -1123,7 +1127,7 @@ class DBParser:
 
     # Use: Gets the TOTAL L1 rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
-    def getL1rate(self, runNumber):
+    def getL1rate(self, runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
@@ -1131,8 +1135,10 @@ class DBParser:
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_rates_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
         
         self.curs.execute(sqlquery)
         
