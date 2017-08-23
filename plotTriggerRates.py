@@ -243,7 +243,8 @@ class MonitorController:
                 self.rate_monitor.data_parser.use_HLT_triggers = True
                 self.rate_monitor.data_parser.use_streams  = True
                 self.rate_monitor.data_parser.use_datasets = True
-                self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                self.rate_monitor.data_parser.use_L1A_rate = True
 
                 self.rate_monitor.plotter.color_by_fill = False
 
