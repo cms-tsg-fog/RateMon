@@ -48,36 +48,45 @@ class ShiftMonitor:
     def __init__(self):
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
+        
         # Fits and fit files
         self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
+        
         # DBParser
         self.parser = DBParser()        # A database parser
+        
         # Rates
         self.HLTRates = None            # HLT rates
         self.L1Rates = None             # L1 rates
         self.Rates = None               # Combined L1 and HLT rates
         self.deadTimeData = {}          # initializing deadTime dict
+        
         # Run control
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
+        
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = []               # If we want to only look at a range of LS from the run
         ##self.simulate = False           # Simulate running through and monitoring a previous run
+        
         # Lumisection control
         self.lastLS = 1                 # The last LS that was processed last segment
         self.currentLS = 1              # The latest LS written to the DB
         self.slidingLS = -1             # The number of LS to average over, use -1 for no sliding LS
         self.useLSRange = False         # Only look at LS in a certain range
+
         # Mode
         self.triggerMode = None         # The trigger mode
         self.mode = None                # Mode: cosmics, circulate, physics
+
         # Columns header
         self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
+
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
@@ -95,8 +104,10 @@ class ShiftMonitor:
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
         self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx"]
+
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
+
         # Trigger behavior
         self.percAccept = 50.0          # The acceptence for % diff
         self.devAccept = 5              # The acceptance for deviation
@@ -110,6 +121,17 @@ class ShiftMonitor:
         #self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
+
+        # Total L1 Rate Check
+        self.total_L1_rate_check = {
+            'enabled': False,
+            'threshold': 1e6,
+            'current_run': -1,
+            'last_alarm_ls': -1,
+            'total_alarms': 0,
+            'consecutive_alarms': 0,
+        }
+
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
@@ -886,6 +908,32 @@ class ShiftMonitor:
                     break
             print ""
 
+        if self.total_L1_rate_check['enabled']:
+            if self.total_L1_rate_check['current_run'] != self.runNumber:
+                # Reset the alarm check info for a new run!
+                self.total_L1_rate_check['current_run'] = self.runNumber
+                self.total_L1_rate_check['last_alarm_ls'] = -1
+                self.total_L1_rate_check['total_alarms'] = 0
+                self.total_L1_rate_check['consecutive_alarms'] = 0
+
+            l1a_physics_rate = self.parser.getL1APhysics(self.runNumber,self.lastLS)
+            l1a_physics_lost = self.parser.getL1APhysicsLost(self.runNumber,self.lastLS)
+
+            raise_l1_rate_warning = False
+            for ls in l1a_physics_rate:
+                if not l1a_physics_lost.has_key(ls):
+                    continue
+                total_l1a_rate = l1a_physics_rate[ls] + l1a_physics_lost[ls]
+                if total_l1a_rate > self.total_L1_rate_check['threshold']:
+                    raise_l1_rate_warning = True
+                    break
+            if raise_l1_rate_warning:
+                self.total_L1_rate_check['consecutive_alarms'] += 1
+                self.total_L1_rate_check['total_alarms'] += 1
+                self.total_L1_rate_check['last_alarm_ls'] = self.lastLS
+            else:
+                self.total_L1_rate_check['consecutive_alarms'] = 0
+
         # Print warnings for triggers that have been repeatedly misbehaving
         mailTriggers = [] # A list of triggers that we should mail alerts about
         for trigger in self.badRates:
@@ -1014,4 +1062,5 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
 
