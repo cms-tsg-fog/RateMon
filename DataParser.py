@@ -20,6 +20,7 @@ from DBParser import *
 ppInelXsec = 80000.
 orbitsPerSec = 11246.
 
+#TODO: Rework how we store run_data info to also include a 'type' field, to avoid problems with identical stream/dataset names
 class DataParser:
     # This is an interface for DBParser() to select and manage the data returned by DBParser()
     def __init__(self):
@@ -464,10 +465,13 @@ class DataParser:
     def getL1AData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         L1A_rates = {}   # {'L1A': {LS: rate } }
+
+        if self.verbose: print "\tGetting L1ATotal rates..."
+        L1A_rates["L1ATotal"] = self.parser.getL1rate(run)
         if self.verbose: print "\tGetting L1APhysics rates..."
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
-        if self.verbose: print "\tGetting L1APhysics+Lost rates..."
-        L1A_rates["L1APhysics+Lost"] = self.parser.getL1APhysicsLost(run)
+        if self.verbose: print "\tGetting L1APhysicsLost rates..."
+        L1A_rates["L1APhysicsLost"] = self.parser.getL1APhysicsLost(run)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
@@ -704,3 +708,4 @@ class DataParser:
     def getTypeMap(self):
         # type: () -> Dict[str,str]
         return self.type_map
+
