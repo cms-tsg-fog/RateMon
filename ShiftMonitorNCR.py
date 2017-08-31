@@ -23,20 +23,20 @@ from termcolor import *
 from colors import *
 # For getting command line options
 import getopt
-# For mail alerts
-from mailAlert import mailAlert, audioAlert
+# For alerts
+from mailAlert import mailAlert
+from audioAlert import audioAlert
+from Alerts import *
 from Logger import *
 
 # --- 13 TeV constant values ---
-ppInelXsec = 80000.
-orbitsPerSec = 11246.
+ppInelXsec   = 80000.   # 80 mb
+orbitsPerSec = 11245.8  # Hz
+lsLength     = 23.3104  # s     = 2^18 / orbitsPerSec
 
 # Use: Writes a string in a fixed length margin string (pads with spaces)
-def stringSegment(strng, tot):
-    string = str(strng)
-    for x in range(0, tot-len(str(strng))):
-        string += " "
-    return string
+def stringSegment(string, width):
+    return '{:{width}}'.format(string, width=width)
 
 # Alias for sys.stdout.write
 sys.stdout = Logger()
@@ -48,31 +48,31 @@ class ShiftMonitor:
     def __init__(self):
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
-        
+
         # Fits and fit files
         self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
-        
+
         # DBParser
         self.parser = DBParser()        # A database parser
-        
+
         # Rates
         self.HLTRates = None            # HLT rates
         self.L1Rates = None             # L1 rates
         self.Rates = None               # Combined L1 and HLT rates
         self.deadTimeData = {}          # initializing deadTime dict
-        
+
         # Run control
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
-        
+
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = []               # If we want to only look at a range of LS from the run
         ##self.simulate = False           # Simulate running through and monitoring a previous run
-        
+
         # Lumisection control
         self.lastLS = 1                 # The last LS that was processed last segment
         self.currentLS = 1              # The latest LS written to the DB
@@ -92,7 +92,7 @@ class ShiftMonitor:
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
         #self.collisions_triggerList = "monitorlist_HI.list"
         self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
-        self.userSpecTrigList = False   # User specified trigger list 
+        self.userSpecTrigList = False   # User specified trigger list
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
         self.otherHLTTriggers = []      # HLT Triggers active during the run that are not usable triggers
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
@@ -175,14 +175,14 @@ class ShiftMonitor:
         self.quiet = False              # Prints fewer messages in this mode
         self.noColors = False           # Special formatting for if we want to dump the table to a file
         self.sendMailAlerts_static = True      # Whether we should send alert mails
-        self.sendMailAlerts_dynamic = self.sendMailAlerts_static      
+        self.sendMailAlerts_dynamic = self.sendMailAlerts_static
         self.sendAudioAlerts = False    # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True          # flag to determine whether or not we're receiving new LS
         self.showStreams = False        # Whether we should print stream information
         self.showPDs = False            # Whether we should print pd information
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have        
+        self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
         self.deadTimeCorrection = True  # correct the rates for dead time
@@ -198,7 +198,7 @@ class ShiftMonitor:
         except:
             print "File", fileName, "(a trigger list file) failed to open."
             return
-        
+
         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
         TriggerList = []
         for triggerName in allTriggerNames:
@@ -224,7 +224,7 @@ class ShiftMonitor:
 
         # Make the name spacing at least 90
         maxName = max([maxNameHLT, maxNameL1, 90])
-        
+
         self.spacing = [maxName + 5, 14, 14, 14, 14, 14, 0]
         self.spacing[5] = max( [ 181 - sum(self.spacing), 0 ] )
 
@@ -252,7 +252,7 @@ class ShiftMonitor:
                 elif triggerName[0:4] == "HLT_":
                     if self.InputFitHLT is None: self.InputFitHLT = {}
                     self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
-        
+
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
             for triggerName in self.triggerList:
@@ -291,13 +291,13 @@ class ShiftMonitor:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
                 self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
-                self.runLoop()      
+                self.runLoop()
                 self.checkTriggers()
                 self.sleepWait()
             except KeyboardInterrupt:
                 print "Quitting. Bye."
                 break
-            
+
     ##def simulateRun(self):
     ##    modTime = 0
     ##    # Get the rates
@@ -344,7 +344,7 @@ class ShiftMonitor:
             self.setMode()
             self.getRates()
             self.redoTriggerLists()
-            
+
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.getRates()
         # Construct (or reconstruct) trigger lists
@@ -366,7 +366,7 @@ class ShiftMonitor:
         self.lastLS = self.currentLS
         # Update current LS
         if len(lslist) > 0: self.currentLS = max(lslist)
-        
+
         if self.useLSRange: # Adjust runs so we only look at those in our range
             self.slidingLS = -1 # No sliding LS window
             self.lastLS = max( [self.lastLS, self.LSRange[0]] )
@@ -440,7 +440,7 @@ class ShiftMonitor:
                 self.usableHLTTriggers.append(trigger)
             elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
                 self.otherHLTTriggers.append(trigger)
-            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger) 
+            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger)
 
         for trigger in self.L1Rates.keys():
             #if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
@@ -449,10 +449,10 @@ class ShiftMonitor:
                 self.usableL1Triggers.append(trigger)
             elif trigger[0:3] == "L1_" and (self.triggerList == "" or trigger in self.TriggerListL1):
                 self.otherL1Triggers.append(trigger)
-            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger) 
-                        
+            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger)
+
         self.getHeader()
-        
+
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
@@ -471,7 +471,7 @@ class ShiftMonitor:
         self.Rates.update(self.L1Rates)
         self.totalHLTTriggers = len(self.HLTRates.keys())
         self.totalL1Triggers = len(self.L1Rates.keys())
-                
+
     # Use: Retrieves information and prints it in table form
     def printTable(self):
         if self.slidingLS == -1:
@@ -490,7 +490,7 @@ class ShiftMonitor:
             self.deadTimeData = {}
             aveDeadTime = None
             print "Error getting deadtime data"
-        
+
         # Get total L1 rate
         l1rate = 0
         try:
@@ -500,7 +500,7 @@ class ShiftMonitor:
             l1rateData = {}
             aveL1rate = None
             print "Error getting total L1 rate data"
-            
+
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if self.mode != "cosmics":
             lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
@@ -626,7 +626,7 @@ class ShiftMonitor:
                     row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
                     if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
                     print row
-                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
+                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
                 else: pass
 
         # Print PD data
@@ -653,7 +653,7 @@ class ShiftMonitor:
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), pdSpacing[3])
                     if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
                     print row
-                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
+                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
                 else: pass
 
         # Closing information
@@ -661,11 +661,11 @@ class ShiftMonitor:
         print "SUMMARY:"
         if self.mode=="collisions": print "Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad)
         if self.mode=="collisions":
-            print "Prescale column index:", 
+            print "Prescale column index:",
             if PScol == 0:
                 if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.WARNING) # Write colored text
                 print PScol, "\t0 - Column 0 is an emergency column in collision mode, please select the proper column"
-                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text 
+                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
             else:
                 print PScol
         try:
@@ -674,9 +674,9 @@ class ShiftMonitor:
             print "Average inst. lumi: Not available"
         print "Total L1 rate: %.0f Hz" % (aveL1rate)
         print "Average dead time: %.2f %%" % (aveDeadTime)
-        try: 
+        try:
             print "Average PU: %.2f" % (self.pu_ave)
-        except: 
+        except:
             print "Average PU: %s" % (self.pu_ave)
         print '*' * self.hlength
 
@@ -693,7 +693,7 @@ class ShiftMonitor:
         print "Number of streams:", self.totalStreams
         print '*' * self.hlength
         print self.header
-        
+
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0):
         # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
@@ -701,7 +701,7 @@ class ShiftMonitor:
 
         # Get the trigger data
         for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
-        
+
         # Sort by % diff if need be
         if doPred:
             # [4] is % diff, [6] is deviation
@@ -717,7 +717,7 @@ class ShiftMonitor:
 
             info  = stringSegment("* "+trigger, self.spacing[0])
             info += stringSegment("* "+"{0:.2f}".format(rate), self.spacing[1])
-            
+
             # Prediction Column
             if pred != "":
                 info += stringSegment("* "+"{0:.2f}".format(pred), self.spacing[2])
@@ -731,7 +731,7 @@ class ShiftMonitor:
                 info += stringSegment("* INF", self.spacing[3])
             else:
                 info += stringSegment("* "+"{0:.2f}".format(sign*perdiff), self.spacing[3])
-            
+
             # Deviation Column
             if dev == "":
                 info += stringSegment("", self.spacing[4])
@@ -744,9 +744,9 @@ class ShiftMonitor:
             info += stringSegment("* "+comment, self.spacing[6])
 
             # Color the bad triggers with warning colors
-            
+
             if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_"):
-                if not self.noColors and self.mode != "other": write(bcolors.WARNING) # Write colored text 
+                if not self.noColors and self.mode != "other": write(bcolors.WARNING) # Write colored text
                 print info
                 if not self.noColors and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
             # Don't color normal triggers
@@ -762,7 +762,7 @@ class ShiftMonitor:
         or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
         or (isL1 and psrate>self.maxL1Rate)\
         or (not isL1 and psrate>self.maxHLTRate): return True
-        
+
         return False
 
     # Use: Gets a row of the table, self.tableData: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, ave PS, comment } )
@@ -796,10 +796,10 @@ class ShiftMonitor:
         aveDeadTime = 0
         count = 0
         comment = ""
-        
+
         correct_for_deadtime = self.deadTimeCorrection
         if trigger[0:3]=="L1_": correct_for_deadtime = False
-        
+
         for LS in self.Rates[trigger].keys():
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
             elif LS < self.startLS or LS > self.currentLS: continue
@@ -810,17 +810,17 @@ class ShiftMonitor:
                 deadTime = self.deadTimeData[LS]
             except:
                 print "trouble getting deadtime for LS: ", LS," setting DT to zero"
-                deadTime = 0                
+                deadTime = 0
 
             if correct_for_deadtime: rate *= 1. + (deadTime/100.)
-                
+
             if prescale > 0: properAvePSRate += rate/prescale
             else: properAvePSRate += rate
             aveRate += rate
             count += 1
             avePS += prescale
             aveDeadTime += deadTime
-                
+
         if count > 0:
             if aveRate == 0: comment += "0 counts "
             aveRate /= count
@@ -831,7 +831,7 @@ class ShiftMonitor:
             #comment += "PS=0"
             comment += "No rate yet "
             doPred = False
-        
+
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
         if not doPred and self.removeZeros and aveRate == 0: return  # Returns if we are not making predictions for this trigger and we are throwing zeros
 
@@ -911,7 +911,7 @@ class ShiftMonitor:
                 self.normal += 1
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger): del self.badRates[trigger]
-                    
+
         else:
             if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0:
                 self.bad += 1
@@ -929,12 +929,12 @@ class ShiftMonitor:
                 self.normal += 1
                 # Remove warning from badRates
                 if self.badRates.has_key(trigger): del self.badRates[trigger]
-                    
+
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
         if self.displayBadRates != 0:
             count = 0
-            if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates)) 
+            if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates))
             elif len(self.badRates) > 0 : write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
             for trigger in self.badRates:
                 if self.badRates[trigger][1]:
@@ -947,7 +947,6 @@ class ShiftMonitor:
                     break
             print ""
 
-        ls_length = 23.31041
         # Total L1 rate check
         if self.total_L1_rate_check['enabled']:
             if self.total_L1_rate_check['current_run'] != self.runNumber:
@@ -967,7 +966,7 @@ class ShiftMonitor:
                     raise_l1_rate_warning = True
                     break
             if raise_l1_rate_warning:
-                if self.total_L1_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_rate_check['last_alarm_ls'])*ls_length > self.total_L1_rate_check['max_freq']:
+                if self.total_L1_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_rate_check['last_alarm_ls'])*lsLength > self.total_L1_rate_check['max_freq']:
                     # SEND AUDIO ALARM HERE
                     self.total_L1_rate_check['last_alarm_ls'] = self.lastLS
 
@@ -990,7 +989,7 @@ class ShiftMonitor:
                     raise_l1_rate_warning = True
                     break
             if raise_l1_rate_warning:
-                if self.total_L1_prescale_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_prescale_check['last_alarm_ls'])*ls_length > self.total_L1_prescale_check['max_freq']:
+                if self.total_L1_prescale_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_prescale_check['last_alarm_ls'])*lsLength > self.total_L1_prescale_check['max_freq']:
                     # SEND AUDIO ALARM HERE
                     self.total_L1_prescale_check['last_alarm_ls'] = self.lastLS
 
@@ -1011,7 +1010,7 @@ class ShiftMonitor:
                         break
 
             if raise_l1_rate_warning:
-                if self.L1_muon_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_muon_rate_check['last_alarm_ls'])*ls_length > self.L1_muon_rate_check['max_freq']:
+                if self.L1_muon_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_muon_rate_check['last_alarm_ls'])*lsLength > self.L1_muon_rate_check['max_freq']:
                     # SEND AUDIO ALARM HERE
                     self.L1_muon_rate_check['last_alarm_ls'] = self.lastLS
 
@@ -1030,9 +1029,9 @@ class ShiftMonitor:
                     if pre_deadtime_rate > self.L1_egamma_rate_check['threshold']:
                         raise_l1_rate_warming = True
                         break
-            
+
             if raise_l1_rate_warning:
-                if self.L1_egamma_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_egamma_rate_check['last_alarm_ls'])*ls_length > self.L1_egamma_rate_check['max_freq']:
+                if self.L1_egamma_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_egamma_rate_check['last_alarm_ls'])*lsLength > self.L1_egamma_rate_check['max_freq']:
                     # SEND AUDIO ALARM HERE
                     self.L1_egamma_rate_check['last_alarm_ls'] = self.lastLS
 
@@ -1051,9 +1050,9 @@ class ShiftMonitor:
                     if pre_deadtime_rate > self.L1_jet_rate_check['threshold']:
                         raise_l1_rate_warming = True
                         break
-            
+
             if raise_l1_rate_warning:
-                if self.L1_jet_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_jet_rate_check['last_alarm_ls'])*ls_length > self.L1_jet_rate_check['max_freq']:
+                if self.L1_jet_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_jet_rate_check['last_alarm_ls'])*lsLength > self.L1_jet_rate_check['max_freq']:
                     # SEND AUDIO ALARM HERE
                     self.L1_jet_rate_check['last_alarm_ls'] = self.lastLS
 
@@ -1070,7 +1069,7 @@ class ShiftMonitor:
         if len(mailTriggers)>0 and self.isUpdating:
             if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
             if self.sendAudioAlerts: audioAlert('PLEASE CHECK TRIGGER RATES')
-            
+
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
         if not self.quiet: print "Sleeping for %.1f sec before next query" % (60.0*self.scale_sleeptime)
@@ -1080,7 +1079,7 @@ class ShiftMonitor:
             time.sleep(3.0*self.scale_sleeptime)
         sys.stdout.flush()
         print ""
-            
+
     # Use: Loads the fit data from the fit file
     # Parameters:
     # -- fitFile: The file that the fit data is stored in (a pickle file)
@@ -1147,26 +1146,34 @@ class ShiftMonitor:
     # Returns: (void)
     def sendMail(self, mailTriggers):
         mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
-        try: mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
-        except: mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
-        
-        try: mail += "Average PU: %.2f\n \n" % (self.pu_ave)
-        except: mail += "Average PU: %s\n \n" % (self.pu_ave)
-        
+        try:
+            mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+        except:
+            mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+
+        try:
+            mail += "Average PU: %.2f\n \n" % (self.pu_ave)
+        except:
+            mail += "Average PU: %s\n \n" % (self.pu_ave)
+
         mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
         for triggerName, rate, expected, dev, ps in mailTriggers:
-        
+
             if self.numBunches[0] == 0:
                 mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
-                    try: mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Unprescaled Expected/nBunches: %.5f Hz, Unprescaled Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
-                    except: mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Unprescaled Expected/nBunches: %s Hz, Unprescaled Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
-                    mail += "  *referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2016/plots/%s.png>\n" % (triggerName)                    
+                    try:
+                        mail += "\n %s: Expected: %.1f Hz, Actual: %.1f Hz, Unprescaled Expected/nBunches: %.5f Hz, Unprescaled Actual/nBunches: %.5f Hz, Deviation: %.1f\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
+                    except:
+                        mail += "\n %s: Expected: %s Hz, Actual: %s Hz, Unprescaled Expected/nBunches: %s Hz, Unprescaled Actual/nBunches: %s Hz, Deviation: %s\n" % (stringSegment(triggerName, 35), expected, rate, expected*ps/self.numBunches[0], rate*ps/self.numBunches[0], dev)
+                    mail += "  * referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/2016/plots/%s.png>\n" % (triggerName)
                 else:
-                    try: mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
-                    except: mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                    try:
+                        mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
+                    except:
+                        mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
 
             try:
                 wbm_url = self.parser.getWbmUrl(self.runNumber,triggerName,self.currentLS)
@@ -1174,7 +1181,6 @@ class ShiftMonitor:
             except:
                 print "WBM plot url query failed"
 
-                
         mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
         mail += "Email warnings triggered when: \n"
         mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
@@ -1185,6 +1191,3 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
-
-
-
