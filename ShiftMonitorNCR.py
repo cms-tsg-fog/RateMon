@@ -125,11 +125,50 @@ class ShiftMonitor:
         # Total L1 Rate Check
         self.total_L1_rate_check = {
             'enabled': False,
-            'threshold': 1e6,
+            'threshold': 200000,
             'current_run': -1,
+            'max_freq': 120.0,
             'last_alarm_ls': -1,
-            'total_alarms': 0,
-            'consecutive_alarms': 0,
+        }
+
+        # Check if the total L1 rate is high due to wrong prescale column
+        self.total_L1_prescale_check = {
+            'enabled': False,
+            'threshold_low': 105000,
+            'threshold_high': 200000,
+            'current_run': -1,
+            'max_freq': 600.0,
+            'last_alarm_ls': -1,
+        }
+
+        # Check the L1 muon trigger rates
+        self.L1_muon_rate_check = {
+            'enabled': False,
+            'trigger': 'L1_SingleMu22',
+            'threshold': 20000,
+            'current_run': -1,
+            'max_freq': 600.0,
+            'last_alarm_ls': -1,
+        }
+
+        # Check the L1 egamma trigger rates
+        self.L1_egamma_rate_check = {
+            'enabled': False,
+            'trigger': 'L1_SingleEG40',
+            'threshold': 25000,
+            'current_run': -1,
+            'max_freq': 600.0,
+            'last_alarm_ls': -1,
+        }
+
+        # Check the L1 jet trigger rates
+        self.L1_jet_rate_check = {
+            'enabled': False,
+            'trigger': 'L1_SingleJet200',
+            'threshold': 10000,
+            'current_run': -1,
+            'max_freq': 600.0,
+            'last_alarm_ls': -1,
         }
 
         # Other options
@@ -908,13 +947,13 @@ class ShiftMonitor:
                     break
             print ""
 
+        ls_length = 23.31041
+        # Total L1 rate check
         if self.total_L1_rate_check['enabled']:
             if self.total_L1_rate_check['current_run'] != self.runNumber:
                 # Reset the alarm check info for a new run!
                 self.total_L1_rate_check['current_run'] = self.runNumber
                 self.total_L1_rate_check['last_alarm_ls'] = -1
-                self.total_L1_rate_check['total_alarms'] = 0
-                self.total_L1_rate_check['consecutive_alarms'] = 0
 
             l1a_physics_rate = self.parser.getL1APhysics(self.runNumber,self.lastLS)
             l1a_physics_lost = self.parser.getL1APhysicsLost(self.runNumber,self.lastLS)
@@ -928,11 +967,95 @@ class ShiftMonitor:
                     raise_l1_rate_warning = True
                     break
             if raise_l1_rate_warning:
-                self.total_L1_rate_check['consecutive_alarms'] += 1
-                self.total_L1_rate_check['total_alarms'] += 1
-                self.total_L1_rate_check['last_alarm_ls'] = self.lastLS
-            else:
-                self.total_L1_rate_check['consecutive_alarms'] = 0
+                if self.total_L1_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_rate_check['last_alarm_ls'])*ls_length > self.total_L1_rate_check['max_freq']:
+                    # SEND AUDIO ALARM HERE
+                    self.total_L1_rate_check['last_alarm_ls'] = self.lastLS
+
+        # Prescale column rate check
+        if self.total_L1_prescale_check['enabled']:
+            if self.total_L1_prescale_check['current_run'] != self.runNumber:
+                # Reset the alarm check info for a new run!
+                self.total_L1_prescale_check['current_run'] = self.runNumber
+                self.total_L1_prescale_check['last_alarm_ls'] = -1
+
+            l1a_physics_rate = self.parser.getL1APhysics(self.runNumber,self.lastLS)
+            l1a_physics_lost = self.parser.getL1APhysicsLost(self.runNumber,self.lastLS)
+
+            raise_l1_rate_warning = False
+            for ls in l1a_physics_rate:
+                if not l1a_physics_lost.has_key(ls):
+                    continue
+                total_l1a_rate = l1a_physics_rate[ls] + l1a_physics_lost[ls]
+                if total_l1a_rate > self.total_L1_prescale_check['threshold_low'] and total_l1a_rate < self.total_L1_prescale_check['threshold_high']:
+                    raise_l1_rate_warning = True
+                    break
+            if raise_l1_rate_warning:
+                if self.total_L1_prescale_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_prescale_check['last_alarm_ls'])*ls_length > self.total_L1_prescale_check['max_freq']:
+                    # SEND AUDIO ALARM HERE
+                    self.total_L1_prescale_check['last_alarm_ls'] = self.lastLS
+
+        # Muon rate check
+        if self.L1_muon_rate_check['enabled']:
+            if self.L1_muon_rate_check['current_run'] != self.runNumber:
+                # Reset the alarm check info for a new run!
+                self.L1_muon_rate_check['current_run'] = self.runNumber
+                self.L1_muon_rate_check['last_alarm_ls'] = -1
+
+            check_trigger = self.L1_muon_rate_check['trigger']
+            raise_l1_rate_warning = False
+            if self.Rates.has_key(check_trigger):
+                for ls in self.Rates[check_trigger]:
+                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
+                    if pre_deadtime_rate > self.L1_muon_rate_check['threshold']:
+                        raise_l1_rate_warming = True
+                        break
+
+            if raise_l1_rate_warning:
+                if self.L1_muon_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_muon_rate_check['last_alarm_ls'])*ls_length > self.L1_muon_rate_check['max_freq']:
+                    # SEND AUDIO ALARM HERE
+                    self.L1_muon_rate_check['last_alarm_ls'] = self.lastLS
+
+        # Egamma rate check
+        if self.L1_egamma_rate_check['enabled']:
+            if self.L1_egamma_rate_check['current_run'] != self.runNumber:
+                # Reset the alarm check info for a new run!
+                self.L1_egamma_rate_check['current_run'] = self.runNumber
+                self.L1_egamma_rate_check['last_alarm_ls'] = -1
+
+            check_trigger = self.L1_egamma_rate_check['trigger']
+            raise_l1_rate_warning = False
+            if self.Rates.has_key(check_trigger):
+                for ls in self.Rates[check_trigger]:
+                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
+                    if pre_deadtime_rate > self.L1_egamma_rate_check['threshold']:
+                        raise_l1_rate_warming = True
+                        break
+            
+            if raise_l1_rate_warning:
+                if self.L1_egamma_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_egamma_rate_check['last_alarm_ls'])*ls_length > self.L1_egamma_rate_check['max_freq']:
+                    # SEND AUDIO ALARM HERE
+                    self.L1_egamma_rate_check['last_alarm_ls'] = self.lastLS
+
+        # Jet rate check
+        if self.L1_jet_rate_check['enabled']:
+            if self.L1_jet_rate_check['current_run'] != self.runNumber:
+                # Reset the alarm check info for a new run!
+                self.L1_jet_rate_check['current_run'] = self.runNumber
+                self.L1_jet_rate_check['last_alarm_ls'] = -1
+
+            check_trigger = self.L1_jet_rate_check['trigger']
+            raise_l1_rate_warning = False
+            if self.Rates.has_key(check_trigger):
+                for ls in self.Rates[check_trigger]:
+                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
+                    if pre_deadtime_rate > self.L1_jet_rate_check['threshold']:
+                        raise_l1_rate_warming = True
+                        break
+            
+            if raise_l1_rate_warning:
+                if self.L1_jet_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_jet_rate_check['last_alarm_ls'])*ls_length > self.L1_jet_rate_check['max_freq']:
+                    # SEND AUDIO ALARM HERE
+                    self.L1_jet_rate_check['last_alarm_ls'] = self.lastLS
 
         # Print warnings for triggers that have been repeatedly misbehaving
         mailTriggers = [] # A list of triggers that we should mail alerts about
@@ -1062,5 +1185,6 @@ class ShiftMonitor:
         mailAlert(mail)
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
 
 
