@@ -73,20 +73,37 @@ def sendMail(email,subject,to,fro,msgtxt):
     s.sendmail(email, email, msg.as_string())
     s.quit()
 
-def sendAudio(text):
+def sendAudio(message, details, sound = 'alert'):
     try:
-        server = "cmsdaqweb.cms"
-        port="50555"
-        pline = subprocess.Popen(["echo", "<alarm sender=\"HLT\" talk=\"HLT goes mad!\" sound=\"StravinskiDansesAsolecentes.wav\" >"+text+"</alarm>"], stdout=subprocess.PIPE)
-        pnc = subprocess.Popen( ["nc", "cmsdaqweb.cms", "50555"], stdin=pline.stdout, stdout=subprocess.PIPE )
-        playps = pnc.communicate()[0]
-        print playps
+        server = "daq-expert.cms"
+        port   = 50555
+        body   = """<CommandSequence>
+  <alarm sender='Trigger' sound='%s.wav' talk='%s'>
+  %s
+  </alarm>
+</CommandSequence>
+""" % (sound, message, details)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((server, port))
+        s.sendall(body)
+        s.shutdown(socket.SHUT_WR)
+        reply = ""
+        while True:
+          data = s.recv(1024)
+          if data == "":
+            break
+          else
+            reply += data
+        print reply
     except:
-        print "Failed to send audio alarm:", text
+        print "Failed to send audio alarm to %s:%d:\n%s" % (server, port, body)
 
-def audioAlert():
-    try: sendAudio("PLEASE CHECK TRIGGER RATES")
-    except: print "failed audio alarm call..."
+
+def audioAlert(message, details = ""):
+    try:
+        sendAudio(message, details)
+    except:
+        pass
 
 
 def mailAlert(text):
