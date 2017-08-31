@@ -1069,7 +1069,7 @@ class ShiftMonitor:
         # Send mail alerts
         if len(mailTriggers)>0 and self.isUpdating:
             if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
-            if self.sendAudioAlerts: audioAlert()
+            if self.sendAudioAlerts: audioAlert('PLEASE CHECK TRIGGER RATES')
             
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
