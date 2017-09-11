@@ -92,7 +92,8 @@ class MonitorController:
                 "vsInstLumi",
                 "vsLS",
                 "useCrossSection",
-                "useFills"
+                "useFills",
+                "useBunches"
             ])
 
         except:
@@ -319,6 +320,9 @@ class MonitorController:
                 # Specify that the data should fetched by fill number
                 self.rate_monitor.use_fills = True
                 self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
+            elif label == "--useBunches":
+                # Don't try to normalize the rates by colliding bunches
+                self.rate_monitor.data_parser.normalize_bunches = False
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -533,3 +537,4 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
+
