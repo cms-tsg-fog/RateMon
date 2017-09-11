@@ -58,6 +58,9 @@ class DataParser:
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
 
+        self.skip_l1_triggers = False   # Flag to skip collecting rates for L1 triggers
+        self.skip_hlt_triggers = False  # Flag to skip collecting rates for HLT triggers
+
         self.l1_rate_cut = 10e6         # Ignore L1 rates above this threshold
 
         self.max_deadtime = 10.
@@ -80,6 +83,12 @@ class DataParser:
 
     def parseRuns(self,run_list):
         # type: (List[int]) -> None
+        if len(self.hlt_triggers) == 0 and len(self.l1_triggers) > 0:
+            self.skip_hlt_triggers = True
+        
+        if len(self.hlt_triggers) > 0 and len(self.l1_triggers) == 0:
+            self.skip_l1_triggers = True
+
         counter = 1
         for run in sorted(run_list):
             if self.verbose: print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
@@ -214,6 +223,9 @@ class DataParser:
     # Returns information related to L1 triggers 
     def getL1TriggerData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
+        if self.skip_l1_triggers:
+            return {}
+
         if self.verbose: print "\tGetting L1 rates..."
         L1_rates = self.parser.getL1Rates(run,minLS=self.min_ls,maxLS=self.max_ls,scaler_type=1)
 
@@ -276,6 +288,9 @@ class DataParser:
     # Returns information related to HLT triggers 
     def getHLTTriggerData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
+        if self.skip_hlt_triggers:
+            return {}
+
         if self.verbose: print "\tGetting HLT rates..."
 
         HLT_rates = self.parser.getHLTRates(run,self.hlt_triggers,minLS=self.min_ls,maxLS=self.max_ls)
@@ -708,4 +723,5 @@ class DataParser:
     def getTypeMap(self):
         # type: () -> Dict[str,str]
         return self.type_map
+
 
