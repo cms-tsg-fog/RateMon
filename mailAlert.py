@@ -1,19 +1,12 @@
 #!/usr/bin/env python
-import os
 import smtplib
 from email.mime.text import MIMEText
-import time
 import DatabaseParser
 from datetime import datetime,timedelta
 import sys
-import subprocess
-import pdb
 sys.path.append('/nfshome0/hltpro/scripts')
 
-emailList = ["cms-tsg-fog@cern.ch","cms-l1t-operations@cern.ch"]
-#emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
-#emailList = ["cmuelle2@nd.edu"]
-#emailList = ["a.zucchetta@cern.ch"]
+emailList = ["cms-tsg-fog@cern.ch", "cms-l1t-operations@cern.ch"]
 
 def getLastRuns(h=24):
     lastRun,isCol,isGood = DatabaseParser.GetLatestRunNumber()
@@ -72,39 +65,6 @@ def sendMail(email,subject,to,fro,msgtxt):
     #s.sendmail("hlt@cern.ch", email, msg.as_string())
     s.sendmail(email, email, msg.as_string())
     s.quit()
-
-def sendAudio(message, details, sound = 'alert'):
-    try:
-        server = "daq-expert.cms"
-        port   = 50555
-        body   = """<CommandSequence>
-  <alarm sender='Trigger' sound='%s.wav' talk='%s'>
-  %s
-  </alarm>
-</CommandSequence>
-""" % (sound, message, details)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((server, port))
-        s.sendall(body)
-        s.shutdown(socket.SHUT_WR)
-        reply = ""
-        while True:
-          data = s.recv(1024)
-          if data == "":
-            break
-          else
-            reply += data
-        print reply
-    except:
-        print "Failed to send audio alarm to %s:%d:\n%s" % (server, port, body)
-
-
-def audioAlert(message, details = ""):
-    try:
-        sendAudio(message, details)
-    except:
-        pass
-
 
 def mailAlert(text):
     try:
