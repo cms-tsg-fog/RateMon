@@ -28,7 +28,7 @@ class FitFinder:
     def __init__(self):
         #self.fits_to_try = ["linear","quad"]
         #self.fits_to_try = ["sinh"]
-        self.fits_to_try = ["linear","quad","sinh"]
+        self.fits_to_try = ["linear","quad","exp","sinh"]
         #self.fits_to_try = ["cube","exp","sinh"]
         #self.fits_to_try = ["linear"]
         #self.fits_to_try = ["quad","cube","exp"]
@@ -38,6 +38,7 @@ class FitFinder:
         self.weight_map = {
             'linear': 0.00,
             'quad': 0.03,
+            'exp':  0.03,
             'sinh': 0.03,
         }
 
@@ -93,7 +94,7 @@ class FitFinder:
                                 nan_fits[trigger][fit_type] = i
                             new_fit[fit_type][i] = 0.0
                         # Re-apply the normalization
-                        if fit_type == "sinh" or fit_type == "sinh2":
+                        if fit_type == "sinh":
                             # We need to scale all params EXCEPT param[0]
                             if i == 0 or i == 1 or i == 7:
                                 # i == 0 is fit_type
@@ -213,8 +214,8 @@ class FitFinder:
             fit_func.FixParameter(0,0.0)
         elif fit_type == "exp":
             fit_func = TF1("Exp Fit","[0]+[1]*expo(2)",0,maxX)
-            fit_func.SetParameter(1,1.0)
-            fit_func.FixParameter(1,1.0)
+            #fit_func.SetParameter(1,1.0)
+            #fit_func.FixParameter(1,1.0)
         elif fit_type == "sinh":
             my_sinh = ""
 
@@ -336,3 +337,4 @@ class FitFinder:
         print "Fit file saved to: %s" % path
 
         ## ----------- End of class FitFinder ------------ ## 
+
