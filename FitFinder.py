@@ -28,7 +28,7 @@ class FitFinder:
     def __init__(self):
         #self.fits_to_try = ["linear","quad"]
         #self.fits_to_try = ["sinh"]
-        self.fits_to_try = ["linear","quad","exp","sinh"]
+        self.fits_to_try = ["linear","quad","sinh"]
         #self.fits_to_try = ["cube","exp","sinh"]
         #self.fits_to_try = ["linear"]
         #self.fits_to_try = ["quad","cube","exp"]
@@ -38,7 +38,6 @@ class FitFinder:
         self.weight_map = {
             'linear': 0.00,
             'quad': 0.03,
-            'exp':  0.03,
             'sinh': 0.03,
         }
 
@@ -217,21 +216,11 @@ class FitFinder:
             #fit_func.SetParameter(1,1.0)
             #fit_func.FixParameter(1,1.0)
         elif fit_type == "sinh":
-            my_sinh = ""
-
-            my_sinh += "(x*[0])^11/39916800."
-            my_sinh += "+(x*[0])^9/362880."
-            my_sinh += "+(x*[0])^7/5040."
-            my_sinh += "+(x*[0])^5/120."
-            my_sinh += "+(x*[0])^3/6."
-            my_sinh += "+(x*[0])^1"
-            my_sinh = "[1]*(%s)+[2]" % (my_sinh)
-
+            my_sinh = "[1]*sinh([0]*x) + [2]"
             fit_func = TF1("Sinh Fit",my_sinh,0,maxX)
-            #fit_func = TF1("Sinh Fit", mySinh, 0, maxX, 3)
             fit_func.SetParameter(0,0.05)
             fit_func.SetParameter(1,0.5)
-            fit_func.SetParameter(2,0.0)            
+            fit_func.SetParameter(2,0.0)
 
         fitGraph.Fit(fit_func,"QNM","rob=0.90")
 
