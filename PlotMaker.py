@@ -130,7 +130,7 @@ class PlotMaker:
              funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
         elif fit_params[0] == "linear":     # Linear
             plotFuncStr = "%.15f + x*%.15f" % (fit_params[1], fit_params[2])
-            funcStr = "%.5f + x*%.5f" % (fit_params[1], fit_params[2])  
+            funcStr = "%.5f + x*%.5f" % (fit_params[1], fit_params[2])
         elif fit_params[0] == "sinh":
             plotFuncStr = "%.15f + %.15f*sinh(%.15f*x)" % (fit_params[3], fit_params[2], fit_params[1])
             funcStr = "%.5f + %.5f*sinh(%.5f*x)" % (fit_params[3], fit_params[2], fit_params[1])
@@ -707,3 +707,4 @@ class PlotMaker:
 
     def savePlot(self,name,canvas):
         canvas.Print(self.save_dir + "/" + self.plot_dir + "/" + name + ".png", "png")
+
