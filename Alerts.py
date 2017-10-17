@@ -1,5 +1,5 @@
 import sys
-import collections
+import copy
 import datetime
 
 from audioAlert import audioAlert
@@ -58,6 +58,7 @@ class BaseAlert(object):
     self.__details = details
     self.__actions = actions
     self.__status  = AlertStatus.READY
+    self.__data    = dict()
     self.__stamp   = None   # track the last time this alarm was triggered
 
   # enable the Alert
@@ -79,6 +80,7 @@ class BaseAlert(object):
   # reset the Alert to a READY status
   def reset(self):
     self.__status = AlertStatus.READY
+    self.__data   = dict()
 
   # check if the alarm condition is active, i.e. the Alert is in status ALARM or SNOOZED
   def active(self):
@@ -90,11 +92,22 @@ class BaseAlert(object):
 
   # return the message corresponding to an active Alert, or None
   def alert_message(self):
-    return self.__message if self.active() else None
+    if not self.active():
+      return None
+    if not self.__message:
+      return None
+    header  = AlertLevel.message[self.__level]
+    message = self.__message.format(** self.__data)
+    if header:
+      return header + ': ' + message
+    else:
+      return message
 
   # return the details corresponding to an active Alert, or None
   def alert_details(self):
-    return self.__details if self.active() else None
+    if not self.__details:
+      return None
+    return self.__details.format(** self.__data) if self.active() else None
 
   # return the level corresponding to an active Alert, or None
   def alert_level(self):
@@ -102,12 +115,14 @@ class BaseAlert(object):
 
   # return False if should raise an alarm
   def check(self, data):
+    # copy the data for the error messages
+    self.__data = copy.deepcopy(data)
     # check if the Alert is enabled
     if not self.__enabled:
       self.__status = AlertStatus.DISABLED
       return True
     # check the Alert condition
-    self.__status = self.check_impl(data)
+    self.__status = self.check_impl(self.__data)
     if self.__status != AlertStatus.ALARM:
       return True
     # check if the Alert has been triggered recently
@@ -295,15 +310,11 @@ def OnScreenMessage(alert):
   message = alert.alert_message()
   details = alert.alert_details()
   level   = alert.alert_level()
-  header  = AlertLevel.message[level]
   color   = AlertLevel.color[level]
   if message is not None:
-    if header:
-      print('%s%s: %s%s' % (color, header, message, bcolors.ENDC))
-    else:
-      print('%s%s%s' % (color, message, bcolors.ENDC))
+    print('%s%s%s' % (color, message, bcolors.ENDC))
     if details is not None:
-      print details
+      print(details)
 
 
 # raise an alert if the value returned by calling `measure` with the argument passed to `check` is higher than `threshold`
@@ -353,51 +364,67 @@ class FlagAlert(BaseAlert):
 # test these methods
 if __name__=='__main__':
   import time
-  w  = RateAlert(message = 'warn',
-                 details = 'warning description',
+  import math
+
+  def get_rates(t):
+    rates = {}
+    rates['alpha'] = 2 - 2 * math.cos(t * 0.5)
+    rates['bravo'] = 5 - 5 * math.cos(t * 0.3)
+    rates['delta'] = 3 - 3 * math.cos(t * 0.2)
+    rates['total'] = rates['alpha'] + rates['bravo'] + rates['delta']
+    return rates
+
+  w  = RateAlert(message = 'high rate',
+                 details = 'high total rate\ntotal rate: {total}',
                  level   = AlertLevel.WARNING,
-                 measure = lambda x: x,
+                 measure = lambda x: x['total'],
                  threshold = 10,
                  period = 10.,
                  actions = [EmailMessage, AudioMessage, OnScreenMessage])
 
-  e  = RateAlert(message = 'error',
-                 details = 'error description',
+  e  = RateAlert(message = 'critical rate',
+                 details = 'critical total rate\ntotal rate: {total}',
                  level   = AlertLevel.ERROR,
-                 measure = lambda x: x,
+                 measure = lambda x: x['total'],
                  threshold = 15,
                  period =  2.,
                  actions = [EmailMessage, AudioMessage, OnScreenMessage])
 
   p  = PriorityAlert(e, w)
 
-  i1 = RateAlert(message = 'info',
-                 details = 'first information message',
+  i1 = RateAlert(message = 'alpha rate',
+                 details = 'alpha rate: {alpha}',
                  level   = AlertLevel.INFO,
-                 measure = lambda x: x,
-                 threshold =  7,
-                 period = 10.,
-                 actions = [EmailMessage, OnScreenMessage])
+                 measure = lambda x: x['alpha'],
+                 threshold = 0,
+                 period = 1.,
+                 actions = [OnScreenMessage])
 
-  i2 = RateAlert(message = 'info',
-                 details = 'other information message',
+  i2 = RateAlert(message = 'bravo rate',
+                 details = 'bravo rate: {bravo}',
                  level   = AlertLevel.INFO,
-                 measure = lambda x: x,
-                 threshold = 18,
-                 period = 10.,
-                 actions = [EmailMessage, OnScreenMessage])
+                 measure = lambda x: x['bravo'],
+                 threshold = 0,
+                 period = 1.,
+                 actions = [OnScreenMessage])
 
-  m  = MultipleAlert(p, i1, i2, message = 'multiple errors', details = 'multiple error messages')
+  i3 = RateAlert(message = 'delta rate',
+                 details = 'delta rate: {delta}',
+                 level   = AlertLevel.INFO,
+                 measure = lambda x: x['delta'],
+                 threshold = 0,
+                 period = 1.,
+                 actions = [OnScreenMessage])
 
-  while True:
-    for rate in range(0, 20):
-      time.sleep(1)
-      print 'rate:', rate
-      if not m.check(rate):
-        m.alert()
-    for rate in range(20, 0, -1):
-      time.sleep(1)
-      print 'rate:', rate
-      if not m.check(rate):
-        m.alert()
+
+  ii = MultipleAlert(i1, i2, i3, message = 'multiple rates')
+  m  = MultipleAlert(p, ii)
+
+  for t in range(120):
+    rates = get_rates(t)
+    print
+    print 'time:', t
+    if not m.check(rates):
+      m.alert()
+    time.sleep(1)
 
