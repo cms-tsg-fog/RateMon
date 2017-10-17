@@ -10,7 +10,7 @@ import subprocess
 import pdb
 sys.path.append('/nfshome0/hltpro/scripts')
 
-emailList = ["cms-tsg-fog@cern.ch"]
+emailList = ["cms-tsg-fog@cern.ch","cms-l1t-operations@cern.ch"]
 #emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
 #emailList = ["cmuelle2@nd.edu"]
 #emailList = ["a.zucchetta@cern.ch"]
