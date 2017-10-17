@@ -122,54 +122,109 @@ class ShiftMonitor:
         self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
 
-        # Total L1 Rate Check
-        self.total_L1_rate_check = {
-            'enabled': False,
-            'threshold': 200000,
-            'current_run': -1,
-            'max_freq': 120.0,
-            'last_alarm_ls': -1,
-        }
+        l1_critical_rate_alert = RateAlert(
+          message   = 'critical Level 1 Trigger rate',
+          details   = '''
+Please check that all detectors are behaving correctly.
+Total Level 1 Trigger rate: {total} kHz
+''',
+          level     = AlertLevel.ERROR,
+          measure   = lambda rates: rates['total'],
+          threshold = 200.,
+          period    = 120.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
-        # Check if the total L1 rate is high due to wrong prescale column
-        self.total_L1_prescale_check = {
-            'enabled': False,
-            'threshold_low': 105000,
-            'threshold_high': 200000,
-            'current_run': -1,
-            'max_freq': 600.0,
-            'last_alarm_ls': -1,
-        }
+        l1_high_rate_alert = RateAlert(
+          message   = 'high Level 1 Trigger rate',
+          details   = '''
+Please check the prescale column.
+Total Level 1 Trigger rate: {total} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['total'],
+          threshold = 105.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
-        # Check the L1 muon trigger rates
-        self.L1_muon_rate_check = {
-            'enabled': False,
-            'trigger': 'L1_SingleMu22',
-            'threshold': 20000,
-            'current_run': -1,
-            'max_freq': 600.0,
-            'last_alarm_ls': -1,
-        }
+        l1_total_rate_alert = PriorityAlert(l1_critical_rate_alert, l1_high_rate_alert)
 
-        # Check the L1 egamma trigger rates
-        self.L1_egamma_rate_check = {
-            'enabled': False,
-            'trigger': 'L1_SingleEG40',
-            'threshold': 25000,
-            'current_run': -1,
-            'max_freq': 600.0,
-            'last_alarm_ls': -1,
-        }
+        l1_singlemu_rate_alert = RateAlert(
+          message   = 'critical Level 1 Muon Trigger rate',
+          details   = '''
+Please check that the muon detectors and muon trigger are behaving correctly.
+L1_SingleMu22:         {L1_SingleMu22} kHz
+L1_SingleMu22_BMTF:    {L1_SingleMu22_BMTF} kHz
+L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF} kHz
+L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_SingleMu22'],
+          threshold = 20.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
-        # Check the L1 jet trigger rates
-        self.L1_jet_rate_check = {
-            'enabled': False,
-            'trigger': 'L1_SingleJet200',
-            'threshold': 10000,
-            'current_run': -1,
-            'max_freq': 600.0,
-            'last_alarm_ls': -1,
-        }
+        l1_singleeg_rate_alert = RateAlert(
+          message   = 'critical Level 1 EGamma Trigger rate',
+          details   = '''
+Please check that ECAL and the calorimetric trigger are behaving correctly.
+L1_SingleEG40:         {L1_SingleEG40} kHz
+L1_SingleIsoEG40:      {L1_SingleIsoEG40} kHz
+L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_SingleEG40'],
+          threshold = 25.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+
+        l1_singlejet_rate_alert = RateAlert(
+          message   = 'critical Level 1 Jet trigger rate',
+          details   = '''
+Please check that calorimeters and the calorimetric trigger are behaving correctly.
+L1_SingleJet200:       {L1_SingleJet200} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_SingleJet200'],
+          threshold = 10.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+
+        l1_centralmet_rate_alert = RateAlert(
+          message   = 'critical Level 1 Missing Energy trigger rate',
+          details   = '''
+Please check that calorimeters and the calorimetric trigger are behaving correctly.
+L1_ETM110:             {L1_ETM110} kHz
+L1_ETMHF110:           {L1_ETMHF110} kHz
+L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_ETM110'],
+          threshold = 50.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+
+        l1_formwardmet_rate_alert = RateAlert(
+          message   = 'critical Level 1 Missing Energy trigger rate',
+          details   = '''
+Please check that HF and the calorimetric trigger are behaving correctly.
+L1_ETM110:             {L1_ETM110} kHz
+L1_ETMHF110:           {L1_ETMHF110} kHz
+L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_ETMHF110'],
+          threshold = 50.,
+          period    = 600.,
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+
+        l1_met_rate_alert = PriorityAlert(l1_centralmet_rate_alert, l1_formwardmet_rate_alert)
+
+        self.l1t_rate_alert = MultipleAlert(
+          l1_total_rate_alert,
+          l1_singlemu_rate_alert,
+          l1_singleeg_rate_alert,
+          l1_singlejet_rate_alert,
+          l1_met_rate_alert )
 
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
@@ -947,114 +1002,16 @@ class ShiftMonitor:
                     break
             print ""
 
-        # Total L1 rate check
-        if self.total_L1_rate_check['enabled']:
-            if self.total_L1_rate_check['current_run'] != self.runNumber:
-                # Reset the alarm check info for a new run!
-                self.total_L1_rate_check['current_run'] = self.runNumber
-                self.total_L1_rate_check['last_alarm_ls'] = -1
+        # check L1 rates and raise alarms
+        live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS)
+        dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS)
+        rates = {}
+        rates['total'] = live_l1_rate + dead_l1_rate
+        for trigger in self.Rates:
+          rates[trigger] = self.Rates[trigger][self.lastLS][0]
 
-            l1a_physics_rate = self.parser.getL1APhysics(self.runNumber,self.lastLS)
-            l1a_physics_lost = self.parser.getL1APhysicsLost(self.runNumber,self.lastLS)
-
-            raise_l1_rate_warning = False
-            for ls in l1a_physics_rate:
-                if not l1a_physics_lost.has_key(ls):
-                    continue
-                total_l1a_rate = l1a_physics_rate[ls] + l1a_physics_lost[ls]
-                if total_l1a_rate > self.total_L1_rate_check['threshold']:
-                    raise_l1_rate_warning = True
-                    break
-            if raise_l1_rate_warning:
-                if self.total_L1_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_rate_check['last_alarm_ls'])*lsLength > self.total_L1_rate_check['max_freq']:
-                    # SEND AUDIO ALARM HERE
-                    self.total_L1_rate_check['last_alarm_ls'] = self.lastLS
-
-        # Prescale column rate check
-        if self.total_L1_prescale_check['enabled']:
-            if self.total_L1_prescale_check['current_run'] != self.runNumber:
-                # Reset the alarm check info for a new run!
-                self.total_L1_prescale_check['current_run'] = self.runNumber
-                self.total_L1_prescale_check['last_alarm_ls'] = -1
-
-            l1a_physics_rate = self.parser.getL1APhysics(self.runNumber,self.lastLS)
-            l1a_physics_lost = self.parser.getL1APhysicsLost(self.runNumber,self.lastLS)
-
-            raise_l1_rate_warning = False
-            for ls in l1a_physics_rate:
-                if not l1a_physics_lost.has_key(ls):
-                    continue
-                total_l1a_rate = l1a_physics_rate[ls] + l1a_physics_lost[ls]
-                if total_l1a_rate > self.total_L1_prescale_check['threshold_low'] and total_l1a_rate < self.total_L1_prescale_check['threshold_high']:
-                    raise_l1_rate_warning = True
-                    break
-            if raise_l1_rate_warning:
-                if self.total_L1_prescale_check['last_alarm_ls'] < 0 or (self.lastLS - self.total_L1_prescale_check['last_alarm_ls'])*lsLength > self.total_L1_prescale_check['max_freq']:
-                    # SEND AUDIO ALARM HERE
-                    self.total_L1_prescale_check['last_alarm_ls'] = self.lastLS
-
-        # Muon rate check
-        if self.L1_muon_rate_check['enabled']:
-            if self.L1_muon_rate_check['current_run'] != self.runNumber:
-                # Reset the alarm check info for a new run!
-                self.L1_muon_rate_check['current_run'] = self.runNumber
-                self.L1_muon_rate_check['last_alarm_ls'] = -1
-
-            check_trigger = self.L1_muon_rate_check['trigger']
-            raise_l1_rate_warning = False
-            if self.Rates.has_key(check_trigger):
-                for ls in self.Rates[check_trigger]:
-                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
-                    if pre_deadtime_rate > self.L1_muon_rate_check['threshold']:
-                        raise_l1_rate_warming = True
-                        break
-
-            if raise_l1_rate_warning:
-                if self.L1_muon_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_muon_rate_check['last_alarm_ls'])*lsLength > self.L1_muon_rate_check['max_freq']:
-                    # SEND AUDIO ALARM HERE
-                    self.L1_muon_rate_check['last_alarm_ls'] = self.lastLS
-
-        # Egamma rate check
-        if self.L1_egamma_rate_check['enabled']:
-            if self.L1_egamma_rate_check['current_run'] != self.runNumber:
-                # Reset the alarm check info for a new run!
-                self.L1_egamma_rate_check['current_run'] = self.runNumber
-                self.L1_egamma_rate_check['last_alarm_ls'] = -1
-
-            check_trigger = self.L1_egamma_rate_check['trigger']
-            raise_l1_rate_warning = False
-            if self.Rates.has_key(check_trigger):
-                for ls in self.Rates[check_trigger]:
-                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
-                    if pre_deadtime_rate > self.L1_egamma_rate_check['threshold']:
-                        raise_l1_rate_warming = True
-                        break
-
-            if raise_l1_rate_warning:
-                if self.L1_egamma_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_egamma_rate_check['last_alarm_ls'])*lsLength > self.L1_egamma_rate_check['max_freq']:
-                    # SEND AUDIO ALARM HERE
-                    self.L1_egamma_rate_check['last_alarm_ls'] = self.lastLS
-
-        # Jet rate check
-        if self.L1_jet_rate_check['enabled']:
-            if self.L1_jet_rate_check['current_run'] != self.runNumber:
-                # Reset the alarm check info for a new run!
-                self.L1_jet_rate_check['current_run'] = self.runNumber
-                self.L1_jet_rate_check['last_alarm_ls'] = -1
-
-            check_trigger = self.L1_jet_rate_check['trigger']
-            raise_l1_rate_warning = False
-            if self.Rates.has_key(check_trigger):
-                for ls in self.Rates[check_trigger]:
-                    pre_deadtime_rate = self.Rates[check_trigger][ls][0]
-                    if pre_deadtime_rate > self.L1_jet_rate_check['threshold']:
-                        raise_l1_rate_warming = True
-                        break
-
-            if raise_l1_rate_warning:
-                if self.L1_jet_rate_check['last_alarm_ls'] < 0 or (self.lastLS - self.L1_jet_rate_check['last_alarm_ls'])*lsLength > self.L1_jet_rate_check['max_freq']:
-                    # SEND AUDIO ALARM HERE
-                    self.L1_jet_rate_check['last_alarm_ls'] = self.lastLS
+        if not self.l1t_rate_alert(rates):
+          self.l1t_rate_alert.alert()
 
         # Print warnings for triggers that have been repeatedly misbehaving
         mailTriggers = [] # A list of triggers that we should mail alerts about
