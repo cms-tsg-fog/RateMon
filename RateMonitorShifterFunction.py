@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from Page1Parser import Page1Parser
 from GetRun import GetRun
 import sys
