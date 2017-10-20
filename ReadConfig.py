@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import os
 import cPickle as pickle
 import math
@@ -214,5 +213,3 @@ class RateMonConfig:
 ##             except:
 ##                 return {}
 ##         return expectedRates
-       
-    

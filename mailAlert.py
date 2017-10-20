@@ -1,19 +1,12 @@
 #!/usr/bin/env python
-import os
 import smtplib
 from email.mime.text import MIMEText
-import time
 import DatabaseParser
 from datetime import datetime,timedelta
 import sys
-import subprocess
-import pdb
 sys.path.append('/nfshome0/hltpro/scripts')
 
-emailList = ["cms-tsg-fog@cern.ch","cms-l1t-operations@cern.ch"]
-#emailList = ["cms-tsg-fog@cern.ch", "victor-khristenko@uiowa.edu"]
-#emailList = ["cmuelle2@nd.edu"]
-#emailList = ["a.zucchetta@cern.ch"]
+emailList = ["cms-tsg-fog@cern.ch", "cms-l1t-operations@cern.ch"]
 
 def getLastRuns(h=24):
     lastRun,isCol,isGood = DatabaseParser.GetLatestRunNumber()
@@ -72,22 +65,6 @@ def sendMail(email,subject,to,fro,msgtxt):
     #s.sendmail("hlt@cern.ch", email, msg.as_string())
     s.sendmail(email, email, msg.as_string())
     s.quit()
-
-def sendAudio(text):
-    try:
-        server = "cmsdaqweb.cms"
-        port="50555"
-        pline = subprocess.Popen(["echo", "<alarm sender=\"HLT\" talk=\"HLT goes mad!\" sound=\"StravinskiDansesAsolecentes.wav\" >"+text+"</alarm>"], stdout=subprocess.PIPE)
-        pnc = subprocess.Popen( ["nc", "cmsdaqweb.cms", "50555"], stdin=pline.stdout, stdout=subprocess.PIPE )
-        playps = pnc.communicate()[0]
-        print playps
-    except:
-        print "Failed to send audio alarm:", text
-
-def audioAlert():
-    try: sendAudio("PLEASE CHECK TRIGGER RATES")
-    except: print "failed audio alarm call..."
-
 
 def mailAlert(text):
     try:
