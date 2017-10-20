@@ -134,9 +134,9 @@ Please check that all detectors are behaving correctly.
 Total Level 1 Trigger rate: {total} kHz
 ''',
           level     = AlertLevel.ERROR,
-          measure   = lambda rates: rates['total'],
-          threshold = 200.,
-          period    = 120.,
+          measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
+          threshold = 200., # kHz
+          period    = 120., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_high_rate_alert = RateAlert(
@@ -146,9 +146,9 @@ Please check the prescale column.
 Total Level 1 Trigger rate: {total} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['total'],
-          threshold = 105.,
-          period    = 600.,
+          measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
+          threshold = 105., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_total_rate_alert = PriorityAlert(l1_critical_rate_alert, l1_high_rate_alert)
@@ -163,9 +163,9 @@ L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF} kHz
 L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_SingleMu22'],
-          threshold = 20.,
-          period    = 600.,
+          measure   = lambda rates: rates['L1_SingleMu22'] / 1000.,     # convert from Hz to kHz
+          threshold =  20., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_singleeg_rate_alert = RateAlert(
@@ -177,9 +177,9 @@ L1_SingleIsoEG40:      {L1_SingleIsoEG40} kHz
 L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_SingleEG40'],
-          threshold = 25.,
-          period    = 600.,
+          measure   = lambda rates: rates['L1_SingleEG40'] / 1000.,     # convert from Hz to kHz
+          threshold =  25., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_singlejet_rate_alert = RateAlert(
@@ -189,9 +189,9 @@ Please check that calorimeters and the calorimetric trigger are behaving correct
 L1_SingleJet200:       {L1_SingleJet200} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_SingleJet200'],
-          threshold = 10.,
-          period    = 600.,
+          measure   = lambda rates: rates['L1_SingleJet200'] / 1000.,   # convert from Hz to kHz
+          threshold =  10., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_centralmet_rate_alert = RateAlert(
@@ -203,9 +203,9 @@ L1_ETMHF110:           {L1_ETMHF110} kHz
 L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_ETM110'],
-          threshold = 50.,
-          period    = 600.,
+          measure   = lambda rates: rates['L1_ETM110'] / 1000.,         # convert from Hz to kHz
+          threshold =  50., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_formwardmet_rate_alert = RateAlert(
@@ -217,9 +217,9 @@ L1_ETMHF110:           {L1_ETMHF110} kHz
 L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_ETMHF110'],
-          threshold = 50.,
-          period    = 600.,
+          measure   = lambda rates: rates['L1_ETMHF110'] / 1000.,       # convert from Hz to kHz
+          threshold =  50., # kHz
+          period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
         l1_met_rate_alert = PriorityAlert(l1_centralmet_rate_alert, l1_formwardmet_rate_alert)
