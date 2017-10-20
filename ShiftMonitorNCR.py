@@ -246,7 +246,7 @@ L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
         self.lumi_ave = "NONE"
         self.pu_ave = "NONE"
         self.deadTimeCorrection = True  # correct the rates for dead time
-        self.scale_sleeptime = 2.0      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
+        self.scale_sleeptime = 0.5      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
