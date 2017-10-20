@@ -2,18 +2,26 @@
 
 HOST=$(hostname)
 
-if [[ $HOST == *"lxplus"* ]]; then
-    cd /afs/cern.ch/cms/slc6_amd64_gcc493/cms/cmssw/CMSSW_7_6_3/src
+if [[ $HOST == *lxplus* ]]; then
+    # lxplus machines
+    export VO_CMS_SW_DIR=/nfshome0/cmssw3
+    export SCRAM_ARCH=slc7_amd64_gcc630
+    export CMSSW_VERSION=CMSSW_9_2_10
+elif [[ $HOST == *hilton* ]]; then
+    # hilton machines
+    export VO_CMS_SW_DIR=/opt/offline
+    export SCRAM_ARCH=slc7_amd64_gcc630
+    export CMSSW_VERSION=CMSSW_9_2_10
 else
-    export SCRAM_ARCH=slc5_amd64_gcc462
-    export VO_CMS_SW_DIR=/nfshome0/cmssw2
-    source $VO_CMS_SW_DIR/cmsset_default.sh
-    cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/CMSSW_5_2_6/src
+    # other online machines
+    export VO_CMS_SW_DIR=/nfshome0/cmssw3
+    export SCRAM_ARCH=slc6_amd64_gcc493
+    export CMSSW_VERSION=CMSSW_8_0_22
 fi
 
-#cmsenv
+source $VO_CMS_SW_DIR/cmsset_default.sh
+cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
 eval `scramv1 runtime -sh`
-
 cd -
 
 alias rateMon='python ShiftMonitorTool.py'
