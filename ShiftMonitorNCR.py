@@ -1013,7 +1013,10 @@ L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
         live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS, self.currentLS)
         dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS, self.currentLS)
         rates = {}
-        rates['total'] = live_l1_rate[latestLS] + dead_l1_rate[latestLS]
+        try:
+          rates['total'] = live_l1_rate[latestLS] + dead_l1_rate[latestLS]
+        except:
+          rates['total'] = 0.
         for trigger in self.Rates:
           try:
             #print latestLS, self.currentLS, trigger, self.Rates[trigger][latestLS]
