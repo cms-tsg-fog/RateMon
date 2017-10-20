@@ -36,7 +36,12 @@ lsLength     = 23.3104  # s     = 2^18 / orbitsPerSec
 
 # Use: Writes a string in a fixed length margin string (pads with spaces)
 def stringSegment(string, width):
+  if width > 0:
     return '{:{width}}'.format(string, width=width)
+  elif width == 0:
+    return string
+  else:
+    return '{:>{width}}'.format(string, width=abs(width))
 
 # Alias for sys.stdout.write
 sys.stdout = Logger()
@@ -1002,15 +1007,22 @@ L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
                     break
             print ""
 
+        # check what is the latest lumisection for which we have monitoring data
+        latestLS = sorted(self.Rates.values()[0].keys())[-1]
         # check L1 rates and raise alarms
-        live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS)
-        dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS)
+        live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS, self.currentLS)
+        dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS, self.currentLS)
         rates = {}
-        rates['total'] = live_l1_rate + dead_l1_rate
+        rates['total'] = live_l1_rate[latestLS] + dead_l1_rate[latestLS]
         for trigger in self.Rates:
-          rates[trigger] = self.Rates[trigger][self.lastLS][0]
+          try:
+            #print latestLS, self.currentLS, trigger, self.Rates[trigger][latestLS]
+            rates[trigger] = self.Rates[trigger][latestLS][0]
+          except:
+            print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
+            rates[trigger] = 0.
 
-        if not self.l1t_rate_alert(rates):
+        if not self.l1t_rate_alert.check(rates):
           self.l1t_rate_alert.alert()
 
         # Print warnings for triggers that have been repeatedly misbehaving

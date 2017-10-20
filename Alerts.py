@@ -3,7 +3,7 @@ import copy
 import datetime
 
 from audioAlert import audioAlert
-#from mailAlert  import mailAlert
+from mailAlert  import mailAlert
 from colors import bcolors
 
 
