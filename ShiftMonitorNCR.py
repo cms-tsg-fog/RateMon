@@ -1019,7 +1019,7 @@ L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
             #print latestLS, self.currentLS, trigger, self.Rates[trigger][latestLS]
             rates[trigger] = self.Rates[trigger][latestLS][0]
           except:
-            print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
+            #print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
             rates[trigger] = 0.
 
         if not self.l1t_rate_alert.check(rates):
