@@ -131,7 +131,7 @@ class ShiftMonitor:
           message   = 'critical Level 1 Trigger rate',
           details   = '''
 Please check that all detectors are behaving correctly.
-Total Level 1 Trigger rate: {total} kHz
+Total Level 1 Trigger rate: {total:.1f} kHz
 ''',
           level     = AlertLevel.ERROR,
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
@@ -143,7 +143,7 @@ Total Level 1 Trigger rate: {total} kHz
           message   = 'high Level 1 Trigger rate',
           details   = '''
 Please check the prescale column.
-Total Level 1 Trigger rate: {total} kHz
+Total Level 1 Trigger rate: {total:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
@@ -160,10 +160,10 @@ Total Level 1 Trigger rate: {total} kHz
           message   = 'critical Level 1 Muon Trigger rate',
           details   = '''
 Please check that the muon detectors and muon trigger are behaving correctly.
-L1_SingleMu22:         {L1_SingleMu22} kHz
-L1_SingleMu22_BMTF:    {L1_SingleMu22_BMTF} kHz
-L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF} kHz
-L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
+L1_SingleMu22:         {L1_SingleMu22:.1f} kHz
+L1_SingleMu22_BMTF:    {L1_SingleMu22_BMTF:.1f} kHz
+L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF:.1f} kHz
+L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleMu22'] / 1000.,     # convert from Hz to kHz
@@ -178,9 +178,9 @@ L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
           message   = 'critical Level 1 EGamma Trigger rate',
           details   = '''
 Please check that ECAL and the calorimetric trigger are behaving correctly.
-L1_SingleEG40:         {L1_SingleEG40} kHz
-L1_SingleIsoEG40:      {L1_SingleIsoEG40} kHz
-L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
+L1_SingleEG40:         {L1_SingleEG40:.1f} kHz
+L1_SingleIsoEG40:      {L1_SingleIsoEG40:.1f} kHz
+L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleEG40'] / 1000.,     # convert from Hz to kHz
@@ -195,7 +195,7 @@ L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
           message   = 'critical Level 1 Jet trigger rate',
           details   = '''
 Please check that calorimeters and the calorimetric trigger are behaving correctly.
-L1_SingleJet200:       {L1_SingleJet200} kHz
+L1_SingleJet200:       {L1_SingleJet200:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleJet200'] / 1000.,   # convert from Hz to kHz
@@ -210,9 +210,9 @@ L1_SingleJet200:       {L1_SingleJet200} kHz
           message   = 'critical Level 1 Missing Energy trigger rate',
           details   = '''
 Please check that calorimeters and the calorimetric trigger are behaving correctly.
-L1_ETM120:             {L1_ETM120} kHz
-L1_ETMHF120:           {L1_ETMHF120} kHz
-L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er} kHz
+L1_ETM120:             {L1_ETM120:.1f} kHz
+L1_ETMHF120:           {L1_ETMHF120:.1f} kHz
+L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_ETM120'] / 1000.,         # convert from Hz to kHz
@@ -227,9 +227,9 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er} kHz
           message   = 'critical Level 1 Missing Energy trigger rate',
           details   = '''
 Please check that HF and the calorimetric trigger are behaving correctly.
-L1_ETM120:             {L1_ETM120} kHz
-L1_ETMHF120:           {L1_ETMHF120} kHz
-L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er} kHz
+L1_ETM120:             {L1_ETM120:.1f} kHz
+L1_ETMHF120:           {L1_ETMHF120:.1f} kHz
+L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_ETMHF120'] / 1000.,       # convert from Hz to kHz
