@@ -131,7 +131,7 @@ class ShiftMonitor:
           message   = 'critical Level 1 Trigger rate',
           details   = '''
 Please check that all detectors are behaving correctly.
-Total Level 1 Trigger rate: {total} kHz
+Total Level 1 Trigger rate: {total:.1f} kHz
 ''',
           level     = AlertLevel.ERROR,
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
@@ -143,7 +143,7 @@ Total Level 1 Trigger rate: {total} kHz
           message   = 'high Level 1 Trigger rate',
           details   = '''
 Please check the prescale column.
-Total Level 1 Trigger rate: {total} kHz
+Total Level 1 Trigger rate: {total:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
@@ -153,14 +153,17 @@ Total Level 1 Trigger rate: {total} kHz
 
         l1_total_rate_alert = PriorityAlert(l1_critical_rate_alert, l1_high_rate_alert)
 
+        # from fill 6315, the expected rates for L1_SingleMu22 are
+        #    7.7 kHz at 1.52e34 (pileup 58)
+        #   11.7 kHz at 2.15e34 (pileup 82)
         l1_singlemu_rate_alert = RateAlert(
           message   = 'critical Level 1 Muon Trigger rate',
           details   = '''
 Please check that the muon detectors and muon trigger are behaving correctly.
-L1_SingleMu22:         {L1_SingleMu22} kHz
-L1_SingleMu22_BMTF:    {L1_SingleMu22_BMTF} kHz
-L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF} kHz
-L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
+L1_SingleMu22:         {L1_SingleMu22:.1f} kHz
+L1_SingleMu22_BMTF:    {L1_SingleMu22_BMTF:.1f} kHz
+L1_SingleMu22_OMTF:    {L1_SingleMu22_OMTF:.1f} kHz
+L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleMu22'] / 1000.,     # convert from Hz to kHz
@@ -168,13 +171,16 @@ L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF} kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
+        # from fill 6315, the expected rates for L1_SingleEG40 are
+        #   11.7 kHz at 1.52e34 (pileup 58)
+        #   18.2 kHz at 2.15e34 (pileup 82)
         l1_singleeg_rate_alert = RateAlert(
           message   = 'critical Level 1 EGamma Trigger rate',
           details   = '''
 Please check that ECAL and the calorimetric trigger are behaving correctly.
-L1_SingleEG40:         {L1_SingleEG40} kHz
-L1_SingleIsoEG40:      {L1_SingleIsoEG40} kHz
-L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
+L1_SingleEG40:         {L1_SingleEG40:.1f} kHz
+L1_SingleIsoEG40:      {L1_SingleIsoEG40:.1f} kHz
+L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleEG40'] / 1000.,     # convert from Hz to kHz
@@ -182,11 +188,14 @@ L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1} kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
+        # from fill 6315, the expected rates for L1_SingleJet200 are
+        #    2.3 kHz at 1.52e34 (pileup 58)
+        #    4.2 kHz at 2.15e34 (pileup 82)
         l1_singlejet_rate_alert = RateAlert(
           message   = 'critical Level 1 Jet trigger rate',
           details   = '''
 Please check that calorimeters and the calorimetric trigger are behaving correctly.
-L1_SingleJet200:       {L1_SingleJet200} kHz
+L1_SingleJet200:       {L1_SingleJet200:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
           measure   = lambda rates: rates['L1_SingleJet200'] / 1000.,   # convert from Hz to kHz
@@ -194,30 +203,36 @@ L1_SingleJet200:       {L1_SingleJet200} kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
+        # from fill 6315, the expected rates for L1_ETM120 are
+        #    6.2 kHz at 1.52e34 (pileup 58)
+        #  105.  kHz at 2.15e34 (pileup 82)
         l1_centralmet_rate_alert = RateAlert(
           message   = 'critical Level 1 Missing Energy trigger rate',
           details   = '''
 Please check that calorimeters and the calorimetric trigger are behaving correctly.
-L1_ETM110:             {L1_ETM110} kHz
-L1_ETMHF110:           {L1_ETMHF110} kHz
-L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
+L1_ETM120:             {L1_ETM120:.1f} kHz
+L1_ETMHF120:           {L1_ETMHF120:.1f} kHz
+L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_ETM110'] / 1000.,         # convert from Hz to kHz
+          measure   = lambda rates: rates['L1_ETM120'] / 1000.,         # convert from Hz to kHz
           threshold =  50., # kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
+        # from fill 6315, the expected rates for L1_ETMHF120 are
+        #    7.0 kHz at 1.52e34 (pileup 58)
+        #  109.  kHz at 2.15e34 (pileup 82)
         l1_formwardmet_rate_alert = RateAlert(
           message   = 'critical Level 1 Missing Energy trigger rate',
           details   = '''
 Please check that HF and the calorimetric trigger are behaving correctly.
-L1_ETM110:             {L1_ETM110} kHz
-L1_ETMHF110:           {L1_ETMHF110} kHz
-L1_ETMHF110_HTT60er:   {L1_ETMHF110_HTT60er} kHz
+L1_ETM120:             {L1_ETM120:.1f} kHz
+L1_ETMHF120:           {L1_ETMHF120:.1f} kHz
+L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_ETMHF110'] / 1000.,       # convert from Hz to kHz
+          measure   = lambda rates: rates['L1_ETMHF120'] / 1000.,       # convert from Hz to kHz
           threshold =  50., # kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
