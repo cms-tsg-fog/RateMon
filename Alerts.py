@@ -375,7 +375,7 @@ if __name__=='__main__':
     return rates
 
   w  = RateAlert(message = 'high rate',
-                 details = 'high total rate\ntotal rate: {total}',
+                 details = 'high total rate\ntotal rate: {total:.2f}',
                  level   = AlertLevel.WARNING,
                  measure = lambda x: x['total'],
                  threshold = 10,
@@ -383,7 +383,7 @@ if __name__=='__main__':
                  actions = [EmailMessage, AudioMessage, OnScreenMessage])
 
   e  = RateAlert(message = 'critical rate',
-                 details = 'critical total rate\ntotal rate: {total}',
+                 details = 'critical total rate\ntotal rate: {total:.2f}',
                  level   = AlertLevel.ERROR,
                  measure = lambda x: x['total'],
                  threshold = 15,
@@ -393,7 +393,7 @@ if __name__=='__main__':
   p  = PriorityAlert(e, w)
 
   i1 = RateAlert(message = 'alpha rate',
-                 details = 'alpha rate: {alpha}',
+                 details = 'alpha rate: {alpha:.2f}',
                  level   = AlertLevel.INFO,
                  measure = lambda x: x['alpha'],
                  threshold = 0,
@@ -401,7 +401,7 @@ if __name__=='__main__':
                  actions = [OnScreenMessage])
 
   i2 = RateAlert(message = 'bravo rate',
-                 details = 'bravo rate: {bravo}',
+                 details = 'bravo rate: {bravo:.2f}',
                  level   = AlertLevel.INFO,
                  measure = lambda x: x['bravo'],
                  threshold = 0,
@@ -409,7 +409,7 @@ if __name__=='__main__':
                  actions = [OnScreenMessage])
 
   i3 = RateAlert(message = 'delta rate',
-                 details = 'delta rate: {delta}',
+                 details = 'delta rate: {delta:.2f}',
                  level   = AlertLevel.INFO,
                  measure = lambda x: x['delta'],
                  threshold = 0,
