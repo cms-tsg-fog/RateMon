@@ -884,7 +884,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             try:
                 deadTime = self.deadTimeData[LS]
             except:
-                print "trouble getting deadtime for LS: ", LS," setting DT to zero"
+                #print "trouble getting deadtime for LS: ", LS," setting DT to zero"
                 deadTime = 0
 
             if correct_for_deadtime: rate *= 1. + (deadTime/100.)
