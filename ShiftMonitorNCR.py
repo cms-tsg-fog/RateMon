@@ -531,13 +531,17 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber)
+            #self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
+            #self.L1Rates = self.parser.getL1RawRates(self.runNumber)
+            self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
+            self.L1Rates = self.parser.getLRates(self.runNumber,self.lastLS,99999,1)
             self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
-            self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.L1Rates = self.parser.getL1RawRates(self.runNumber)
+            #self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
+            #self.L1Rates = self.parser.getL1RawRates(self.runNumber)
+            self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.LSRange[0],self.LSRange[1])
+            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1],1)
             self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
         self.totalStreams = len(self.streamData.keys())
@@ -902,9 +906,11 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             properAvePSRate /= count
             avePS /= count
             aveDeadTime /= count
-        else:
-            #comment += "PS=0"
+        elif count == 0:
             comment += "No rate yet "
+            doPred = False
+        elif avePS == 0.0:
+            comment += "PS=0"
             doPred = False
 
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
@@ -1023,15 +1029,13 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
                     break
             print ""
 
-        ## check what is the latest lumisection for which we have monitoring data
-        #try:
-        #    #TODO: Use max() instead of sorted()
-        #    latestLS = sorted(self.Rates.values()[0].keys())[-1]
-        #except:
-        #    #TODO: Have a better fallback then just exiting here
-        #    return
-
-        latestLS = self.currentLS
+        # check what is the latest lumisection for which we have monitoring data
+        try:
+            #TODO: Use max() instead of sorted()
+            latestLS = sorted(self.Rates.values()[0].keys())[-1]
+        except:
+            #TODO: Have a better fallback then just exiting here
+            return
 
         # check L1 rates and raise alarms
         live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS, self.currentLS)
