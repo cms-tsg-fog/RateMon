@@ -1023,7 +1023,13 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             print ""
 
         # check what is the latest lumisection for which we have monitoring data
-        latestLS = sorted(self.Rates.values()[0].keys())[-1]
+        try:
+            #TODO: Use max() instead of sorted()
+            latestLS = sorted(self.Rates.values()[0].keys())[-1]
+        except:
+            #TODO: Have a better fallback then just exiting here
+            return
+
         # check L1 rates and raise alarms
         live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS, self.currentLS)
         dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS, self.currentLS)
