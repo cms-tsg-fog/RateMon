@@ -118,7 +118,7 @@ class ShiftMonitor:
         self.devAccept = 5              # The acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
-        self.maxCBR = 3                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
+        self.maxCBR = 5                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
@@ -1003,7 +1003,8 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             else:
                 self.normal += 1
                 # Remove warning from badRates
-                if self.badRates.has_key(trigger): del self.badRates[trigger]
+                if self.badRates.has_key(trigger) and avePS > 0:
+                    del self.badRates[trigger]
 
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
@@ -1022,13 +1023,15 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
                     break
             print ""
 
-        # check what is the latest lumisection for which we have monitoring data
-        try:
-            #TODO: Use max() instead of sorted()
-            latestLS = sorted(self.Rates.values()[0].keys())[-1]
-        except:
-            #TODO: Have a better fallback then just exiting here
-            return
+        ## check what is the latest lumisection for which we have monitoring data
+        #try:
+        #    #TODO: Use max() instead of sorted()
+        #    latestLS = sorted(self.Rates.values()[0].keys())[-1]
+        #except:
+        #    #TODO: Have a better fallback then just exiting here
+        #    return
+
+        latestLS = self.currentLS
 
         # check L1 rates and raise alarms
         live_l1_rate = self.parser.getL1APhysics(self.runNumber, self.lastLS, self.currentLS)
