@@ -1578,6 +1578,10 @@ class DBParser:
             rate = tup[1]
             algo_bit = tup[2]
 
+            if ls < minLS or ls > maxLS:
+                #TODO: Move this check directly into the query
+                continue
+
             algo_name = self.L1NameIndexMap[algo_bit]
             psi = self.PSColumnByLS[ls]
             algo_ps = self.L1Prescales[algo_bit][psi]
