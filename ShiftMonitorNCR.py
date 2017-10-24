@@ -534,7 +534,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             #self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
             #self.L1Rates = self.parser.getL1RawRates(self.runNumber)
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
-            self.L1Rates = self.parser.getLRates(self.runNumber,self.lastLS,99999,1)
+            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
             self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
@@ -906,11 +906,12 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             properAvePSRate /= count
             avePS /= count
             aveDeadTime /= count
-        elif count == 0:
+
+            if avePS == 0.0:
+                comment = "PS=0"
+                doPred = False
+        else:
             comment += "No rate yet "
-            doPred = False
-        elif avePS == 0.0:
-            comment += "PS=0"
             doPred = False
 
         if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
