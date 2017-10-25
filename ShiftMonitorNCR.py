@@ -341,21 +341,25 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             if not self.InputFitL1 is None: self.TriggerListL1 = self.InputFitL1.keys()
 
         # Get run info: The current run number, if the detector is collecting (?), if the data is good (?), and the trigger mode
-        if not self.assignedNum:
-            self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
-            self.triggerMode = mode[0]
-            # Info message
-            print "The current run number is %s." % (self.runNumber)
-        # If we are observing a single run from the past
-        else:
-            try:
-                self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
-            except:
-                self.triggerMode = "Other"
-            self.getRates()
-            self.runLoop()
-            self.checkTriggers()
-            return
+        #if not self.assignedNum:
+        #    self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
+        #    self.triggerMode = mode[0]
+        #    # Info message
+        #    print "The current run number is %s." % (self.runNumber)
+        ## If we are observing a single run from the past
+        #else:
+        #    try:
+        #        self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+        #    except:
+        #        self.triggerMode = "Other"
+        #    self.getRates()
+        #    self.runLoop()
+        #    self.checkTriggers()
+        #    return
+
+        self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        # Info message
+        print "The current run number is %s." % (self.runNumber)
 
         # Run as long as we can
         self.setMode()
@@ -365,7 +369,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             try:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
-                self.runNumber, _, _, mode = self.parser.getLatestRunInfo()
+                self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 self.runLoop()
                 self.checkTriggers()
                 self.sleepWait()
@@ -837,10 +841,22 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
         if psrate == 0: return False
         if self.mode == "other": return False
-        if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
-        or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
-        or (isL1 and psrate>self.maxL1Rate)\
-        or (not isL1 and psrate>self.maxHLTRate): return True
+        #if ( (self.usePerDiff and perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept) or (dev!="INF" and dev!="" and (dev==">1E6" or abs(dev)>self.devAccept)))\
+        #or (perdiff!="INF" and perdiff!="" and abs(perdiff)>self.percAccept and dev!="INF" and dev!="" and abs(dev)>self.devAccept)\
+        #or (isL1 and psrate>self.maxL1Rate)\
+        #or (not isL1 and psrate>self.maxHLTRate): return True
+
+        if self.usePerDiff:
+            if perdiff != "INF" and perdiff != "" and abs(perdiff) > self.percAccept:
+                return True
+        else:
+            if dev != "INF" and dev != "" and (dev == ">1E6" or abs(dev) > self.devAccept):
+                return True
+
+        if isL1 and psrate > self.maxL1Rate:
+            return True
+        elif not isL1 and psrate > self.maxHLTRate:
+            return True
 
         return False
 
