@@ -72,6 +72,7 @@ class ShiftMonitor:
         self.lastRunNumber = -2         # The run number during the last segment
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
+        self.LHCStatus = ["",0]         # First element is the status string, second is the number of consecutive queries in this status
 
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
@@ -414,6 +415,16 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
         self.normal = 0
         self.bad = 0
 
+        curr_LHC_status = self.parser.getLHCStatus()[1]
+        if curr_LHC_status != self.LHCStatus[0]:
+            self.LHCStatus[0] = curr_LHC_status
+            self.LHCStatus[1] = 1
+        else:
+            self.LHCStatus[1] += 1
+
+        # Get Rates: [triggerName][LS] { raw rate, prescale }
+        self.getRates()
+
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
@@ -421,11 +432,9 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
             self.currentLS = 0
             # Check what mode we are in
             self.setMode()
-            self.getRates()
+            #self.getRates()
             self.redoTriggerLists()
 
-        # Get Rates: [triggerName][LS] { raw rate, prescale }
-        self.getRates()
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
             self.redoTriggerLists()
@@ -769,7 +778,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
         print "INFORMATION:"
         print "Run Number: %s" % (self.runNumber)
         print "LS Range: %s - %s" % (self.startLS, self.currentLS)
-        print "Latest LHC Status: %s" % self.parser.getLHCStatus()[1]
+        print "Latest LHC Status: %s" % (self.LHCStatus[0])
         print "Number of colliding bunches: %s" % self.numBunches[0]
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
         print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
@@ -1059,19 +1068,19 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
         dead_l1_rate = self.parser.getL1APhysicsLost(self.runNumber, self.lastLS, self.currentLS)
         rates = {}
         try:
-          rates['total'] = live_l1_rate[latestLS] + dead_l1_rate[latestLS]
+            rates['total'] = live_l1_rate[latestLS] + dead_l1_rate[latestLS]
         except:
-          rates['total'] = 0.
+            rates['total'] = 0.
         for trigger in self.Rates:
-          try:
-            #print latestLS, self.currentLS, trigger, self.Rates[trigger][latestLS]
-            rates[trigger] = self.Rates[trigger][latestLS][0]
-          except:
-            #print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
-            rates[trigger] = 0.
-
-        if not self.l1t_rate_alert.check(rates):
-          self.l1t_rate_alert.alert()
+            try:
+                #print latestLS, self.currentLS, trigger, self.Rates[trigger][latestLS]
+                rates[trigger] = self.Rates[trigger][latestLS][0]
+            except:
+                #print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
+                rates[trigger] = 0.
+        if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3:
+            if not self.l1t_rate_alert.check(rates):
+                self.l1t_rate_alert.alert()
 
         # Print warnings for triggers that have been repeatedly misbehaving
         mailTriggers = [] # A list of triggers that we should mail alerts about
