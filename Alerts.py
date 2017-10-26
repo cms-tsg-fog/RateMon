@@ -188,7 +188,7 @@ class PriorityAlert(BaseAlert):
     for alert in self.__alerts:
       if alert.active():
         return alert.alert_level()
-    return None
+    return AlertLevel.NONE
   
   def snooze(self):
     super(PriorityAlert, self).snooze()
@@ -219,6 +219,7 @@ class MultipleAlert(BaseAlert):
   # if different messages are about to be triggered, add an optional introduction and merge them
   @staticmethod
   def merged(messages, header = None):
+    messages = [m for m in messages if m is not None]
     if len(messages) == 0:
       return None
     elif len(messages) == 1:
