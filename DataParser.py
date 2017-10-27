@@ -34,6 +34,7 @@ class DataParser:
         self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
         self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
         self.det_data  = {}    # {'name': { run_number: { LS: detecotr_ready } } }
+        self.phys_data = {}    # {'name': { run_number: { LS: phys_active } } }
         self.bw_data   = {}    # {'name': { run_number: { LS: bandwidth } } }
         self.size_data = {}    # {'name': { run_number: { LS: size } } }
         self.lumi_info = {}    # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
@@ -118,6 +119,7 @@ class DataParser:
                 pu         = run_data[name]["PU"]
                 lumi       = run_data[name]["ilumi"]
                 det_status = run_data[name]["status"]
+                phys       = run_data[name]["phys"]
                 bw         = run_data[name]["bandwidth"]
                 size       = run_data[name]["size"]
 
@@ -130,6 +132,7 @@ class DataParser:
                     self.pu_data[name]   = {}
                     self.lumi_data[name] = {}
                     self.det_data[name]  = {}
+                    self.phys_data[name] = {}
                     self.bw_data[name]   = {}
                     self.size_data[name] = {}
 
@@ -139,6 +142,7 @@ class DataParser:
                 self.pu_data[name][run]   = pu
                 self.lumi_data[name][run] = lumi
                 self.det_data[name][run]  = det_status
+                self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
 
@@ -240,6 +244,7 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
@@ -272,6 +277,7 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
 
@@ -281,6 +287,7 @@ class DataParser:
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
             run_data[trigger]["status"] = det_dict
+            run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
         return run_data
@@ -309,6 +316,7 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
@@ -338,6 +346,7 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
 
@@ -347,6 +356,7 @@ class DataParser:
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
             run_data[trigger]["status"] = det_dict
+            run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
         return run_data
@@ -382,6 +392,7 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
@@ -403,6 +414,7 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    phys_dict[LS] = phys
                     bw_dict[LS] = bandwidth
                     size_dict[LS] = size
 
@@ -412,6 +424,7 @@ class DataParser:
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
+            run_data[_object]["phys"] = phys_dict
             run_data[_object]["bandwidth"] = bw_dict
             run_data[_object]["size"] = size_dict
 
@@ -443,6 +456,7 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
@@ -462,6 +476,7 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
 
@@ -471,6 +486,7 @@ class DataParser:
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
+            run_data[_object]["phys"] = phys_dict
             run_data[_object]["bandwidth"] = bw_dict
             run_data[_object]["size"] = size_dict
         return run_data
@@ -498,6 +514,7 @@ class DataParser:
             pu_dict    = {}
             lumi_dict  = {}
             det_dict   = {}
+            phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
@@ -517,6 +534,7 @@ class DataParser:
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
                     det_dict[LS] = cms_ready
+                    phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
 
@@ -526,6 +544,7 @@ class DataParser:
             run_data[_object]["PU"] = pu_dict
             run_data[_object]["ilumi"] = lumi_dict
             run_data[_object]["status"] = det_dict
+            run_data[_object]["phys"] = phys_dict
             run_data[_object]["bandwidth"] = bw_dict
             run_data[_object]["size"] = size_dict
         return run_data
@@ -560,6 +579,7 @@ class DataParser:
         pu_dict    = {}
         lumi_dict  = {}
         det_dict   = {}
+        phys_dict  = {}
         bw_dict    = {}
         size_dict  = {}
 
@@ -587,6 +607,7 @@ class DataParser:
             pu_dict[LS]   = run_data[ref_name]["PU"][LS]
             lumi_dict[LS] = run_data[ref_name]["ilumi"][LS]
             det_dict[LS]  = run_data[ref_name]["status"][LS]
+            phys_dict[LS] = run_data[ref_name]["phys"][LS]
 
         self.type_map[new_name] = obj_type
         run_data[new_name] = {}
@@ -596,6 +617,7 @@ class DataParser:
         run_data[new_name]["PU"]        = pu_dict
         run_data[new_name]["ilumi"]     = lumi_dict
         run_data[new_name]["status"]    = det_dict
+        run_data[new_name]["phys"]      = phys_dict
         run_data[new_name]["bandwidth"] = bw_dict
         run_data[new_name]["size"]      = size_dict
 
@@ -621,6 +643,7 @@ class DataParser:
         self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
         self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
         self.det_data  = {}    # {'name': { run_number: { LS: detecotr_ready } } }
+        self.phys_data = {}    # {'name': { run_number: { LS: phys_active } } }
         self.bw_data   = {}    # {'name': { run_number: { LS: bandwidth } } }
         self.size_data = {}    # {'name': { run_number: { LS: size } } }
         self.lumi_info = {}    # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
@@ -676,6 +699,14 @@ class DataParser:
             output = self.convertOutput(self.det_data)
         else:
             output = self.det_data
+        return output
+
+    def getPhysStatus(self):
+        # type: () -> Dict[str,object]
+        if self.convert_output:
+            output = self.convertOutput(self.phys_data)
+        else:
+            output = self.phys_data
         return output
 
     def getBandwidthData(self):
