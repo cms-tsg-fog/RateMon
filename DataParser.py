@@ -244,9 +244,9 @@ class DataParser:
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
-                    continue;
+                    continue
 
-                if phys and not ilum is None and L1_rates[trigger].has_key(LS):
+                if not ilum is None and L1_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1_rates[trigger][LS][0]
                     prescale = L1_rates[trigger][LS][1]
@@ -313,9 +313,9 @@ class DataParser:
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
-                    continue;
+                    continue
 
-                if phys and not ilum is None and HLT_rates[trigger].has_key(LS):
+                if not ilum is None and HLT_rates[trigger].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = HLT_rates[trigger][LS][0]
                     prescale = HLT_rates[trigger][LS][1]
@@ -386,10 +386,9 @@ class DataParser:
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
-                    continue;
+                    continue
 
-                if phys and not ilum is None and stream_rates[_object].has_key(LS):
-                #if not ilum is None and stream_rates[_object].has_key(LS):
+                if not ilum is None and stream_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = stream_rates[_object][LS][0]
                     size = stream_rates[_object][LS][1]
@@ -448,9 +447,9 @@ class DataParser:
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
-                    continue;
+                    continue
 
-                if phys and not ilum is None and dataset_rates[_object].has_key(LS):
+                if not ilum is None and dataset_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = dataset_rates[_object][LS][0]
 
@@ -503,9 +502,9 @@ class DataParser:
             size_dict  = {}
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
-                    continue;
+                    continue
 
-                if phys and not ilum is None and L1A_rates[_object].has_key(LS):
+                if not ilum is None and L1A_rates[_object].has_key(LS):
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1A_rates[_object][LS]
 
