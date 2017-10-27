@@ -64,6 +64,7 @@ class PlotMaker:
         self.show_eq = False
         self.save_png = False
         self.save_root_file = False
+        self.show_bad_ls = True
 
     def setPlottingData(self,data):
         self.plotting_data = data
@@ -150,6 +151,17 @@ class PlotMaker:
         else:
             data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [status] ) }
 
+        bad_ls_x = array.array('f')
+        bad_ls_y = array.array('f')
+
+        # Separate the good and bad LS points
+        for run in data:
+            res = self.fitFinder.removeBadLS(data[run][0],data[run][1],data[run][2])
+            data[run][0] = res[0]
+            data[run][1] = res[1]
+            bad_ls_x += res[2]
+            bad_ls_y += res[3]
+
         run_count = 0
         num_pts = 0
         for run in data:
@@ -173,6 +185,10 @@ class PlotMaker:
         maximumVals = array.array('f')
         minimumVals = array.array('f')
 
+        max_xaxis_val = 0
+        min_xaxis_val = 9999
+        max_yaxis_val = 0
+
         xVals = array.array('f')
         yVals = array.array('f')
 
@@ -184,12 +200,16 @@ class PlotMaker:
                 maximumVals.append(max(xVals))
                 minimumVals.append(min(xVals))
 
+        if self.show_bad_ls:
+            maximumVals.append(max(bad_ls_x))
+            minimumVals.append(min(bad_ls_x))
+            maximumRR.append(max(bad_ls_y))
+
         if len(maximumRR) > 0:
-            max_yaxis_value = max(maximumRR)
+            max_yaxis_val = max(maximumRR)
         else:
             print "\tERROR: Invalid boundary for plot axis!"
             return False
-
         if len(maximumVals) > 0:
             max_xaxis_val = max(maximumVals)
             min_xaxis_val = min(minimumVals)
@@ -197,7 +217,7 @@ class PlotMaker:
             print "\tERROR: Invalid boundary for plot axis!"
             return False
 
-        if max_xaxis_val == 0 or max_yaxis_value == 0:
+        if max_xaxis_val == 0 or max_yaxis_val == 0:
             print "\tERROR: Invalid boundary for plot axis!"
             return False
 
@@ -220,7 +240,7 @@ class PlotMaker:
                 else:
                     fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
                 fit_mse[fit_type] = fit_params[5]
-                #max_yaxis_value = max([fit_func[fit_type].Eval(56.0),max_yaxis_value])
+                #max_yaxis_val = max([fit_func[fit_type].Eval(56.0),max_yaxis_val])
 
         graphList = []
         color_map = self.getColorMap()
@@ -262,7 +282,7 @@ class PlotMaker:
             graphList[-1].GetYaxis().SetTitle(self.label_Y)
             graphList[-1].GetYaxis().SetTitleOffset(1.2)
             graphList[-1].SetMinimum(0)
-            graphList[-1].SetMaximum(1.2*max_yaxis_value)
+            graphList[-1].SetMaximum(1.2*max_yaxis_val)
             graphList[-1].SetTitle(trigger)
 
             if counter == 0: graphList[-1].Draw("AP")
@@ -305,6 +325,23 @@ class PlotMaker:
                     #func_leg.SetFillColorAlpha(0,0.5)
                     func_leg.Draw()
                     canvas.Update()
+
+        if self.show_bad_ls:
+            bad_ls_graph = TGraph(len(bad_ls_x),bad_ls_x,bad_ls_y)
+
+            bad_ls_graph.SetMarkerStyle(21)
+            bad_ls_graph.SetMarkerSize(0.6)
+            bad_ls_graph.SetMarkerColor(1)
+            bad_ls_graph.SetLineWidth(2)
+            bad_ls_graph.GetXaxis().SetTitle(self.label_X)
+            bad_ls_graph.GetXaxis().SetLimits(0, 1.1*max_xaxis_val)
+            bad_ls_graph.GetYaxis().SetTitle(self.label_Y)
+            bad_ls_graph.SetMinimum(0)
+            bad_ls_graph.SetMaximum(1.2*max_yaxis_val)
+            bad_ls_graph.SetTitle(trigger)
+
+            bad_ls_graph.Draw("P")
+            canvas.Update()
 
         # draw text
         latex = TLatex()
@@ -448,7 +485,7 @@ class PlotMaker:
             maximumVals.append(max(xVals))
             minimumVals.append(min(xVals))
 
-        if len(maximumRR) > 0: max_yaxis_value = max(maximumRR)
+        if len(maximumRR) > 0: max_yaxis_val = max(maximumRR)
         else: return False
         
         if len(maximumVals) > 0:
@@ -456,7 +493,7 @@ class PlotMaker:
             min_xaxis_val = min(minimumVals)
         else: return False
 
-        if max_xaxis_val == 0 or max_yaxis_value == 0: return
+        if max_xaxis_val == 0 or max_yaxis_val == 0: return
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
@@ -465,7 +502,7 @@ class PlotMaker:
         predictionTGraph = self.getPredictionGraph( best_fit,
                                                     min_xaxis_val,
                                                     max_xaxis_val,
-                                                    max_yaxis_value,
+                                                    max_yaxis_val,
                                                     trigger,
                                                     run,
                                                     lumi_info)
@@ -487,7 +524,7 @@ class PlotMaker:
         plotTGraph.GetYaxis().SetTitle(self.label_Y)
         plotTGraph.GetYaxis().SetTitleOffset(1.2)
         plotTGraph.SetMinimum(0)
-        plotTGraph.SetMaximum(1.2*max_yaxis_value)
+        plotTGraph.SetMaximum(1.2*max_yaxis_val)
         plotTGraph.SetTitle(trigger)
 
         plotTGraph.Draw("AP")

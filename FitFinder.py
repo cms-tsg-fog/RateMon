@@ -66,7 +66,7 @@ class FitFinder:
             y_fit_vals = array.array('f')
             for run in sorted(data[trigger]):
                 for x,y,status in zip(data[trigger][run][0],data[trigger][run][1],data[trigger][run][2]):
-                    if status or True: # only fit data points when ALL subsystems are IN.
+                    if status: # only fit data points when ALL subsystems are IN.
                         x_fit_vals.append(x)
                         # Remove the normalization during fitting (to avoid excessively small y-vals)
                         y_fit_vals.append(y*normalization)
@@ -158,6 +158,21 @@ class FitFinder:
                 arrY.append(y)
 
         return arrX, arrY
+
+    def removeBadLS(self,xVals,yVals,status):
+        goodX = array.array('f')
+        goodY = array.array('f')
+        badX = array.array('f')
+        badY = array.array('f')
+        for x,y,stat in zip(xVals,yVals,status):
+            if stat:
+                goodX.append(x)
+                goodY.append(y)
+            else:
+                badX.append(x)
+                badY.append(y)
+
+        return goodX, goodY, badX, badY
 
     #returns SD of PU for a given run 
     def getSD(self,xVals):
