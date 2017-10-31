@@ -181,6 +181,8 @@ class PlotMaker:
                 bad_ls_x += res[2]
                 bad_ls_y += res[3]
 
+        skip_bad_ls_plot = (len(bad_ls_x) == 0 or len(bad_ls_y) == 0 or not self.ls_options['show_bad_ls'])
+
         run_count = 0
         num_pts = 0
         for run in data:
@@ -222,7 +224,7 @@ class PlotMaker:
                 maximumVals.append(max(xVals))
                 minimumVals.append(min(xVals))
 
-        if self.ls_options['show_bad_ls']:
+        if not skip_bad_ls_plot:
             maximumVals.append(max(bad_ls_x))
             minimumVals.append(min(bad_ls_x))
             maximumRR.append(max(bad_ls_y))
@@ -340,7 +342,7 @@ class PlotMaker:
                     func_leg.Draw()
                     canvas.Update()
 
-        if self.ls_options['show_bad_ls']:
+        if not skip_bad_ls_plot:
             bad_ls_graph = TGraph(len(bad_ls_x),bad_ls_x,bad_ls_y)
 
             bad_ls_graph.SetMarkerStyle(self.ls_options['bad_marker_style'])
