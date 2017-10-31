@@ -118,6 +118,7 @@ class RateMonitor:
 
         bunch_map = self.data_parser.getBunchMap()
         det_status = self.data_parser.getDetectorStatus()
+        phys_status = self.data_parser.getPhysStatus()
 
         # Select the types of data we are going to plot
         if self.use_pileup: # plot PU vs. rate
@@ -135,19 +136,14 @@ class RateMonitor:
             y_vals = self.data_parser.getRateData()
 
         # Now we fill plot_data with *ALL* the objects we have data for
-        plot_data = {}     # {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] ) } }
+        plot_data = {}     # {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
         for name in self.data_parser.getNameList():
             if not plot_data.has_key(name):
                 plot_data[name] = {}
             for run in sorted(self.data_parser.getRunsUsed()):
                 if not x_vals[name].has_key(run):
                     continue
-                if self.certify_mode:
-                    # Use all fetched points
-                    good_x, good_y = (x_vals[name][run],y_vals[name][run])
-                else:
-                    good_x, good_y = self.fitter.getGoodPoints(x_vals[name][run], y_vals[name][run])
-                plot_data[name][run] = [good_x,good_y, det_status[name][run] ]
+                plot_data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
 
         # If no objects are specified, plot everything!
         if len(self.object_list) == 0:
