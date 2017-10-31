@@ -159,6 +159,7 @@ class FitFinder:
 
         return arrX, arrY
 
+    # Separates pts based on LS status flag
     def removeBadLS(self,xVals,yVals,status):
         goodX = array.array('f')
         goodY = array.array('f')

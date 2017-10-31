@@ -28,7 +28,7 @@ class PlotMaker:
         gStyle.SetPadRightMargin(0.2)   # Set the canvas right margin so the legend can be bigger
         ROOT.gErrorIgnoreLevel = 7000   # Suppress info message from TCanvas.Print
 
-        self.plotting_data = {}     #    {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
+        self.plotting_data = {}     #    {'trigger': { run_number:  ( [x_vals], [y_vals], [det_status], [phys_status] ) } }
 
         self.fits = {}              # {'trigger': { 'fit_type': fit_params } }
         self.bunch_map = {}         # {run_number:  bunches }
@@ -64,7 +64,15 @@ class PlotMaker:
         self.show_eq = False
         self.save_png = False
         self.save_root_file = False
-        self.show_bad_ls = True
+
+        self.ls_options = {
+            'show_bad_ls':  True,       # Flag to display the removed LS (in a separate color)
+            'rm_bad_beams': True,       # Remove LS which did not have stable beams
+            'rm_bad_det':   False,      # Remove LS which had 'bad' sub-systems
+            'bad_marker_style': 21,     # Marker style for the bad LS
+            'bad_marker_size':  0.6,    # Marker size for the bad LS
+            'bad_marker_color': 1,      # Marker color for the bad LS
+        }
 
     def setPlottingData(self,data):
         self.plotting_data = data
@@ -149,18 +157,29 @@ class PlotMaker:
             print "\tERROR: Trigger not found in plotting data - %s" % trigger
             return False
         else:
-            data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [status] ) }
+            data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [det_status], [phys_status] ) }
 
         bad_ls_x = array.array('f')
         bad_ls_y = array.array('f')
 
         # Separate the good and bad LS points
-        for run in data:
-            res = self.fitFinder.removeBadLS(data[run][0],data[run][1],data[run][2])
-            data[run][0] = res[0]
-            data[run][1] = res[1]
-            bad_ls_x += res[2]
-            bad_ls_y += res[3]
+        if self.ls_options['rm_bad_beams']:
+            # Remove 'non-stable' beams LS
+            for run in data:
+                res = self.fitFinder.removeBadLS(data[run][0],data[run][1],data[run][3])
+                data[run][0] = res[0]
+                data[run][1] = res[1]
+                bad_ls_x += res[2]
+                bad_ls_y += res[3]
+        elif self.ls_options['rm_bad_det']:
+            # Remove 'bad' detector LS
+            # NOTE: These LS are a super-set of the 'non-stable' LS
+            for run in data:
+                res = self.fitFinder.removeBadLS(data[run][0],data[run][1],data[run][2])
+                data[run][0] = res[0]
+                data[run][1] = res[1]
+                bad_ls_x += res[2]
+                bad_ls_y += res[3]
 
         run_count = 0
         num_pts = 0
@@ -194,13 +213,16 @@ class PlotMaker:
 
         # Find minima and maxima so we create graphs of the right size
         for run in data:
-            xVals, yVals = self.fitFinder.getGoodPoints(data[run][0], data[run][1]) 
+            #xVals, yVals = self.fitFinder.getGoodPoints(data[run][0], data[run][1])
+            xVals = data[run][0]
+            yVals = data[run][1]
+
             if len(xVals) > 0:
                 maximumRR.append(max(yVals))
                 maximumVals.append(max(xVals))
                 minimumVals.append(min(xVals))
 
-        if self.show_bad_ls:
+        if self.ls_options['show_bad_ls']:
             maximumVals.append(max(bad_ls_x))
             minimumVals.append(min(bad_ls_x))
             maximumRR.append(max(bad_ls_y))
@@ -232,15 +254,8 @@ class PlotMaker:
             for fit_type in self.fits[trigger]:
                 fit_params = self.fits[trigger][fit_type]
                 plot_func_str[fit_type],func_str[fit_type] = self.getFuncStr(fit_params)
-                if fit_type=="sinh":
-                    fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
-                    #fit_func[fit_type].SetParameter(0,fit_params[1])
-                    #fit_func[fit_type].SetParameter(1,fit_params[2])
-                    #fit_func[fit_type].SetParameter(2,fit_params[3])
-                else:
-                    fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
+                fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
                 fit_mse[fit_type] = fit_params[5]
-                #max_yaxis_val = max([fit_func[fit_type].Eval(56.0),max_yaxis_val])
 
         graphList = []
         color_map = self.getColorMap()
@@ -262,8 +277,7 @@ class PlotMaker:
         old_fill = -1
         counter = 0
         for run in sorted(data):
-            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1])
-            
+            #data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1])
             num_LS = len(data[run][0])
             if num_LS == 0: continue
             graphList.append(TGraph(num_LS, data[run][0], data[run][1]))
@@ -326,12 +340,12 @@ class PlotMaker:
                     func_leg.Draw()
                     canvas.Update()
 
-        if self.show_bad_ls:
+        if self.ls_options['show_bad_ls']:
             bad_ls_graph = TGraph(len(bad_ls_x),bad_ls_x,bad_ls_y)
 
-            bad_ls_graph.SetMarkerStyle(21)
-            bad_ls_graph.SetMarkerSize(0.6)
-            bad_ls_graph.SetMarkerColor(1)
+            bad_ls_graph.SetMarkerStyle(self.ls_options['bad_marker_style'])
+            bad_ls_graph.SetMarkerSize(self.ls_options['bad_marker_size'])
+            bad_ls_graph.SetMarkerColor(self.ls_options['bad_marker_color'])
             bad_ls_graph.SetLineWidth(2)
             bad_ls_graph.GetXaxis().SetTitle(self.label_X)
             bad_ls_graph.GetXaxis().SetLimits(0, 1.1*max_xaxis_val)

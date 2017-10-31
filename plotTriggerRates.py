@@ -62,6 +62,11 @@ class MonitorController:
         self.rate_monitor.plotter.name_X  = "< PU >"
         self.rate_monitor.plotter.units_X = ""
 
+        self.rate_monitor.plotter.ls_options['show_bad_ls']  = False
+        self.rate_monitor.plotter.ls_options['rm_bad_beams'] = False
+        self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
+
+
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
@@ -252,6 +257,10 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+
+                self.rate_monitor.plotter.ls_options['show_bad_ls']  = True
+                self.rate_monitor.plotter.ls_options['rm_bad_beams'] = True
+                self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
 
                 self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
