@@ -173,7 +173,7 @@ class DataParser:
                 print "\tDetected collisions run..."
                 print "\tGetting lumi info..."
             if self.use_best_lumi:
-                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
+                lumi_info = self.parser.getQuickLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls)
             elif self.use_PLTZ_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
             elif self.use_HF_lumi:
@@ -184,7 +184,7 @@ class DataParser:
                 print "\tUnknown run type: %s" % (trigger_mode)
                 print "\tGetting lumi info..."
             if self.use_best_lumi:
-                lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
+                lumi_info = self.parser.getQuickLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls)
             elif self.use_PLTZ_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
             elif self.use_HF_lumi:
