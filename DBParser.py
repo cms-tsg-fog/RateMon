@@ -15,6 +15,8 @@ import socket
 # For the parsing
 import re
 
+import DBConfigFile as cfg
+
 # Key version stripper
 def stripVersion(name):
     if re.match('.*_v[0-9]+',name): name = name[:name.rfind('_')]
@@ -25,14 +27,13 @@ def stripVersion(name):
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
 class DBParser:
-
     def __init__(self) :
         # Connect to the Database
         hostname = socket.gethostname()
-        if hostname.find('lxplus') > -1: self.dsn_ = 'cms_omds_adg' #offline
-        else: self.dsn_ = 'cms_omds_lb' #online
+        if hostname.find('lxplus') > -1: self.dsn_ = cfg.dsn_info['offline']
+        else: self.dsn_ = cfg.dsn_info['online']
 
-        orcl = cx_Oracle.connect(user='cms_trg_r',password='X3lmdvu4',dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=self.dsn_)
         # Create a DB cursor
         self.curs = orcl.cursor()
 
@@ -54,13 +55,12 @@ class DBParser:
         
     # Returns: a cursor to the HLT database
     def getHLTCursor(self):
-        # Gets a cursor to the HLT database
-        orcl = cx_Oracle.connect(user='cms_hlt_r',password='convertMe!',dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg.hlt_connect['user'],password=cfg.hlt_connect['passwd'],dsn=self.dsn_)
         return orcl.cursor()
 
     # Returns: a cursor to the trigger database
     def getTrgCursor(self):
-        orcl = cx_Oracle.connect(user='cms_trg_r',password='X3lmdvu4',dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=self.dsn_)
         return orcl.cursor()
 
     def getLSInfo(self, runNumber):
@@ -144,6 +144,7 @@ class DBParser:
     # -- runNumber: the number of the run that we want data for
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
     def getLumiInfo(self, runNumber, minLS=-1, maxLS=9999999, lumi_source=0):
+        # NOTE: Currently making queries to CMS_BEAM_COND.CMS_BRIL_LUMINOSITY is taking excessively long times offline
         lumi_nibble = 16        # This is the value that WBM uses for lumi sections
         query = """
                 SELECT
@@ -188,12 +189,53 @@ class DBParser:
                     ilum = item[2]
                 else:
                     ilum = None
-
-
             LS = item[3]
             phys = item[4]
             cms_ready = item[5]
             psi = item[6]
+            _list.append([LS,ilum,psi,phys,cms_ready])
+        return _list
+
+    # Use: Get the instant luminosity for each lumisection (only from CMS_RUNTIME_LOGGER.LUMI_SECTIONS)
+    # Parameters:
+    # -- runNumber: the number of the run that we want data for
+    # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
+    def getQuickLumiInfo(self,runNumber,minLS=-1,maxLS=9999999):
+        query = """
+                SELECT
+                    B.INSTLUMI,
+                    B.LUMISECTION,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT,
+                    B.PHYSICS_FLAG*B.BEAM1_PRESENT*B.EBP_READY*
+                        B.EBM_READY*B.EEP_READY*B.EEM_READY*
+                        B.HBHEA_READY*B.HBHEB_READY*B.HBHEC_READY*
+                        B.HF_READY*B.HO_READY*B.RPC_READY*
+                        B.DT0_READY*B.DTP_READY*B.DTM_READY*
+                        B.CSCP_READY*B.CSCM_READY*B.TOB_READY*
+                        B.TIBTID_READY*B.TECP_READY*B.TECM_READY*
+                        B.BPIX_READY*B.FPIX_READY*B.ESP_READY*B.ESM_READY,
+                    C.PRESCALE_INDEX
+                FROM
+                    CMS_RUNTIME_LOGGER.LUMI_SECTIONS B,
+                    CMS_UGT_MON.VIEW_LUMI_SECTIONS C
+                WHERE
+                    B.RUNNUMBER = %s AND
+                    C.RUN_NUMBER(+) = B.RUNNUMBER AND
+                    C.LUMI_SECTION(+) = B.LUMISECTION AND
+                    B.LUMISECTION >= %s AND C.LUMI_SECTION >= %s AND
+                    B.LUMISECTION <= %s AND C.LUMI_SECTION <= %s
+                ORDER BY
+                    LUMISECTION
+                """ % (runNumber,minLS,minLS,maxLS,maxLS)
+
+        self.curs.execute(query) # Execute the query
+        _list = []
+        for item in self.curs.fetchall():
+            ilum = item[0]
+            LS = item[1]
+            phys = item[2]
+            cms_ready = item[3]
+            psi = item[4]
             _list.append([LS,ilum,psi,phys,cms_ready])
         return _list
 
