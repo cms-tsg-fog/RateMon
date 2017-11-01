@@ -3,12 +3,12 @@ dsn_info = {
     'offline': ''
 }
 
-hlt_info = {
+hlt_connect = {
     'user': '',
     'passwd': ''
 }
 
-trg_info = {
+trg_connect = {
     'user': '',
     'passwd': ''
 }
