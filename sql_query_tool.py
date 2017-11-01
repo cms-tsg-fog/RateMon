@@ -4,8 +4,8 @@ import cx_Oracle
 import socket
 # For the parsing
 import re
-
 import time
+import DBConfigFile as cfg
 
 # Key version stripper
 def stripVersion(name):
@@ -16,11 +16,11 @@ class DBQueryTool:
     def __init__(self) :
         # Connect to the Database
         hostname = socket.gethostname()
-        if hostname.find('lxplus') > -1: self.dsn_ = 'cms_omds_adg' #offline
-        else: self.dsn_ = 'cms_omds_lb' #online
+        if hostname.find('lxplus') > -1: self.dsn_ = cfg.dsn_info['offline'] #offline
+        else: self.dsn_ = cfg.dsn_info['online'] #online
 
-        orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn=self.dsn_)
-        orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg.hlt_connect['user'],password=cfg.hlt_connect['passwd'],dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=self.dsn_)
         # Create a DB cursor
         self.curs = orcl.cursor()
 
