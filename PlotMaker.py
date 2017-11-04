@@ -150,12 +150,20 @@ class PlotMaker:
         return plotFuncStr,funcStr
 
     # Merges all the points from all the runs in the trigger data
-    def combinePoints(self,data):
+    def combinePoints(self,data,x_cut=None):
         xVals = array.array('f')
         yVals = array.array('f')
         for run in data:
-            xVals += data[run][0]
-            yVals += data[run][1]
+            if x_cut is None:
+                # Merge all points
+                xVals += data[run][0]
+                yVals += data[run][1]
+            else:
+                # Only merge points above the x_cut
+                for x,y in zip(data[run][0],data[run][1]):
+                    if x > x_cut:
+                        xVals.append(x)
+                        yVals.append(y)
         return xVals,yVals
 
     # plots all the data for a given trigger
@@ -219,7 +227,10 @@ class PlotMaker:
         min_xaxis_val = 9999
         max_yaxis_val = 0
 
+        # Calculate the avg and std dev using only the upper half of points
         xVals,yVals = self.combinePoints(data)
+        x_cut = (max(xVals) - min(xVals))/2
+        xVals,yVals = self.combinePoints(data,x_cut)
         avg_y,std_y = self.fitFinder.getSD(yVals)
 
         # Remove points that are extremely far outside of the avg

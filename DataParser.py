@@ -62,7 +62,7 @@ class DataParser:
         self.skip_l1_triggers = False   # Flag to skip collecting rates for L1 triggers
         self.skip_hlt_triggers = False  # Flag to skip collecting rates for HLT triggers
 
-        self.l1_rate_cut = 10e6         # Ignore L1 rates above this threshold
+        self.l1_rate_cut = 25e6         # Ignore L1 rates above this threshold
 
         self.max_deadtime = 10.
         self.min_ls = -1
