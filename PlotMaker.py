@@ -213,18 +213,25 @@ class PlotMaker:
         xVals = array.array('f')
         yVals = array.array('f')
 
+        for run in data:
+            xVals += data[run][0]
+            yVals += data[run][1]
+
+        avg_y,std_y = self.fitFinder.getSD(yVals)
+
         # Find minima and maxima so we create graphs of the right size
         for run in data:
-            #xVals, yVals = self.fitFinder.getGoodPoints(data[run][0], data[run][1])
-            xVals = data[run][0]
-            yVals = data[run][1]
+            if len(data[run][0]) > 0:
+                maximumVals.append(max(data[run][0]))
+                minimumVals.append(min(data[run][0]))
 
-            if len(xVals) > 0:
-                maximumRR.append(max(yVals))
-                maximumVals.append(max(xVals))
-                minimumVals.append(min(xVals))
+                tmp_max_y = max(data[run][1])
+                if abs(tmp_max_y - avg_y) < std_y*4:
+                    # Don't let the maximum be set by rate 'spikes'
+                    maximumRR.append(max(data[run][1]))
 
         if not skip_bad_ls_plot:
+            # TODO: Possibly apply same 'spike' check to the bad LS lists
             maximumVals.append(max(bad_ls_x))
             minimumVals.append(min(bad_ls_x))
             maximumRR.append(max(bad_ls_y))
