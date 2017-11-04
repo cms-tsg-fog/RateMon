@@ -134,15 +134,15 @@ class FitFinder:
 
         return fits
 
-    def getGoodPoints(self, xVals, yVals):
+    # Removes points with y-values outside of a given range
+    def getGoodPoints(self,xVals,yVals,avg_y=None,std_y=None,sig_y=4):
         goodX = array.array('f')
         goodY = array.array('f')
-        average_x, std_dev_x = self.getSD(xVals)
-        average_y, std_dev_y = self.getSD(yVals)
-        sigma_x = 4 #how many standard deviations before we cut out points
-        sigma_y = 4 #how many standard deviations before we cut out points
+        if avg_y is None or std_y is None:
+            # Recalculate these values
+            avg_y, std_y = self.getSD(yVals)
         for x,y in zip(xVals,yVals):
-            if (abs(y-average_y) < sigma_y*std_dev_y):
+            if (abs(y-avg_y) < sig_y*std_y):
                 goodX.append(x)
                 goodY.append(y)
 

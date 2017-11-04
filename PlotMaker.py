@@ -149,6 +149,15 @@ class PlotMaker:
 
         return plotFuncStr,funcStr
 
+    # Merges all the points from all the runs in the trigger data
+    def combinePoints(self,data):
+        xVals = array.array('f')
+        yVals = array.array('f')
+        for run in data:
+            xVals += data[run][0]
+            yVals += data[run][1]
+        return xVals,yVals
+
     # plots all the data for a given trigger
     def plotAllData(self,trigger):
         # paramlist == fits
@@ -210,13 +219,15 @@ class PlotMaker:
         min_xaxis_val = 9999
         max_yaxis_val = 0
 
-        xVals = array.array('f')
-        yVals = array.array('f')
+        xVals,yVals = self.combinePoints(data)
+        avg_y,std_y = self.fitFinder.getSD(yVals)
 
+        # Remove points that are extremely far outside of the avg
         for run in data:
-            xVals += data[run][0]
-            yVals += data[run][1]
+            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,6)
 
+        # Recalculate the avg and std dev
+        xVals,yVals = self.combinePoints(data)
         avg_y,std_y = self.fitFinder.getSD(yVals)
 
         # Find minima and maxima so we create graphs of the right size
