@@ -4,9 +4,9 @@ HOST=$(hostname)
 
 if [[ $HOST == *lxplus* ]]; then
     # lxplus machines
-    export VO_CMS_SW_DIR=/nfshome0/cmssw3
-    export SCRAM_ARCH=slc7_amd64_gcc630
-    export CMSSW_VERSION=CMSSW_9_2_10
+    export VO_CMS_SW_DIR=/afs/cern.ch/cms
+    export SCRAM_ARCH=slc6_amd64_gcc493
+    export CMSSW_VERSION=CMSSW_8_0_22
 elif [[ $HOST == *hilton* ]]; then
     # hilton machines
     export VO_CMS_SW_DIR=/opt/offline

@@ -229,6 +229,7 @@ class PlotMaker:
 
         # Calculate the avg and std dev using only the upper half of points
         xVals,yVals = self.combinePoints(data)
+        xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
         x_cut = (max(xVals) - min(xVals))/2
         xVals,yVals = self.combinePoints(data,x_cut)
         avg_y,std_y = self.fitFinder.getSD(yVals)
@@ -251,6 +252,8 @@ class PlotMaker:
                 if abs(tmp_max_y - avg_y) < std_y*4:
                     # Don't let the maximum be set by rate 'spikes'
                     maximumRR.append(max(data[run][1]))
+                else:
+                    maximumRR.append(avg_y + std_y*4)
 
         if not skip_bad_ls_plot:
             # TODO: Possibly apply same 'spike' check to the bad LS lists
