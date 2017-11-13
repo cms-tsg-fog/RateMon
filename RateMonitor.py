@@ -612,7 +612,7 @@ class RateMonitor:
             htmlFile = open(index_dir+"/index.html","wb")
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
-            htmlFile.write("<style>.image { float:right; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
+            htmlFile.write("<style>.image { float:left; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
             for path_name in sorted(png_list):  # This controls the order that the images will be displayed in
                 file_name = "%s/png/%s.png" % (save_dir,path_name)
                 if os.access(file_name,os.F_OK):

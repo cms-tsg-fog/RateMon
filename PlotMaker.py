@@ -227,16 +227,21 @@ class PlotMaker:
         min_xaxis_val = 9999
         max_yaxis_val = 0
 
+        cut_sigma = 6       # Sigma used to remove points from the plot points
+        display_sigma = 4   # Sigma used to cap max y-axis value
+
         # Calculate the avg and std dev using only the upper half of points
+        # NOTE: This leverages the assumption that trigger rates increase with PU
+        # TODO: Only use the x_cut when we have some minimum number of plot points
         xVals,yVals = self.combinePoints(data)
         xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
         x_cut = (max(xVals) - min(xVals))/2
         xVals,yVals = self.combinePoints(data,x_cut)
         avg_y,std_y = self.fitFinder.getSD(yVals)
 
-        # Remove points that are extremely far outside of the avg
+        # Remove points that are extremely far outside of the avg.
         for run in data:
-            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,6)
+            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,cut_sigma)
 
         # Recalculate the avg and std dev
         xVals,yVals = self.combinePoints(data)
@@ -249,11 +254,11 @@ class PlotMaker:
                 minimumVals.append(min(data[run][0]))
 
                 tmp_max_y = max(data[run][1])
-                if abs(tmp_max_y - avg_y) < std_y*4:
+                if abs(tmp_max_y - avg_y) < std_y*display_sigma:
                     # Don't let the maximum be set by rate 'spikes'
                     maximumRR.append(max(data[run][1]))
                 else:
-                    maximumRR.append(avg_y + std_y*4)
+                    maximumRR.append(avg_y + std_y*display_sigma)
 
         if not skip_bad_ls_plot:
             # TODO: Possibly apply same 'spike' check to the bad LS lists
