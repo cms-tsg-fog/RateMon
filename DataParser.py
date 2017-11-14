@@ -18,7 +18,15 @@ from DBParser import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
-orbitsPerSec = 11246.
+orbitsPerSec = 11245.6
+
+LUMI_INFO_MAP = {
+    "LS":       0,
+    "ILUM":     1,
+    "PSI":      2,
+    "PHYS":     3,
+    "CMSREADY": 4
+}
 
 #TODO: Rework how we store run_data info to also include a 'type' field, to avoid problems with identical stream/dataset names
 class DataParser:
@@ -42,8 +50,8 @@ class DataParser:
 
         self.hlt_triggers = []  # List of specific HLT triggers we want to get rates for, if empty --> get all HLT rates
         self.l1_triggers  = []  # List of specific L1 triggers we want to get rates for, if empty --> get all L1 rates
-        self.runs_used    = []
-        self.runs_skipped = []
+        self.runs_used    = []  # List of runs which had rate info for queried objects
+        self.runs_skipped = []  # List of runs which did not have rate info for queried objects
         self.name_list = []     # List of all named objects for which we have data, e.g. triggers, datasets, streams, etc...
         self.psi_filter = []
         self.type_map = {}      # Maps each object name to a type: trigger, dataset, stream, or L1A
@@ -99,16 +107,16 @@ class DataParser:
             if bunches is None or bunches is 0:
                 bunches = 1
 
-            # [( LS,ilum,psi,phys,cms_ready ) ]
-            lumi_info = self.parseLumiInfo(run)
-            #if self.use_best_lumi:
-            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=0)
-            #elif self.use_PLTZ_lumi:
-            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=1)
-            #elif self.use_HF_lumi:
-            #    lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
-
+            lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
             run_data = self.getRunData(run,bunches,lumi_info)
+            if len(run_data.keys()) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
+                self.runs_skipped.append(run)
+                continue
+            else:
+                self.runs_used.append(run)
+                self.bunch_map[run] = bunches
+                self.lumi_info[run] = lumi_info
+
             for name in run_data:
                 if name in self.name_veto:
                     continue
@@ -145,13 +153,6 @@ class DataParser:
                 self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
-
-            if len(run_data.keys()) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
-                self.runs_skipped.append(run)
-            else:
-                self.runs_used.append(run)
-                self.bunch_map[run] = bunches
-                self.lumi_info[run] = lumi_info
 
     def parseLumiInfo(self,run):
         # [( LS,ilum,psi,phys,cms_ready ) ]
@@ -753,5 +754,21 @@ class DataParser:
     def getTypeMap(self):
         # type: () -> Dict[str,str]
         return self.type_map
+
+    # Return the latest LS for a given run or -1
+    def getLastLS(self,run):
+        # type: (int) -> int
+        if not run in self.runs_used:
+            return -1
+        index = LUMI_INFO_MAP["LS"]
+        return max(self.lumi_info[run],key=lambda x: x[index])[index]
+
+    # Return the latest run for which we have data or -1
+    def getLastRun(self):
+        # type: () -> int
+        if len(self.runs_used) == 0:
+            return -1
+        return max(self.runs_used)
+
 
 
