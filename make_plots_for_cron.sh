@@ -18,8 +18,8 @@ source set.sh
 
 theFillsAndRuns=$(python test_dump_fills_runs.py)
 
-theRuns="${theFillsAndRuns[@]:5}"
-theFill="${theFillsAndRuns[@]:0:4}"
+theRuns="${theFillsAndRuns[@]:5}"       # <-- This will break at fill 10000 (near the end of Run 3?)
+theFill="${theFillsAndRuns[@]:0:4}"     # <-- This will break at fill 10000 (near the end of Run 3?)
 
 #theRuns="284006 284014"
 #theFill=5450
