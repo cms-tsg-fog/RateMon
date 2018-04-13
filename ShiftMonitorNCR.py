@@ -238,6 +238,19 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
           period    = 600., # s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
 
+        # set upper threshold for the L1 bit that monitor Laser Misfires for HCAL
+        l1_hcalLaserMisfires_rate_alert = RateAlert(
+          message   = 'high rate of HCAL laser misfire'
+          details   = '''
+Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
+''',
+          level     = AlertLevel.WARNING,
+          measure   = lambda rates: rates['L1_HCAL_LaserMon_Veto'] / 1000.,     # thresholds are in Hz
+          threshold =  10., #kHz
+          period    = 600., #s
+          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+        
+
         l1_met_rate_alert = PriorityAlert(l1_centralmet_rate_alert, l1_formwardmet_rate_alert)
 
         self.l1t_rate_alert = MultipleAlert(
@@ -245,7 +258,8 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
           l1_singlemu_rate_alert,
           l1_singleeg_rate_alert,
           l1_singlejet_rate_alert,
-          l1_met_rate_alert )
+          l1_met_rate_alert,
+          l1_hcalLaserMisfires_rate_alert)
 
         # Other options
         self.quiet = False              # Prints fewer messages in this mode
