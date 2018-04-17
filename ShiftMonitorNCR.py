@@ -240,7 +240,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 
         # set upper threshold for the L1 bit that monitor Laser Misfires for HCAL
         l1_hcalLaserMisfires_rate_alert = RateAlert(
-          message   = 'high rate of HCAL laser misfire'
+          message   = 'high rate of HCAL laser misfire',
           details   = '''
 Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 ''',
