@@ -245,8 +245,8 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
 Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 ''',
           level     = AlertLevel.WARNING,
-          measure   = lambda rates: rates['L1_HCAL_LaserMon_Veto'] / 1000.,     # thresholds are in Hz
-          threshold =  10., #kHz
+          measure   = lambda rates: rates['L1_HCAL_LaserMon_Veto'],     # thresholds are in Hz
+          threshold =  100., #Hz
           period    = 600., #s
           actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
         
