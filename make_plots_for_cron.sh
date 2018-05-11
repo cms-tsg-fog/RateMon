@@ -4,13 +4,13 @@
 # 59 * * * * /data/RateMon/make_plots_for_cron.sh > /dev/null
 
 #thisDir=/afs/cern.ch/work/g/gesmith/runCert/AndrewBranchCron/RateMon
-#thisDir=/afs/cern.ch/work/a/awightma/RateMon
-thisDir=/data/RateMon
+thisDir=/afs/cern.ch/work/a/awightma/RateMon
+#thisDir=/data/RateMon
 
 #outputDirBase=/afs/cern.ch/user/g/gesmith/www/HLT/RateVsPU/
 #outputDirBase=$thisDir/tempTest/
-#outputDirBase=/afs/cern.ch/user/a/awightma/www/dev/cron_output_test/
-outputDirBase=/cmsnfsrateplots/rateplots/
+outputDirBase=/afs/cern.ch/user/a/awightma/www/dev/cron_output_test/
+#outputDirBase=/cmsnfsrateplots/rateplots/
 
 cd $thisDir
 
@@ -27,18 +27,23 @@ theFill="${theFillsAndRuns[@]:0:4}"     # <-- This will break at fill 10000 (nea
 #theRuns="284025 284029 284035 284036 284037 284038 284039 284040 284041 284042 284043 284044"
 #theFill=5451
 
+theRuns="314472 314473 314474 314475 314476 314477 314478 314479 314480 314481 314482 314483 314485 314486 314487"
+theFill=6570
+
 # Do subset of triggers:
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/2016/FOG.pkl --saveDirectory=$outputDirBase$theFill $theRuns
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory=$outputDirBase$theFill $theRuns
 
-python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/Monitor_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}" $theRuns
+#python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --fitFile=Fits/Monitor_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}" $theRuns
+python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory="${thisDir}/${theFill}" $theRuns
 #python plotTriggerRates.py --triggerList=monitorlist_COLLISIONS.list --saveDirectory="${thisDir}/${theFill}" $theRuns
 
 # Do "All triggers" plots:
 #python plotTriggerRates.py --triggerList=monitorlist_ALL.list --fitFile=Fits/AllTriggers/FOG.pkl --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
 #python plotTriggerRates.py --saveDirectory=$outputDirBase$theFill/MoreTriggers --cronJob $theRuns
 
-python plotTriggerRates.py --fitFile=Fits/All_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
+#python plotTriggerRates.py --fitFile=Fits/All_Triggers/FOG.pkl --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
+python plotTriggerRates.py --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
 #python plotTriggerRates.py --saveDirectory="${thisDir}/${theFill}/MoreTriggers" --cronJob $theRuns
 
 if [ -d "${outputDirBase}${theFill}" ]; then
