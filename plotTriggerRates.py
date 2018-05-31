@@ -31,6 +31,10 @@ class MonitorController:
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
         self.rate_monitor.object_list = []
 
+	self.set_plotter_fits = False 
+	
+	self.compareFits = False
+
         self.rate_monitor.use_fills          = False
         self.rate_monitor.use_pileup         = True
         self.rate_monitor.use_lumi           = False
@@ -66,7 +70,6 @@ class MonitorController:
         self.rate_monitor.plotter.ls_options['rm_bad_beams'] = False
         self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
 
-
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
@@ -98,7 +101,8 @@ class MonitorController:
                 "vsLS",
                 "useCrossSection",
                 "useFills",
-                "useBunches"
+                "useBunches",
+		"compareFits="
             ])
 
         except:
@@ -111,7 +115,8 @@ class MonitorController:
                 # Specify the .pkl file to be used to extract fits from
                 # TODO: Needs to be updated to account for the fact that the plotter is expecting a different input
                 fits = self.readFits(str(op))
-                self.rate_monitor.plotter.setFits(fits)
+                #self.rate_monitor.plotter.setFits(fits)
+		self.set_plotter_fits = True 		
 
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
@@ -296,7 +301,7 @@ class MonitorController:
                 self.rate_monitor.plotter.show_eq     = True
             elif label == "--multiFit":
                 # Specify that we should plot all of the fit functions on the same plot
-                self.rate_monitor.make_fits = True
+                #self.rate_monitor.make_fits = True
 
                 self.rate_monitor.plotter.use_fit       = True
                 self.rate_monitor.plotter.use_multi_fit = True
@@ -332,6 +337,10 @@ class MonitorController:
             elif label == "--useBunches":
                 # Don't try to normalize the rates by colliding bunches
                 self.rate_monitor.data_parser.normalize_bunches = False
+	    elif label == "--compareFits":
+		data_dict = self.readDataListTextFile(str(op))
+		self.rate_monitor.data_dict = data_dict 
+		self.compareFits = True 
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -343,14 +352,27 @@ class MonitorController:
                 arg_list.append(int(item))
             if self.rate_monitor.use_fills:
                 self.rate_monitor.fill_list = arg_list
-                self.rate_monitor.run_list = self.getRuns(arg_list)
+                #self.rate_monitor.run_list = self.getRuns(arg_list)
+		self.rate_monitor.data_dict['user_input'] = self.getRuns(arg_list)
             else:
                 self.rate_monitor.fill_list = []
-                self.rate_monitor.run_list = arg_list
+                #self.rate_monitor.run_list = arg_list
+		self.rate_monitor.data_dict['user_input'] = arg_list 
+	
+	# Append the user specified fills or runs to the dictionary made from the compareFits text file 
+	
+	unique_runs = set()
+	for data_group,runs in self.rate_monitor.data_dict.iteritems():
+		unique_runs = unique_runs.union(runs)
+	self.rate_monitor.run_list = list(unique_runs)
+	#print self.rate_monitor.run_list 
 
         if len(self.rate_monitor.run_list) == 0:
             print "ERROR: No runs specified!"
             return False
+
+	if self.set_plotter_fits: 
+	    self.rate_monitor.plotter.setFits(fits)
 
         # This needs to be done after we have our run_list, otherwise we can't get the run_list!
         if self.do_cron_job:
@@ -466,19 +488,31 @@ class MonitorController:
         print "Reading fit file: %s" % (fit_file)
 
         try:
-            pkl_file = open(fit_file, 'rb')
-            fits = pickle.load(pkl_file)    # {'obj': fit_params}
-            pkl_file.close()
-            tmp_dict = {}                   # {'obj': {'fit_type': fit_params } }
-            for obj in fits:
-                if fits[obj] is None:
-                    # We were unable to generate a proper fit for this trigger
-                    continue
-                fit_type = fits[obj][0]
-                tmp_dict[obj] = {}
-                tmp_dict[obj][fit_type] = fits[obj]
-            fits = tmp_dict
-            return fits
+	    pkl_file = open(fit_file, 'rb')
+	    fits = pickle.load(pkl_file)    # {'obj': fit_params}
+	    pkl_file.close()
+	  
+	    for trig in fits:
+		if type(fits[trig]) is list:
+		    fits_format = 'dict_of_lists' 
+		if type(fits[trig]) is dict: 
+		    fits_format = 'nested_dict'  
+
+	    if fits_format is 'dict_of_lists': 
+		    tmp_dict = {}                   # {'obj': {'fit_type': fit_params } }
+		    for obj in fits:
+			if fits[obj] is None:
+			    # We were unable to generate a proper fit for this trigger
+			    continue
+			fit_type = fits[obj][0]
+			tmp_dict[obj] = {}
+			tmp_dict[obj][fit_type] = fits[obj]
+		    fits = tmp_dict
+		    return fits
+	    
+	    if fits_format is 'nested_dict': 
+		    return fits  
+ 
         except:
             # File failed to open
             print "Error: could not open fit file: %s" % (fit_file)
@@ -539,6 +573,32 @@ class MonitorController:
     def run(self):
         # type: () -> None
         if self.parseArgs(): self.rate_monitor.run()
+
+    # Append arguments to text file of list of runs 
+
+
+
+    # Read text file of lists of runs 
+    def readDataListTextFile(self,datalist_file):
+        path = datalist_file
+        f = open(path,'r')
+        dict1 = {}
+        i=1
+        for line in f:
+                key = 'data%i' %(i)
+                data1 = []
+                for run in line.split():
+			data1.append(int(run))
+                        dict1[key] = data1
+                i=i+1
+
+	if self.rate_monitor.use_fills == True:
+		for key in dict1:
+			dict1[key] = self.getRuns(dict1[key])
+
+        f.close()
+        return dict1
+
 
 ## ----------- End of class MonitorController ------------ #
 

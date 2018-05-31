@@ -90,7 +90,7 @@ class FitFinder:
                             if not nan_fits.has_key(trigger):
                                 nan_fits[trigger] = {}
                             if not nan_fits[trigger].has_key(fit_type):
-                                nan_fits[trigger][fit_type] = i
+                                nan_fits[trigger][fit_type] = i 
                             new_fit[fit_type][i] = 0.0
                         # Re-apply the normalization
                         if fit_type == "sinh":
@@ -328,18 +328,46 @@ class FitFinder:
     # If no fit_type is specified, we save the fit with the smallest MSE
     def saveFits(self,fits,fname,fdir,fit_type=None):
         fits_to_save = {}           # {'trigger': fit_params}
-        for trigger in fits:
-            if fit_type is None:
-                b_type, b_fit = self.getBestFit(fits[trigger])
-                fits_to_save[trigger] = b_fit
-            else:
-                fits_to_save[trigger] = fits[trigger][fit_type]
+#        for trigger in fits:
+#            if fit_type is None:
+#                b_type, b_fit = self.getBestFit(fits[trigger])
+#                fits_to_save[trigger] = b_fit
+#            else:
+#                fits_to_save[trigger] = fits[trigger][fit_type]
 
         path = os.path.join(fdir,fname)
         f = open(path, "wb")
-        pickle.dump(fits_to_save,f, 2)
+#        pickle.dump(fits_to_save,f, 2)
+	pickle.dump(fits,f, 2)
         f.close()
         print "Fit file saved to: %s" % path
+
+
+
+    # Merges two fits together 
+    def mergeFits(self,fits1,fits2,label):
+        new_fits = {}
+
+        # Set new_fits = fits1: 
+        for trig_name in fits1.keys():
+                new_fits[trig_name] = fits1[trig_name]
+
+        # Iterate over triggers in Fits2: 
+        for trig_name in fits2.keys():
+
+                #If fits2 has a trigger not in Fits1, add it to new_fits (and change fit_type name), exit iteration of loop: 
+                if not new_fits.has_key(trig_name):
+                        new_fits[trig_name] = {} 
+
+                # If for the same trigger Fits2 has a fit_type not in Fits1, add it to new_fits (and change fit_type name):  
+                for fit_type in fits2[trig_name].keys():
+                        new_fit_type = fit_type+' %s' %(label)
+                        new_fits[trig_name][new_fit_type] = fits2[trig_name][fit_type]
+
+        return new_fits
+
+	
+
 
         ## ----------- End of class FitFinder ------------ ## 
 
