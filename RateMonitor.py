@@ -65,6 +65,7 @@ class RateMonitor:
         # TESTING: END #
 
         self.group_map = {}     # {'group_name': [trigger_name] }
+	self.data_dict = {}
 
         self.fill_list   = []   # Fills to get data from, Currently Unused
         self.run_list    = []   # Runs to get data from
@@ -136,14 +137,18 @@ class RateMonitor:
             y_vals = self.data_parser.getRateData()
 
         # Now we fill plot_data with *ALL* the objects we have data for
-        plot_data = {}     # {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
-        for name in self.data_parser.getNameList():
-            if not plot_data.has_key(name):
-                plot_data[name] = {}
-            for run in sorted(self.data_parser.getRunsUsed()):
-                if not x_vals[name].has_key(run):
-                    continue
-                plot_data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
+        
+	#plot_data = {}     # {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
+        #for name in self.data_parser.getNameList():
+        #    if not plot_data.has_key(name):
+        #        plot_data[name] = {}
+        #    for run in sorted(self.data_parser.getRunsUsed()):
+        #        if not x_vals[name].has_key(run):
+        #            continue
+        #        plot_data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
+
+	plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.data_dict['user_input'])
+
 
         # If no objects are specified, plot everything!
         if len(self.object_list) == 0:
@@ -163,7 +168,18 @@ class RateMonitor:
 
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
-            fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
+            #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
+	
+	    fits = {}
+	    for k,runs in self.data_dict.iteritems():
+		data = self.getData(x_vals,y_vals,det_status,phys_status,runs)
+		data_fits = self.fitter.makeFits(data,self.object_list,normalization)
+		
+		if k is 'user_input':
+			fits = self.fitter.mergeFits(fits,data_fits,'')
+		if k is not 'user_input': 
+			fits = self.fitter.mergeFits(fits,data_fits,k)
+
             self.fitter.saveFits(fits,"fit_file.pkl",self.save_dir)
             self.plotter.setFits(fits)
         elif self.update_online_fits:
@@ -626,6 +642,24 @@ class RateMonitor:
             htmlFile.write("</html>\n")
         except:
             print "Unable to write index.html file"
+    
+    # Returns {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
+    def getData(self,x_vals,y_vals,det_status,phys_status,runs=[]):
+        data = {}
 
+        for name in self.data_parser.getNameList():
+                if not data.has_key(name):
+                        data[name] = {}
+
+                for run in sorted(self.data_parser.getRunsUsed()):
+                        if not x_vals[name].has_key(run):
+                                continue
+                        if len(runs)>0 and run not in runs:
+                                continue
+                        data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
+        return data
+
+
+	
 # --- End --- #
 
