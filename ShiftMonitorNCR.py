@@ -1115,7 +1115,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             except:
                 #print "No rate information available for trigger '%s' in lumisection %d" % (trigger, latestLS)
                 rates[trigger] = 0.
-        if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3:
+        if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
             if not self.l1t_rate_alert.check(rates):
                 self.l1t_rate_alert.alert()
 
