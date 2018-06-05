@@ -113,7 +113,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx"]
+        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx","L1_SingleMu7er1p5"] # Triggers which have these strings in the name will not produce any warnings
 
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
