@@ -1253,4 +1253,24 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
         mailAlert(mail)
 
+    # Use: Dumps trigger thresholds to a JSON file
+    # Returns: (void)
+    def dumpTriggerThresholds(self,triggers,ilum,fp_name):
+    # Format: {'trigger_name': [central_value,one_sigma_variance]}
+    thresholds = {}
+    for t in triggers:
+        rate = self.calculateRate(t,ilum)
+        mse = self.getMSE(t)
+        if rate == 0 or mse == 0:
+        # Skip triggers which are missing fits
+        continue
+        thresholds[t] = [rate,mse]
+        #print t  
+    with open(fp_name,'w') as fp:
+        json.dump(thresholds,fp,indent=4,separators=(',',': '),sort_keys=True)
+
+
+
+
+
 ## ----------- End of class ShiftMonitor ------------ ##
