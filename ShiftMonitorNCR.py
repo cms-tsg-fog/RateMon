@@ -53,7 +53,7 @@ class ShiftMonitor:
 
     def __init__(self):
 
-	self.FitFinder = FitFinder()	
+        self.FitFinder = FitFinder()
 
         # Suppress root warnings
         ROOT.gErrorIgnoreLevel = 7000
@@ -263,7 +263,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
           l1_singlemu_rate_alert,
           l1_singleeg_rate_alert,
           l1_singlejet_rate_alert,
-	  l1_hcalLaserMisfires_rate_alert,
+          l1_hcalLaserMisfires_rate_alert,
           l1_met_rate_alert )
 
         # Other options
@@ -341,31 +341,31 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.fitFile != "":
             inputFit = self.loadFit(self.fitFile)
             
-	    for triggerName in inputFit:
+            for triggerName in inputFit:
                 if type(inputFit[triggerName]) is list:
                     fits_format = 'dict_of_lists'
                 if type(inputFit[triggerName]) is dict:
                     fits_format = 'nested_dict'
 
-	    if fits_format is 'dict_of_lists':
-		for triggerName in inputFit:
-		    if triggerName[0:3] == "L1_":
-			if self.InputFitL1 is None: self.InputFitL1 = {}
-			self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
-		    elif triggerName[0:4] == "HLT_":
-			if self.InputFitHLT is None: self.InputFitHLT = {}
-			self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
+            if fits_format is 'dict_of_lists':
+                for triggerName in inputFit:
+                    if triggerName[0:3] == "L1_":
+                        if self.InputFitL1 is None: self.InputFitL1 = {}
+                        self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
+                    elif triggerName[0:4] == "HLT_":
+                        if self.InputFitHLT is None: self.InputFitHLT = {}
+                        self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
 
-	    if fits_format is 'nested_dict':
-		for triggerName in inputFit:
-		    best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc] 
-		    if triggerName[0:3] == "L1_":
-			if self.InputFitL1 is None: self.InputFitL1 = {}
-			self.InputFitL1[stripVersion(triggerName)] = best_fit
-		    elif triggerName[0:4] == "HLT_":
-			if self.InputFitHLT is None: self.InputFitHLT = {}
-			self.InputFitHLT[stripVersion(triggerName)] = best_fit
-	
+            if fits_format is 'nested_dict':
+                for triggerName in inputFit:
+                    best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc] 
+                    if triggerName[0:3] == "L1_":
+                        if self.InputFitL1 is None: self.InputFitL1 = {}
+                        self.InputFitL1[stripVersion(triggerName)] = best_fit
+                    elif triggerName[0:4] == "HLT_":
+                        if self.InputFitHLT is None: self.InputFitHLT = {}
+                        self.InputFitHLT[stripVersion(triggerName)] = best_fit
+        
         # Sort trigger list into HLT and L1 trigger lists
         if self.triggerList!="":
             for triggerName in self.triggerList:

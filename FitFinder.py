@@ -328,17 +328,17 @@ class FitFinder:
     # If no fit_type is specified, we save the fit with the smallest MSE
     def saveFits(self,fits,fname,fdir,fit_type=None):
         fits_to_save = {}           # {'trigger': fit_params}
-#        for trigger in fits:
-#            if fit_type is None:
-#                b_type, b_fit = self.getBestFit(fits[trigger])
-#                fits_to_save[trigger] = b_fit
-#            else:
-#                fits_to_save[trigger] = fits[trigger][fit_type]
+        #for trigger in fits:
+        #    if fit_type is None:
+        #        b_type, b_fit = self.getBestFit(fits[trigger])
+        #        fits_to_save[trigger] = b_fit
+        #    else:
+        #        fits_to_save[trigger] = fits[trigger][fit_type]
 
         path = os.path.join(fdir,fname)
         f = open(path, "wb")
-#        pickle.dump(fits_to_save,f, 2)
-	pickle.dump(fits,f, 2)
+        #pickle.dump(fits_to_save,f, 2)
+        pickle.dump(fits,f, 2)
         f.close()
         print "Fit file saved to: %s" % path
 
@@ -365,8 +365,6 @@ class FitFinder:
                         new_fits[trig_name][new_fit_type] = fits2[trig_name][fit_type]
 
         return new_fits
-
-	
 
 
         ## ----------- End of class FitFinder ------------ ## 
