@@ -18,6 +18,7 @@ from ROOT import TF1
 import cPickle as pickle
 import sys
 import time
+import json 
 # For colors
 from termcolor import *
 from colors import *
@@ -131,6 +132,12 @@ class ShiftMonitor:
         #self.maxL1Rate = 30000          # The maximum prescaled rate we allow an L1 Trigger to have
         self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
+
+        self.mailTriggers = []          # A list of triggers that we should mail alerts about
+        self.emailPeriod = 5*60         # Lenght of time inbetween emails 
+        self.emailSendTime = 0          # Time at which last email was sent 
+
+
 
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
@@ -504,6 +511,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             self.isUpdating = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
+    
+        #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
     def setMode(self):
         self.sendMailAlerts_dynamic = self.sendMailAlerts_static
@@ -1120,18 +1129,31 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.l1t_rate_alert.alert()
 
         # Print warnings for triggers that have been repeatedly misbehaving
-        mailTriggers = [] # A list of triggers that we should mail alerts about
+        #mailTriggers = [] # A list of triggers that we should mail alerts about
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= 1:
                     print "Trigger %s has been out of line for more than %.1f minutes" % (trigger, float(self.badRates[trigger][0])*self.scale_sleeptime)
                 # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
-                if self.badRates[trigger][0] == self.maxCBR:
-                    mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+
+                inlist = 0 
+                for sublist in range(len(self.mailTriggers)):
+                    if trigger == self.mailTriggers[sublist][0]:  
+                        inlist = 1 
+                if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
+                    self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+
+                #if self.badRates[trigger][0] == self.maxCBR: 
+                #    self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+
         # Send mail alerts
-        if len(mailTriggers)>0 and self.isUpdating:
-            if self.sendMailAlerts_static and self.sendMailAlerts_dynamic: self.sendMail(mailTriggers)
+        if len(self.mailTriggers)>0 and self.isUpdating and (time.time() - self.emailSendTime) < self.emailPeriod:
+            if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
+                self.sendMail(self.mailTriggers)
+                self.emailSendTime = time.time()
+                self.mailTriggers = [] 
             if self.sendAudioAlerts: audioAlert('PLEASE CHECK TRIGGER RATES')
+            
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1164,13 +1186,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Calculates the expected rate for a trigger at a given ilumi based on our input fit
     def calculateRate(self, triggerName, ilum):
         # Make sure we have a fit for the trigger
-        if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
+
+        paramlist = []
+        if not self.InputFitHLT is None and self.InputFitHLT.has_key(triggerName):
+            paramlist = self.InputFitHLT[triggerName]
+        elif not self.InputFitL1 is None and self.InputFitL1.has_key(triggerName):
+            paramlist = self.InputFitL1[triggerName]
+        else:
             return 0
-        elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
-            return 0
+
+        #if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
+        #    return 0
+        #elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
+        #    return 0
         # Get the param list
-        if self.L1: paramlist = self.InputFitL1[triggerName]
-        else: paramlist = self.InputFitHLT[triggerName]
+        #if self.L1: paramlist = self.InputFitL1[triggerName]
+        #else: paramlist = self.InputFitHLT[triggerName]
+
         # Calculate the rate
         #if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
         #else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
@@ -1193,12 +1225,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Gets the MSE of the fit
     def getMSE(self, triggerName):
-        if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
-            return 0
-        elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
-            return 0
-        if self.L1: paramlist = self.InputFitL1[triggerName]
-        else: paramlist = self.InputFitHLT[triggerName]
+
+        paramlist = [] 
+        if not self.InputFitHLT is None and self.InputFitHLT.has_key(triggerName):
+            paramlist = self.InputFitHLT[triggerName]
+        elif not self.InputFitL1 is None and self.InputFitL1.has_key(triggerName):
+            paramlist = self.InputFitL1[triggerName] 
+        else:
+            return 0 
+
+        #if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
+        #    return 0
+        #elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
+        #    return 0
+        #if self.L1: paramlist = self.InputFitL1[triggerName]
+        #else: paramlist = self.InputFitHLT[triggerName]
+
         if self.pileUp:
             return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
@@ -1207,7 +1249,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Parameters:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
-    def sendMail(self, mailTriggers):
+    def sendMail(self,mailTriggers):
+       
         mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
         try:
             mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
@@ -1253,23 +1296,21 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
         mailAlert(mail)
 
+
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
     def dumpTriggerThresholds(self,triggers,ilum,fp_name):
-    # Format: {'trigger_name': [central_value,one_sigma_variance]}
-    thresholds = {}
-    for t in triggers:
-        rate = self.calculateRate(t,ilum)
-        mse = self.getMSE(t)
-        if rate == 0 or mse == 0:
-        # Skip triggers which are missing fits
-        continue
-        thresholds[t] = [rate,mse]
-        #print t  
-    with open(fp_name,'w') as fp:
-        json.dump(thresholds,fp,indent=4,separators=(',',': '),sort_keys=True)
-
-
+        # Format: {'trigger_name': [central_value,one_sigma_variance]}
+        thresholds = {}
+        for t in triggers: 
+            rate = self.calculateRate(t,ilum)
+            mse = self.getMSE(t)
+            if rate == 0 or mse == 0:
+                # Skip triggers which are missing fits
+                continue
+            thresholds[t] = [rate,mse]
+        with open(fp_name,'w') as fp:
+            json.dump(thresholds,fp,indent=4,separators=(',',': '),sort_keys=True)
 
 
 
