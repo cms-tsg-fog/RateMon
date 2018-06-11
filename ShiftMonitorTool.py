@@ -33,7 +33,7 @@ class CommandLineParser:
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=",
                                                        "window=","AllTriggers", "L1Triggers", "run=", "keepZeros",
                                                        "quiet", "noColors", "noAlerts", "noMail", "noAudio", "usePerDiff", "hideStreams",
-                                                       "maxStream=", "maxHLTRate=", "maxL1Rate="])
+                                                       "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
         except:
             print "Error getting options. Exiting."
             exit(1)
@@ -63,11 +63,12 @@ class CommandLineParser:
                 self.monitor.sendMailAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
-            ##elif label == "--simulate":
-            ##    self.monitor.sendMailAlerts = True
-            ##    self.monitor.runNumber = int(op)
-            ##    self.monitor.simulate = True
-            ##    self.monitor.assignedNum = True
+            elif label == "--simulate":
+            #    self.monitor.sendMailAlerts = True
+                self.monitor.runNumber = int(op)
+                self.monitor.simulate = True
+                self.monitor.useLSRange = True 
+            #    self.monitor.assignedNum = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--AllTriggers":
