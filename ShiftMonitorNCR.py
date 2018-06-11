@@ -81,14 +81,15 @@ class ShiftMonitor:
 
         # Running over a previouly done run
         self.assignedNum = False        # If true, we look at the assigned run, not the latest run
-        self.LSRange = []               # If we want to only look at a range of LS from the run
-        ##self.simulate = False           # Simulate running through and monitoring a previous run
+        self.LSRange = [0,0]            # If we want to only look at a range of LS from the run
+        self.simulate = False           # Simulate running through and monitoring a previous run
 
         # Lumisection control
         self.lastLS = 1                 # The last LS that was processed last segment
         self.currentLS = 1              # The latest LS written to the DB
         self.slidingLS = -1             # The number of LS to average over, use -1 for no sliding LS
         self.useLSRange = False         # Only look at LS in a certain range
+        self.LS_increment = 3 
 
         # Mode
         self.triggerMode = None         # The trigger mode
@@ -401,8 +402,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         #    self.runLoop()
         #    self.checkTriggers()
         #    return
-
-        self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        
+ 
+        if not self.simulate:
+            self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
         # Info message
         print "The current run number is %s." % (self.runNumber)
 
@@ -414,7 +417,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             try:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
-                self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+                if not self.simulate: 
+                    self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 self.runLoop()
                 self.checkTriggers()
                 self.sleepWait()
@@ -465,6 +469,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[1] = 1
         else:
             self.LHCStatus[1] += 1
+    
+        if self.simulate: 
+            self.LHCStatus[0] = 'Stable' 
+    
+        if self.simulate: 
+            self.LSRange[0] = self.currentLS  
+            self.LSRange[1] = self.currentLS + self.LS_increment   
 
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.getRates()
@@ -498,16 +509,19 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.lastLS = self.currentLS
         # Update current LS
         if len(lslist) > 0: self.currentLS = max(lslist)
+    
 
-        if self.useLSRange: # Adjust runs so we only look at those in our range
-            self.slidingLS = -1 # No sliding LS window
-            self.lastLS = max( [self.lastLS, self.LSRange[0]] )
-            self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
+        #if self.useLSRange: # Adjust runs so we only look at those in our range
+        #    self.slidingLS = -1 # No sliding LS window
+        #    #self.lastLS = max( [self.lastLS, self.LSRange[0]] )
+        #    #self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
 
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
             self.printTable()
             self.isUpdating = True
+        elif self.simulate:
+            raise KeyboardInterrupt
         else:
             self.isUpdating = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
@@ -1147,7 +1161,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 #    self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
 
         # Send mail alerts
-        if len(self.mailTriggers)>0 and self.isUpdating and (time.time() - self.emailSendTime) < self.emailPeriod:
+        if len(self.mailTriggers)>0 and self.isUpdating and (time.time() - self.emailSendTime) > self.emailPeriod:
             if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
                 self.sendMail(self.mailTriggers)
                 self.emailSendTime = time.time()
