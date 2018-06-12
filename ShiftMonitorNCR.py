@@ -301,7 +301,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         except:
             print "File", fileName, "(a trigger list file) failed to open."
             return
-
         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
         TriggerList = []
         for triggerName in allTriggerNames:
@@ -426,36 +425,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 print "Quitting. Bye."
                 break
 
-    ##def simulateRun(self):
-    ##    modTime = 0
-    ##    # Get the rates
-    ##    self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
-    ##    # Set the trigger mode
-    ##    self.setMode()
-    ##    # Get the rates for the entire run
-    ##    self.getRates()
-    ##    # Find the max LS for that run
-    ##    trig = self.Rates.keys()[0]
-    ##    self.lastLS = self.currentLS
-    ##    maxLS = max(self.Rates[trig].keys())
-    ##    # Simulate the run
-    ##    self.lastRunNumber = self.runNumber
-    ##    self.lastLS = 1
-    ##    while self.currentLS < maxLS:
-    ##        modTime += 23.3
-    ##        self.currentLS += 1
-    ##        if modTime > 60 or self.currentLS == maxLS:
-    ##            modTime -= 60
-    ##            # Print table
-    ##            self.runLoop()
-    ##            # Check for bad triggers
-    ##            self.checkTriggers()
-    ##            # We would sleep here if this was an online run
-    ##            if not self.quiet: print "Simulating 60 s of sleep..."
-    ##            self.lastLS = self.currentLS
-    ##    print "End of simulation"
-
-
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
     def runLoop(self):
@@ -469,13 +438,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[1] = 1
         else:
             self.LHCStatus[1] += 1
-    
+
         if self.simulate: 
             self.LHCStatus[0] = 'Stable' 
-    
-        if self.simulate: 
-            self.LSRange[0] = self.currentLS  
-            self.LSRange[1] = self.currentLS + self.LS_increment   
+            self.LSRange[0] = self.currentLS
+            self.LSRange[1] = self.currentLS + self.LS_increment
 
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.getRates()
@@ -487,7 +454,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.currentLS = 0
             # Check what mode we are in
             self.setMode()
-            #self.getRates()
             self.redoTriggerLists()
 
         # Construct (or reconstruct) trigger lists
@@ -509,12 +475,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.lastLS = self.currentLS
         # Update current LS
         if len(lslist) > 0: self.currentLS = max(lslist)
-    
-
-        #if self.useLSRange: # Adjust runs so we only look at those in our range
-        #    self.slidingLS = -1 # No sliding LS window
-        #    #self.lastLS = max( [self.lastLS, self.LSRange[0]] )
-        #    #self.currentLS = min( [self.currentLS, self.LSRange[1] ] )
 
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
@@ -582,8 +542,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # Re-make trigger lists
         for trigger in self.HLTRates.keys():
-            #if (not self.InputFitHLT is None and self.InputFitHLT.has_key(trigger)) and \
-            #(len(self.TriggerListHLT) !=0 and trigger in self.TriggerListHLT):
             if trigger in self.TriggerListHLT:
                 self.usableHLTTriggers.append(trigger)
             elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
@@ -591,8 +549,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger)
 
         for trigger in self.L1Rates.keys():
-            #if (not self.InputFitL1 is None and self.InputFitL1.has_key(trigger)) and \
-            #(len(self.TriggerListL1) != 0 and trigger in self.TriggerListL1):
             if trigger in self.TriggerListL1:
                 self.usableL1Triggers.append(trigger)
             elif trigger[0:3] == "L1_" and (self.triggerList == "" or trigger in self.TriggerListL1):
@@ -604,15 +560,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
         if not self.useLSRange:
-            #self.HLTRates = self.parser.getRawRates(self.runNumber, self.lastLS)
-            #self.L1Rates = self.parser.getL1RawRates(self.runNumber)
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
             self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
             self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
         else:
-            #self.HLTRates = self.parser.getRawRates(self.runNumber, self.LSRange[0], self.LSRange[1])
-            #self.L1Rates = self.parser.getL1RawRates(self.runNumber)
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.LSRange[0],self.LSRange[1])
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1],1)
             self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
@@ -1143,7 +1095,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.l1t_rate_alert.alert()
 
         # Print warnings for triggers that have been repeatedly misbehaving
-        #mailTriggers = [] # A list of triggers that we should mail alerts about
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= 1:
@@ -1153,7 +1104,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 inlist = 0 
                 for sublist in range(len(self.mailTriggers)):
                     if trigger == self.mailTriggers[sublist][0]:  
-                        inlist = 1 
+                        inlist = 1
+                        break
                 if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
                     self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
 
@@ -1161,13 +1113,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 #    self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
 
         # Send mail alerts
-        if len(self.mailTriggers)>0 and self.isUpdating and (time.time() - self.emailSendTime) > self.emailPeriod:
+        if len(self.mailTriggers) > 0 and self.isUpdating and (time.time() - self.emailSendTime) > self.emailPeriod:
             if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
                 self.sendMail(self.mailTriggers)
                 self.emailSendTime = time.time()
                 self.mailTriggers = [] 
             if self.sendAudioAlerts: audioAlert('PLEASE CHECK TRIGGER RATES')
-            
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1209,17 +1160,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             return 0
 
-        #if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
-        #    return 0
-        #elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
-        #    return 0
-        # Get the param list
-        #if self.L1: paramlist = self.InputFitL1[triggerName]
-        #else: paramlist = self.InputFitHLT[triggerName]
-
         # Calculate the rate
-        #if paramlist[0]=="exp": funcStr = "%s + %s*expo(%s+%s*x)" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Exponential
-        #else: funcStr = "%s+x*(%s+ x*(%s+x*%s))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4]) # Polynomial
         if paramlist[0] == "exp":          # Exponential
              funcStr = "%.15f + %.5f*exp( %.15f+%.15f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
         elif paramlist[0] == "linear":     # Linear
@@ -1246,14 +1187,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         elif not self.InputFitL1 is None and self.InputFitL1.has_key(triggerName):
             paramlist = self.InputFitL1[triggerName] 
         else:
-            return 0 
-
-        #if not self.L1 and (self.InputFitHLT is None or not self.InputFitHLT.has_key(triggerName)):
-        #    return 0
-        #elif self.L1 and ((self.InputFitL1 is None) or not self.InputFitL1.has_key(triggerName)):
-        #    return 0
-        #if self.L1: paramlist = self.InputFitL1[triggerName]
-        #else: paramlist = self.InputFitHLT[triggerName]
+            return 0
 
         if self.pileUp:
             return self.numBunches[0]*paramlist[5]
