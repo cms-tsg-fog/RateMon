@@ -64,11 +64,11 @@ class CommandLineParser:
                 self.monitor.runNumber = int(op)
                 self.monitor.assignedNum = True
             elif label == "--simulate":
-            #    self.monitor.sendMailAlerts = True
+                #self.monitor.sendMailAlerts = True
+                #self.monitor.assignedNum = True
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True
-                self.monitor.useLSRange = True 
-            #    self.monitor.assignedNum = True
+                self.monitor.useLSRange = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--AllTriggers":
@@ -118,18 +118,18 @@ class CommandLineParser:
         print ""
         print "File Options:"
         print "--fitFile=<name>          : The name of the file containing the fit for HLT and L1 Triggers."
-#        print "--configFile=<name>       : The name of a configuration file."
+        #print "--configFile=<name>       : The name of a configuration file."
         print "--triggerList=<name>      : The name of a file containing a list of the HLT and L1 triggers that we want to observe."
         print ""
         print "Error Monitoring Options:"
-#        print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
+        #print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
         print "--allowedDev=<num>        : The allowed deviation for the rate."
-#        print "--usePerDiff              : Cuts on percent difference instead of deviation."
+        #print "--usePerDiff              : Cuts on percent difference instead of deviation."
         print "--maxHLTRate=<num>        : HLT Triggers with prescaled rates above <num> are marked as bad."
         print "--maxL1Rate=<num>         : L1 Triggers with prescaled rates above <num> are marked as bad."
-#        print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
-#        print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
-#        print "--hideStreams             : Doesn't print out information about the streams."
+        #print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
+        #print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
+        #print "--hideStreams             : Doesn't print out information about the streams."
         print "--maxStream               : The maximum stream rate for a 'good' stream, streams with a rate greater then this are colored (if colors are on)"
         print "--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
         print "--noAlerts                : Do not send neither mail nor audio alerts when triggers have been in error for a while."
@@ -147,7 +147,7 @@ class CommandLineParser:
         print ""
         print "Format Options:"
         print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
-#        print "--quiet                   : Prints fewer messages."
+        #print "--quiet                   : Prints fewer messages."
         print ""
         print "Program by Nathaniel Rupprecht, created July 13th, 2015. For questions, email nrupprec@nd.edu"
         exit()
@@ -156,29 +156,6 @@ class CommandLineParser:
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
     def run(self):
         self.monitor.run()
-                    
-    # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
-    # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
-    # -- fileName: The name of the file that trigger names are contained in
-    # Returns: (void)
-#     def loadTriggersFromFile(self, fileName):
-#         try:
-#             file = open(fileName, 'r')
-#         except:
-#             print "File", fileName, "(a trigger list file) failed to open."
-#             return
-        
-#         allTriggerNames = file.read().split() # Get all the words, no argument -> split on any whitespace
-#         TriggerList = []
-#         for triggerName in allTriggerNames:
-#             # Recognize comments
-#             if triggerName[0]=='#': continue
-#             try:
-#                 if not str(triggerName) in TriggerList:
-#                     TriggerList.append(stripVersion(str(triggerName)))
-#             except:
-#                 print "Error parsing trigger name in file", fileName
-#         return TriggerList
 
     # Use: Parser options from a cfg file
     def parseCFGFile(self):
