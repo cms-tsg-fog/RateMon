@@ -598,7 +598,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get total L1 rate
         l1rate = 0
         try:
-            l1rateData = self.parser.getL1rate(self.runNumber)
+            l1rateData = self.parser.getL1rate(self.runNumber,self.startLS,self.currentLS)
             aveL1rate = 0
         except:
             l1rateData = {}
@@ -640,6 +640,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 else: aveDeadTime = 0
                 if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
                 else: aveL1rate = 0
+                count += 1
             if not count == 0:
                 aveDeadTime /= float(count)
                 aveL1rate /= float(count)
