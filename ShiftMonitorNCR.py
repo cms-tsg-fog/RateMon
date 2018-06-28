@@ -139,6 +139,9 @@ class ShiftMonitor:
         self.emailSendTime = 0          # Time at which last email was sent 
 
 
+        self.l1rateData = {} 
+        self.lumiData= [] 
+
 
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
@@ -286,8 +289,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.totalStreams = 0           # The total number of streams
         self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
         self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have
-        self.lumi_ave = "NONE"
-        self.pu_ave = "NONE"
+        self.lumi_ave = 0
+        self.pu_ave = 0
         self.deadTimeCorrection = True  # correct the rates for dead time
         self.scale_sleeptime = 0.5      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
 
@@ -419,7 +422,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 if not self.simulate: 
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 self.runLoop()
-                self.checkTriggers()
+                self.runMail()
+                #self.checkTriggers()
                 self.sleepWait()
             except KeyboardInterrupt:
                 print "Quitting. Bye."
@@ -447,6 +451,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.getRates()
 
+        self.checkForBadTriggers() 
+        self.checkTriggers()
+
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
@@ -468,22 +475,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.redoTList = True
             return
 
-        lslist = []
-        for trig in self.Rates.keys():
-            if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
-        # Update lastLS
-        self.lastLS = self.currentLS
-        # Update current LS
-        if len(lslist) > 0: self.currentLS = max(lslist)
+        #lslist = []
+        #for trig in self.Rates.keys():
+        #    if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
+        ## Update lastLS
+        #self.lastLS = self.currentLS
+        ## Update current LS
+        ## Update current LS
+        #if len(lslist) > 0: self.currentLS = max(lslist)
 
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
             self.printTable()
-            self.isUpdating = True
+            #self.isUpdating = True
         elif self.simulate:
             raise KeyboardInterrupt
         else:
-            self.isUpdating = False
+            #self.isUpdating = False
             print "Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS)
     
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
@@ -559,6 +567,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Gets the rates for the lumisections we want
     def getRates(self):
+
+        # Update lastLS
+        self.lastLS = self.currentLS
+
         if not self.useLSRange:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
@@ -576,6 +588,47 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.totalHLTTriggers = len(self.HLTRates.keys())
         self.totalL1Triggers = len(self.L1Rates.keys())
 
+        lslist = []
+        for trig in self.Rates.keys():
+            if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
+        # Update current LS
+        if len(lslist) > 0: self.currentLS = max(lslist)
+
+        self.isUpdating = (self.currentLS > self.lastLS) 
+
+        try:
+            self.deadTimeData = self.parser.getDeadTime(self.runNumber)
+        except:
+            self.deadTimeData = {}
+            print "Error getting deadtime data"
+
+        try:
+            self.l1rateData = self.parser.getL1rate(self.runNumber)
+        except: 
+            self.l1rateData = {}
+            print "Error getting total L1 rate data"            
+
+        self.lumiData = self.parser.getLumiInfo(self.runNumber, self.lastLS, self.currentLS)
+        self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
+
+        # Calculate self.lumi_ave
+        aveLumi = 0
+        if self.mode != "cosmics":
+            # Find the average lumi since we last checked
+            count = 0 
+            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData: 
+                # If we are watching a certain range, throw out other LS
+                if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
+                # Average our instLumi
+                if not instLumi is None and physics:
+                    aveLumi += instLumi
+                    count += 1
+            if count == 0:
+                aveLumi = 0 
+            else:
+                aveLumi /= float(count)
+        self.lumi_ave = aveLumi
+
     # Use: Retrieves information and prints it in table form
     def printTable(self):
         if self.slidingLS == -1:
@@ -588,7 +641,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get the inst lumi
         aveLumi = 0
         try:
-            self.deadTimeData = self.parser.getDeadTime(self.runNumber)
+        #    self.deadTimeData = self.parser.getDeadTime(self.runNumber)
             aveDeadTime = 0
         except:
             self.deadTimeData = {}
@@ -598,21 +651,21 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get total L1 rate
         l1rate = 0
         try:
-            l1rateData = self.parser.getL1rate(self.runNumber,self.startLS,self.currentLS)
+            #self.l1rateData = self.parser.getL1rate(self.runNumber)
             aveL1rate = 0
         except:
-            l1rateData = {}
+            self.l1rateData = {}
             aveL1rate = None
             print "Error getting total L1 rate data"
 
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
         if self.mode != "cosmics":
-            lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
-            self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
+            #self.lumiData = self.parser.getLumiInfo(self.runNumber, self.startLS, self.currentLS)
+            #self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, psi, physics, all_subSys_good in lumiData:
+            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
@@ -621,12 +674,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     PScol = psi
                     if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                     else: aveDeadTime = 0
-                    if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
+                    if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
                     else: aveL1rate = 0
                     aveLumi += instLumi
                     count += 1
             if count == 0:
-                aveLumi = "NONE"
+                aveLumi = 0
                 expected = "NONE"
             else:
                 aveLumi /= float(count)
@@ -634,11 +687,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 aveL1rate /= float(count)
         else:
             count = 0
-            for LS in l1rateData.keys():
+            for LS in self.l1rateData.keys():
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                 else: aveDeadTime = 0
-                if not aveL1rate is None and l1rateData.has_key(LS): aveL1rate += l1rateData[LS]
+                if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
                 else: aveL1rate = 0
                 count += 1
             if not count == 0:
@@ -646,10 +699,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 aveL1rate /= float(count)
 
         self.lumi_ave = aveLumi
-        if self.numBunches[0] > 0 and not aveLumi == "NONE":
+        if self.numBunches[0] > 0 and not aveLumi == 0:
             self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
-            self.pu_ave = "NONE"
+            self.pu_ave = 0
         # We only do predictions when there were physics active LS in a collisions run
         doPred = physicsActive and self.mode == "collisions"
         #doPred = False
@@ -1007,49 +1060,188 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             self.tableData.append(row)
 
-        #do not warn on specific triggers
-        for vetoString in self.ignoreStrings:
-            if trigger.find(vetoString) > -1: return
-        # Check if the trigger is bad
-        if doPred:
-            # Check for bad rates.
-            #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
-            #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
-            if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
-                self.bad += 1
-                # Record if a trigger was bad
-                if not self.recordAllBadRates.has_key(trigger):
-                    self.recordAllBadRates[trigger] = 0
-                self.recordAllBadRates[trigger] += 1
-                # Record consecutive bad rates
-                if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev, avePS ]
-                else:
-                    last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev, avePS ]
-            else:
-                self.normal += 1
-                # Remove warning from badRates
-                if self.badRates.has_key(trigger): del self.badRates[trigger]
+        ##do not warn on specific triggers
+        #for vetoString in self.ignoreStrings:
+        #    if trigger.find(vetoString) > -1: return
+        ## Check if the trigger is bad
+        #if doPred:
+        #    # Check for bad rates.
+        #    #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
+        #    #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
+        #    if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
+        #        self.bad += 1
+        #        # Record if a trigger was bad
+        #        if not self.recordAllBadRates.has_key(trigger):
+        #            self.recordAllBadRates[trigger] = 0
+        #        self.recordAllBadRates[trigger] += 1
+        #        # Record consecutive bad rates
+        #        if not self.badRates.has_key(trigger):
+        #            self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev, avePS ]
+        #        else:
+        #            last = self.badRates[trigger]
+        #            self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev, avePS ]
+        #    else:
+        #        self.normal += 1
+        #        # Remove warning from badRates
+        #        if self.badRates.has_key(trigger): del self.badRates[trigger]
 
-        else:
-            if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0:
-                self.bad += 1
-                # Record if a trigger was bad
-                if not self.recordAllBadRates.has_key(trigger):
-                    self.recordAllBadRates[trigger] = 0
-                self.recordAllBadRates[trigger] += 1
-                # Record consecutive bad rates
-                if not self.badRates.has_key(trigger):
-                    self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
+        #else:
+        #    if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0:
+        #        self.bad += 1
+        #        # Record if a trigger was bad
+        #        if not self.recordAllBadRates.has_key(trigger):
+        #            self.recordAllBadRates[trigger] = 0
+        #        self.recordAllBadRates[trigger] += 1
+        #        # Record consecutive bad rates
+        #        if not self.badRates.has_key(trigger):
+        #            self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
+        #        else:
+        #            last = self.badRates[trigger]
+        #            self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
+        #    else:
+        #        self.normal += 1
+        #        # Remove warning from badRates
+        #        if self.badRates.has_key(trigger) and avePS > 0:
+        #            del self.badRates[trigger]
+
+
+
+
+
+
+    # Use: Checks for bad triggers 
+    def checkForBadTriggers(self):
+
+        # Check is physActive is true or false 
+        physActive = False 
+        for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
+            if not instLumi is None and physics:
+                physActive = True 
+                break 
+
+        aveLumi = self.lumi_ave
+
+        for trigger, data in self.Rates.iteritems(): 
+
+            isMonitored = trigger in self.triggerList       
+            hasFit = self.InputFitHLT.has_key(trigger) or self.InputFitL1.has_key(trigger) 
+            hasLSRate = len(self.Rates[trigger].keys()) > 0 
+            isNonZeroPS = sum([ v[1] for k,v in data.iteritems() ]) > 0  
+
+            #doPred = isMonitored and hasFit and self.mode=="collisions" and physActive and hasLSRate and isNonZeroPS 
+            doPred = hasFit and isMonitored and self.mode=="collisions"
+            doPred = doPred and isNonZeroPS
+            doPred = doPred and hasLSRate 
+    
+            # Calculate rate
+            if self.mode != "cosmics" and doPred:
+                if not aveLumi is None:
+                    expected = self.calculateRate(trigger, aveLumi)
+                    if expected < 0: expected = 0                # Don't let expected value be negative
+                    avePSExpected = expected
+                    # Get the mean square error (standard deviation)
+                    mse = self.getMSE(trigger)
                 else:
-                    last = self.badRates[trigger]
-                    self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
+                    expected = None
+                    avePSExpected = None
+                    mse = None
+            # Find the ave rate since the last time we checked
+            aveRate = 0
+            properAvePSRate = 0
+            avePS = 0
+            count = 0
+
+            correct_for_deadtime = self.deadTimeCorrection
+            if trigger[0:3]=="L1_": correct_for_deadtime = False
+
+            for LS in data.keys():
+
+                if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
+                elif LS < self.lastLS or LS > self.currentLS: continue
+
+                prescale = data[LS][1]
+                rate = data[LS][0]
+                try:
+                    deadTime = self.deadTimeData[LS]
+                except:
+                    #print "trouble getting deadtime for LS: ", LS," setting DT to zero"
+                    deadTime = 0
+
+                if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+
+                if prescale > 0: properAvePSRate += rate/prescale
+                else: properAvePSRate += rate
+                aveRate += rate
+                count += 1
+                avePS += prescale
+
+            if count > 0:
+                aveRate /= count
+                properAvePSRate /= count
+                avePS /= count
+
+            if doPred and not avePSExpected is None and avePS > 1: avePSExpected /= avePS
+            if not doPred and self.removeZeros and aveRate == 0: continue  # Continues if we are not making predictions for this trigger and we are throwing zeros
+
+            # Find the % diff
+            if doPred:
+                if expected == "NONE":
+                    perc = "UNDEF"
+                    dev = "UNDEF"
+                else:
+                    diff = aveRate-expected
+                    if expected!=0: perc = 100*diff/expected
+                    else: perc = "INF"
+                    if mse!=0:
+                        dev = diff/mse
+                        if abs(dev)>1000000: dev = ">1E6"
+                    else: dev = "INF"
+
+            #do not warn on specific triggers
+            for vetoString in self.ignoreStrings:
+                if trigger.find(vetoString) > -1: continue  
+            # Check if the trigger is bad
+            if doPred:
+                # Check for bad rates.
+                #if (self.usePerDiff and perc!="INF" and perc>self.percAccept) or \
+                #(not self.usePerDiff and dev!="INF" and (dev==">1E6" or dev>self.devAccept)):
+                if self.isBadTrigger(perc, dev, properAvePSRate, trigger[0:3]=="L1_"):
+                    self.bad += 1
+                    # Record if a trigger was bad
+                    #if not self.recordAllBadRates.has_key(trigger):
+                    #    self.recordAllBadRates[trigger] = 0
+                    #self.recordAllBadRates[trigger] += 1
+                    # Record consecutive bad rates
+                    if not self.badRates.has_key(trigger):
+                        self.badRates[trigger] = [1, True, properAvePSRate, avePSExpected, dev, avePS ]
+                    else:
+                        last = self.badRates[trigger]
+                        self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, avePSExpected, dev, avePS ]
+                else:
+                    self.normal += 1
+                    # Remove warning from badRates
+                    if self.badRates.has_key(trigger): del self.badRates[trigger]
+
             else:
-                self.normal += 1
-                # Remove warning from badRates
-                if self.badRates.has_key(trigger) and avePS > 0:
-                    del self.badRates[trigger]
+                if self.isBadTrigger("", "", properAvePSRate, trigger[0:3]=="L1_") and avePS > 0:
+                    self.bad += 1
+                    # Record if a trigger was bad
+                    #if not self.recordAllBadRates.has_key(trigger):
+                    #    self.recordAllBadRates[trigger] = 0
+                    #self.recordAllBadRates[trigger] += 1
+                    # Record consecutive bad rates
+                    if not self.badRates.has_key(trigger):
+                        self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
+                    else:
+                        last = self.badRates[trigger]
+                        self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
+                else:
+                    self.normal += 1
+                    # Remove warning from badRates
+                    if self.badRates.has_key(trigger) and avePS > 0:
+                        del self.badRates[trigger]
+        
+    
 
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
@@ -1095,6 +1287,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if not self.l1t_rate_alert.check(rates):
                 self.l1t_rate_alert.alert()
 
+    # Use: Prints warnings and sends mail 
+    def runMail(self):
         # Print warnings for triggers that have been repeatedly misbehaving
         for trigger in self.badRates:
             if self.badRates[trigger][1]:
