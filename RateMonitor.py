@@ -337,7 +337,7 @@ class RateMonitor:
                 os.mkdir("png")
                 os.chdir(self.certify_dir)
             return
-        else:   
+        else:
             if os.path.exists(self.save_dir):
                 shutil.rmtree(self.save_dir)
                 print "\tRemoving existing directory: %s " % (self.save_dir)
@@ -522,6 +522,9 @@ class RateMonitor:
             self.plotter.root_file_name = "HLT_LS_vs_rawRate_Fitted_Run%d_CERTIFICATION.root" % run
             plotted_objects = []
             for obj in self.object_list:
+                if not obj in self.data_parser.name_list:
+                    print "Skipping missing trigger: %s" % (obj)
+                    continue
                 self.formatLabels(obj)
                 if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
                     print "Plotting %s..." % obj
@@ -646,15 +649,13 @@ class RateMonitor:
     # Returns {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
     def getData(self,x_vals,y_vals,det_status,phys_status,runs=[]):
         data = {}
-
         for name in self.data_parser.getNameList():
                 if not data.has_key(name):
                         data[name] = {}
-
                 for run in sorted(self.data_parser.getRunsUsed()):
                         if not x_vals[name].has_key(run):
                                 continue
-                        if len(runs)>0 and run not in runs:
+                        if len(runs) > 0 and run not in runs:
                                 continue
                         data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
         return data
