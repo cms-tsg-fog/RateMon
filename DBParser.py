@@ -290,6 +290,7 @@ class DBParser:
 
         return TriggerRates
 
+    # DEPRECATED
     # Note: This function is based on a function from DatabaseParser.py
     # Use: Get the raw rate and prescale factor
     # Parameters:
@@ -498,113 +499,7 @@ class DBParser:
             name_map[name] = path_id
         return name_map
 
-#EXPERIMENTAL CODE: START
-    # This version is used in RateFitter.py
-    def getRawRatesV2(self, runNumber, minLS=-1, maxLS=9999999):
-        # First we need the HLT and L1 prescale rates and the HLT seed info
-        if not self.getRunInfo(runNumber):
-            print "Failed to get run info "
-            return {} # The run probably doesn't exist
-
-        # Get L1 info
-        self.getL1Prescales(runNumber)
-        self.getL1NameIndexAssoc(runNumber)
-        # Get HLT info
-        self.getHLTSeeds(runNumber)
-        self.getHLTPrescales(runNumber)
-
-        lumiInfo = self.getLumiInfo(runNumber)  # [ (LS, instLumi, psi, cms_ready) ]
-        bunches = float(self.getNumberCollidingBunches(runNumber)[0])
-
-        ## Get the prescale index as a function of LS
-        #for LS, psi in self.curs.fetchall():
-        #    self.PSColumnByLS[LS] = psi
-
-        # Transform lumiInfo into a LS map for faster indexing
-        lumiMap = {}    # {LS: (ilumi,psi,phys,cmsReady) }
-        for LS,ilumi,psi,phys,cmsReady in lumiInfo:
-            lumiMap[LS] = [ilumi,psi,phys,cmsReady]
-
-        ## A more complex version of the getRates query
-        sqlquery =  """
-                    SELECT
-                        A.LSNUMBER,
-                        SUM(A.L1PASS),
-                        SUM(A.PSPASS),
-                        SUM(A.PACCEPT),
-                        SUM(A.PEXCEPT),
-                        (
-                            SELECT
-                                M.NAME
-                            FROM
-                                CMS_HLT_GDR.U_PATHS M,
-                                CMS_HLT_GDR.U_PATHIDS L
-                            WHERE
-                                L.PATHID=A.PATHID AND
-                                M.ID=L.ID_PATH
-                        ) PATHNAME
-                    FROM
-                        CMS_RUNINFO.HLT_SUPERVISOR_TRIGGERPATHS A
-                    WHERE
-                        RUNNUMBER = %s AND
-                        A.LSNUMBER >= %s AND
-                        A.LSNUMBER <= %s 
-                    GROUP BY 
-                        A.LSNUMBER, A.PATHID
-                    """ % (runNumber, minLS, maxLS)
-        try: self.curs.execute(sqlquery)
-        except:
-            print "Getting rates failed. Exiting."
-            exit(2) # Exit with error
-
-        TriggerRates = {} # Initialize TriggerRates
-        squelch = False
-        squelchList = []
-        for LS, L1Pass, PSPass, HLTPass, HLTExcept, triggerName in self.curs.fetchall():
-            name = stripVersion(triggerName)
-            if LS in squelchList:
-                squelch = True
-            else:
-                squelch = False
-
-            try:
-                ilumi,psi,phys,cmsReady = lumiMap[LS]
-                sig_pp = 80000.
-                orbit = 11246.
-                avgPU = ilumi*sig_pp/(bunches*orbit)
-            except KeyError:
-                if not squelch: # Only print once per LS
-                    print "Lumi Map doesn't have LS key: %s --> LS mis-match between getInfo and getRawRates queries! (squelching further errors)" % LS
-                    squelch = True
-                    if not LS in squelchList:
-                        squelchList.append(LS)
-                #continue
-
-            rate = float(HLTPass)/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
-            hltps = 0 # HLT Prescale
-
-            if not TriggerRates.has_key(name):
-                TriggerRates[name] = {} # Initialize dictionary
-            try:
-                hltps = self.HLTPrescales[name][psi]
-            except:
-                hltps = 1.
-            hltps = float(hltps)
-                    
-            try:
-                if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
-                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
-                else:
-                    l1ps = self.UnwindORSeed(self.HLTSeed[name],self.L1Prescales,psi)
-            except:
-                l1ps = 1
-
-            ps = l1ps*hltps
-            TriggerRates[name][LS] = [avgPU,ps*rate/bunches,l1ps,hltps,psi,bunches,phys]
-
-        return TriggerRates
-#EXPERIMENTAL CODE: END
-
+    # DEPRECATED
     # Use: Gets data related to L1 trigger rates
     # Returns: The L1 raw rates: [ trigger ] [ LS ] { raw rate, ps }
     def getL1RawRates(self, runNumber, preDeadTime = True):
@@ -657,6 +552,7 @@ class DBParser:
 
         return L1Triggers        # [ trigger ] [ LS ] { raw rate, ps }
 
+    # DEPRECATED
     # Use: Gets the raw rate of a trigger during a run and the average prescale value of that trigger during the run
     # Returns: A dictionary: [ trigger name ] { ave ps, [ LS ] [ raw rate ] }
     def getRates_AvePS(self, runNumber):
@@ -720,6 +616,7 @@ class DBParser:
             if not self.L1Prescales.has_key(algo_index): self.L1Prescales[algo_index] = {}
             self.L1Prescales[algo_index][ps_index] = algo_ps
 
+    # DEPRECATED
     # Note: This function is from DatabaseParser.py (with slight modifications)
     # Use: Gets the average L1 prescales
     # Returns: A dictionary: [ Algo bit number ] <Ave L1 Prescale>
@@ -1059,7 +956,7 @@ class DBParser:
         
     # Use: Gets the dead time as a function of lumisection
     # Returns: A dictionary: [ LS ] <Deadtime>
-    def getDeadTime(self, runNumber):
+    def getDeadTime(self,runNumber,minLS=-1,maxLS=9999999):
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
@@ -1067,8 +964,10 @@ class DBParser:
                     FROM
                         CMS_TCDS_MONITORING.tcds_cpm_deadtimes_v
                     WHERE
-                        RUN_NUMBER=%s
-                    """ % (runNumber)
+                        RUN_NUMBER=%s AND
+                        SECTION_NUMBER >= %s AND
+                        SECTION_NUMBER <= %s
+                    """ % (runNumber,minLS,maxLS)
         
         self.curs.execute(sqlquery)
         
@@ -1170,6 +1069,7 @@ class DBParser:
     # Use: Gets the TOTAL L1 rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
     def getL1rate(self, runNumber,minLS=-1,maxLS=9999999):
+        # TODO: This function's name is very similar to getL1Rates, consider renaming
         sqlquery =  """
                     SELECT
                         SECTION_NUMBER,
@@ -1298,7 +1198,7 @@ class DBParser:
     # Use: Retrieves the data from all streams
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
-        cursor = self.getTrgCursor()
+        #cursor = self.getTrgCursor()
         #StreamQuery =   """
         #                SELECT
         #                    A.lumisection,
@@ -1326,13 +1226,14 @@ class DBParser:
                         FROM
                             CMS_WBM.VIEW_SM_SUMMARY A
                         WHERE
-                        A.RUNNUMBER = %s AND
-                        A.LUMISECTION >= %s AND
-                        A.LUMISECTION <= %s
+                            A.RUNNUMBER = %s AND
+                            A.LUMISECTION >= %s AND
+                            A.LUMISECTION <= %s
                         """ % (runNumber,minLS,maxLS)
 
         try:
-            cursor.execute(StreamQuery)
+            #cursor.execute(StreamQuery)
+            self.curs.execute(StreamQuery)
             streamData = cursor.fetchall()
         except:
             print "Error: Unable to retrieve stream data."
@@ -1346,7 +1247,7 @@ class DBParser:
         return StreamData
 
     def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
-        cursor = self.getTrgCursor()
+        #cursor = self.getTrgCursor()
         PDQuery =   """
                     SELECT
                         DISTINCT E.NAME,
@@ -1374,7 +1275,8 @@ class DBParser:
                     """ % (runNumber,minLS,maxLS)
 
         try:
-            cursor.execute(PDQuery)
+            #cursor.execute(PDQuery)
+            self.curs.execute(PDQuery)
             pdData = cursor.fetchall()
         except:
             print "Error: Unable to retrieve PD data."
