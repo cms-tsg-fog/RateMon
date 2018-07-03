@@ -1198,7 +1198,7 @@ class DBParser:
     # Use: Retrieves the data from all streams
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
-        #cursor = self.getTrgCursor()
+        cursor = self.getTrgCursor()
         #StreamQuery =   """
         #                SELECT
         #                    A.lumisection,
@@ -1232,8 +1232,8 @@ class DBParser:
                         """ % (runNumber,minLS,maxLS)
 
         try:
-            #cursor.execute(StreamQuery)
-            self.curs.execute(StreamQuery)
+            cursor.execute(StreamQuery)
+            #self.curs.execute(StreamQuery)
             streamData = cursor.fetchall()
         except:
             print "Error: Unable to retrieve stream data."
@@ -1247,7 +1247,7 @@ class DBParser:
         return StreamData
 
     def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
-        #cursor = self.getTrgCursor()
+        cursor = self.getTrgCursor()
         PDQuery =   """
                     SELECT
                         DISTINCT E.NAME,
@@ -1275,8 +1275,8 @@ class DBParser:
                     """ % (runNumber,minLS,maxLS)
 
         try:
-            #cursor.execute(PDQuery)
-            self.curs.execute(PDQuery)
+            cursor.execute(PDQuery)
+            #self.curs.execute(PDQuery)
             pdData = cursor.fetchall()
         except:
             print "Error: Unable to retrieve PD data."
