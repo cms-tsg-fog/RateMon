@@ -916,11 +916,11 @@ class DBParser:
                 J.NAME,
                 TRIM('{' FROM TRIM('}' FROM J.VALUE))
             FROM
-                CMS_HLT_GDR.X_CONFVERSIONS A,
-                CMS_HLT_GDR.X_CONF2SRV S,
-                CMS_HLT_GDR.X_SERVICES B,
-                CMS_HLT_GDR.X_SRVTEMPLATES C,
-                CMS_HLT_GDR.X_SRVELEMENTS J
+                CMS_HLT_GDR.U_CONFVERSIONS A,
+                CMS_HLT_GDR.U_CONF2SRV S,
+                CMS_HLT_GDR.U_SERVICES B,
+                CMS_HLT_GDR.U_SRVTEMPLATES C,
+                CMS_HLT_GDR.U_SRVELEMENTS J
             WHERE
                 A.CONFIGID=%s AND
                 A.ID=S.ID_CONFVER AND

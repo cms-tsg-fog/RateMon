@@ -662,10 +662,6 @@ class DBQueryTool:
         name,ps_str = self.curs.fetchone()
         ps_names = [x.strip().strip('"') for x in ps_str.strip().split(',')]
         print ps_names
-        #for name,ps_str in self.curs.fetchall():
-        #    ps_str = ps_str.strip()
-        #    ps_names = [x.strip().strip('"') for x in ps_str.split(',')]
-        #    break
         return ps_names
 
     def test_query(self):
