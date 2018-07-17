@@ -394,19 +394,102 @@ class DBQueryTool:
 
         return all_trigger_rates
 
-    def test_query(self):
-        #query="""SELECT MAX(A.RUNNUMBER), MAX(B.LIVELUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
-        #query="""SELECT LAST(B.LUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
-        #query="""SELECT column_name FROM all_tab_cols WHERE table_name = 'LUMI_SECTIONS' AND owner = 'CMS_RUNTIME_LOGGER'"""
+    def printAllOwners(self):
+        query = """
+            SELECT DISTINCT
+                OWNER
+            FROM
+                ALL_TAB_COLUMNS
+            """
+        arr = []
+        self.curs.execture(query)
+        for tup in self.curs.fetchall():
+            arr.append(tup)
+            print tup
+        return arr
 
-        runNumber1 = 305516  # 205.3 / 180.5
-        runNumber2 = 305586  # 220.9 / 186.5
-        runNumber3 = 305589  # 171.2 / 163.2
-        runNumber4 = 305518  # 244.2 / 234.9
-        runNumber5 = 305590  # 160.4 / 156.1
+    def printOwnerTables(self,owner):
+        query = """
+            SELECT DISTINCT
+                OWNER,
+                TABLE_NAME
+            FROM
+                ALL_TAB_COLUMNS
+            WHERE
+                OWNER = '%s'
+            ORDER BY
+                TABLE_NAME
+            """ % (owner)
 
-        runNumber = runNumber5
+        arr = []
+        self.curs.execute(query)
+        for tup in self.curs.fetchall():
+            arr.append(tup)
+            print tup
+        return arr
 
+    def printTableColumns(self,owner,table):
+        query = """
+            SELECT
+                OWNER,
+                TABLE_NAME,
+                COLUMN_NAME,
+                DATA_TYPE,
+                DATA_TYPE_OWNER,
+                COLUMN_ID,
+                NUM_DISTINCT
+            FROM
+                ALL_TAB_COLUMNS
+            WHERE
+                OWNER = '%s' AND
+                TABLE_NAME = '%s'
+            ORDER BY
+                COLUMN_NAME
+            """ % (owner,table)
+
+        arr = []
+        self.curs.execute(query)
+        for tup in self.curs.fetchall():
+            arr.append(tup)
+            print tup
+        return arr
+
+    def buildQuery(self,runNumber,sub_systems):
+        query = "SELECT\n"
+
+        system_query_map = {}
+        index = 0
+        for system in sub_systems.keys():
+            if len(sub_systems[system]) == 0:
+                continue
+
+            for col_name in sub_systems[system]:
+                if index == 0:
+                    query += "%s" % (col_name)
+                else:
+                    query += ",%s" % (col_name)
+                if not system_query_map.has_key(system):
+                    system_query_map[system] = []
+                system_query_map[system].append([index,col_name])
+                index += 1
+
+        if index == 0:
+            # No viable queries were given
+            return None
+
+        query += "\nFROM\nCMS_WBM.RUNSUMMARY\nWHERE\nRUNNUMBER=%s" % (runNumber)
+        #print query
+
+        self.curs.execute(query)
+        for tup in self.curs.fetchall():
+            for sys_name in sub_systems.keys():
+                if not system_query_map.has_key(sys_name):
+                    continue
+                print "%s" % (sys_name)
+                for index,col_name in system_query_map[sys_name]:
+                    print "\t%s: %d" % (col_name,tup[index])
+
+    def benchmarkRatesQueries(self,runNumber):
         t_run_info = time.time()
         run_keys = self.getRunInfo(runNumber)
         t_run_info = time.time() - t_run_info
@@ -492,6 +575,43 @@ class DBQueryTool:
         print "\tHLT Name Map: %.3f" % (t_hlt_map)
         print "\tSingle HLT:   %.3f (%.2f)" % (t_single_hlt/hlt_iterations,t_single_hlt)
         print "\tHLT Rates:    %.3f (%.2f)" % (t_hlt_rates/hlt_counts,t_hlt_rates)
+
+    def test_query(self):
+        #query="""SELECT MAX(A.RUNNUMBER), MAX(B.LIVELUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
+        #query="""SELECT LAST(B.LUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
+        #query="""SELECT column_name FROM all_tab_cols WHERE table_name = 'LUMI_SECTIONS' AND owner = 'CMS_RUNTIME_LOGGER'"""
+
+        runNumber1 = 305516  # 205.3 / 180.5
+        runNumber2 = 305586  # 220.9 / 186.5
+        runNumber3 = 305589  # 171.2 / 163.2
+        runNumber4 = 305518  # 244.2 / 234.9
+        runNumber5 = 305590  # 160.4 / 156.1
+
+        runNumber = runNumber5
+
+        sub_systems = {
+            "CSC":       ["CSC_PRESENT","CSC_STATUS"],
+            "CTTPS":     [],
+            "CTPPS_TOT": [],
+            "DAQ":       ["DAQ_PRESENT"],
+            "DCS":       [],
+            "DQM":       ["DQM_PRESENT"],
+            "ECAL":      ["ECAL_PRESENT","ECAL_STATUS"],
+            "ES":        ["ES_PRESENT","ES_STATUS"],
+            "HCAL":      ["HCAL_PRESENT","HCAL_STATUS"],
+            "HF":        ["HFLUMI_PRESENT"],
+            "PIXEL":     ["PIXEL_PRESENT","PIXEL_STATUS"],
+            "RPC":       ["RPC_PRESENT","RPC_STATUS"],
+            "SCAL":      ["SCAL_PRESENT"],
+            "TCDS":      [],
+            "TRACKER":   ["TRACKER_PRESENT","TRACKER_STATUS"],
+            "TRG":       ["TRG_PRESENT","TRG_STATUS"]
+        }
+
+        #self.printOwnerTables("CMS_RUNTIME_LOGGER")
+        self.printTableColumns("CMS_RUNTIME_LOGGER","RUNTIME_SUMMARY")
+        
+        #self.buildQuery(runNumber,sub_systems)
 
 ## ----------- End of class ------------ ##
 
