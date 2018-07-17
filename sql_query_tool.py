@@ -659,10 +659,13 @@ class DBQueryTool:
             """ % (config_id,)
         ps_names = []
         self.curs.execute(query)
-        for name,ps_str in self.curs.fetchall():
-            ps_str = ps_str.strip()
-            ps_names = [x.strip().strip('"') for x in ps_str.split(',')]
-            break
+        name,ps_str = self.curs.fetchone()
+        ps_names = [x.strip().strip('"') for x in ps_str.strip().split(',')]
+        print ps_names
+        #for name,ps_str in self.curs.fetchall():
+        #    ps_str = ps_str.strip()
+        #    ps_names = [x.strip().strip('"') for x in ps_str.split(',')]
+        #    break
         return ps_names
 
     def test_query(self):
@@ -705,7 +708,7 @@ class DBQueryTool:
         #owner_tables  = self.printOwnerTables("CMS_RUNTIME_LOGGER",verbose=True)
         #table_columns = self.printTableColumns("CMS_RUNTIME_LOGGER","RUNTIME_SUMMARY",verbose=True)
 
-        self.getPrescaleNames(runNumber)
+        ps_name_arr = self.getPrescaleNames(runNumber)
 
         #self.curs.execute(query3)
         #for tup in self.curs.fetchall():
