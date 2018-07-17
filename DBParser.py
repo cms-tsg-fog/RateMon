@@ -893,6 +893,48 @@ class DBParser:
             lastIndex=index
             row.append(val)
 
+    # Use: Returns the prescale column names of the HLT menu used for the specified run
+    def getPrescaleNames(self,runNumber):
+        ### Check
+        if self.HLT_Key == "":
+            self.getRunInfo(runNumber)
+        tmp_curs = self.getHLTCursor()
+        configIDQuery = """
+                        SELECT
+                            CONFIGID
+                        FROM
+                            CMS_HLT_GDR.U_CONFVERSIONS
+                        WHERE
+                            NAME='%s'
+                        """ % (self.HLT_Key)
+
+        tmp_curs.execute(configIDQuery)
+        ConfigId, = tmp_curs.fetchone()
+
+        sqlquery = """
+            SELECT
+                J.NAME,
+                TRIM('{' FROM TRIM('}' FROM J.VALUE))
+            FROM
+                CMS_HLT_GDR.X_CONFVERSIONS A,
+                CMS_HLT_GDR.X_CONF2SRV S,
+                CMS_HLT_GDR.X_SERVICES B,
+                CMS_HLT_GDR.X_SRVTEMPLATES C,
+                CMS_HLT_GDR.X_SRVELEMENTS J
+            WHERE
+                A.CONFIGID=%s AND
+                A.ID=S.ID_CONFVER AND
+                S.ID_SERVICE=B.ID AND
+                C.ID=B.ID_TEMPLATE AND
+                C.NAME='PrescaleService' AND
+                J.ID_SERVICE=B.ID AND
+                J.NAME='lvl1Labels'
+            """ % (ConfigId,)
+        tmp_curs.execute(sqlquery)
+        name,ps_str = tmp_curs.fetchone()
+        ps_names = [x.strip().strip('"') for x in ps_str.strip().split(',')]
+        return ps_names
+
     # Note: This is a function from DatabaseParser.py (with slight modification)
     # Use: Gets the number of colliding bunches during a run
     def getNumberCollidingBunches(self, runNumber):
