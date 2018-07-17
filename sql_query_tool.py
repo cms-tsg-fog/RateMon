@@ -5,6 +5,7 @@ import socket
 # For the parsing
 import re
 import time
+import argparse
 import DBConfigFile as cfg
 
 # Key version stripper
@@ -394,7 +395,7 @@ class DBQueryTool:
 
         return all_trigger_rates
 
-    def printAllOwners(self):
+    def printAllOwners(self,verbose=False):
         query = """
             SELECT DISTINCT
                 OWNER
@@ -402,13 +403,13 @@ class DBQueryTool:
                 ALL_TAB_COLUMNS
             """
         arr = []
-        self.curs.execture(query)
+        self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            print tup
+            if verbose: print tup
         return arr
 
-    def printOwnerTables(self,owner):
+    def printOwnerTables(self,owner,verbose=False):
         query = """
             SELECT DISTINCT
                 OWNER,
@@ -425,10 +426,10 @@ class DBQueryTool:
         self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            print tup
+            if verbose: print tup
         return arr
 
-    def printTableColumns(self,owner,table):
+    def printTableColumns(self,owner,table,verbose=False):
         query = """
             SELECT
                 OWNER,
@@ -451,7 +452,38 @@ class DBQueryTool:
         self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            print tup
+            if verbose: print tup
+        return arr
+
+    def customQuery(self,columns,tables,filters=[],order_by=None,verbose=False):
+        query = "SELECT"
+        for idx,c in enumerate(columns):
+            if idx == 0:
+                query += "\n\t%s" % (c)
+            else:
+                query += ",\n\t%s" % (c)
+        query += "\nFROM"
+        for idx,t in enumerate(tables):
+            if idx == 0:
+                query += "\n\t%s" % (t)
+            else:
+                query += ",\n\t%s" % (t)
+        if len(filters) > 0:
+            query += "\nWHERE"
+            for idx,f in enumerate(filters):
+                if idx == 0:
+                    query += "\n\t%s" % (f)
+                else:
+                    query += " AND\n\t%s" % (f)
+        if order_by:
+            query += "\nORDER BY"
+            query += "\n\t%s" % (order_by)
+        print query
+        arr = []
+        self.curs.execute(query)
+        for tup in self.curs.fetchall():
+            if verbose: print tup
+            arr.append(tup)
         return arr
 
     def buildQuery(self,runNumber,sub_systems):
@@ -576,6 +608,63 @@ class DBQueryTool:
         print "\tSingle HLT:   %.3f (%.2f)" % (t_single_hlt/hlt_iterations,t_single_hlt)
         print "\tHLT Rates:    %.3f (%.2f)" % (t_hlt_rates/hlt_counts,t_hlt_rates)
 
+    def getPrescaleNames(self,runNumber):
+        query = """
+            SELECT
+                B.ID,
+                B.HLT_KEY
+            FROM
+                CMS_WBM.RUNSUMMARY A,
+                CMS_L1_HLT.L1_HLT_CONF B,
+                CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
+            WHERE
+                B.ID = A.TRIGGERMODE AND
+                A.RUNNUMBER = %d AND
+                C.ID = B.L1_TRG_CONF_KEY
+        """ % (runNumber)
+
+        self.curs.execute(query)
+        L1_HLT_key, HLT_key = self.curs.fetchone()
+
+        query = """
+            SELECT
+                CONFIGID
+            FROM
+                CMS_HLT_GDR.U_CONFVERSIONS
+            WHERE
+                NAME='%s'
+        """ % (HLT_key)
+
+        self.curs.execute(query)
+        config_id, = self.curs.fetchone()
+
+        query = """
+            SELECT
+                J.NAME,
+                TRIM('{' FROM TRIM('}' FROM J.VALUE))
+            FROM
+                CMS_HLT_GDR.X_CONFVERSIONS A,
+                CMS_HLT_GDR.X_CONF2SRV S,
+                CMS_HLT_GDR.X_SERVICES B,
+                CMS_HLT_GDR.X_SRVTEMPLATES C,
+                CMS_HLT_GDR.X_SRVELEMENTS J
+            WHERE
+                A.CONFIGID=%s AND
+                A.ID=S.ID_CONFVER AND
+                S.ID_SERVICE=B.ID AND
+                C.ID=B.ID_TEMPLATE AND
+                C.NAME='PrescaleService' AND
+                J.ID_SERVICE=B.ID AND
+                J.NAME='lvl1Labels'
+            """ % (config_id,)
+        ps_names = []
+        self.curs.execute(query)
+        for name,ps_str in self.curs.fetchall():
+            ps_str = ps_str.strip()
+            ps_names = [x.strip().strip('"') for x in ps_str.split(',')]
+            break
+        return ps_names
+
     def test_query(self):
         #query="""SELECT MAX(A.RUNNUMBER), MAX(B.LIVELUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
         #query="""SELECT LAST(B.LUMISECTION) FROM CMS_RUNINFO.RUNNUMBERTBL A, CMS_RUNTIME_LOGGER.LUMI_SECTIONS B WHERE B.RUNNUMBER=A.RUNNUMBER AND B.LUMISECTION > 0 """
@@ -608,13 +697,55 @@ class DBQueryTool:
             "TRG":       ["TRG_PRESENT","TRG_STATUS"]
         }
 
-        #self.printOwnerTables("CMS_RUNTIME_LOGGER")
-        self.printTableColumns("CMS_RUNTIME_LOGGER","RUNTIME_SUMMARY")
-        
+        all_owners    = []
+        owner_tables  = []
+        table_columns = []
+
+        #all_owners    = self.printAllOwners(verbose=True)
+        #owner_tables  = self.printOwnerTables("CMS_RUNTIME_LOGGER",verbose=True)
+        #table_columns = self.printTableColumns("CMS_RUNTIME_LOGGER","RUNTIME_SUMMARY",verbose=True)
+
+        self.getPrescaleNames(runNumber)
+
+        #self.curs.execute(query3)
+        #for tup in self.curs.fetchall():
+        #    print tup
+
+        for tup in owner_tables:
+            print "#"*100
+            self.printTableColumns(tup[0],tup[1])
+
         #self.buildQuery(runNumber,sub_systems)
 
 ## ----------- End of class ------------ ##
 
+parser = argparse.ArgumentParser(description='Tool for exploring the OMDS database')
+parser.add_argument('--all_owners',help='Print all owners in the database',action='store_true')
+parser.add_argument('--owner_tables',help='Print all tables of specified owner')
+parser.add_argument('--owner_columns',help='Print all columns for all tables of specified owner')
+parser.add_argument('--table_columns',help='Print all columns of specified table',nargs=2)
+parser.add_argument('--table_rows',help='Print first 20 rows of a particular column in the specified table',nargs=3)
+args = parser.parse_args()
+
 if __name__ == "__main__":
     query_tool = DBQueryTool()
-    query_tool.test_query()
+
+    if args.all_owners:
+        query_tool.printAllOwners(verbose=True)
+    elif args.owner_tables:
+        query_tool.printOwnerTables(args.owner_tables,verbose=True)
+    elif args.owner_columns:
+        tables = query_tool.printOwnerTables(args.owner_columns)
+        for idx,tup in enumerate(tables):
+            print "#"*100
+            query_tool.printTableColumns(tup[0],tup[1],verbose=True)
+    elif args.table_columns:
+        query_tool.printTableColumns(args.table_columns[0],args.table_columns[1],verbose=True)
+    elif args.table_rows:
+        rows = query_tool.customQuery([args.table_rows[2]],[".".join(args.table_rows[:2])])
+        for idx,tup in enumerate(rows):
+            if idx >= 20:
+                break
+            print tup
+    else:
+        query_tool.test_query()
