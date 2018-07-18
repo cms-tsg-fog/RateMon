@@ -81,6 +81,32 @@ class DBParser:
             print "Unable to get LS list for run %s" % runNumber
         return ls_info
 
+    # Returns the various keys used for the specified run as a 5-tuple
+    def getRunKeys(self,runNumber):
+        sqlquery =  """
+                    SELECT
+                        B.ID,
+                        B.HLT_KEY,
+                        B.L1_TRG_RS_KEY,
+                        B.L1_TRG_CONF_KEY,
+                        C.UGT_KEY
+                    FROM
+                        CMS_WBM.RUNSUMMARY A,
+                        CMS_L1_HLT.L1_HLT_CONF B,
+                        CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
+                    WHERE
+                        B.ID = A.TRIGGERMODE AND
+                        A.RUNNUMBER = %d AND
+                        C.ID = B.L1_TRG_CONF_KEY
+                    """ % (runNumber)
+        L1_HLT,HLT,GTRS,TSC,GT = "","","","",""
+        try: 
+            self.curs.execute(sqlquery)
+            L1_HLT,HLT,GTRS,TSC,GT = self.curs.fetchone()
+        except:
+            print "[ERROR] Unable to get keys for this run, %d" % (runNumber)
+        return L1_HLT,HLT,GTRS,TSC,GT
+
     # Returns: True if we succeded, false if the run doesn't exist (probably)
     def getRunInfo(self, runNumber):
         ## This query gets the L1_HLT Key (A), the associated HLT Key (B) and the Config number for that key (C)
@@ -114,30 +140,36 @@ class DBParser:
         except:
             print "Trouble getting PS column by LS"
 
-        KeyQuery =  """
-                    SELECT
-                        B.ID,
-                        B.HLT_KEY,
-                        B.L1_TRG_RS_KEY,
-                        B.L1_TRG_CONF_KEY,
-                        C.UGT_KEY
-                    FROM
-                        CMS_WBM.RUNSUMMARY A,
-                        CMS_L1_HLT.L1_HLT_CONF B,
-                        CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
-                    WHERE
-                        B.ID = A.TRIGGERMODE AND
-                        A.RUNNUMBER = %d AND
-                        C.ID = B.L1_TRG_CONF_KEY
-                    """ % (runNumber)
-        
-        try:
-            self.curs.execute(KeyQuery)
-            self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.curs.fetchone()
-            return True
-        except:
-            print "Unable to get L1 and HLT keys for this run"
+        self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.getRunKeys(runNumber)
+        if self.HLT_Key == "":
+            # The key query failed
             return False
+        else:
+            return True
+
+        #KeyQuery =  """
+        #            SELECT
+        #                B.ID,
+        #                B.HLT_KEY,
+        #                B.L1_TRG_RS_KEY,
+        #                B.L1_TRG_CONF_KEY,
+        #                C.UGT_KEY
+        #            FROM
+        #                CMS_WBM.RUNSUMMARY A,
+        #                CMS_L1_HLT.L1_HLT_CONF B,
+        #                CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
+        #            WHERE
+        #                B.ID = A.TRIGGERMODE AND
+        #                A.RUNNUMBER = %d AND
+        #                C.ID = B.L1_TRG_CONF_KEY
+        #            """ % (runNumber)
+        #try:
+        #    self.curs.execute(KeyQuery)
+        #    self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.curs.fetchone()
+        #    return True
+        #except:
+        #    print "Unable to get L1 and HLT keys for this run"
+        #    return False
 
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
