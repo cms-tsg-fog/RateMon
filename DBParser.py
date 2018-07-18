@@ -41,10 +41,10 @@ class DBParser:
         self.HLTPrescales = {}      # {'trigger': [prescales]}
         self.HLTSequenceMap = {}
         self.GTRS_Key = ""
-        self.HLT_Key = ""
-        self.TSC_Key = ""
+        self.HLT_Key  = ""
+        self.TSC_Key  = ""
         self.ConfigId = ""
-        self.GT_Key = ""
+        self.GT_Key   = ""
         self.nAlgoBits = 128
 
         self.HLTSeed = {}
@@ -146,30 +146,6 @@ class DBParser:
             return False
         else:
             return True
-
-        #KeyQuery =  """
-        #            SELECT
-        #                B.ID,
-        #                B.HLT_KEY,
-        #                B.L1_TRG_RS_KEY,
-        #                B.L1_TRG_CONF_KEY,
-        #                C.UGT_KEY
-        #            FROM
-        #                CMS_WBM.RUNSUMMARY A,
-        #                CMS_L1_HLT.L1_HLT_CONF B,
-        #                CMS_TRG_L1_CONF.L1_TRG_CONF_KEYS C
-        #            WHERE
-        #                B.ID = A.TRIGGERMODE AND
-        #                A.RUNNUMBER = %d AND
-        #                C.ID = B.L1_TRG_CONF_KEY
-        #            """ % (runNumber)
-        #try:
-        #    self.curs.execute(KeyQuery)
-        #    self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.curs.fetchone()
-        #    return True
-        #except:
-        #    print "Unable to get L1 and HLT keys for this run"
-        #    return False
 
     # Use: Get the instant luminosity for each lumisection from the database
     # Parameters:
@@ -966,6 +942,40 @@ class DBParser:
         name,ps_str = tmp_curs.fetchone()
         ps_names = [x.strip().strip('"') for x in ps_str.strip().split(',')]
         return ps_names
+
+    # Use: Returns the globaltag string for the HLT menu that was used in the specified run
+    def getGlobalTag(self,runNumber):
+        global_tag = ""
+        HLT_Key = self.getRunKeys(runNumber)[1]
+
+        if HLT_Key == "":
+            # The key query failed
+            return global_tag
+
+        sqlquery = """
+            SELECT
+                D.VALUE
+            FROM
+                CMS_HLT_GDR.U_CONFVERSIONS A,
+                CMS_HLT_GDR.U_CONF2ESS B,
+                CMS_HLT_GDR.U_ESSOURCES C,
+                CMS_HLT_GDR.U_ESSELEMENTS D
+            WHERE
+                A.NAME = '%s' AND
+                A.ID = B.ID_CONFVER AND
+                B.ID_ESSOURCE = C.ID AND
+                B.ID_ESSOURCE = D.ID_ESSOURCE AND
+                C.NAME = 'GlobalTag' AND
+                D.NAME = 'globaltag'
+        """ % (HLT_key)
+
+        try:
+            self.curs.execute(sqlquery)
+            global_tag, = self.curs.fetchone()
+            global_tag = global_tag.strip('"')
+        except:
+            print "[ERROR] Failed to get globaltag for run, %d" % (runNumber)
+        return global_tag
 
     # Note: This is a function from DatabaseParser.py (with slight modification)
     # Use: Gets the number of colliding bunches during a run
