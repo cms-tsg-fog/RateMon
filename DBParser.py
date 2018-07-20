@@ -967,7 +967,7 @@ class DBParser:
                 B.ID_ESSOURCE = D.ID_ESSOURCE AND
                 C.NAME = 'GlobalTag' AND
                 D.NAME = 'globaltag'
-        """ % (HLT_key)
+        """ % (HLT_Key)
 
         try:
             self.curs.execute(sqlquery)
