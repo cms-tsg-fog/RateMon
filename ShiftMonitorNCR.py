@@ -60,7 +60,8 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
 
         # Fits and fit files
-        self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        #self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        self.fitFile = "Fits/All_Triggers/FOG.pkl"
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
@@ -115,7 +116,7 @@ class ShiftMonitor:
         self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
         self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
         self.fullL1HLTMenu = []
-        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx","L1_SingleMu7er1p5"] # Triggers which have these strings in the name will not produce any warnings
+        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx","DST_","L1_SingleMu7er1p5"] # Triggers which have these strings in the name will not produce any warnings
 
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
@@ -1122,7 +1123,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         aveLumi = self.lumi_ave
 
         for trigger, data in self.Rates.iteritems(): 
-
             isMonitored = trigger in self.triggerList       
             hasFit = self.InputFitHLT.has_key(trigger) or self.InputFitL1.has_key(trigger) 
             hasLSRate = len(self.Rates[trigger].keys()) > 0 
@@ -1198,8 +1198,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     else: dev = "INF"
 
             #do not warn on specific triggers
+            vetoed = False
             for vetoString in self.ignoreStrings:
-                if trigger.find(vetoString) > -1: continue  
+                if trigger.find(vetoString) > -1:
+                    vetoed = True
+                    continue
+            if veoted: continue
             # Check if the trigger is bad
             if doPred:
                 # Check for bad rates.
