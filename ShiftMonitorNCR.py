@@ -1203,7 +1203,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 if trigger.find(vetoString) > -1:
                     vetoed = True
                     continue
-            if veoted: continue
+            if vetoed: continue
             # Check if the trigger is bad
             if doPred:
                 # Check for bad rates.
