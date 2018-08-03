@@ -60,8 +60,8 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
 
         # Fits and fit files
-        #self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
-        self.fitFile = "Fits/All_Triggers/FOG.pkl"
+        self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"               # The fit file, can contain both HLT and L1 triggers
+        #self.fitFile = "Fits/All_Triggers/FOG.pkl"
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
@@ -81,7 +81,7 @@ class ShiftMonitor:
         self.LHCStatus = ["",0]         # First element is the status string, second is the number of consecutive queries in this status
 
         # Running over a previouly done run
-        self.assignedNum = False        # If true, we look at the assigned run, not the latest run
+        #self.assignedNum = False        # If true, we look at the assigned run, not the latest run
         self.LSRange = [0,0]            # If we want to only look at a range of LS from the run
         self.simulate = False           # Simulate running through and monitoring a previous run
 
@@ -97,26 +97,26 @@ class ShiftMonitor:
         self.mode = None                # Mode: cosmics, circulate, physics
 
         # Columns header
-        self.displayRawRates = False    # display raw rates, to display prescaled rates, set = True
+        self.displayRawRates = False    # display raw rates, to display raw rates, set = True
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
 
         # Triggers
         self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
         self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
         #self.collisions_triggerList = "monitorlist_HI.list"
-        self.triggerList = ""           # A list of all the L1 and HLT triggers we want to monitor
+        self.triggerList = []           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
         self.otherHLTTriggers = []      # HLT Triggers active during the run that are not usable triggers
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
-        self.useAll = False             # If true, we will print out the rates for all the HLT triggers
-        self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
-        self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
-        self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
-        self.fullL1HLTMenu = []
-        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx","DST_","L1_SingleMu7er1p5"] # Triggers which have these strings in the name will not produce any warnings
+        #self.useAll = False             # If true, we will print out the rates for all the HLT triggers
+        #self.useL1 = False              # If true, we will print out the rates for all the L1 triggers
+        #self.totalHLTTriggers = 0       # The total number of HLT Triggers on the menu this run
+        #self.totalL1Triggers = 0        # The total number of L1 Triggers on the menu this run
+        #self.fullL1HLTMenu = []
+        self.ignoreStrings = ["Calibration","L1Tech","BPTX","Bptx","L1_SingleMu7er1p5","AlwaysTrue","AlCa_","DST_"] # Triggers which have these strings in the name will not produce any warnings or be printed
 
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
@@ -292,8 +292,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have
         self.lumi_ave = 0
         self.pu_ave = 0
-        self.deadTimeCorrection = True  # correct the rates for dead time
+        #self.deadTimeCorrection = True  # correct the rates for dead time
         self.scale_sleeptime = 0.5      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
+        self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -352,14 +353,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.fitFile != "":
             inputFit = self.loadFit(self.fitFile)
             
-            for triggerName in inputFit:
+            for triggerName in inputFit.keys():
                 if type(inputFit[triggerName]) is list:
                     fits_format = 'dict_of_lists'
                 if type(inputFit[triggerName]) is dict:
                     fits_format = 'nested_dict'
 
-            if fits_format is 'dict_of_lists':
-                for triggerName in inputFit:
+            if fits_format == 'dict_of_lists':
+                for triggerName in inputFit.keys():
                     if triggerName[0:3] == "L1_":
                         if self.InputFitL1 is None: self.InputFitL1 = {}
                         self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
@@ -367,8 +368,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
 
-            if fits_format is 'nested_dict':
-                for triggerName in inputFit:
+            if fits_format == 'nested_dict':
+                for triggerName in inputFit.keys():
                     best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc] 
                     if triggerName[0:3] == "L1_":
                         if self.InputFitL1 is None: self.InputFitL1 = {}
@@ -377,17 +378,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[stripVersion(triggerName)] = best_fit
         
-        # Sort trigger list into HLT and L1 trigger lists
-        if self.triggerList!="":
-            for triggerName in self.triggerList:
-                if triggerName[0:3]=="L1_":
-                    self.TriggerListL1.append(triggerName)
-                else:
-                    self.TriggerListHLT.append(triggerName)
+        ## Sort trigger list into HLT and L1 trigger lists
+        #if self.triggerList!="":
+        #    for triggerName in self.triggerList:
+        #        if triggerName[0:3]=="L1_":
+        #            self.TriggerListL1.append(triggerName)
+        #        else:
+        #            self.TriggerListHLT.append(triggerName)
+
         # If there aren't preset trigger lists, use all the triggers that we can fit
-        else:
-            if not self.InputFitHLT is None: self.TriggerListHLT = self.InputFitHLT.keys()
-            if not self.InputFitL1 is None: self.TriggerListL1 = self.InputFitL1.keys()
+        #else:
+        #    if not self.InputFitHLT is None: self.TriggerListHLT = self.InputFitHLT.keys()
+        #    if not self.InputFitL1 is None: self.TriggerListL1 = self.InputFitL1.keys()
 
         # Get run info: The current run number, if the detector is collecting (?), if the data is good (?), and the trigger mode
         #if not self.assignedNum:
@@ -450,7 +452,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LSRange[1] = self.currentLS + self.LS_increment
 
         # Get Rates: [triggerName][LS] { raw rate, prescale }
-        self.getRates()
+        #self.getRates()
+        self.queryDatabase()
 
         self.checkForBadTriggers() 
         self.checkTriggers()
@@ -469,11 +472,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.redoTriggerLists()
 
         # Make sure there is info to use
-        if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
-            self.redoTList = True
+        #if len(self.HLTRates) == 0 or len(self.L1Rates) == 0:
+        #    self.redoTList = True
         if len(self.HLTRates) == 0 and len(self.L1Rates) == 0:
             print "No new information can be retrieved. Waiting... (There may be no new LS, or run active may be false)"
-            self.redoTList = True
+        #    self.redoTList = True
             return
 
         #lslist = []
@@ -524,13 +527,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.otherHLTTriggers = []
         self.usableL1Triggers = []
         self.otherL1Triggers = []
-        self.fullL1HLTMenu = []
+        #self.fullL1HLTMenu = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
-        self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+        #self.recordAllBadRates = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
 
         # Set trigger lists automatically based on mode
-        if not self.useAll and not self.userSpecTrigList:
+        #if not self.useAll and not self.userSpecTrigList:
+        if not self.userSpecTrigList:
             if self.mode == "cosmics" or self.mode == "circulate":
                 self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
                 print "monitoring triggers in: ", self.cosmics_triggerList
@@ -538,36 +542,50 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
                 print "monitoring triggers in: ", self.collisions_triggerList
             else:
-                self.triggerList = ""
+                self.triggerList = []
                 print "No lists to monitor: trigger mode not recognized"
 
-            self.TriggerListL1 = []
-            self.TriggerListHLT = []
-            for triggerName in self.triggerList:
-                if triggerName[0:3]=="L1_":
-                    self.TriggerListL1.append(triggerName)
-                elif triggerName[0:4]=="HLT_":
-                    self.TriggerListHLT.append(triggerName)
+            #self.TriggerListL1 = []
+            #self.TriggerListHLT = []
+            #for triggerName in self.triggerList:
+            #    if triggerName[0:3]=="L1_":
+            #        self.TriggerListL1.append(triggerName)
+            #    elif triggerName[0:4]=="HLT_":
+            #        self.TriggerListHLT.append(triggerName)
 
         # Re-make trigger lists
-        for trigger in self.HLTRates.keys():
-            if trigger in self.TriggerListHLT:
-                self.usableHLTTriggers.append(trigger)
-            elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
-                self.otherHLTTriggers.append(trigger)
-            elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger)
+        #for trigger in self.HLTRates.keys():
+        #    if trigger in self.TriggerListHLT:
+        #        self.usableHLTTriggers.append(trigger)
+        #    elif trigger[0:4] == "HLT_" and (self.triggerList == "" or trigger in self.TriggerListHLT):
+        #        self.otherHLTTriggers.append(trigger)
+        #    elif (trigger[0:4] == "HLT_"): self.fullL1HLTMenu.append(trigger)
 
-        for trigger in self.L1Rates.keys():
-            if trigger in self.TriggerListL1:
-                self.usableL1Triggers.append(trigger)
-            elif trigger[0:3] == "L1_" and (self.triggerList == "" or trigger in self.TriggerListL1):
-                self.otherL1Triggers.append(trigger)
-            elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger)
+        #for trigger in self.L1Rates.keys():
+        #    if trigger in self.TriggerListL1:
+        #        self.usableL1Triggers.append(trigger)
+        #    elif trigger[0:3] == "L1_" and (self.triggerList == "" or trigger in self.TriggerListL1):
+        #        self.otherL1Triggers.append(trigger)
+        #    elif (trigger[0:3] == "L1_"): self.fullL1HLTMenu.append(trigger)
+
+        # Re-make trigger lists
+        for trigger in self.Rates.keys():
+            if trigger[0:4] == "HLT_":
+                if self.InputFitHLT.has_key(trigger):
+                    self.usableHLTTriggers.append(trigger)
+                else:
+                    self.otherHLTTriggers.append(trigger)
+            if trigger[0:3] == "L1_":
+                if self.InputFitL1.has_key(trigger):
+                    self.usableL1Triggers.append(trigger)
+                else:
+                    self.otherL1Triggers.append(trigger)
 
         self.getHeader()
 
     # Use: Gets the rates for the lumisections we want
-    def getRates(self):
+    #def getRates(self):
+    def queryDatabase(self):
 
         # Update lastLS
         self.lastLS = self.currentLS
@@ -586,12 +604,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
-        self.totalHLTTriggers = len(self.HLTRates.keys())
-        self.totalL1Triggers = len(self.L1Rates.keys())
+        #self.totalHLTTriggers = len(self.HLTRates.keys())
+        #self.totalL1Triggers = len(self.L1Rates.keys())
 
         lslist = []
         for trig in self.Rates.keys():
-            if len(self.Rates[trig]) > 0: lslist.append(max(self.Rates[trig]))
+            isVetoed = False
+            for vetoString in self.ignoreStrings:
+                if trig.find(vetoString) > -1:
+                    isVetoed = True
+                    break
+            if isVetoed:
+                del self.Rates[trig]
+                continue
+            if len(self.Rates[trig]) > 0:
+                lslist.append(max(self.Rates[trig]))
+
         # Update current LS
         if len(lslist) > 0: self.currentLS = max(lslist)
 
@@ -636,11 +664,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.startLS = self.lastLS
         else: self.startLS = max( [0, self.currentLS-self.slidingLS ] )+1
         # Reset variable
-        self.normal = 0
-        self.bad = 0
+        #self.normal = 0
+        #self.bad = 0
         PScol = -1
         # Get the inst lumi
-        aveLumi = 0
+        #aveLumi = 0
         try:
         #    self.deadTimeData = self.parser.getDeadTime(self.runNumber)
             aveDeadTime = 0
@@ -670,36 +698,43 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
-                if not instLumi is None and physics:
-                    physicsActive = True
+                if not instLumi is None:
+                    #physicsActive = True
+                    physicsActive = physicsActive or physics
                     PScol = psi
-                    if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
+                    #if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
+                    if self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                     else: aveDeadTime = 0
-                    if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
+                    #if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
+                    if self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
                     else: aveL1rate = 0
-                    aveLumi += instLumi
+                    #aveLumi += instLumi
                     count += 1
             if count == 0:
-                aveLumi = 0
+                #aveLumi = 0
                 expected = "NONE"
             else:
-                aveLumi /= float(count)
+                #aveLumi /= float(count)
                 aveDeadTime /= float(count)
                 aveL1rate /= float(count)
         else:
             count = 0
             for LS in self.l1rateData.keys():
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
-                if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
+                #if not aveDeadTime is None and self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
+                if self.deadTimeData.has_key(LS): aveDeadTime += self.deadTimeData[LS]
                 else: aveDeadTime = 0
-                if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
+                #if not aveL1rate is None and self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
+                if self.l1rateData.has_key(LS): aveL1rate += self.l1rateData[LS]
                 else: aveL1rate = 0
                 count += 1
             if not count == 0:
                 aveDeadTime /= float(count)
                 aveL1rate /= float(count)
 
-        self.lumi_ave = aveLumi
+        #self.lumi_ave = aveLumi
+        aveLumi = self.lumi_ave
+
         if self.numBunches[0] > 0 and not aveLumi == 0:
             self.pu_ave = aveLumi/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
@@ -709,43 +744,87 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         #doPred = False
         # Print the header
         self.printHeader()
+
         # Print the triggers that we can make predictions for
-        anytriggers = False
-        if len(self.usableHLTTriggers) > 0:
-            print '*' * self.hlength
-            print "Predictable HLT Triggers (ones we have a fit for)"
-            print '*' * self.hlength
-            anytriggers = True
-        self.L1 = False
-        self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
-        if len(self.usableL1Triggers) > 0:
-            print '*' * self.hlength
-            print "Predictable L1 Triggers (ones we have a fit for)"
-            print '*' * self.hlength
-            anytriggers = True
-        self.L1 = True
-        self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+        #anytriggers = False
+        #if len(self.usableHLTTriggers) > 0:
+        #    print '*' * self.hlength
+        #    print "Predictable HLT Triggers (ones we have a fit for)"
+        #    print '*' * self.hlength
+        #    anytriggers = True
+        ##self.L1 = False
+        #self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
+        #if len(self.usableL1Triggers) > 0:
+        #    print '*' * self.hlength
+        #    print "Predictable L1 Triggers (ones we have a fit for)"
+        #    print '*' * self.hlength
+        #    anytriggers = True
+        ##self.L1 = True
+        #self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
 
-        #check the full menu for paths deviating past thresholds
-        fullMenu_fits = False
-        for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, aveLumi)
+        ##check the full menu for paths deviating past thresholds
+        #fullMenu_fits = False
+        #for trigger in self.fullL1HLTMenu: self.getTriggerData(trigger, fullMenu_fits, aveLumi)
 
-        # Print the triggers that we can't make predictions for
-        if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
-            print '*' * self.hlength
-            print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
-            print '*' * self.hlength
-            self.L1 = False
-            self.printTableSection(self.otherHLTTriggers, False)
-            self.printTableSection(self.otherL1Triggers, False)
-            anytriggers = True
-        if self.useL1:
-            print '*' * self.hlength
-            print "Unpredictable L1 Triggers (ones we have no fit for or do not try to fit)"
-            print '*' * self.hlength
-            self.L1 = True
-            self.printTableSection(self.otherL1Triggers, False)
-            anytriggers = True
+        ## Print the triggers that we can't make predictions for
+        #if self.useAll or self.mode != "collisions" or self.InputFitHLT is None:
+        #    print '*' * self.hlength
+        #    print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
+        #    print '*' * self.hlength
+        #    #self.L1 = False
+        #    self.printTableSection(self.otherHLTTriggers, False)
+        #    self.printTableSection(self.otherL1Triggers, False)
+        #    anytriggers = True
+        #if self.useL1:
+        #    print '*' * self.hlength
+        #    print "Unpredictable L1 Triggers (ones we have no fit for or do not try to fit)"
+        #    print '*' * self.hlength
+        #    #self.L1 = True
+        #    self.printTableSection(self.otherL1Triggers, False)
+        #    anytriggers = True
+
+        if self.mode == "collisions":
+            # Print triggers from self.usableHLTTriggers, self.usableL1Triggers
+            anytriggers = False
+            if len(self.usableHLTTriggers) > 0:
+                print '*' * self.hlength
+                print "Predictable HLT Triggers (ones we have a fit for)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
+            if len(self.usableL1Triggers) > 0:
+                print '*' * self.hlength
+                print "Predictable L1 Triggers (ones we have a fit for)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+        else:
+            # Print triggers from self.usableHLTTriggers, self.otherHLTTriggers, self.usableL1Triggers, self.otherL1Triggers
+            anytriggers = False
+            if len(self.usableHLTTriggers) > 0:
+                print '*' * self.hlength
+                print "Predictable HLT Triggers (ones we have a fit for)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.usableHLTTriggers, doPred, aveLumi)
+            if len(self.otherHLTTriggers) > 0:
+                print '*' * self.hlength
+                print "Unpredictable HLT Triggers (ones we have no fit for or do not try to fit)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.otherHLTTriggers, False, aveLumi)
+            if len(self.usableL1Triggers) > 0:
+                print '*' * self.hlength
+                print "Predictable L1 Triggers (ones we have a fit for)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.usableL1Triggers, doPred, aveLumi)
+            if len(self.otherL1Triggers) > 0:
+                print '*' * self.hlength
+                print "Unpredictable L1 Triggers (ones we have no fit for or do not try to fit)"
+                print '*' * self.hlength
+                anytriggers = True
+                self.printTableSection(self.otherL1Triggers, False, aveLumi)
 
         if not anytriggers:
             print '*' * self.hlength
@@ -839,6 +918,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             print "Average PU: %s" % (self.pu_ave)
         print '*' * self.hlength
 
+        # Print the list of triggers that are out of line
+        if self.displayBadRates != 0:
+            count = 0
+            if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates))
+            elif len(self.badRates) > 0 : write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
+            for trigger in self.badRates:
+                if self.badRates[trigger][1]:
+                    count += 1
+                    write(trigger)
+                    if count != self.displayBadRates-1:
+                        write(", ")
+                if count == self.displayBadRates:
+                    write(".....")
+                    break
+            print ""
+
     # Use: Prints the table header
     def printHeader(self):
         print "\n\n", '*' * self.hlength
@@ -848,13 +943,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print "Latest LHC Status: %s" % (self.LHCStatus[0])
         print "Number of colliding bunches: %s" % self.numBunches[0]
         print "Trigger Mode: %s (%s)" % (self.triggerMode, self.mode)
-        print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
+        #print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (self.totalHLTTriggers, self.totalL1Triggers)
+        print "Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (len(self.HLTRates.keys()) , len(self.L1Rates.keys()))
         print "Number of streams:", self.totalStreams
         print '*' * self.hlength
         print self.header
 
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
-    def printTableSection(self, triggerList, doPred, aveLumi=0):
+    def printTableSection(self, triggerList, doPred, aveLumi=0, maxRows=25):
         # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
         self.tableData = []
 
@@ -869,7 +965,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         elif self.sortRates:
             self.tableData.sort(key=lambda tup: tup[1], reverse = True)
 
+        nRows = 0
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
+            if nRows > maxRows:
+                break
             if self.mode != "collisions" and rate == 0:
                 # When not in collisions mode, ignore triggers with 0 rate
                 continue
@@ -912,6 +1011,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             else:
                 print info
 
+            nRows += 1
+
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
     def isBadTrigger(self, perdiff, dev, psrate, isL1):
@@ -949,7 +1050,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # If cosmics, don't do predictions
         if self.mode == "cosmics": doPred = False
         # Calculate rate
-        if self.mode != "cosmics" and doPred:
+        #if self.mode != "cosmics" and doPred:
+        if doPred:
             if not aveLumi is None:
                 expected = self.calculateRate(trigger, aveLumi)
                 if expected < 0: expected = 0                # Don't let expected value be negative
@@ -964,12 +1066,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         aveRate = 0
         properAvePSRate = 0
         avePS = 0
-        aveDeadTime = 0
+        #aveDeadTime = 0
         count = 0
         comment = ""
 
-        correct_for_deadtime = self.deadTimeCorrection
-        if trigger[0:3]=="L1_": correct_for_deadtime = False
+        #correct_for_deadtime = self.deadTimeCorrection
+        #if trigger[0:3]=="L1_": correct_for_deadtime = False
 
         for LS in self.Rates[trigger].keys():
             if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
@@ -983,21 +1085,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 #print "trouble getting deadtime for LS: ", LS," setting DT to zero"
                 deadTime = 0
 
-            if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+            #if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+            if trigger[0:3] != "L1_": rate *= 1. + (deadTime/100.)
 
             if prescale > 0: properAvePSRate += rate/prescale
             else: properAvePSRate += rate
             aveRate += rate
             count += 1
             avePS += prescale
-            aveDeadTime += deadTime
+            #aveDeadTime += deadTime
 
         if count > 0:
             if aveRate == 0: comment += "0 counts "
             aveRate /= count
             properAvePSRate /= count
             avePS /= count
-            aveDeadTime /= count
+            #aveDeadTime /= count
 
             if avePS == 0.0:
                 comment = "PS=0"
@@ -1134,7 +1237,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             doPred = doPred and hasLSRate 
     
             # Calculate rate
-            if self.mode != "cosmics" and doPred:
+            #if self.mode != "cosmics" and doPred:
+            if doPred:
                 if not aveLumi is None:
                     expected = self.calculateRate(trigger, aveLumi)
                     if expected < 0: expected = 0                # Don't let expected value be negative
@@ -1151,8 +1255,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             avePS = 0
             count = 0
 
-            correct_for_deadtime = self.deadTimeCorrection
-            if trigger[0:3]=="L1_": correct_for_deadtime = False
+            #correct_for_deadtime = self.deadTimeCorrection
+            #if trigger[0:3]=="L1_": correct_for_deadtime = False
 
             for LS in data.keys():
 
@@ -1167,7 +1271,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     #print "trouble getting deadtime for LS: ", LS," setting DT to zero"
                     deadTime = 0
 
-                if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+                #if correct_for_deadtime: rate *= 1. + (deadTime/100.)
+                if trigger[0:3] != "L1_": rate *= 1. + (deadTime/100.)
 
                 if prescale > 0: properAvePSRate += rate/prescale
                 else: properAvePSRate += rate
@@ -1198,12 +1303,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     else: dev = "INF"
 
             #do not warn on specific triggers
-            vetoed = False
-            for vetoString in self.ignoreStrings:
-                if trigger.find(vetoString) > -1:
-                    vetoed = True
-                    continue
-            if vetoed: continue
+            #for vetoString in self.ignoreStrings:
+            #    if trigger.find(vetoString) > -1: continue
             # Check if the trigger is bad
             if doPred:
                 # Check for bad rates.
@@ -1244,25 +1345,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     # Remove warning from badRates
                     if self.badRates.has_key(trigger) and avePS > 0:
                         del self.badRates[trigger]
-        
-    
 
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
-        if self.displayBadRates != 0:
-            count = 0
-            if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates))
-            elif len(self.badRates) > 0 : write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
-            for trigger in self.badRates:
-                if self.badRates[trigger][1]:
-                    count += 1
-                    write(trigger)
-                    if count != self.displayBadRates-1:
-                        write(", ")
-                if count == self.displayBadRates:
-                    write(".....")
-                    break
-            print ""
+    #    if self.displayBadRates != 0:
+    #        count = 0
+    #        if self.displayBadRates != -1: write("First %s triggers that are bad: " % (self.displayBadRates))
+    #        elif len(self.badRates) > 0 : write("All triggers deviating past thresholds from fit and/or L1 rate > %s Hz, HLT rate > %s Hz: " %(self.maxL1Rate,self.maxHLTRate))
+    #        for trigger in self.badRates:
+    #            if self.badRates[trigger][1]:
+    #                count += 1
+    #                write(trigger)
+    #                if count != self.displayBadRates-1:
+    #                    write(", ")
+    #            if count == self.displayBadRates:
+    #                write(".....")
+    #                break
+    #        print ""
 
         # check what is the latest lumisection for which we have monitoring data
         try:
@@ -1321,11 +1420,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
-        if not self.quiet: print "Sleeping for %.1f sec before next query" % (60.0*self.scale_sleeptime)
+        if not self.quiet and not self.simulate: print "Sleeping for %.1f sec before next query" % (60.0*self.scale_sleeptime)
+        elif not self.quiet and self.simulate: print "Sleeping for %.1f sec before next query" % (60.0*self.scale_sleeptime_simulate)
         for iSleep in range(20):
             if not self.quiet: write(".")
             sys.stdout.flush()
-            time.sleep(3.0*self.scale_sleeptime)
+            if not self.simulate: time.sleep(3.0*self.scale_sleeptime)
+            elif self.simulate: time.sleep(3.0*self.scale_sleeptime_simulate)
         sys.stdout.flush()
         print ""
 
@@ -1345,6 +1446,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         except:
             # File failed to open
             print "Error: could not open fit file: %s" % (fileName)
+        # In case input fit file has new format { 'fit_runs': {} , 'triggers': {} }
+        if InputFit.has_key('triggers'):
+            InputFit = InputFit['triggers']
         return InputFit
 
     # Use: Calculates the expected rate for a trigger at a given ilumi based on our input fit
@@ -1358,7 +1462,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             paramlist = self.InputFitL1[triggerName]
         else:
             return 0
-
         # Calculate the rate
         if paramlist[0] == "exp":          # Exponential
              funcStr = "%.15f + %.5f*exp( %.15f+%.15f*x )" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
