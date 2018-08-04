@@ -458,6 +458,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.checkForBadTriggers() 
         self.checkTriggers()
 
+        if self.mode == "collisions" and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
+            # On a new run start, not always able to get the full list of triggers --> Re-try until we have some
+            self.redoTList = True
+
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print "Starting a new run: Run %s" % (self.runNumber)
@@ -465,7 +469,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.currentLS = 0
             # Check what mode we are in
             self.setMode()
-            self.redoTriggerLists()
+            self.redoTList = True
 
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
