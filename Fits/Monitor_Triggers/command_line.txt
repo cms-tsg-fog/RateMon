@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --createFit --bestFit --updateOnlineFits 321432 321433 321434 321436 321431 
+python plotTriggerRates.py --createFit --bestFit --lsVeto=ls_veto_map.json --updateOnlineFits 324980 324293 
