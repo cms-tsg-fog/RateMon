@@ -514,7 +514,6 @@ class MonitorController:
                     if type(fits[trig]) is dict:
                         fits_format = 'nested_dict'
             pkl_file.close()
-            print 'fit type !!! ' , fits_format
 
             if fits_format == 'dict_of_lists':
                     tmp_dict = {}                   # {'obj': {'fit_type': fit_params } }
