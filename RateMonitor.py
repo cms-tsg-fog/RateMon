@@ -17,6 +17,7 @@ import sys
 import shutil
 #import time
 import datetime
+import copy 
 
 from FitFinder import *
 from DataParser import *
@@ -65,7 +66,6 @@ class RateMonitor:
         # TESTING: END #
 
         self.group_map = {}     # {'group_name': [trigger_name] }
-        self.data_dict = {}
 
         self.fill_list   = []   # Fills to get data from, Currently Unused
         self.run_list    = []   # Runs to get data from
@@ -147,7 +147,7 @@ class RateMonitor:
         #            continue
         #        plot_data[name][run] = [x_vals[name][run],y_vals[name][run],det_status[name][run],phys_status[name][run]]
 
-        plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.data_dict['user_input'])
+        plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.fitter.data_dict['user_input'])
 
 
         # If no objects are specified, plot everything!
@@ -166,22 +166,46 @@ class RateMonitor:
             normalization = bunch_map[max_key]
         print "Fit Normalization: %d" % normalization
 
+
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
             #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         
-            fits = {}
-            for k,runs in self.data_dict.iteritems():
+            #fits = {}
+            fit_info = {
+                'fit_runs': copy.deepcopy(self.fitter.data_dict),
+                'triggers': {}
+                }
+
+            for k,runs in self.fitter.data_dict.iteritems():
                 data = self.getData(x_vals,y_vals,det_status,phys_status,runs)
                 data_fits = self.fitter.makeFits(data,self.object_list,normalization)
-                
-                if k is 'user_input':
-                        fits = self.fitter.mergeFits(fits,data_fits,'')
-                if k is not 'user_input': 
-                        fits = self.fitter.mergeFits(fits,data_fits,k)
 
-            self.fitter.saveFits(fits,"fit_file.pkl",self.save_dir)
-            self.plotter.setFits(fits)
+                #if k is 'user_input':
+                #        fits = self.fitter.mergeFits(fits,data_fits,'')
+                #if k is not 'user_input':
+                #        fits = self.fitter.mergeFits(fits,data_fits,k)
+
+                #if k is 'user_input' and not self.compare_fits:
+                #    fits = self.fitter.mergeFits(fits,data_fits,'')
+                #elif k is 'user_input':
+                #    fits = self.fitter.mergeFits(fits,data_fits,'0data: ')
+                #else:
+                #    fits = self.fitter.mergeFits(fits,data_fits,k+': ')
+
+                if k is 'user_input' and not self.compare_fits:
+                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,'')
+                elif k is 'user_input':
+                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,'0data: ')
+                else: 
+                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,k+': ')
+                print k,runs
+
+            #self.fitter.saveFits(fits,"fit_file.pkl",self.save_dir)
+            #self.plotter.setFits(fits)
+            self.fitter.saveFits(fit_info,"fit_file.pkl",self.save_dir)
+            self.plotter.setFits(fit_info)
+
         elif self.update_online_fits:
             self.updateOnlineFits(plot_data,normalization)
             return  # This keeps us from having to worry about any additional output plots
@@ -192,8 +216,13 @@ class RateMonitor:
         # We want fits and no fits were specified --> make some
         # NOTE: This 'if' is true only when ZERO fits exist
         if self.plotter.use_fit and len(self.plotter.fits.keys()) == 0:
-            fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-            self.plotter.setFits(fits)
+            #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+            #self.plotter.setFits(fits)
+            fit_info = {
+                'fit_runs': copy.deepcopy(self.fitter.data_dict),
+                'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+                }
+            self.plotter.setFits(fit_info)
 
         # This is after update_online_fits, so as to ensure the proper save dir is set
         self.plotter.save_dir = self.save_dir
@@ -453,18 +482,32 @@ class RateMonitor:
         print "Updating monitored trigger fits..."
         print "Total Triggers: %d" % (len(self.object_list))
         self.plotter.save_dir = mon_trg_dir
-        fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
-        self.plotter.setFits(fits)
-        self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
+        #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
+        #self.plotter.setFits(fits)
+        #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
+        #fit_info = self.fitter.makeFits(plot_data,self.object_list,normalization)
+        fit_info = {
+            'fit_runs': copy.deepcopy(self.fitter.data_dict),
+            'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+            }
+        self.plotter.setFits(fit_info)
+        self.fitter.saveFits(fit_info,"FOG.pkl",mon_trg_dir)
         plotted_objects = self.makePlots(self.object_list)
 
         # Plots all trigger paths
         print "Updating all trigger fits..."
         print "Total Triggers: %d" % (len(all_triggers))
         self.plotter.save_dir = all_trg_dir
-        fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
-        self.plotter.setFits(fits)
-        self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
+        #fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
+        #self.plotter.setFits(fits)
+        #self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
+        #fit_info = self.fitter.makeFits(plot_data,all_triggers,normalization)
+        fit_info = {
+            'fit_runs': copy.deepcopy(self.fitter.data_dict),
+            'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+             }
+        self.plotter.setFits(fit_info)
+        self.fitter.saveFits(fit_info,"FOG.pkl",all_trg_dir)
         plotted_objects = self.makePlots(all_triggers)
 
         command_line_str  = "Results produced with:\n"

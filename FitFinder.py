@@ -45,11 +45,14 @@ class FitFinder:
         self.use_best_fit = False
         self.use_weighted_fit = True
 
+        self.data_dict = {}
+
     # Returns: {'trigger': fit_params}
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
     # NOTE1: Need to figure out why the fitter is generating NaN's for the fits
     def makeFits(self,data,object_list,normalization):
         fits = {}           # {'trigger': { 'fit_type': fit_params } }
+        fit_info = {}       # {'fit_runs': {'user_input': [runs] , '1data' : [runs] } , 'triggers': fits }
         skipped_fits = {}   # {'trigger': 'reason'}
         nan_fits = {}       # {'trigger': { 'fit_type': param_index } }
 
@@ -132,7 +135,11 @@ class FitFinder:
         if len(nan_fits) > 0:
             print "NaN fits: %d" % len(nan_fits.keys())
 
+        #fit_info['fit_runs'] = self.data_dict
+        #fit_info['triggers'] = fits
+
         return fits
+        #return fit_info
 
     # Removes points with y-values outside of a given range
     def getGoodPoints(self,xVals,yVals,avg_y=None,std_y=None,sig_y=4):
@@ -342,26 +349,25 @@ class FitFinder:
         f.close()
         print "Fit file saved to: %s" % path
 
-
-
-    # Merges two fits together 
+    # Merges two fits together
     def mergeFits(self,fits1,fits2,label):
         new_fits = {}
 
-        # Set new_fits = fits1: 
+        # Set new_fits = fits1:
         for trig_name in fits1.keys():
                 new_fits[trig_name] = fits1[trig_name]
 
-        # Iterate over triggers in Fits2: 
+        # Iterate over triggers in Fits2:
         for trig_name in fits2.keys():
 
-                #If fits2 has a trigger not in Fits1, add it to new_fits (and change fit_type name), exit iteration of loop: 
+                # If fits2 has a trigger that's not in fits1, add it to new_fits
                 if not new_fits.has_key(trig_name):
-                        new_fits[trig_name] = {} 
+                        new_fits[trig_name] = {}
 
-                # If for the same trigger Fits2 has a fit_type not in Fits1, add it to new_fits (and change fit_type name):  
+                # Change fit_type name in new_fits
                 for fit_type in fits2[trig_name].keys():
-                        new_fit_type = fit_type+' %s' %(label)
+                        #new_fit_type = fit_type+' %s' %(label)
+                        new_fit_type = '%s %s' %(label,fit_type)
                         new_fits[trig_name][new_fit_type] = fits2[trig_name][fit_type]
 
         return new_fits

@@ -39,7 +39,8 @@ class PlotMaker:
         self.sigmas = 3.0
         # Fix: [8,9,10,12]
         self.color_list = [4,6,8,7,9,419,46,20,28,862,874,38,32,40,41,5,3]  # List of colors that we can use for graphing
-        self.fit_color_list = [2,1,3,5]                                     # List of colors to use for the fits
+        #self.fit_color_list = [2,1,3,5]                                     # List of colors to use for the fits
+        self.fit_color_list = [2,1,3,5,6,7,9,4,8,45]                        # List of colors to use for the fits
         self.fill_count = 0
         self.min_plot_pts = 10
 
@@ -65,6 +66,8 @@ class PlotMaker:
         self.save_png = False
         self.save_root_file = False
 
+        self.set_plotter_fits = False
+
         self.ls_options = {
             'show_bad_ls':  True,       # Flag to display the removed LS (in a separate color)
             'rm_bad_beams': True,       # Remove LS which did not have stable beams
@@ -79,10 +82,14 @@ class PlotMaker:
 
     # Sets the fits to be used in the plot making
     # TODO: Instead of just using a default_fit, could instead make use of self.fitFinder.getBestFit()
-    def setFits(self,fits):
+    #def setFits(self,fits):
+    def setFits(self,fit_info):
+        #print ' the fits info !!! ' , fit_info 
+        fits = fit_info['triggers']
         if self.use_multi_fit:
             # We want to plot all the fits
             self.fits = fits
+            self.fit_info = fit_info
         else:
             # We select only a single fit_type to plot
             for trigger in fits:
@@ -99,6 +106,8 @@ class PlotMaker:
                     fit_type = fits[trigger].keys()[0]
                     self.fits[trigger] = {}
                     self.fits[trigger][fit_type] = fits[trigger][fit_type]
+            self.fit_info = fit_info
+            self.fit_info['triggers'] = self.fits
 
     # Gets the list of runs
     def getRunList(self):
@@ -362,7 +371,13 @@ class PlotMaker:
         if self.use_fit and not missing_fit: # Display all the fit functions
             color_counter = 0
             for fit_type in sorted(self.fits[trigger]):
-                legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
+                #legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
+
+                if self.show_errors and not self.use_multi_fit:
+                    legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
+                else:
+                    legend.AddEntry(fit_func[fit_type],"%s, mse:%f" % (fit_type,fit_mse[fit_type]))
+
                 fit_func[fit_type].SetLineColor(self.fit_color_list[color_counter % len(self.fit_color_list)])
                 fit_func[fit_type].Draw("same")
                 color_counter += 1
@@ -407,6 +422,25 @@ class PlotMaker:
         latex.SetTextSize(0.035)
         latex.SetTextFont(52)
         latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+
+        # Test !! writing whcih runs were used to make the fit
+        #if self.set_plotter_fits and len(fit_params) == 13:
+        #    latex.SetTextSize(0.025)
+        #    latex.SetTextFont(40)
+        #    latex.DrawLatex(0.15, 0.68, "Runs used to make fit:")
+        #    i=0
+        #    for run in sorted(fit_params[12]):
+        #        latex.DrawLatex(0.15, 0.65-0.025*i, "%i" %(fit_params[12][i]))
+        #        i = i+1
+
+        if self.show_fit_runs and self.fit_info['fit_runs'] != {}:
+            latex.SetTextSize(0.025)
+            latex.SetTextFont(40)
+            latex.DrawLatex(0.15, 0.68, "Runs used to make fit:")
+            i=0
+            for run in sorted(self.fit_info['fit_runs']['user_input']):
+                latex.DrawLatex(0.15, 0.65-0.025*i, "%i" %(run))
+                i = i+1
 
         canvas.SetGridx(1);
         canvas.SetGridy(1);
