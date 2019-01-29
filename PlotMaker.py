@@ -30,7 +30,7 @@ class PlotMaker:
 
         self.plotting_data = {}     #    {'trigger': { run_number:  ( [x_vals], [y_vals], [det_status], [phys_status] ) } }
 
-        self.fits = {}              # {'trigger': { 'fit_type': fit_params } }
+        self.fits = {}              # {'trigger': { 'group': { 'fit_type': fit_params } } }
         self.bunch_map = {}         # {run_number:  bunches }
         self.fill_map = {}          # {run_number: fill_number }
 
@@ -68,6 +68,8 @@ class PlotMaker:
 
         self.set_plotter_fits = False
 
+        self.show_fit_run_groups = False
+
         self.ls_options = {
             'show_bad_ls':  True,       # Flag to display the removed LS (in a separate color)
             'rm_bad_beams': True,       # Remove LS which did not have stable beams
@@ -82,32 +84,41 @@ class PlotMaker:
 
     # Sets the fits to be used in the plot making
     # TODO: Instead of just using a default_fit, could instead make use of self.fitFinder.getBestFit()
-    #def setFits(self,fits):
     def setFits(self,fit_info):
-        #print ' the fits info !!! ' , fit_info 
         fits = fit_info['triggers']
         if self.use_multi_fit:
             # We want to plot all the fits
             self.fits = fits
-            self.fit_info = fit_info
+            #self.run_groups = fit_info['run_groups']
         else:
-            # We select only a single fit_type to plot
+            # We select only a single fit_type to plot (using getBestFit)
             for trigger in fits:
-                if len(fits[trigger].keys()) > 1:
-                    # This is kind of an edge case, but I would like to find a better solution for selecting from multiple fits
-                    try:
-                        self.fits[trigger] = {}
-                        self.fits[trigger][self.default_fit] = fits[trigger][self.default_fit]
-                    except KeyError:
-                        print "WARNING: %s doesn't have the default fit type, %s. Skipping this fit" % (trigger,self.default_fit)
-                        continue
-                else:
-                    # If only 1 fit is available use it
-                    fit_type = fits[trigger].keys()[0]
-                    self.fits[trigger] = {}
-                    self.fits[trigger][fit_type] = fits[trigger][fit_type]
-            self.fit_info = fit_info
-            self.fit_info['triggers'] = self.fits
+                self.fits[trigger] = {}
+                for group in fits[trigger]:
+                    self.fits[trigger][group] = {}
+
+                    best_fit_type,best_fit = self.fitFinder.getBestFit(fits[trigger][group])
+                    #if not best_fit_type is None:
+                    self.fits[trigger][group][best_fit_type] = best_fit
+
+                    #if len(fits[trigger].keys()) > 1:
+                    #    # This is kind of an edge case, but I would like to find a better solution for selecting from multiple fits
+                    #    try:
+                    #        #self.fits[trigger][group] = {}
+                    #        self.fits[trigger][group][self.default_fit] = fits[trigger][group][self.default_fit]
+                    #    except KeyError:
+                    #        print "WARNING: %s doesn't have the default fit type, %s. Skipping this fit" % (trigger,self.default_fit)
+                    #        continue
+                    #else:
+                    #    # If only 1 fit is available use it
+                    #    fit_type = fits[trigger][group].keys()[0]
+                    #    #self.fits[trigger][group] = {}
+                    #    self.fits[trigger][group][fit_type] = fits[trigger][group][fit_type]
+
+        self.run_groups = fit_info['run_groups']
+        self.fit_info = {}
+        self.fit_info['run_groups'] = fit_info['run_groups']
+        self.fit_info['triggers'] = self.fits
 
     # Gets the list of runs
     def getRunList(self):
@@ -299,11 +310,17 @@ class PlotMaker:
             func_str = {}
             fit_func = {}
             fit_mse = {}
-            for fit_type in self.fits[trigger]:
-                fit_params = self.fits[trigger][fit_type]
-                plot_func_str[fit_type],func_str[fit_type] = self.getFuncStr(fit_params)
-                fit_func[fit_type] = TF1("Fit_"+trigger, plot_func_str[fit_type], 0., 1.1*max_xaxis_val)
-                fit_mse[fit_type] = fit_params[5]
+            #for fit_type in self.fits[trigger]:
+            for group in self.fits[trigger]:
+                plot_func_str[group] = {}
+                func_str[group] ={}
+                fit_func[group] = {}
+                fit_mse[group] = {}
+                for fit_type in self.fits[trigger][group]:
+                    fit_params = self.fits[trigger][group][fit_type]
+                    plot_func_str[group][fit_type],func_str[group][fit_type] = self.getFuncStr(fit_params)
+                    fit_func[group][fit_type] = TF1("Fit_"+trigger, plot_func_str[group][fit_type], 0., 1.1*max_xaxis_val)
+                    fit_mse[group][fit_type] = fit_params[5]
 
         graphList = []
         color_map = self.getColorMap()
@@ -315,12 +332,17 @@ class PlotMaker:
             leg_entries += run_count
 
         if self.use_fit and not missing_fit:
-            if self.use_multi_fit:
-                leg_entries += len(self.fits[trigger].keys())
+            if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+                for group in self.fits[trigger]:
+                    leg_entries += len(self.fits[trigger][group].keys())
             else:
                 leg_entries += 1
 
-        legend = self.getLegend(num_entries=leg_entries)
+        #legend = self.getLegend(num_entries=leg_entries)
+        if len(self.run_groups.keys()) > 1:
+            legend = self.getLegend(num_entries=2*leg_entries)
+        else:
+            legend = self.getLegend(num_entries=leg_entries)
 
         old_fill = -1
         counter = 0
@@ -370,29 +392,38 @@ class PlotMaker:
 
         if self.use_fit and not missing_fit: # Display all the fit functions
             color_counter = 0
-            for fit_type in sorted(self.fits[trigger]):
-                #legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
+            #for fit_type in sorted(self.fits[trigger]):
+            for group in sorted(self.fits[trigger]):
+                for fit_type in sorted(self.fits[trigger][group]):
+                    #legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
 
-                if self.show_errors and not self.use_multi_fit:
-                    legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
-                else:
-                    legend.AddEntry(fit_func[fit_type],"%s, mse:%f" % (fit_type,fit_mse[fit_type]))
+                    #if self.show_errors and not self.use_multi_fit:
+                    if not self.use_multi_fit and not len(self.run_groups.keys()) > 1:
+                        legend.AddEntry(fit_func[group][fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
+                    #elif self.compare_fits or len(self.run_groups) > 1:
+                    elif self.compare_fits or len(self.run_groups.keys()) > 1:
+                        #legend.AddEntry(fit_func[group][fit_type],"%s: %s,\nmse:%f" % (group,fit_type,fit_mse[group][fit_type]))
+                        legend.AddEntry(fit_func[group][fit_type],"#splitline{%s: %s}{(mse:%f)}" % (group,fit_type,fit_mse[group][fit_type]))
+                    else:
+                        legend.AddEntry(fit_func[group][fit_type],"%s, mse:%f" % (fit_type,fit_mse[group][fit_type]))
+                        #legend.AddEntry(fit_func[group][fit_type],"#splitline{%s}{mse:%f}" % (fit_type,fit_mse[group][fit_type]))
 
-                fit_func[fit_type].SetLineColor(self.fit_color_list[color_counter % len(self.fit_color_list)])
-                fit_func[fit_type].Draw("same")
-                color_counter += 1
-            
-                if self.show_errors and not self.use_multi_fit: # Display the error band
-                    fit_error_band = self.getErrorGraph(fit_func[fit_type],fit_mse[fit_type])
-                    fit_error_band.Draw("3")
+                    fit_func[group][fit_type].SetLineColor(self.fit_color_list[color_counter % len(self.fit_color_list)])
+                    fit_func[group][fit_type].Draw("same")
+                    color_counter += 1
 
-                if self.show_eq and not self.use_multi_fit: # Display the fit equation
-                    func_leg = TLegend(.146, .71, .47, .769)
-                    func_leg.SetHeader("f(x) = " + func_str[fit_type])
-                    func_leg.SetFillColor(0)
-                    #func_leg.SetFillColorAlpha(0,0.5)
-                    func_leg.Draw()
-                    canvas.Update()
+                    if self.show_errors and not self.use_multi_fit and not len(self.run_groups.keys()) > 1: # Display the error band
+                        fit_error_band = self.getErrorGraph(fit_func[group][fit_type],fit_mse[group][fit_type])
+                        fit_error_band.Draw("3")
+
+                    if self.show_eq and not self.use_multi_fit and not len(self.run_groups.keys()) > 1: # Display the fit equation
+                        func_leg = TLegend(.146, .71, .47, .769)
+                        for group in func_str.keys():
+                            func_leg.SetHeader("f(x) = " + func_str[group][fit_type])
+                        func_leg.SetFillColor(0)
+                        #func_leg.SetFillColorAlpha(0,0.5)
+                        func_leg.Draw()
+                        canvas.Update()
 
         if not skip_bad_ls_plot:
             bad_ls_graph = TGraph(len(bad_ls_x),bad_ls_x,bad_ls_y)
@@ -423,24 +454,19 @@ class PlotMaker:
         latex.SetTextFont(52)
         latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
 
-        # Test !! writing whcih runs were used to make the fit
-        #if self.set_plotter_fits and len(fit_params) == 13:
+        # Write the fit runs onto the plot (if using --showFitRuns option)
+        if self.show_fit_run_groups and self.run_groups != {}:
+            self.writeFitRuns(self.run_groups,0.15,0.65)
+
+        #if self.show_fit_runs and self.run_groups != {}:
         #    latex.SetTextSize(0.025)
         #    latex.SetTextFont(40)
         #    latex.DrawLatex(0.15, 0.68, "Runs used to make fit:")
         #    i=0
-        #    for run in sorted(fit_params[12]):
-        #        latex.DrawLatex(0.15, 0.65-0.025*i, "%i" %(fit_params[12][i]))
+        #    # Only writes runs from user_input group onto the plot
+        #    for run in sorted(self.run_groups['user_input']):
+        #        latex.DrawLatex(0.15, 0.65-0.025*i, "%i" %(run))
         #        i = i+1
-
-        if self.show_fit_runs and self.fit_info['fit_runs'] != {}:
-            latex.SetTextSize(0.025)
-            latex.SetTextFont(40)
-            latex.DrawLatex(0.15, 0.68, "Runs used to make fit:")
-            i=0
-            for run in sorted(self.fit_info['fit_runs']['user_input']):
-                latex.DrawLatex(0.15, 0.65-0.025*i, "%i" %(run))
-                i = i+1
 
         canvas.SetGridx(1);
         canvas.SetGridy(1);
@@ -498,7 +524,7 @@ class PlotMaker:
         return err_graph
 
     # Note1: This function will also modify the value of max_y_val
-    def getPredictionGraph(self,paramlist,min_x_val,max_x_val,max_y_val,trigger_name,run,lumi_info):
+    def getPredictionGraph(self,paramlist,min_x_val,max_x_val,max_y_val,trigger_name,run,lumi_info,pt_color):
         # {'name': {run: [ (LS,pred,err) ] } }
         prediction_rec = {}  # A dict used to store predictions and prediction errors: [ 'name' ] { (LS), (pred), (err) }
 
@@ -506,37 +532,57 @@ class PlotMaker:
         ppInelXsec = 80000.
         orbitsPerSec = 11246.
 
-        # Initialize our point arrays
-        lumisecs    = array.array('f')
-        predictions = array.array('f')
-        ls_error    = array.array('f')
-        pred_error  = array.array('f')
-        # Unpack values
-        fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
-        # Create our point arrays
+        lsVals = []
+        puVals = []
         for LS, ilum, psi, phys, cms_ready in lumi_info:
             if not ilum is None and phys:
-                lumisecs.append(LS)
-                pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
-                # Either we have an exponential fit, or a polynomial fit
-                if fit_type == "exp":
-                    rr = self.bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
-                else:
-                    rr = self.bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
-                if rr < 0: rr = 0 # Make sure prediction is non negative
-                predictions.append(rr)
-                ls_error.append(0)
-                pred_error.append(self.bunch_map[run]*self.sigmas*sigma)
+                lsVals.append(LS)
+                puVals.append( (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec ) )
+
+        lumisecs,predictions,ls_error,pred_error = self.fitFinder.getPredictionPoints(paramlist,lsVals,puVals,self.bunch_map[run],5)
+
+
+        ##############################################################################################
+        ## Initialize our point arrays
+        #lumisecs    = array.array('f')
+        #predictions = array.array('f')
+        #ls_error    = array.array('f')
+        #pred_error  = array.array('f')
+
+        ## Unpack values
+        #fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = paramlist
+
+        ## Create our point arrays
+        #for LS, ilum, psi, phys, cms_ready in lumi_info:
+        #    if not ilum is None and phys:
+        #        lumisecs.append(LS)
+        #        pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
+        #        # Either we have an exponential fit, or a polynomial fit
+        #        if fit_type == "exp":
+        #            rr = self.bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
+        #        else:
+        #            rr = self.bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+        #        if rr < 0: rr = 0 # Make sure prediction is non negative
+        #        predictions.append(rr)
+        #        ls_error.append(0)
+        #        pred_error.append(self.bunch_map[run]*self.sigmas*sigma)
+        ##############################################################################################
+
         # Record for the purpose of doing checks
         prediction_rec.setdefault(trigger_name,{})[run] = zip(lumisecs, predictions, pred_error)
         # Set some graph options
-        fit_graph = TGraphErrors(len(lumisecs), lumisecs, predictions, ls_error, pred_error)
+        if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+            fit_graph = TGraph(len(lumisecs), lumisecs, predictions) # Don't show errors if plotting more than one fit
+            fit_graph.SetFillColor(0)
+            fit_graph.SetFillStyle(0)
+        else:
+            fit_graph = TGraphErrors(len(lumisecs), lumisecs, predictions, ls_error, pred_error)
+            fit_graph.SetFillColor(4)
+            fit_graph.SetFillStyle(3003)
         fit_graph.SetTitle("Fit (%s sigma)" % (self.sigmas)) 
-        fit_graph.SetMarkerStyle(8)
+        fit_graph.SetMarkerStyle(4)
         fit_graph.SetMarkerSize(0.8)
-        fit_graph.SetMarkerColor(2) # Red
-        fit_graph.SetFillColor(4)
-        fit_graph.SetFillStyle(3003)
+        fit_graph.SetMarkerColor(pt_color) # Start with red
         fit_graph.GetXaxis().SetLimits(min_x_val, 1.1*max_x_val)
 
         max_pred = prediction_rec[trigger_name][run][0][1]
@@ -585,25 +631,39 @@ class PlotMaker:
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
 
-        best_fit_type,best_fit = self.fitFinder.getBestFit(self.fits[trigger])
-        predictionTGraph = self.getPredictionGraph( best_fit,
-                                                    min_xaxis_val,
-                                                    max_xaxis_val,
-                                                    max_yaxis_val,
-                                                    trigger,
-                                                    run,
-                                                    lumi_info)
+        #best_fit_type,best_fit = self.fitFinder.getBestFit(self.fits[trigger])
+        predictionTGraph = {}
+        pt_color = 2 # red
+        for group in self.fits[trigger]:
+            predictionTGraph[group] = {}
+            #if not self.use_multi_fit:
+            #    best_fit_type,best_fit = self.fitFinder.getBestFit(self.fits[trigger][group])
+            #    fits[trigger][group][best_fit_type] = best_fit
+            for fit_type, fit in self.fits[trigger][group].iteritems():
+                predictionTGraph[group][fit_type] = self.getPredictionGraph( fit,
+                                                        min_xaxis_val,
+                                                        max_xaxis_val,
+                                                        max_yaxis_val,
+                                                        trigger,
+                                                        run,
+                                                        lumi_info,
+                                                        pt_color)
+                pt_color = pt_color+1
+                if pt_color == 10: 
+                    pt_color = pt_color+1 # Skip white
+
         num_LS = len(data[0])
-        legend = self.getLegend(num_entries=2)
+        n_leg_entries = len(self.run_groups.keys()) + 1
+        legend = self.getLegend(num_entries=n_leg_entries)
         plotTGraph = TGraph(num_LS, data[0], data[1])
 
-        graph_color = self.getColorMap()[run]
+        #graph_color = self.getColorMap()[run]
 
         plotTGraph.SetMarkerStyle(7)
         plotTGraph.SetMarkerSize(1.0)
-        plotTGraph.SetLineColor(graph_color)
-        plotTGraph.SetFillColor(graph_color)
-        plotTGraph.SetMarkerColor(graph_color)
+        plotTGraph.SetLineColor(1) # black
+        plotTGraph.SetFillColor(1) # black
+        plotTGraph.SetMarkerColor(1) # black
         plotTGraph.SetLineWidth(2)
         #plotTGraph.GetXaxis().SetTitle(self.name_X+" "+self.units_X)
         plotTGraph.GetXaxis().SetTitle(self.label_X)
@@ -628,9 +688,14 @@ class PlotMaker:
 
         legend.SetHeader("%s runs:" % 1 )
 
-        predictionTGraph.Draw("PZ3")
-        canvas.Update()
-        legend.AddEntry(predictionTGraph, "Fit ( %s \sigma )" % (self.sigmas))
+        for group in self.fits[trigger]:
+            for fit_type in self.fits[trigger][group]:
+                predictionTGraph[group][fit_type].Draw("PZ3")
+                canvas.Update()
+                if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+                    legend.AddEntry(predictionTGraph[group][fit_type], "%s fit, %s " % (fit_type,group))
+                else: 
+                    legend.AddEntry(predictionTGraph[group][fit_type], "Fit, %s ( %s \sigma )" % (fit_type,self.sigmas))
 
         # draw text
         latex = TLatex()
@@ -648,6 +713,9 @@ class PlotMaker:
         canvas.SetGridy(1);
         canvas.Update()
 
+        if self.show_fit_run_groups and self.run_groups != {}:
+            self.writeFitRuns(self.run_groups,0.63,0.82)
+
         legend.SetFillColor(0)
         legend.Draw() 
         canvas.Update()
@@ -664,35 +732,88 @@ class PlotMaker:
     # Note2: Some of this function might be better placed elsewhere
     # Note3: Searching for the bad LS would be made significantly easier if we switched to dictionaries
     # pred_data - {'trigger name': [ (LS,pred,err) ] }
-    def makeCertifySummary(self,run,pred_data,log_file):
+    def makeCertifySummary(self,run,pred_data,log_file,group):
         # NOTE: pred_data should have keys that only corresponds to triggers in the monitorlist, but self.plotting_data should have *ALL* trigger data
         # UNFINISHED
+
+        # Note that this function expects that pred_data has only one type of fit (the best fit) for each trigger
 
         gStyle.SetOptStat(0)
 
         ls_set = set()
         bad_ls = {}         # The total number of bad paths in a given LS, {LS: int}
         trg_bad_ls = {}     # List of bad LS for each trigger
+        total_paths = 0
         for trigger in pred_data:
             # data - ( [x_vals], [y_vals], [status] )
-            data = self.plotting_data[trigger][run]
-            ls_set.update(data[0])
-            for LS,pred,err in pred_data[trigger]:
-                for data_ls,data_rate in zip(data[0],data[1]):
-                    if data_ls != LS:
-                        continue
-                    for pred_ls,pred_rate,pred_err in pred_data[trigger]:
-                        if pred_ls != data_ls:
-                            continue
-                        if abs(data_rate - pred_rate) > pred_err:
-                            if not trg_bad_ls.has_key(trigger):
-                                trg_bad_ls[trigger] = []
-                            trg_bad_ls[trigger].append(int(LS))
+            if pred_data[trigger].has_key(group):
 
-                            if bad_ls.has_key(LS):
-                                bad_ls[LS] += 1
-                            else:
-                                bad_ls[LS] = 1
+                total_paths += 1
+
+                ## If we have multiple fit types for each trigger:
+                #if multi_fit_types:
+                #    if pred_data[trigger][group].has_key(fit_type):
+                #        data = self.plotting_data[trigger][run]
+                #        ls_set.update(data[0])
+                #        for LS,pred,err in pred_data[trigger][group][fit_type]:
+                #            for data_ls,data_rate in zip(data[0],data[1]):
+                #                if data_ls != LS:
+                #                    continue
+                #                for pred_ls,pred_rate,pred_err in pred_data[trigger][group][fit_type]:
+                #                    if pred_ls != data_ls:
+                #                        continue
+                #                    if abs(data_rate - pred_rate) > pred_err:
+                #                        if not trg_bad_ls.has_key(trigger):
+                #                            trg_bad_ls[trigger] = []
+                #                        trg_bad_ls[trigger].append(int(LS))
+
+                #                        if bad_ls.has_key(LS):
+                #                            bad_ls[LS] += 1
+                #                        else:
+                #                            bad_ls[LS] = 1
+
+                ## We have only one fit type for each trigger:
+                #for fit_type in self.fitFinder.fits_to_try:
+                #    if pred_data[trigger][group].has_key(fit_type):
+                #        data = self.plotting_data[trigger][run]
+                #        ls_set.update(data[0])
+                #        for LS,pred,err in pred_data[trigger][group][fit_type]:
+                #            for data_ls,data_rate in zip(data[0],data[1]):
+                #                if data_ls != LS:
+                #                    continue
+                #                for pred_ls,pred_rate,pred_err in pred_data[trigger][group][fit_type]:
+                #                    if pred_ls != data_ls:
+                #                        continue
+                #                    if abs(data_rate - pred_rate) > pred_err:
+                #                        if not trg_bad_ls.has_key(trigger):
+                #                            trg_bad_ls[trigger] = []
+                #                        trg_bad_ls[trigger].append(int(LS))
+
+                #                        if bad_ls.has_key(LS):
+                #                            bad_ls[LS] += 1
+                #                        else:
+                #                            bad_ls[LS] = 1
+
+
+
+                for fit_type in self.fitFinder.fits_to_try:
+                    if pred_data[trigger][group].has_key(fit_type):
+                        data = self.plotting_data[trigger][run]
+                        ls_set.update(data[0])
+                        for LS,pred,err in pred_data[trigger][group][fit_type]:
+                            for data_ls,data_rate in zip(data[0],data[1]):
+                                if data_ls != LS:
+                                    continue
+                                if abs(data_rate - pred) > err:
+                                    if not trg_bad_ls.has_key(trigger):
+                                        trg_bad_ls[trigger] = []
+                                    trg_bad_ls[trigger].append(int(LS))
+
+                                    if bad_ls.has_key(LS):
+                                        bad_ls[LS] += 1
+                                    else:
+                                        bad_ls[LS] = 1
+
 
         max_bad_paths = 1
         bad_ls_inverted = {}    # {int: [LS]}
@@ -760,11 +881,11 @@ class PlotMaker:
         log_file.write("\n")
 
         bad_count = len(trg_bad_ls.keys())
-        total_count = len(pred_data.keys())
+        #total_count = len(pred_data.keys())
 
         log_file.write("---- Total Bad Paths: %d\n" % bad_count)
-        log_file.write("---- Total Possible Paths: %d\n" % total_count)
-        log_file.write("---- Fraction that are Bad Paths: %.2f\n" % (100.*float(bad_count)/float(total_count)))
+        log_file.write("---- Total Possible Paths: %d\n" % total_paths)
+        log_file.write("---- Fraction that are Bad Paths: %.2f\n" % (100.*float(bad_count)/float(total_paths)))
 
         ### MAKE THE SUMMARY HISTOGRAM ###
 
@@ -819,6 +940,7 @@ class PlotMaker:
         if self.save_png:
             canvas.Print(self.save_dir + "/" + "CertificationSummary_run%d" % run + ".png","png")
             #self.savePlot("CertificationSummary_run%d" % run,canvas)
+            canvas.Print(self.save_dir + "/" + "CertificationSummary_run%d_%s" %(run,group) + ".png","png")
 
         gStyle.SetOptStat(1)
 
@@ -831,4 +953,28 @@ class PlotMaker:
 
     def savePlot(self,name,canvas):
         canvas.Print(self.save_dir + "/" + self.plot_dir + "/" + name + ".png", "png")
+
+    # Writes the runs that were used to make the fit (or fits) onto the plot
+    def writeFitRuns(self,run_dict,x,y):
+        latex = TLatex()
+        latex.SetNDC()
+        #latex.SetTextSize(0.025)
+        latex.SetTextSize(0.03)
+        latex.SetTextFont(40)
+        i=0
+        if len(run_dict.keys()) == 1:
+            latex.DrawLatex(x, (y+0.03), "Runs used to make fit:")
+            for run in sorted(run_dict['user_input']):
+                latex.SetTextSize(0.025)
+                latex.DrawLatex(x, y-0.025*i, "%i" %(run))
+                i = i+1
+        else:
+            latex.DrawLatex(x, (y+0.03), "Runs used to make fits:")
+            for group,runs in run_dict.iteritems():
+                latex.SetTextSize(0.025)
+                latex.DrawLatex(x, y-0.025*i, "Group: %s" %(group))
+                i=i+1
+                for run in sorted(runs):
+                    latex.DrawLatex(x, y-0.025*i, "%i" %(run))
+                    i=i+1 
 

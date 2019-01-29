@@ -49,6 +49,7 @@ class RateMonitor:
         self.make_fits          = False
         self.use_fit_file       = False     # Currently unused outside of setupCheck
         self.update_online_fits = False
+        self.plotter.compare_fits = False   # Compare fits to multiple groups of runs
 
         self.use_pileup = True      # plot <PU> vs. rate
         self.use_lumi   = False     # plot iLumi vs. rate
@@ -149,7 +150,6 @@ class RateMonitor:
 
         plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.fitter.data_dict['user_input'])
 
-
         # If no objects are specified, plot everything!
         if len(self.object_list) == 0:
             self.object_list = [x for x in self.data_parser.name_list]
@@ -166,45 +166,23 @@ class RateMonitor:
             normalization = bunch_map[max_key]
         print "Fit Normalization: %d" % normalization
 
-
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
-            #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         
-            #fits = {}
             fit_info = {
-                'fit_runs': copy.deepcopy(self.fitter.data_dict),
+                'run_groups': copy.deepcopy(self.fitter.data_dict),
                 'triggers': {}
-                }
-
-            for k,runs in self.fitter.data_dict.iteritems():
+            }
+            for group,runs in self.fitter.data_dict.iteritems():
                 data = self.getData(x_vals,y_vals,det_status,phys_status,runs)
-                data_fits = self.fitter.makeFits(data,self.object_list,normalization)
+                data_fits = self.fitter.makeFits(data,self.object_list,normalization,group)
+                fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits)
+                print group,runs
 
-                #if k is 'user_input':
-                #        fits = self.fitter.mergeFits(fits,data_fits,'')
-                #if k is not 'user_input':
-                #        fits = self.fitter.mergeFits(fits,data_fits,k)
-
-                #if k is 'user_input' and not self.compare_fits:
-                #    fits = self.fitter.mergeFits(fits,data_fits,'')
-                #elif k is 'user_input':
-                #    fits = self.fitter.mergeFits(fits,data_fits,'0data: ')
-                #else:
-                #    fits = self.fitter.mergeFits(fits,data_fits,k+': ')
-
-                if k is 'user_input' and not self.compare_fits:
-                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,'')
-                elif k is 'user_input':
-                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,'0data: ')
-                else: 
-                    fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits,k+': ')
-                print k,runs
-
-            #self.fitter.saveFits(fits,"fit_file.pkl",self.save_dir)
-            #self.plotter.setFits(fits)
-            self.fitter.saveFits(fit_info,"fit_file.pkl",self.save_dir)
             self.plotter.setFits(fit_info)
+            self.fitter.saveFits(self.plotter.fit_info,"fit_file.pkl",self.save_dir)
+            #self.fitter.saveFits(fit_info,"fit_file.pkl",self.save_dir)
+            #self.plotter.setFits(fit_info)
 
         elif self.update_online_fits:
             self.updateOnlineFits(plot_data,normalization)
@@ -219,9 +197,9 @@ class RateMonitor:
             #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
             #self.plotter.setFits(fits)
             fit_info = {
-                'fit_runs': copy.deepcopy(self.fitter.data_dict),
+                'run_groups': copy.deepcopy(self.fitter.data_dict),
                 'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-                }
+            }
             self.plotter.setFits(fit_info)
 
         # This is after update_online_fits, so as to ensure the proper save dir is set
@@ -315,10 +293,10 @@ class RateMonitor:
             print "ERROR SETUP: No fits were found while in certify mode"
             return False
 
-        # We are configured to only create/display the default fit, so only generate one fit
-        if self.make_fits and not self.fitter.use_best_fit and not self.plotter.use_multi_fit:
-            print "WARNING: Only creating the default fit, %s" % self.plotter.default_fit
-            self.fitter.fits_to_try = [self.plotter.default_fit]
+        ## We are configured to only create/display the default fit, so only generate one fit
+        #if self.make_fits and not self.fitter.use_best_fit and not self.plotter.use_multi_fit:
+        #    print "WARNING: Only creating the default fit, %s" % self.plotter.default_fit
+        #    self.fitter.fits_to_try = [self.plotter.default_fit]
 
         return True
 
@@ -350,6 +328,7 @@ class RateMonitor:
         elif self.certify_mode:
             # Ex: Certification_1runs_2016-11-02_13_27
             dir_str = "Certification_%druns_%s" % (len(self.run_list),datetime.datetime.now().strftime("%Y-%m-%d_%H_%M"))
+            #dir_str = "Certification_%druns" % (len(self.run_list))
             self.certify_dir = os.path.join(self.rate_mon_dir,dir_str)
             if os.path.exists(self.certify_dir):
                 shutil.rmtree(self.certify_dir)
@@ -487,11 +466,11 @@ class RateMonitor:
         #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
         #fit_info = self.fitter.makeFits(plot_data,self.object_list,normalization)
         fit_info = {
-            'fit_runs': copy.deepcopy(self.fitter.data_dict),
+            'run_groups': copy.deepcopy(self.fitter.data_dict),
             'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-            }
+        }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(fit_info,"FOG.pkl",mon_trg_dir)
+        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",mon_trg_dir)
         plotted_objects = self.makePlots(self.object_list)
 
         # Plots all trigger paths
@@ -503,11 +482,11 @@ class RateMonitor:
         #self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
         #fit_info = self.fitter.makeFits(plot_data,all_triggers,normalization)
         fit_info = {
-            'fit_runs': copy.deepcopy(self.fitter.data_dict),
+            'run_groups': copy.deepcopy(self.fitter.data_dict),
             'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-             }
+         }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(fit_info,"FOG.pkl",all_trg_dir)
+        self.fitter.saveFits(selfl.plotter.fit_info,"FOG.pkl",all_trg_dir)
         plotted_objects = self.makePlots(all_triggers)
 
         command_line_str  = "Results produced with:\n"
@@ -544,19 +523,41 @@ class RateMonitor:
 
         # {'name': {run: [ (LS,pred,err) ] } }
 
+
         lumi_info = self.data_parser.getLumiInfo()
         sorted_run_list = sorted(self.run_list)
+
         log_file_name = "CertificationSummary_run"+str(sorted_run_list[0])+"_run"+str(sorted_run_list[-1])+".txt"
         log_file = open(self.certify_dir+"/"+log_file_name,'w')
+
         for run in self.run_list:
             log_file.write("Run Number: %s\n" % (run))
 
             self.plotter.save_dir = self.certify_dir
             self.plotter.root_file_name = "CertificationSummaries.root"
 
-            pred_data = self.getPredictionData(run)     # {'name': [ (LS,pred,err) ] }
+            #pred_data = self.getPredictionData(run)     # {'trg name': { 'group name': [ (LS,pred,err) ] } }
+            pred_data = self.getPredictionData(run)     # {'trg name': { 'group name': { 'fit_type': [ (LS,pred,err) ] } } }
 
-            self.plotter.makeCertifySummary(run,pred_data,log_file)
+            ## Check if there are multiple fit types to plot
+            #multi_fit_types = False
+            #for trg in pred_data:
+            #    for grp in pred_data[trg]:
+            #        if len(pred_data[trg][grp].keys()) > 1:
+            #            multi_fit_types = True
+
+            for group in self.plotter.run_groups:
+                ## We have multiple fit types per trg: separate histograms and summary text file by fit type
+                #if self.plotter.use_multi_fit and multi_fit_types:
+                #    for fit_type in self.fitter.fits_to_try:
+                #        log_file.write("\n")
+                #        log_file.write("Group: %s\n" % (group))
+                #        log_file.write("Fit type: %s\n" % (fit_type))
+                #        self.plotter.makeCertifySummary(run,pred_data,log_file,group,multi_fit_types,fit_type)
+                # We have only one fit type per trg: do not separate histograms and summary text file by fit type
+                log_file.write("\n")
+                log_file.write("Group: %s\n" % (group))
+                self.plotter.makeCertifySummary(run,pred_data,log_file,group)
 
             print "Making certification plots for run %d..." % run
             run_dir = os.path.join(self.certify_dir,"run%d" % run)
@@ -578,11 +579,11 @@ class RateMonitor:
     # TODO: Should move this to DataParser.py
     def getPredictionData(self,run):
         # UNFINISHED
-
         # We need to disable converting the output
         prev_state = self.data_parser.convert_output
         self.data_parser.convert_output = False
 
+        #lumi_info = self.data_parser.parser.getLumiInfo(runNumber=run)  # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
         lumi_info = self.data_parser.getLumiInfo()  # {run_number: [ (LS,ilum,psi,phys,cms_ready) ] }
         ls_data = self.data_parser.getLSData()      # {'name': { run_number: [ LS ] } }
         pu_data = self.data_parser.getPUData()      # {'name': { run_number: { LS: PU } } }
@@ -590,11 +591,10 @@ class RateMonitor:
 
         plotter_sigmas = self.plotter.sigmas
 
-        # --- 13 TeV constant values ---
-        ppInelXsec = 80000.
-        orbitsPerSec = 11246.
+        #pred_dict = {}  # {'name': [ (LS,pred,err) ] }
+        #pred_dict = {}  # {'trg name': {'group name': [ (LS,pred,err) ] } }
+        pred_dict = {}  # {'trg name': {'group name': { 'fit_type': [ (LS,pred,err) ] } } }
 
-        pred_dict = {}  # {'name': [ (LS,pred,err) ] }
 
         for obj in self.plotter.fits:
             if not pu_data.has_key(obj):
@@ -602,46 +602,75 @@ class RateMonitor:
             elif not pu_data[obj].has_key(run):
                 continue
 
-            # Initialize our point arrays
-            lumisecs    = array.array('f')
-            predictions = array.array('f')
-            ls_error    = array.array('f')
-            pred_error  = array.array('f')
+            pred_dict[obj] = {}
 
-            all_fits = self.plotter.fits[obj]
-            best_fit_type,best_fit = self.fitter.getBestFit(all_fits)
+            for group in self.plotter.fits[obj]:
 
-            # Unpack values
-            fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = best_fit
+                pred_dict[obj][group] = {}
 
-            # Create our point arrays
-            for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
-                if not ilum is None and phys:
-                    if not pu_data[obj][run].has_key(LS):
-                        continue
-                    lumisecs.append(LS)
-                    #pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
-                    pu = pu_data[obj][run][LS]
-                    # Either we have an exponential fit, or a polynomial fit
-                    if fit_type == "exp":
-                        rr = bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
-                    elif fit_type == "sinh":
-                        val = 0
-                        val += math.pow(X0*pu,11)/39916800.
-                        val += math.pow(X0*pu,9)/362880.
-                        val += math.pow(X0*pu,7)/5040.
-                        val += math.pow(X0*pu,5)/120.
-                        val += math.pow(X0*pu,3)/6.
-                        val += math.pow(X0*pu,1)
-                        val = X1*val + X2
-                        rr = bunch_map[run] * (val)
-                    else:
-                        rr = bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
-                    if rr < 0: rr = 0 # Make sure prediction is non negative
-                    predictions.append(rr)
-                    ls_error.append(0)
-                    pred_error.append(bunch_map[run]*plotter_sigmas*sigma)
-            pred_dict[obj] = zip(lumisecs,predictions,pred_error)
+                # Find the best fit
+                best_fit_type,best_fit = self.fitter.getBestFit(self.plotter.fits[obj][group])
+
+                lsVals = []
+                puVals = []
+                for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
+                    if not ilum is None and phys:
+                        if not pu_data[obj][run].has_key(LS):
+                            continue
+                        lsVals.append(LS)
+                        puVals.append(pu_data[obj][run][LS])
+                lumisecs,predictions,ls_error,pred_error = self.fitter.getPredictionPoints(best_fit,lsVals,puVals,bunch_map[run],0)
+                pred_dict[obj][group][best_fit_type] = zip(lumisecs,predictions,pred_error)
+
+
+
+
+                ##############################################################################################
+
+        # --- 13 TeV constant values ---
+        #ppInelXsec = 80000.
+        #orbitsPerSec = 11246.
+
+            ## Initialize our point arrays
+            #lumisecs    = array.array('f')
+            #predictions = array.array('f')
+            #ls_error    = array.array('f')
+            #pred_error  = array.array('f')
+
+                ## Unpack values
+                #fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = best_fit
+
+                ## Create our point arrays
+                #for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
+                #    if not ilum is None and phys:
+                #        if not pu_data[obj][run].has_key(LS):
+                #            continue
+                #        lumisecs.append(LS)
+                #        #pu = (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec )
+                #        pu = pu_data[obj][run][LS]
+                #        # Either we have an exponential fit, or a polynomial fit
+                #        if fit_type == "exp":
+                #            rr = bunch_map[run] * (X0 + X1*math.exp(X2+X3*pu))
+                #        elif fit_type == "sinh":
+                #            #val = 0
+                #            #val += math.pow(X0*pu,11)/39916800.
+                #            #val += math.pow(X0*pu,9)/362880.
+                #            #val += math.pow(X0*pu,7)/5040.
+                #            #val += math.pow(X0*pu,5)/120.
+                #            #val += math.pow(X0*pu,3)/6.
+                #            #val += math.pow(X0*pu,1)
+                #            #val = X1*val + X2
+                #            #rr = bunch_map[run] * (val)
+                #            rr = bunch_map[run] * (X1*math.sinh(X0*pu) + X2) # ???
+                #        else:
+                #            rr = bunch_map[run] * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+                #        if rr < 0: rr = 0 # Make sure prediction is non negative
+                #        predictions.append(rr)
+                #        ls_error.append(0)
+                #        pred_error.append(bunch_map[run]*plotter_sigmas*sigma)
+
+                ##############################################################################################
+
 
         # Revert back to the previous convert_output setting
         self.data_parser.convert_output = prev_state

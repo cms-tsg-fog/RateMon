@@ -34,7 +34,7 @@ class MonitorController:
         #self.set_plotter_fits = False
         self.rate_monitor.plotter.set_plotter_fits = False
 
-        self.rate_monitor.compare_fits = False
+        self.rate_monitor.plotter.compare_fits = False
 
         self.rate_monitor.use_fills          = False
         self.rate_monitor.use_pileup         = True
@@ -105,7 +105,7 @@ class MonitorController:
                 "useFills",
                 "useBunches",
                 "compareFits=",
-                "showFitRuns"
+                "showFitRunGroups"
             ])
 
         except:
@@ -345,11 +345,10 @@ class MonitorController:
                 self.rate_monitor.data_parser.normalize_bunches = False
             elif label == "--compareFits":
                 data_dict = self.readDataListTextFile(str(op))
-                #print 'data_dict: ' , data_dict
                 self.rate_monitor.fitter.data_dict = data_dict
-                self.rate_monitor.compare_fits = True
-            elif label == "--showFitRuns":
-                self.rate_monitor.plotter.show_fit_runs = True
+                self.rate_monitor.plotter.compare_fits = True
+            elif label == "--showFitRunGroups":
+                self.rate_monitor.plotter.show_fit_run_groups = True
             else:
                 print "Unimplemented option '%s'." % label
                 return False
@@ -367,9 +366,8 @@ class MonitorController:
                 self.rate_monitor.fill_list = []
                 #self.rate_monitor.run_list = arg_list
                 self.rate_monitor.fitter.data_dict['user_input'] = arg_list
-        
+
         # Append the user specified fills or runs to the dictionary made from the compareFits text file 
-        
         unique_runs = set()
         for data_group,runs in self.rate_monitor.fitter.data_dict.iteritems():
                 unique_runs = unique_runs.union(runs)
@@ -503,7 +501,7 @@ class MonitorController:
             pkl_file = open(fit_file, 'rb')
             #fits = pickle.load(pkl_file)    # {'obj': fit_params}
             fit_dict = pickle.load(pkl_file)
-            if fit_dict.has_key('fit_runs'):
+            if fit_dict.has_key('run_groups'):
                 fit_info = fit_dict
                 fits_format = 'multi_info'
             else:

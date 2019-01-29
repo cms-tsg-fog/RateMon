@@ -16,6 +16,7 @@ import cPickle as pickle
 import math
 import array
 import os
+import copy
 
 from ROOT import gROOT, TCanvas, TF1, TGraph, TGraphErrors, TPaveStats, gPad, gStyle, TLegend
 from ROOT import TFile, TPaveText, TBrowser, TString
@@ -50,9 +51,8 @@ class FitFinder:
     # Returns: {'trigger': fit_params}
     # data: {'trigger': { run_number:  ( [x_vals], [y_vals], [status] ) } }
     # NOTE1: Need to figure out why the fitter is generating NaN's for the fits
-    def makeFits(self,data,object_list,normalization):
+    def makeFits(self,data,object_list,normalization,group='user_input'):
         fits = {}           # {'trigger': { 'fit_type': fit_params } }
-        fit_info = {}       # {'fit_runs': {'user_input': [runs] , '1data' : [runs] } , 'triggers': fits }
         skipped_fits = {}   # {'trigger': 'reason'}
         nan_fits = {}       # {'trigger': { 'fit_type': param_index } }
 
@@ -123,7 +123,8 @@ class FitFinder:
                                 continue
                             else:
                                 new_fit[fit_type][i] /= normalization
-                fits[trigger] = new_fit
+                fits[trigger] = {}
+                fits[trigger][group] = new_fit
             else:
                 skipped_fits[trigger] = "Not enough points"
 
@@ -135,11 +136,7 @@ class FitFinder:
         if len(nan_fits) > 0:
             print "NaN fits: %d" % len(nan_fits.keys())
 
-        #fit_info['fit_runs'] = self.data_dict
-        #fit_info['triggers'] = fits
-
         return fits
-        #return fit_info
 
     # Removes points with y-values outside of a given range
     def getGoodPoints(self,xVals,yVals,avg_y=None,std_y=None,sig_y=4):
@@ -305,9 +302,9 @@ class FitFinder:
                 best_type = fit_type
                 best_fit = fits[fit_type]
 
-        if best_type is None:
-            # All the fit mse were 0
-            return None,None,
+        #if best_type is None:
+        #    # All the fit mse were 0
+        #    return None,None,
 
         if self.use_weighted_fit:
             best_mse = fit_map[best_type]['mse']
@@ -350,27 +347,70 @@ class FitFinder:
         print "Fit file saved to: %s" % path
 
     # Merges two fits together
-    def mergeFits(self,fits1,fits2,label):
-        new_fits = {}
+    def mergeFits(self,fits1,fits2):
 
-        # Set new_fits = fits1:
-        for trig_name in fits1.keys():
-                new_fits[trig_name] = fits1[trig_name]
+        new_fits = copy.deepcopy(fits1)
+        for trg in fits2.keys():
 
-        # Iterate over triggers in Fits2:
-        for trig_name in fits2.keys():
+            if not new_fits.has_key(trg):
+                new_fits[trg] = {}
 
-                # If fits2 has a trigger that's not in fits1, add it to new_fits
-                if not new_fits.has_key(trig_name):
-                        new_fits[trig_name] = {}
-
-                # Change fit_type name in new_fits
-                for fit_type in fits2[trig_name].keys():
-                        #new_fit_type = fit_type+' %s' %(label)
-                        new_fit_type = '%s %s' %(label,fit_type)
-                        new_fits[trig_name][new_fit_type] = fits2[trig_name][fit_type]
+            for group, fit_types in fits2[trg].iteritems():
+                # Note: This will overwrite fits if fits1 and fits2 have a group with the same name
+                new_fits[trg][group] = copy.deepcopy(fit_types)
 
         return new_fits
+
+        #new_fits = {}
+        ## Set new_fits = fits1:
+        #for trig_name in fits1.keys():
+        #        new_fits[trig_name] = fits1[trig_name]
+
+        ## Iterate over triggers in Fits2:
+        #for trig_name in fits2.keys():
+
+        #        # If fits2 has a trigger that's not in fits1, add it to new_fits
+        #        if not new_fits.has_key(trig_name):
+        #                new_fits[trig_name] = {}
+
+        #        # Change fit_type name in new_fits
+        #        for fit_type in fits2[trig_name].keys():
+        #                #new_fit_type = fit_type+' %s' %(label)
+        #                new_fit_type = '%s %s' %(label,fit_type)
+        #                new_fits[trig_name][new_fit_type] = fits2[trig_name][fit_type]
+
+        #return new_fits
+
+
+    ### TEST TEST TEST 2nd try ###
+    def getPredictionPoints(self,fit_params,lsVals,puVals,bunches,mod_skip=0):
+
+        fit_type, X0, X1, X2, X3, sigma, meanraw, X0err, X1err, X2err, X3err, ChiSqr = fit_params
+
+        ls_arr = array.array('f')
+        pred_arr = array.array('f')
+        ls_err = array.array('f')
+        pred_err = array.array('f')
+
+        idx =0
+        for ls,pu  in zip(lsVals,puVals):
+            if fit_type == "exp":
+                rr = bunches * (X0 + X1*math.exp(X2+X3*pu))
+            elif fit_type == "sinh":
+                rr = bunches * (X1*math.sinh(X0*pu) + X2)
+            else:
+                rr = bunches * (X0 + pu*X1 + (pu**2)*X2 + (pu**3)*X3)
+            if rr < 0: rr = 0                       # Make sure prediction is non negative
+            if mod_skip and idx % mod_skip != 0:    # Do not plot every point (for clarity)
+                idx = idx+1
+                continue 
+            ls_arr.append(ls)
+            pred_arr.append(rr)
+            ls_err.append(0)
+            pred_err.append(bunches*3*sigma)
+            idx = idx+1
+
+        return ls_arr,pred_arr,ls_err,pred_err
 
 
         ## ----------- End of class FitFinder ------------ ## 

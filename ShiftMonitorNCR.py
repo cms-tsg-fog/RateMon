@@ -1152,10 +1152,15 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         except:
             # File failed to open
             print "Error: could not open fit file: %s" % (fileName)
-        # In case input fit file has new format { 'fit_runs': {} , 'triggers': {} }
+        # Re format the fits file
         if InputFit.has_key('triggers'):
-            InputFit = InputFit['triggers']
-        return InputFit
+            #InputFit = InputFit['triggers']
+            FormattedFit = {}
+            for trg in InputFit['triggers']:
+                FormattedFit[trg] = InputFit['triggers'][trg]['user_input'] 
+            return FormattedFit
+        else:
+            return InputFit
 
     # Use: Calculates the expected rate for a trigger at a given ilumi based on our input fit
     def calculateRate(self, triggerName, ilum):
