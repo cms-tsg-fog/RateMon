@@ -339,7 +339,7 @@ class PlotMaker:
                 leg_entries += 1
 
         #legend = self.getLegend(num_entries=leg_entries)
-        if len(self.run_groups.keys()) > 1:
+        if self.use_fit and len(self.run_groups.keys()) > 1:
             legend = self.getLegend(num_entries=2*leg_entries)
         else:
             legend = self.getLegend(num_entries=leg_entries)
