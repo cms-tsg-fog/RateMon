@@ -1203,8 +1203,6 @@ def ConnectDB(user='trg'):
         print "You may need to copy them from the online machines"
         sys.exit(0)
     magic = line[0].rstrip("\n\r")
-#    hlt_pwd = '***REMOVED***'
-#    trg_pwd = '***REMOVED***'
     connect = 'cms_%s_r/%s@cms_omds_lb' % (user,magic,)
     try:
         orcl = cx_Oracle.connect(connect)

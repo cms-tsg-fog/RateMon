@@ -4,6 +4,7 @@
 # Last Modified: August 17, 2015
 
 import cx_Oracle
+import DBConfigFile as cfg
 
 # FILE NAME
 fileName = "out.txt"
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     file = open(fileName, "wb") # Open file
 
     # Get the HLT cursor
-    orcl = cx_Oracle.connect(user='cms_hlt_r',password='***REMOVED***',dsn='cms_omds_lb')
+    orcl = cx_Oracle.connect(user=cfg.hlt_connect['user'],password=cfg.hlt_connect['passwd'],dsn=cfg.dsn_info['online'])
     curs = orcl.cursor()
     file.write("***********************************************************************************\n")
     file.write("CMS HLT DATABASE\n")
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     nHLTTables, nHLTColumns = getData(curs, file)
 
     # Get the trigger cursor
-    orcl = cx_Oracle.connect(user='cms_trg_r',password='***REMOVED***',dsn='cms_omds_lb')
+    orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=cfg.dsn_info['online'])
     curs = orcl.cursor()
     file.write("***********************************************************************************\n")
     file.write("CMS TRG DATABASE\n")
