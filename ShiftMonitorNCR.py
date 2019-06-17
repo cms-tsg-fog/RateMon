@@ -51,6 +51,51 @@ write = sys.stdout.write
 
 # Class ShiftMonitor
 class ShiftMonitor:
+
+    PROTECTED = ['redoTList',
+            'redoTList',
+            'lastRunNumber',
+            'lumi_ave',
+            'normal',
+            'pu_ave',
+            'isUpdating',
+            'simulate',
+            'currentLS',
+            'emailSendTime',
+            'bad',
+            'runNumber',
+            'totalStreams',
+            'lastLS',
+            'triggerMode',
+            'InputFitHLT',
+            'badRates',
+            'deadTimeData',
+            'l1rateData',
+            'InputFitL1',
+            'LSRange',
+            'usableHLTTriggers',
+            'numBunches',
+            'lumiData',
+            'LHCStatus',
+            'otherHLTTriggers',
+            'usableL1Triggers',
+            'otherL1Triggers',
+            'mailTriggers',
+            'triggerList',
+            'HLTRates',
+            'parser',
+            'l1t_rate_alert',
+            'L1Rates',
+            'FitFinder',
+            'Rates',
+            'startLS',
+            'header',
+            'spacing',
+            'tableData',
+            'pdData',
+            'mode',
+            'streamData']
+
     def __init__(self):
         self.FitFinder = FitFinder()
 
@@ -115,10 +160,14 @@ class ShiftMonitor:
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
 
         # Trigger behavior
-        self.percAccept = 50.0          # The acceptence for % diff
-        self.devAccept = 5              # The acceptance for deviation
+        self.trgDevThresholds = {}      # Dictionary of trigger dev thresholds (can be modified using the config file)
+        self.trgPerDiffThresholds = {}  # Dictionary of trigger percent diff thresholds (can be modified using the config file)
+        #self.percAccept = 50.0         # The acceptence for % diff
+        #self.devAccept = 5             # The acceptance for deviation
+        self.percAcceptDefault = 50.0   # The default acceptence for % diff
+        self.devAcceptDefault = 5       # The default acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
-        self.recordAllBadTriggers = {}  # A dictionary: [ trigger name ] < total times the trigger was bad >
+        #self.recordAllBadTriggers = {} # A dictionary: [ trigger name ] < total times the trigger was bad > # Apparently never used?
         self.maxCBR = 5                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
@@ -129,6 +178,9 @@ class ShiftMonitor:
         self.mailTriggers = []          # A list of triggers that we should mail alerts about
         self.emailPeriod = 5*60         # Lenght of time inbetween emails 
         self.emailSendTime = 0          # Time at which last email was sent 
+
+        self.configFilePath = ""        # Path to the config file
+        self.lastCfgFileAccess = 0      # The last time the configuration file was updated
 
         self.l1rateData = {} 
         self.lumiData= [] 
@@ -266,21 +318,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
           l1_met_rate_alert )
 
         # Other options
-        self.quiet = False              # Prints fewer messages in this mode
-        self.noColors = False           # Special formatting for if we want to dump the table to a file
-        self.sendMailAlerts_static = True      # Whether we should send alert mails
+        self.quiet = False                      # Prints fewer messages in this mode
+        self.noColors = False                   # Special formatting for if we want to dump the table to a file
+        #self.sendMailAlerts_static = True      # Whether we should send alert mails
+        self.sendMailAlerts_static = False      # Whether we should send alert mails
         self.sendMailAlerts_dynamic = self.sendMailAlerts_static
-        self.sendAudioAlerts = False    # Whether we should send audio warning messages in the control room (CAUTION)
-        self.isUpdating = True          # flag to determine whether or not we're receiving new LS
-        self.showStreams = False        # Whether we should print stream information
-        self.showPDs = False            # Whether we should print pd information
-        self.totalStreams = 0           # The total number of streams
-        self.maxStreamRate = 1000000    # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 250            # The maximum rate we allow a "good" pd to have
+        self.sendAudioAlerts = False            # Whether we should send audio warning messages in the control room (CAUTION)
+        self.isUpdating = True                  # flag to determine whether or not we're receiving new LS
+        self.showStreams = False                # Whether we should print stream information
+        self.showPDs = False                    # Whether we should print pd information
+        self.totalStreams = 0                   # The total number of streams
+        self.maxStreamRate = 1000000            # The maximum rate we allow a "good" stream to have
+        self.maxPDRate = 250                    # The maximum rate we allow a "good" pd to have
         self.lumi_ave = 0
         self.pu_ave = 0
-        #self.deadTimeCorrection = True  # correct the rates for dead time
-        self.scale_sleeptime = 0.5      # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
+        #self.deadTimeCorrection = True         # correct the rates for dead time
+        self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
@@ -383,6 +436,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
+
     def runLoop(self):
         # Reset counting variable
         self.normal = 0
@@ -399,6 +453,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[0] = 'Stable' 
             self.LSRange[0] = self.currentLS
             self.LSRange[1] = self.currentLS + self.LS_increment
+
+        # If we are using a configuration file to update options
+        if self.configFilePath != "":
+            self.updateOptions()
 
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.queryDatabase()
@@ -834,7 +892,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             info += stringSegment("* "+comment, self.spacing[6])
 
             # Color the bad triggers with warning colors
-            if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_"):
+            trgAcceptThreshold = self.findTrgThreshold(trigger) # Check for non default thresholds
+            if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_",trgAcceptThreshold):
+            #if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_"):
                 if not self.noColors and self.mode != "other": write(bcolors.WARNING) # Write colored text
                 print info
                 if not self.noColors and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
@@ -845,14 +905,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Returns whether a given trigger is bad
     # Returns: Whether the trigger is bad
-    def isBadTrigger(self, perdiff, dev, psrate, isL1):
+    #def isBadTrigger(self, perdiff, dev, psrate, isL1):
+    def isBadTrigger(self, perdiff, dev, psrate, isL1, trgAcceptThreshold):
         if psrate == 0: return False
         if self.mode == "other": return False
         if self.usePerDiff:
-            if perdiff != "INF" and perdiff != "" and perdiff != None and abs(perdiff) > self.percAccept:
+            #if perdiff != "INF" and perdiff != "" and perdiff != None and abs(perdiff) > self.percAccept:
+            if perdiff != "INF" and perdiff != "" and perdiff != None and abs(perdiff) > trgAcceptThreshold:
                 return True
         else:
-            if dev != "INF" and dev != "" and dev != None and (dev == ">1E6" or abs(dev) > self.devAccept):
+            #if dev != "INF" and dev != "" and dev != None and (dev == ">1E6" or abs(dev) > self.devAccept):
+            if dev != "INF" and dev != "" and dev != None and (dev == ">1E6" or abs(dev) > trgAcceptThreshold):
                 return True
         if isL1 and psrate > self.maxL1Rate:
             return True
@@ -981,6 +1044,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 physActive = True 
                 break
         for trigger, data in self.Rates.iteritems(): 
+
+            # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
+            trgAcceptThreshold = self.findTrgThreshold(trigger)
+
             isMonitored = trigger in self.triggerList       
             hasFit = self.InputFitHLT.has_key(trigger) or self.InputFitL1.has_key(trigger) 
             hasLSRate = len(self.Rates[trigger].keys()) > 0 
@@ -1037,7 +1104,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 if expected != 0: perc = 100*(aveRate - expected)/expected
                 if mse != 0: dev = (aveRate - expected)/mse
                 # Check for bad rates, comparing to reference fit
-                if self.isBadTrigger(perc,dev,properAvePSRate,trigger[0:3]=="L1_"):
+                if self.isBadTrigger(perc,dev,properAvePSRate,trigger[0:3]=="L1_",trgAcceptThreshold):
                     self.bad += 1
                     if not self.badRates.has_key(trigger):
                         self.badRates[trigger] = [1,True,properAvePSRate,avePSExpected,dev,avePS]
@@ -1052,7 +1119,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         del self.badRates[trigger]
             else:
                 # Check for bad rates, comparing to hard cut offs
-                if self.isBadTrigger(perc,dev,properAvePSRate,trigger[0:3]=="L1_") and avePS > 0:
+                if self.isBadTrigger(perc,dev,properAvePSRate,trigger[0:3]=="L1_",trgAcceptThreshold) and avePS > 0:
                     self.bad += 1
                     if not self.badRates.has_key(trigger):
                         #self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
@@ -1091,8 +1158,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 rates[trigger] = self.Rates[trigger][latestLS][0]
             except:
                 rates[trigger] = 0.
-        if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
+        #if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
+        if self.sendAudioAlerts and self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
             if not self.l1t_rate_alert.check(rates):
+                #pass 
                 self.l1t_rate_alert.alert()
 
     # Use: Prints warnings and sends mail 
@@ -1110,13 +1179,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         break
                 if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
                     self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+        #print "badRates list: " , self.badRates # For debugging
+        #print "Mail list: " , self.mailTriggers # For debugging
         # Send mail alerts
         if len(self.mailTriggers) > 0 and self.isUpdating and (time.time() - self.emailSendTime) > self.emailPeriod:
-            if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
-                self.sendMail(self.mailTriggers)
-                self.emailSendTime = time.time()
-                self.mailTriggers = [] 
-            if self.sendAudioAlerts: audioAlert('PLEASE CHECK TRIGGER RATES')
+            self.sendMail(self.mailTriggers)
+            self.emailSendTime = time.time()
+            self.mailTriggers = []
+            #if self.sendAudioAlerts: pass # audioAlert('PLEASE CHECK TRIGGER RATES') # This line is out of date and should remain commented (or be deleted)
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1255,12 +1325,15 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 print "WBM plot url query failed"
         mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
         mail += "Email warnings triggered when: \n"
-        mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
+        #mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
+        mail += "   - L1 or HLT rates deviate by more than the allowed thresholds"
         mail += "   - HLT rates > %s Hz \n" % (self.maxHLTRate)
         mail += "   - L1 rates > %s Hz \n" % (self.maxL1Rate)
-        print "--- SENDING MAIL ---\n"+mail+"\n--------------------"
-        mailAlert(mail)
-
+        header = ' MAIL ALERTS DISABLED '
+        if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
+            header = ' SENDING MAIL '
+            mailAlert(mail)
+        print "\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=mail,width=len(header)+6,fill='-')
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
@@ -1276,5 +1349,134 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             thresholds[t] = [rate,mse]
         with open(fp_name,'w') as fp:
             json.dump(thresholds,fp,indent=4,separators=(',',': '),sort_keys=True)
+
+    # Checks the config file and updates options accordingly
+    def updateOptions(self):
+        if self.lastCfgFileAccess < os.stat(self.configFilePath).st_mtime:
+            self.lastCfgFileAccess = os.stat(self.configFilePath).st_mtime
+            print '\nConfiguration file has been modified (or this is the first query), reading file...'
+            configFile = open(self.configFilePath)
+            try:
+                properties_dict = json.load(configFile)
+                print '\tDev thresholds prior to updating:' , self.trgDevThresholds
+                self.setProperties(**properties_dict)
+                print '\tDev thresholds after updating:' , self.trgDevThresholds
+                #self.printProperties()
+            except:
+                print '[ERROR] Error loading configuration file, properties not updated. Please check configuration file for syntax errors.'
+                self.lastCfgFileAccess = 0 # Set last access to 0 so that we keep trying to load the file (and printing the error) till the issue is resolved
+            self.optionsCheck() # Check that the specified options don't conflict
+        else:
+            print '\nNo updates to confiuration file'
+
+    # Checks that the specified options do not conflict
+    def optionsCheck(self):
+        if self.simulate:
+            if self.sendMailAlerts_static==True or self.sendMailAlerts_dynamic==True or self.sendAudioAlerts==True:
+                self.sendMailAlerts_static = False
+                self.sendMailAlerts_dynamic = False
+                self.sendAudioAlerts = False
+                print "\n[WARNING] Alerts should not be on in simulate mode, turning off alerts\n"
+                #self.printProperties()
+
+    # Checks for non-default trigger thresholds and sets thresholds accordingly
+    def findTrgThreshold(self,trigger):
+        if self.usePerDiff:
+            if trigger in self.trgPerDiffThresholds:
+                trgPercAccept = self.trgPerDiffThresholds[trigger]
+            else:
+                trgPercAccept = self.percAcceptDefault # Set to default value
+            return trgPercAccept
+        else:
+            if trigger in self.trgDevThresholds:
+                trgDevAccept = self.trgDevThresholds[trigger]
+            else:
+                trgDevAccept = self.devAcceptDefault # Set to default value
+            return trgDevAccept
+
+    # Checks if a given property exists
+    def hasProperty(self,k):
+        ret = self.__dict__.has_key(k)
+        if not ret:
+             print "\t[ERROR] Unknown property: %s" % (k)
+        return ret
+
+    # Sets a property to specified value
+    def setProperties(self,**kwargs):
+        for k,v in kwargs.iteritems():
+            if k in self.PROTECTED:
+                print "\t[ERROR] Skipping protected property: %s" % (k)
+                continue
+            elif not self.hasProperty(k):
+                continue
+            if isinstance(v, list):
+                self.__dict__[k] = [x for x in v]
+            elif isinstance(v,dict):
+                self.__dict__[k] = {}
+                for k2,v2 in v.iteritems():
+                    self.__dict__[k][k2] = v2
+            else:
+                self.__dict__[k] = v
+
+    # Prints all properties (by catagory)
+    def printProperties(self):
+        numb_dict = {'Protected':{},'NotProtected':{}}
+        string_dict = {'Protected':{},'NotProtected':{}}
+        dict_dict = {'Protected':{},'NotProtected':{}}
+        list_dict = {'Protected':{},'NotProtected':{}}
+        other_dict = {'Protected':{},'NotProtected':{}}
+        for k,v in self.__dict__.iteritems():
+            #print "%s:" % (k),v
+            if type(v) == int or type(v) == float or type(v) == bool:
+                if k in self.PROTECTED: numb_dict['Protected'][k] = v
+                else: numb_dict['NotProtected'][k] = v
+            elif type(v) == str:
+                if k in self.PROTECTED: string_dict['Protected'][k] = v
+                else: string_dict['NotProtected'][k] = v
+            elif type(v) == dict:
+                if k in self.PROTECTED: dict_dict['Protected'][k] = v
+                else: dict_dict['NotProtected'][k] = v
+            elif type(v) == list:
+                if k in self.PROTECTED: list_dict['Protected'][k] = v
+                else: list_dict['NotProtected'][k] = v
+            else:
+                if k in self.PROTECTED: other_dict['Protected'][k] = v
+                else: other_dict['NotProtected'][k] = v
+        print ' '
+        print '------------------------------------------'
+        print "\nPrinting all properties (grouped by type):\n"
+        print 'Numbers and booleans:'
+        for k,v in numb_dict['Protected'].iteritems():
+            print '    PROTECTED ',k,': ', v
+        for k,v in numb_dict['NotProtected'].iteritems():
+            print '   ',k,':',v
+        print ' '
+        print 'Strings:'
+        for k,v in string_dict['Protected'].iteritems():
+            print '    PROTECTED ',k,': ', v
+        for k,v in string_dict['NotProtected'].iteritems():
+            print '   ',k,':',v
+        print ' '
+        print 'Dictionaries:'
+        for k,v in dict_dict['Protected'].iteritems():
+            print '    PROTECTED ',k  #,': ', v # Just print keys, values take up too much space
+        for k,v in dict_dict['NotProtected'].iteritems():
+            print '   ',k #,':',v
+        print ' '
+        print 'Lists:'
+        for k,v in list_dict['Protected'].iteritems():
+            print '    PROTECTED ',k #,': ', v
+        for k,v in list_dict['NotProtected'].iteritems():
+            print '   ',k #,':',v
+        print ' '
+        print 'Other types:'
+        for k,v in other_dict['Protected'].iteritems():
+            print '    PROTECTED ',k,': ', v
+        for k,v in other_dict['NotProtected'].iteritems():
+            print '   ',k,':',v
+            #print k,': type is',v[0],', value is',v[1]
+        print ' '
+        print '------------------------------------------'
+        print ' '
 
 ## ----------- End of class ShiftMonitor ------------ ##
