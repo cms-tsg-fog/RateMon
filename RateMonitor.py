@@ -486,7 +486,7 @@ class RateMonitor:
             'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
          }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(selfl.plotter.fit_info,"FOG.pkl",all_trg_dir)
+        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",all_trg_dir)
         plotted_objects = self.makePlots(all_triggers)
 
         command_line_str  = "Results produced with:\n"
