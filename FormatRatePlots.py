@@ -135,7 +135,7 @@ def fillTable(table,row_list = []):
         table.appendTableRow(row_attributes,cell_list)
 
 # Read the list of monitored triggers from the specified .list file
-def getMonitoredTriggersList(f_name='monitorlist_COLLISIONS.list'):
+def getMonitoredTriggersList(f_name='TriggerLists/monitorlist_COLLISIONS.list'):
     path = f_name
     f = open(path,'r')
 
@@ -245,7 +245,7 @@ def formatRatePlots(monitored_triggers_list,dataset_list,run_list,save_dir):
     my_html.saveHTML(f_name='index.html',f_dir=save_dir)
 
 if __name__ == "__main__":
-    monitored_triggers = getMonitoredTriggersList(f_name='monitorlist_COLLISIONS.list')
+    monitored_triggers = getMonitoredTriggersList(f_name='TriggerLists/monitorlist_COLLISIONS.list')
 
     save_dir = sys.argv[1]
     dataset_list = getGroupList(save_dir=save_dir)

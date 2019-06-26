@@ -297,7 +297,7 @@ class MonitorController:
 
                 self.rate_monitor.plotter.save_root_file = False
 
-                self.rate_monitor.object_list = self.readTriggerList("monitorlist_COLLISIONS.list")
+                self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
             elif label == "--createFit":
                 # Specify that we should create fits
                 self.rate_monitor.make_fits = True
