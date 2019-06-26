@@ -302,9 +302,10 @@ class FitFinder:
                 best_type = fit_type
                 best_fit = fits[fit_type]
 
-        #if best_type is None:
-        #    # All the fit mse were 0
-        #    return None,None,
+        if best_type is None:
+            # All the fit mse were 0
+            #return None,None,
+            return "empty",self.emptyFit()
 
         if self.use_weighted_fit:
             best_mse = fit_map[best_type]['mse']
