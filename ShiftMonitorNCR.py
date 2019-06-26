@@ -142,8 +142,8 @@ class ShiftMonitor:
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
 
         # Triggers
-        self.cosmics_triggerList = "monitorlist_COSMICS.list" #default list used when in cosmics mode
-        self.collisions_triggerList = "monitorlist_COLLISIONS.list" #default list used when in collision mode
+        self.cosmics_triggerList = "TriggerLists/monitorlist_COSMICS.list" #default list used when in cosmics mode
+        self.collisions_triggerList = "TriggerLists/monitorlist_COLLISIONS.list" #default list used when in collision mode
         self.triggerList = []           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
