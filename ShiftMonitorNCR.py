@@ -1356,18 +1356,28 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.lastCfgFileAccess = os.stat(self.configFilePath).st_mtime
             print '\nConfiguration file has been modified (or this is the first query), reading file...'
             configFile = open(self.configFilePath)
+            old_properties = copy.deepcopy(self.__dict__)
             try:
                 properties_dict = json.load(configFile)
-                print '\tDev thresholds prior to updating:' , self.trgDevThresholds
+                #print '\tDev thresholds prior to updating:' , self.trgDevThresholds
                 self.setProperties(**properties_dict)
-                print '\tDev thresholds after updating:' , self.trgDevThresholds
-                #self.printProperties()
+                #print '\tDev thresholds after updating:' , self.trgDevThresholds
+                new_properties = copy.deepcopy(self.__dict__)
+                prop_changed = False
+                for prop in new_properties.keys():
+                    #if new_properties[prop] != old_properties[prop] and (str(new_properties[prop]).find('<') == -1):
+                    if (new_properties[prop] != old_properties[prop]) and not (prop in self.PROTECTED):
+                        print "   ",prop,"has been changed from",old_properties[prop],"to",new_properties[prop]
+                        prop_changed = True
+                if prop_changed == False:
+                    print '    No values of properties changed'
             except:
                 print '[ERROR] Error loading configuration file, properties not updated. Please check configuration file for syntax errors.'
                 self.lastCfgFileAccess = 0 # Set last access to 0 so that we keep trying to load the file (and printing the error) till the issue is resolved
+            configFile.close()
             self.optionsCheck() # Check that the specified options don't conflict
-        else:
-            print '\nNo updates to confiuration file'
+        #else:
+            #print '\nNo updates to confiuration file'
 
     # Checks that the specified options do not conflict
     def optionsCheck(self):
@@ -1398,14 +1408,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def hasProperty(self,k):
         ret = self.__dict__.has_key(k)
         if not ret:
-             print "\t[ERROR] Unknown property: %s" % (k)
+             print "    [ERROR] Unknown property: %s" % (k)
         return ret
 
     # Sets a property to specified value
     def setProperties(self,**kwargs):
         for k,v in kwargs.iteritems():
             if k in self.PROTECTED:
-                print "\t[ERROR] Skipping protected property: %s" % (k)
+                print "    [ERROR] Skipping protected property: %s" % (k)
                 continue
             elif not self.hasProperty(k):
                 continue
@@ -1474,7 +1484,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             print '    PROTECTED ',k,': ', v
         for k,v in other_dict['NotProtected'].iteritems():
             print '   ',k,':',v
-            #print k,': type is',v[0],', value is',v[1]
         print ' '
         print '------------------------------------------'
         print ' '

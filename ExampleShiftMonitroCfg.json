@@ -1,0 +1,8 @@
+{
+    "trgDevThresholds": {
+    },
+    "devAcceptDefault":5,
+    "sendAudioAlerts":false,
+    "sendMailAlerts_static":false
+}
+
