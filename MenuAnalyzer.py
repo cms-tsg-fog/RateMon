@@ -253,12 +253,14 @@ class MenuAnalyzer:
 
     def checkDQMStream(self):
         self.Results['checkDQMStream']=[]
-        for trig in self.NotParkingTriggers:
+        for trig in sorted(self.NotParkingTriggers):
             if trig.find("LogMonitor")!=-1: continue
             if trig.startswith("DST_"): continue
-            if not trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
-        for trig in self.ParkingTriggers:
-            if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
+            if ('OnlineMonitor' not in self.perPDPathList) or (not trig in self.perPDPathList["OnlineMonitor"]):
+               self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
+        if 'OnlineMonitor' in self.perPDPathList:
+           for trig in sorted(self.ParkingTriggers):
+               if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
 
     def checkStreamB(self):
         self.Results['checkStreamB']=[]
