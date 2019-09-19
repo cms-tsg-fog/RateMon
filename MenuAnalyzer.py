@@ -20,7 +20,7 @@ class MenuAnalyzer:
         self.maxModuleNameLength = 300
         self.maxModulesPerPath   = 50
         self.maxPaths = 1000
-        self.maxEndPaths = 50 # It was 30, Thiago changed 2016-10-12
+        self.maxEndPaths = 100 # It was 30, Thiago changed 2016-10-12,Marina changed 180622
 
         ##required streams
         self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcal'],
@@ -67,13 +67,14 @@ class MenuAnalyzer:
             'checkEventContent':self.checkEventContent,
             'checkL1Unmask':self.checkL1Unmask,
             'checkDQMStream':self.checkDQMStream,
-            'checkStreamB':self.checkStreamB
+            #'checkStreamB':self.checkStreamB
             }
         self.ProblemDescriptions = {
             'moduleLength':'Modules too long',
             'numberOfPaths':'Too many paths',
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
+            'reqEndPaths':'Missing required endpaths',
             'checkExpress' : 'Invalid or missing express stream/PD',
             'checkNameFormats' : 'Invalid stream, PD or path name format',
             'checkEventContent' : 'Invalid Event Content',
@@ -235,7 +236,7 @@ class MenuAnalyzer:
         for key in self.perStreamPDList:
             if key.startswith("Physics"):             # look at PDs only in streams that start with Physics
                 for PD in self.perStreamPDList[key]:         
-                    if PD.find("Parked")!=-1:         # look for PDs with Parked in the name
+                    if (PD.find("Parked")!=-1 or PD.find("ParkingBPH")!=-1 or PD.find("Ephemeral")!=-1):         # look for PDs with Parked in the name
                         ParkingPDs.append(PD)
                     else:
                         NotParkingPDs.append(PD)
@@ -254,6 +255,7 @@ class MenuAnalyzer:
         self.Results['checkDQMStream']=[]
         for trig in self.NotParkingTriggers:
             if trig.find("LogMonitor")!=-1: continue
+            if trig.startswith("DST_"): continue
             if not trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
         for trig in self.ParkingTriggers:
             if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
@@ -287,7 +289,7 @@ class MenuAnalyzer:
             self.perModuleTypeList[ModuleName] = ModuleType
             if not ModuleName in self.ModuleList: self.ModuleList.append(ModuleName)
             if endPath: self.endPathList.add(PathName)
-
+        
     def GetStreamsPathsPDs(self,cursor):
         # sqlquery= """
         # SELECT distinct a.name AS stream,
