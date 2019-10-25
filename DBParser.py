@@ -15,8 +15,6 @@ import socket
 # For the parsing
 import re
 
-import DBConfigFile as cfg
-
 # Key version stripper
 def stripVersion(name):
     if re.match('.*_v[0-9]+',name): name = name[:name.rfind('_')]
@@ -27,7 +25,7 @@ def stripVersion(name):
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
 class DBParser:
-    def __init__(self) :
+    def __init__(self, cfg) :
         # Connect to the Database
         hostname = socket.gethostname()
         if hostname.find('lxplus') > -1: self.dsn_ = cfg.dsn_info['offline']
