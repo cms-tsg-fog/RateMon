@@ -16,6 +16,7 @@
 import cPickle as pickle
 import sys
 import time
+import yaml
 # For getting command line options
 import getopt
 # For the ShiftMonitor tool
@@ -24,12 +25,12 @@ from ShiftMonitorNCR import *
 # Class CommandLineParser
 class CommandLineParser:
     def __init__(self):
-        self.monitor = ShiftMonitor()
+        self.monitor = ShiftMonitor(self.dbCfg)
         #self.cfgFile = ""  # The name of the configuration file to use
 
     def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
@@ -43,6 +44,12 @@ class CommandLineParser:
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFile = str(op)
+            elif label == "--dbConfigFile":
+                with open(str(op), 'r') as stream:
+                    try:
+                        dbCfg = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        print exc
             elif label =="--configFile":
                 self.monitor.configFilePath = str(op)
             elif label == "--triggerList":
@@ -218,8 +225,8 @@ class CommandLineParser:
 ## ----------- End of class CommandLineParser ------------ ##
 
 if __name__ == "__main__":
-    parser = CommandLineParser()
     parser.parseArgs()
+    parser = CommandLineParser()
     parser.run()
 
 
