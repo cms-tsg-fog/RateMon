@@ -25,8 +25,17 @@ from ShiftMonitorNCR import *
 # Class CommandLineParser
 class CommandLineParser:
     def __init__(self):
+
+        with open("dbConfig.yaml", 'r') as stream:
+            try:
+                dbCfg = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print "Database configuration error"
+        self.monitor = ShiftMonitor(dbCfg)
+
+
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
@@ -37,19 +46,6 @@ class CommandLineParser:
         # Remember if we were told to use all triggers
         #usingAll = False
         
-        for label, op in opt:
-            if label == "--dbConfigFile":
-		print label, op
-                with open(str(op), 'r') as stream:
-                    try:
-                        dbCfg = yaml.safe_load(stream)
-			print(dbCfg)
-                    except yaml.YAMLError as exc:
-                        print exc
-                self.monitor = ShiftMonitor(dbCfg)
-            else:
-                pass
-
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFile = str(op)
