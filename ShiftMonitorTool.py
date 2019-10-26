@@ -26,7 +26,7 @@ from ShiftMonitorNCR import *
 class CommandLineParser:
     def __init__(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile", "configFile=", "triggerList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
@@ -39,12 +39,14 @@ class CommandLineParser:
         
         for label, op in opt:
             if label == "--dbConfigFile":
+		print label, op
                 with open(str(op), 'r') as stream:
                     try:
                         dbCfg = yaml.safe_load(stream)
+			print(dbCfg)
                     except yaml.YAMLError as exc:
                         print exc
-                self.monitor = ShiftMonitor(self.dbCfg)
+                self.monitor = ShiftMonitor(dbCfg)
             else:
                 pass
 
