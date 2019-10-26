@@ -26,12 +26,13 @@ def stripVersion(name):
 # A class that interacts with the HLT's oracle database and fetches information that we need
 class DBParser:
     def __init__(self, cfg) :
-        # Connect to the Database
+        self.cfg = cfg
+	# Connect to the Database
         hostname = socket.gethostname()
-        if hostname.find('lxplus') > -1: self.dsn_ = cfg.dsn_info['offline']
+        if hostname.find('lxplus') > -1: self.dsn_ = cfg["dsn_info"]['offline']
         else: self.dsn_ = cfg.dsn_info['online']
 
-        orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=cfg["trg_connect"]['user'],password=cfg["trg_connect"]['passwd'],dsn=self.dsn_)
         # Create a DB cursor
         self.curs = orcl.cursor()
 
@@ -53,12 +54,12 @@ class DBParser:
         
     # Returns: a cursor to the HLT database
     def getHLTCursor(self):
-        orcl = cx_Oracle.connect(user=cfg.hlt_connect['user'],password=cfg.hlt_connect['passwd'],dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=self.cfg["hlt_connect"]['user'],password=self.cfg["hlt_connect"]['passwd'],dsn=self.dsn_)
         return orcl.cursor()
 
     # Returns: a cursor to the trigger database
     def getTrgCursor(self):
-        orcl = cx_Oracle.connect(user=cfg.trg_connect['user'],password=cfg.trg_connect['passwd'],dsn=self.dsn_)
+        orcl = cx_Oracle.connect(user=self.cfg["trg_connect"]['user'],password=self.cfg["trg_connect"]['passwd'],dsn=self.dsn_)
         return orcl.cursor()
 
     def getLSInfo(self, runNumber):
