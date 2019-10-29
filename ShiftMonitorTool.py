@@ -16,6 +16,7 @@
 import cPickle as pickle
 import sys
 import time
+# Parsing YAML configuration files
 import yaml
 # For getting command line options
 import getopt
@@ -37,18 +38,24 @@ class CommandLineParser:
         # Remember if we were told to use all triggers
         #usingAll = False
         
+        dbConfigLoaded = False;
+        # First, we need to init and connect to the database
         for label, op in opt:
             if label == "--dbConfigFile":
-		print label, op
+                dbConfigLoaded = True;
                 with open(str(op), 'r') as stream:
                     try:
                         dbCfg = yaml.safe_load(stream)
-			print(dbCfg)
                     except yaml.YAMLError as exc:
-                        print exc
+                        print "Unable to read the given YAML database\
+                        configuration file. Error:", exc
                 self.monitor = ShiftMonitor(dbCfg)
             else:
                 pass
+
+        if (!dbConfigLoaded):
+            print "No database configuration file specified. Call\
+             the script with --dbConfigFile=dbConfigFile.yaml"
 
         for label, op in opt:
             if label == "--fitFile":
