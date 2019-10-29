@@ -1,20 +1,28 @@
 # RateMon
-Repository with various tools to monitor HLT and L1 rates. More details on the [twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/RateMonitoringScriptWithReferenceComparison)
 
+Repository with various tools to monitor HLT and L1 rates. More details on the [twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/RateMonitoringScriptWithReferenceComparison).
+
+### Preparation
 
 Connect to online (.cms) network or lxplus and install: 
-	
-	ssh -Y cmsusr.cern.ch
-	git clone git@github.com:cms-tsg-fog/RateMon.git
-	cd RateMon
 
-Before running either the plot making script or shift monitor tool, you will need to setup a config file for DBParser. In the RateMon directory:
+```    
+ssh -Y cmsusr.cern.ch
+git clone git@github.com:cms-tsg-fog/RateMon.git
+cd RateMon
+```
 
-	cp DBConfigFile_example.py DBConfigFile.py
+### Database configuration
 
-Next open 'DBConfigFile.py' and fill in the appropriate connection info
+Before running either the plot making script or shift monitor tool, you will need to fill the appropriate database connection info in the `dbConfig.yaml` file.
 
-Run shifter rate monitoring tool:
+Then, when running `plotTriggerRates` or `ShiftMonitorTool`, pass the `--dbConfigFile=dbConfig.yaml` argument.
 
-	source set.sh
-	python ShiftMonitorTool.py
+
+### Running
+
+Example:
+
+```bash
+python plotTriggerRates.py --dbConfigFile=dbConfig.yaml --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
+```
