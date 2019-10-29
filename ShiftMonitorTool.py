@@ -53,7 +53,7 @@ class CommandLineParser:
             else:
                 pass
 
-        if (!dbConfigLoaded):
+        if not dbConfigLoaded:
             print "No database configuration file specified. Call\
              the script with --dbConfigFile=dbConfigFile.yaml"
 

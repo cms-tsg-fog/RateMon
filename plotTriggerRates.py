@@ -15,17 +15,71 @@
 import getopt # For getting command line options
 import json
 import sys
+import yaml
 
 from DBParser import *
 from RateMonitor import *
 
 class MonitorController:
     def __init__(self):
+        try:
+            opt, args = getopt.getopt(sys.argv[1:],"",[
+                "dbConfigFile=",
+                "fitFile=",
+                "triggerList=",
+                "saveDirectory=",
+                "useFit=",
+                "psFilter=",
+                "lsVeto=",
+                "pathVeto=",
+                "Secondary",
+                "datasetRate",
+                "L1ARate",
+                "streamRate",
+                "streamBandwidth",
+                "streamSize",
+                "cronJob",
+                "updateOnlineFits",
+                "createFit",
+                "multiFit",
+                "bestFit",
+                "nonLinear",
+                "vsInstLumi",
+                "vsLS",
+                "useCrossSection",
+                "useFills",
+                "useBunches",
+                "compareFits=",
+                "showFitRunGroups"
+            ])
+
+        except:
+            print "Error getting options: command unrecognized. Exiting."
+            return False
+
+        dbConfigLoaded = False;
+        # First, we need to init and connect to the database
+        for label, op in opt:
+            if label == "--dbConfigFile":
+                dbConfigLoaded = True;
+                with open(str(op), 'r') as stream:
+                    try:
+                        dbCfg = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        print "Unable to read the given YAML database\
+                        configuration file. Error:", exc
+                self.parser = DBParser(dbCfg)
+                self.rate_monitor = RateMonitor(dbCfg)
+            else:
+                pass
+
+        if not dbConfigLoaded:
+            print "No database configuration file specified. Call\
+             the script with --dbConfigFile=dbConfigFile.yaml"
+
+        self.rate_monitor.ops = opt
+
         # type: () -> None
-
-        self.parser = DBParser()
-        self.rate_monitor = RateMonitor()
-
         self.do_cron_job = False
 
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
@@ -79,7 +133,8 @@ class MonitorController:
 
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",[ 
+            opt, args = getopt.getopt(sys.argv[1:],"",[
+                "dbConfigFile=",
                 "fitFile=",
                 "triggerList=",
                 "saveDirectory=",
@@ -113,6 +168,7 @@ class MonitorController:
             return False
 
         self.rate_monitor.ops = opt
+
         for label,op in opt:
             if label == "--fitFile":
                 # Specify the .pkl file to be used to extract fits from
@@ -349,6 +405,9 @@ class MonitorController:
                 self.rate_monitor.plotter.compare_fits = True
             elif label == "--showFitRunGroups":
                 self.rate_monitor.plotter.show_fit_run_groups = True
+            elif label == "--dbConfigFile":
+                # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
+                print "DB Configuration file loaded"
             else:
                 print "Unimplemented option '%s'." % label
                 return False
