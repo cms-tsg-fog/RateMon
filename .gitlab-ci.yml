@@ -9,4 +9,3 @@ build_rpm:
   artifacts:
     paths:
       - ./*.rpm
-    expire_in: 1 year
