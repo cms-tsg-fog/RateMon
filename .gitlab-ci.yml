@@ -1,0 +1,12 @@
+stages:
+  - rpm
+
+build_rpm:
+  stage: rpm
+  image: gitlab-registry.cern.ch/avivace/RateMon/builder
+  script:
+    - make rpm
+  artifacts:
+    paths:
+      - ./*.rpm
+    expire_in: 1 year
