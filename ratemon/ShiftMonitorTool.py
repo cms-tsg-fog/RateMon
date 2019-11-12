@@ -49,6 +49,8 @@ class CommandLineParser:
                     except yaml.YAMLError as exc:
                         print "Unable to read the given YAML database\
                         configuration file. Error:", exc
+                        # Exit with error, we can't continue without connecting to the DB
+                        exit(1)
                 self.monitor = ShiftMonitor(dbCfg)
             else:
                 pass
@@ -56,6 +58,8 @@ class CommandLineParser:
         if not dbConfigLoaded:
             print "No database configuration file specified. Call\
              the script with --dbConfigFile=dbConfigFile.yaml"
+            # Exit with error, we can't continue without connecting to the DB
+            exit(1)
 
         for label, op in opt:
             if label == "--fitFile":
