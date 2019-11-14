@@ -96,7 +96,7 @@ class ShiftMonitor:
             'mode',
             'streamData']
 
-    def __init__(self):
+    def __init__(self, dbCfg):
         self.FitFinder = FitFinder()
 
         # Suppress root warnings
@@ -108,7 +108,7 @@ class ShiftMonitor:
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
         # DBParser
-        self.parser = DBParser()        # A database parser
+        self.parser = DBParser(dbCfg)   # A database parser
 
         # Rates
         self.HLTRates = None            # HLT rates

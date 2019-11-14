@@ -1,0 +1,11 @@
+stages:
+  - rpm
+
+build_rpm:
+  stage: rpm
+  image: gitlab-registry.cern.ch/avivace/ratemon/builder
+  script:
+    - make rpm
+  artifacts:
+    paths:
+      - ./*.rpm

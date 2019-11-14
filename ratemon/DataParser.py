@@ -31,9 +31,9 @@ LUMI_INFO_MAP = {
 #TODO: Rework how we store run_data info to also include a 'type' field, to avoid problems with identical stream/dataset names
 class DataParser:
     # This is an interface for DBParser() to select and manage the data returned by DBParser()
-    def __init__(self):
+    def __init__(self, cfg):
         # type: () -> None
-        self.parser = DBParser()
+        self.parser = DBParser(cfg)
 
         # The lists all have the same number of elements, e.g.: len(self.lumi_data[trg][run]) == len(self.pu_data[trg][run])
         self.ls_data   = {}    # {'name': { run_number: [LS] } }
