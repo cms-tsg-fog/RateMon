@@ -16,6 +16,8 @@
 import cPickle as pickle
 import sys
 import time
+# Parsing YAML configuration files
+import yaml
 # For getting command line options
 import getopt
 # For the ShiftMonitor tool
@@ -24,12 +26,8 @@ from ShiftMonitorNCR import *
 # Class CommandLineParser
 class CommandLineParser:
     def __init__(self):
-        self.monitor = ShiftMonitor()
-        #self.cfgFile = ""  # The name of the configuration file to use
-
-    def parseArgs(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
@@ -40,6 +38,29 @@ class CommandLineParser:
         # Remember if we were told to use all triggers
         #usingAll = False
         
+        dbConfigLoaded = False;
+        # First, we need to init and connect to the database
+        for label, op in opt:
+            if label == "--dbConfigFile":
+                dbConfigLoaded = True;
+                with open(str(op), 'r') as stream:
+                    try:
+                        dbCfg = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        print "Unable to read the given YAML database\
+                        configuration file. Error:", exc
+                        # Exit with error, we can't continue without connecting to the DB
+                        exit(1)
+                self.monitor = ShiftMonitor(dbCfg)
+            else:
+                pass
+
+        if not dbConfigLoaded:
+            print "No database configuration file specified. Call\
+             the script with --dbConfigFile=dbConfigFile.yaml"
+            # Exit with error, we can't continue without connecting to the DB
+            exit(1)
+
         for label, op in opt:
             if label == "--fitFile":
                 self.monitor.fitFile = str(op)
@@ -219,7 +240,6 @@ class CommandLineParser:
 
 if __name__ == "__main__":
     parser = CommandLineParser()
-    parser.parseArgs()
     parser.run()
 
 
