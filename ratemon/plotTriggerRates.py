@@ -77,9 +77,9 @@ class MonitorController:
 
         if not dbConfigLoaded:
             print "No database configuration file specified. Call\
-             the script with --dbConfigFile=dbConfigFile.yaml"
-             # Exit with error, we can't continue without connecting to the DB
-             exit(1)
+            the script with --dbConfigFile=dbConfigFile.yaml"
+            # Exit with error, we can't continue without connecting to the DB
+            exit(1)
 
         self.rate_monitor.ops = opt
 
