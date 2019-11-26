@@ -1,5 +1,10 @@
+# This variable can be defined here or, if it needs to be hidden, as a secure variable of the project
+variables:
+  EOS_PATH: "/eos/user/a/avivace/ratemon_builds"
+
 stages:
   - rpm
+  - deploy
 
 build_rpm:
   stage: rpm
@@ -9,3 +14,9 @@ build_rpm:
   artifacts:
     paths:
       - ./*.rpm
+
+deploy-eos:
+  stage: deploy
+  image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
+  script:
+    - deploy-eos
