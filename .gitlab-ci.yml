@@ -10,10 +10,12 @@ build_rpm:
   stage: rpm
   image: gitlab-registry.cern.ch/avivace/ratemon/builder
   script:
+    - mkdir public
     - make rpm
+    - mv *.rpm public/
   artifacts:
     paths:
-      - ./*.rpm
+      - public
 
 deploy-eos:
   stage: deploy
