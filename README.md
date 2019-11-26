@@ -18,6 +18,8 @@ Before running either the plot making script or shift monitor tool, you will nee
 
 Then, when running `plotTriggerRates` or `ShiftMonitorTool`, pass the `--dbConfigFile=dbConfig.yaml` argument.
 
+> Note: `dump_l1_prescales`, `findRuns` and `sql_query_tool` scripts still need the database configuration in a "DBConfigFile.py"
+
 
 ### Running
 
