@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 #######################################################
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
