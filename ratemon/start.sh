@@ -5,4 +5,4 @@ IFS=$'\n\t'
 cd `dirname $0`
 
 source ./set.sh
-exec python ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml
+exec python2 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml
