@@ -2,6 +2,11 @@
 
 Repository with various tools to monitor HLT and L1 rates. More details on the [twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/RateMonitoringScriptWithReferenceComparison).
 
+This repository has been [mirrored](https://gitlab.cern.ch/avivace/RateMon) on the CERN gitlab, to allow the usage of the gitlab CI/CD tools. The two are kept in sync.
+
+Each commit triggers a build of a RPM package for the RateMon tools. Those packages are automatically uploaded on [this](https://cernbox.cern.ch/index.php/s/w7LgXnIqwavHKFY) public EOS share.
+
+
 ### Preparation
 
 Connect to online (.cms) network or lxplus and install: 
