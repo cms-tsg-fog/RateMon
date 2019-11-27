@@ -1,4 +1,9 @@
-# This variable can be defined here or, if it needs to be hidden, as a secure variable of the project
+# EOS_PATH can be defined here or, if it needs to be hidden, 
+# as a secure variable of the project (Settings -> CI/CD -> Variables)
+# Note that the deploy-eos script needs the EOS_ACCOUNT_USERNAME and 
+# EOS_ACCOUNT_PASSWORD of a secondary CERN account having write access on the
+# specified EOS folder. Those are set as project variables.
+
 variables:
   EOS_PATH: "/eos/user/a/avivace/ratemon_builds"
 
@@ -10,6 +15,8 @@ build_rpm:
   stage: rpm
   image: gitlab-registry.cern.ch/avivace/ratemon/builder
   script:
+    # deploy-eos copies the content of the 'public' folder inside the specified
+    # eos share
     - mkdir public
     - make rpm
     - mv *.rpm public/
@@ -17,6 +24,7 @@ build_rpm:
     paths:
       - public
 
+# https://gitlab.cern.ch/ci-tools/ci-web-deployer
 deploy-eos:
   stage: deploy
   image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
