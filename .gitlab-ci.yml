@@ -23,6 +23,8 @@ build_rpm:
   artifacts:
     paths:
       - public
+    # Make it vanish in 1 hour
+    expire_in: 1 hour
 
 # https://gitlab.cern.ch/ci-tools/ci-web-deployer
 deploy-eos:
