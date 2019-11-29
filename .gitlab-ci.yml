@@ -5,7 +5,7 @@
 # specified EOS folder. Those are set as project variables.
 
 variables:
-  EOS_PATH: "/eos/user/a/avivace/ratemon_builds"
+  EOS_PATH: "/eos/user/a/avwebd2/ratemon_builds"
 
 stages:
   - rpm
