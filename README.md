@@ -4,7 +4,7 @@ Repository with various tools to monitor HLT and L1 rates. More details on the [
 
 This repository has been [mirrored](https://gitlab.cern.ch/avivace/RateMon) on the CERN gitlab, to allow the usage of the gitlab CI/CD tools. The two are kept in sync.
 
-Each commit triggers a build of a RPM package for the RateMon tools. Those packages are automatically uploaded on [this](https://cernbox.cern.ch/index.php/s/w7LgXnIqwavHKFY) public EOS share.
+Each commit triggers a build of a RPM package for the RateMon tools. Those packages are automatically uploaded on [this](https://cernbox.cern.ch/index.php/s/TL7L81EaTE3Z8Zy) public EOS share.
 
 
 ### Preparation
