@@ -54,13 +54,21 @@ class DBParser:
         
     # Returns: a cursor to the HLT database
     def getHLTCursor(self):
-        orcl = cx_Oracle.connect(user=self.cfg["hlt_connect"]['user'],password=self.cfg["hlt_connect"]['passwd'],dsn=self.dsn_)
-        return orcl.cursor()
+        while True:
+            try:
+                orcl = cx_Oracle.connect(user=self.cfg["hlt_connect"]['user'],password=self.cfg["hlt_connect"]['passwd'],dsn=self.dsn_)
+                return orcl.cursor()
+            except cx_Oracle.DatabaseError as e:
+                print("Failed getting a connection to the HLT DB: ",e, "- Retrying..")
 
     # Returns: a cursor to the trigger database
     def getTrgCursor(self):
-        orcl = cx_Oracle.connect(user=self.cfg["trg_connect"]['user'],password=self.cfg["trg_connect"]['passwd'],dsn=self.dsn_)
-        return orcl.cursor()
+        while True:
+            try:
+                orcl = cx_Oracle.connect(user=self.cfg["trg_connect"]['user'],password=self.cfg["trg_connect"]['passwd'],dsn=self.dsn_)
+                return orcl.cursor()
+            except cx_Oracle.DatabaseError as e:
+                print("Failed getting a connection to the Trigger DB: ",e, "- Retrying..")
 
     def getLSInfo(self, runNumber):
         sqlquery =  """
