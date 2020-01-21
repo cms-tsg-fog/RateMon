@@ -30,7 +30,7 @@ class DBParser:
 	# Connect to the Database
         hostname = socket.gethostname()
         if hostname.find('lxplus') > -1: self.dsn_ = cfg["dsn_info"]['offline']
-        else: self.dsn_ = cfg["dsn_info"]['offline']
+        else: self.dsn_ = cfg["dsn_info"]['online']
 
         orcl = cx_Oracle.connect(user=cfg["trg_connect"]['user'],password=cfg["trg_connect"]['passwd'],dsn=self.dsn_)
         # Create a DB cursor
