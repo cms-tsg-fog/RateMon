@@ -24,7 +24,7 @@ fi
 # When not on cms, lxplus or hilton machines we'll skip this phase,
 # since scramv1 won't be available (the CMS build program)
 
-if [ -d $VO_CMS_SW_DIR ]
+if [[ -d ${VO_CMS_SW_DIR:-} ]]
 then
     source $VO_CMS_SW_DIR/cmsset_default.sh
     cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
