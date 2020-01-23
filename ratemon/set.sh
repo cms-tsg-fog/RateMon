@@ -19,10 +19,16 @@ else
     export CMSSW_VERSION=CMSSW_8_0_22
 fi
 
-source $VO_CMS_SW_DIR/cmsset_default.sh
-cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
-eval `scramv1 runtime -sh`
-cd -
+# When not on cms, lxplus or hilton machines we'll skip this phase,
+# since scramv1 won't be available (the CMS build program)
+
+if [ -d $VO_CMS_SW_DIR ]
+then
+    source $VO_CMS_SW_DIR/cmsset_default.sh
+    cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
+    eval `scramv1 runtime -sh`
+    cd -
+fi
 
 alias rateMon='python ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
 alias plotRates='python plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
