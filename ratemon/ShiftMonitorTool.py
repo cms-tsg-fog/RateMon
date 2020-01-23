@@ -49,8 +49,7 @@ class CommandLineParser:
                     try:
                         dbCfg = yaml.safe_load(stream)
                     except yaml.YAMLError as exc:
-                        print "Unable to read the given YAML database\
-                        configuration file. Error:", exc
+                        print "Unable to read the given YAML database configuration file. Error:", exc
                         # Exit with error, we can't continue without connecting to the DB
                         exit(1)
                 self.monitor = ShiftMonitor(dbCfg)
@@ -58,8 +57,7 @@ class CommandLineParser:
                 pass
 
         if not dbConfigLoaded:
-            print "No database configuration file specified. Call\
-             the script with --dbConfigFile=dbConfigFile.yaml"
+            print "No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml"
             # Exit with error, we can't continue without connecting to the DB
             exit(1)
 
