@@ -33,4 +33,4 @@ then
 fi
 
 alias rateMon='python2 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
-alias plotRates='python plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
+alias plotRates='python2 plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
