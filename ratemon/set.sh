@@ -1,4 +1,6 @@
-#! /bin/bash
+#!/usr/bin/env bash
+set -o errexit -o nounset -o pipefail
+IFS=$'\n\t\v'
 
 HOST=$(hostname)
 
