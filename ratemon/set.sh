@@ -24,5 +24,5 @@ cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
 eval `scramv1 runtime -sh`
 cd -
 
-alias rateMon='python ShiftMonitorTool.py'
-alias plotRates='python plotTriggerRates.py'
+alias rateMon='python ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
+alias plotRates='python plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
