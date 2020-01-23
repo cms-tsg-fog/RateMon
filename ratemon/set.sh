@@ -2,7 +2,7 @@
 set -o errexit -o nounset -o pipefail
 IFS=$'\n\t\v'
 
-HOST=$(hostname)
+HOST=$(hostname -f)
 
 if [[ $HOST == *lxplus* ]]; then
     # lxplus machines
