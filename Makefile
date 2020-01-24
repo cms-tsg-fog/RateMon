@@ -28,7 +28,6 @@ ${RPM_NAME}:
 
 	# Launch fpm to package the prepared folder	
 	cd rpmroot && fpm \
-	# Override the default fpm package naming and pass our filename
 	-p ${RPM_NAME} \
 	-n ratemon \
 	-s dir \
