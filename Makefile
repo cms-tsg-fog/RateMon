@@ -4,8 +4,10 @@ SHELL:=/bin/bash
 VERSION = 1.0.0
 RELEASE = 1
 ARCH = amd64
-RPM_NAME = ratemon-${VERSION}.${ARCH}.rpm
+BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+HASH = $(shell git rev-parse --short HEAD)
 
+RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
 
 .PHONY: rpm
 
@@ -25,6 +27,7 @@ ${RPM_NAME}:
 
 	# Launch fpm to package the prepared folder	
 	cd rpmroot && fpm \
+	-p ${RPM_NAME} \
 	-n ratemon \
 	-s dir \
 	-t rpm \
