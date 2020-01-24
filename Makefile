@@ -4,6 +4,7 @@ SHELL:=/bin/bash
 VERSION = 1.0.0
 RELEASE = 1
 ARCH = amd64
+# Get the git branch name and the short commit hash
 BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 HASH = $(shell git rev-parse --short HEAD)
 
@@ -27,6 +28,7 @@ ${RPM_NAME}:
 
 	# Launch fpm to package the prepared folder	
 	cd rpmroot && fpm \
+	# Override the default fpm package naming and pass our filename
 	-p ${RPM_NAME} \
 	-n ratemon \
 	-s dir \
