@@ -15,6 +15,7 @@
 import math
 import array
 import ROOT
+import json
 
 from ROOT import TLatex, TH1D, TLine
 
@@ -222,6 +223,7 @@ class PlotMaker:
 
         run_count = 0
         num_pts = 0
+
         for run in data:
             x_pts,y_pts = self.fitFinder.removePoints(data[run][0],data[run][1])
             x_pts,y_pts = self.fitFinder.getGoodPoints(x_pts,y_pts)
@@ -486,6 +488,16 @@ class PlotMaker:
 
         if self.save_png:
             self.savePlot(trigger,canvas)
+        
+        export = {}
+        export["plotname"] = trigger+"_"+self.var_X+"_vs_"+self.var_Y
+        export["xvar"] = self.var_X
+        export["yvar"] = self.var_Y
+        export["xVals"] = xVals.tolist()
+        export["yVals"] = yVals.tolist()
+
+        with open("export"+str(data.keys())+trigger+".json", "w") as out_file:
+            json.dump(export, out_file)
 
         return True
 
