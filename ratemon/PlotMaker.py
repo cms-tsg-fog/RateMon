@@ -496,10 +496,7 @@ class PlotMaker:
         export["xVals"] = xVals.tolist()
         export["yVals"] = yVals.tolist()
 
-        with open("export"+str(data.keys())+trigger+".json", "w") as out_file:
-            json.dump(export, out_file)
-
-        return True
+        return export
 
     # Create legend
     def getLegend(self,num_entries):
