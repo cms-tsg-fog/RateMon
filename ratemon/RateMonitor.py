@@ -393,7 +393,9 @@ class RateMonitor:
                 rundata[_object] = triggerplotdata
 
         runnumber = self.plotter.plotting_data[self.plotter.plotting_data.keys()[0]].keys()[0]
-        with open("run"+str(runnumber)+"_collisions.json", "w") as out_file:
+        rundata["runnumber"] = runnumber
+
+        with open("json_dumps/run"+str(runnumber)+"_collisions.json", "w") as out_file:
             json.dump(rundata, out_file)
 
         return plotted_objects
