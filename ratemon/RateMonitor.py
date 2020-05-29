@@ -373,14 +373,16 @@ class RateMonitor:
         prog_counter = 0
         rundata = {}
         # self.plotter.plotting_data.keys()
+        rundata["plots"] = {}
         for _object in sorted(plot_list):
+
             if prog_counter % max(1,math.floor(len(plot_list)/10.)) == 0:
                 print "\tProgress: %.0f%% (%d/%d)" % (100.*prog_counter/len(plot_list),prog_counter,len(plot_list))
             prog_counter += 1
             if not self.plotter.plotting_data.has_key(_object):
                 # No valid data points could be found for _object in any of the runs
                 print "\tWARNING: Unknown object - %s" % _object
-                rundata[_object] = "NO DATA"
+                rundata["plots"][_object] = "NODATA"
                 continue
             self.formatLabels(_object)
             
@@ -390,12 +392,38 @@ class RateMonitor:
             if triggerplotdata:
                 plotted_objects.append(_object)
                 counter += 1
-                rundata[_object] = triggerplotdata
+                rundata["plots"][_object] = triggerplotdata
 
         runnumber = self.plotter.plotting_data[self.plotter.plotting_data.keys()[0]].keys()[0]
+        
         rundata["runnumber"] = runnumber
 
-        with open("json_dumps/run"+str(runnumber)+"_collisions.json", "w") as out_file:
+        if self.use_pileup: # plot PU vs. rate
+            xlabel = "pu"
+        elif self.use_lumi: # plot iLumi vs. rate
+            xlabel = "il"
+        else:               # plot LS vs. rate
+            xlabel = "ls"
+
+        if self.data_parser.type_map[_object] == "trigger":
+            if self.data_parser.correct_for_DT == True:
+                ylabel = "pre-dt-"
+
+            if self.data_parser.use_prescaled_rate:
+                ylabel += "prescaled-rate"
+            else:
+                ylabel += "unprescaled-rate"
+        
+        rundata["x_axis"] = xlabel
+        rundata["y_axis"] = ylabel
+
+        with open("json_dumps/"+
+                  str(runnumber)+
+                  "_"+
+                  xlabel+
+                  "_VS_"+
+                  ylabel+
+                  ".json", "w") as out_file:
             json.dump(rundata, out_file)
 
         return plotted_objects
