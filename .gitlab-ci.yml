@@ -31,15 +31,14 @@ OMS base image:
     DOCKERFILE: oms-base.Dockerfile
     CONTEXT_FOLDER: oms
 
-# OMS builder image:
-#   extends: .auto_devops_docker_image_tagged_template
-#   stage: preflight
-#   variables:
-#     BASE_OS: cc7
-#     BASE_TAG: 20200504-1.x86_64
-#     NAME: oms-base
-#     DOCKERFILE: oms-base.Dockerfile
-#     CONTEXT_FOLDER: oms
+OMS builder image:
+  extends: .auto_devops_docker_image_tagged_template
+  stage: preflight
+  variables:
+    BASE_OS: cc7
+    NAME: oms-builder
+    DOCKERFILE: oms-builder.Dockerfile
+    CONTEXT_FOLDER: oms
 
 
 
