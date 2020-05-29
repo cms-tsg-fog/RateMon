@@ -7,6 +7,18 @@ variables:
   AUTO_DEVOPS_RPM_CERNBOX_FOLDER: /eos/user/a/avwebd2/ratemon_builds/$CI_COMMIT_REF_NAME/centos7_x86_64/base/RPMS/
   AUTO_DEVOPS_DOCKER_DISABLED: "true"
 
+# from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
+stages:
+- base images 1
+- base images 2
+- build        # build and keep binaries
+- test         # run tests
+- build RPMs   # build and keep RPMs
+- publish      # publish RPMs and docker images
+- review       # deploy to review cluster
+- deploy       # deploy to P5 (manually)
+- cleanup      # un-deploy review (manually or when branch deleted)
+
 include:
   - project: cms-cactus/ops/auto-devops
     ref: 0.0.1
@@ -14,7 +26,7 @@ include:
 
 builder image:
   extends: .auto_devops_docker_image_tagged_template
-  stage: preflight
+  stage: base images 1
   variables:
     BASE_OS: cc7
     BASE_TAG: 20200504-1.x86_64
@@ -23,7 +35,7 @@ builder image:
 
 OMS base image:
   extends: .auto_devops_docker_image_tagged_template
-  stage: preflight
+  stage: base images 1
   variables:
     BASE_OS: cc7
     BASE_TAG: 20200504-1.x86_64
@@ -33,14 +45,12 @@ OMS base image:
 
 OMS builder image:
   extends: .auto_devops_docker_image_tagged_template
-  stage: preflight
+  stage: base images 2
   variables:
     BASE_OS: cc7
     NAME: oms-builder
     DOCKERFILE: oms-builder.Dockerfile
     CONTEXT_FOLDER: oms
-  needs:
-  - OMS base image
 
 
 
