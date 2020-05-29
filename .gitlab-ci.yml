@@ -1,34 +1,65 @@
-# EOS_PATH can be defined here or, if it needs to be hidden, 
-# as a secure variable of the project (Settings -> CI/CD -> Variables)
-# Note that the deploy-eos script needs the EOS_ACCOUNT_USERNAME and 
-# EOS_ACCOUNT_PASSWORD of a secondary CERN account having write access on the
-# specified EOS folder. Those are set as project variables.
-
 variables:
-  EOS_PATH: "/eos/user/a/avwebd2/ratemon_builds"
+  # https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/tasks/variables/rpm-project.yml
+  AUTO_DEVOPS_BUILD_IMAGE: ${CI_REGISTRY_IMAGE}/builder:cc7-2020-05-29
+  AUTO_DEVOPS_TEST_IMAGE: ${CI_REGISTRY_IMAGE}/builder:cc7-2020-05-29
+  AUTO_DEVOPS_DOCS_BUILD_TYPE: markdown
+  AUTO_DEVOPS_RPM_PUBLISH_BRANCH_REGEX: /master/
+  AUTO_DEVOPS_RPM_CERNBOX_FOLDER: /eos/user/a/avwebd2/ratemon_builds/$CI_COMMIT_REF_NAME/centos7_x86_64/base/RPMS/
 
-stages:
-  - rpm
-  - deploy
+include:
+  - project: cms-cactus/ops/auto-devops
+    ref: 0.0.1
+    file: project-types/rpm-project.yml
 
-build_rpm:
-  stage: rpm
-  image: gitlab-registry.cern.ch/avivace/ratemon/builder
-  script:
-    # deploy-eos copies the content of the 'public' folder inside the specified
-    # eos share
-    - mkdir public
-    - make rpm
-    - mv *.rpm public/
-  artifacts:
-    paths:
-      - public
-    # Make it vanish in 1 hour
-    expire_in: 1 hour
+builder image:
+  extends: .auto_devops_docker_image_tagged_template
+  stage: preflight
+  variables:
+    BASE_OS: cc7
+    BASE_TAG: 20200504-1.x86_64
+    NAME: builder
+    DOCKERFILE: builder.Dockerfile
 
-# https://gitlab.cern.ch/ci-tools/ci-web-deployer
-deploy-eos:
-  stage: deploy
-  image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
-  script:
-    - deploy-eos
+OMS base image:
+  extends: .auto_devops_docker_image_tagged_template
+  stage: preflight
+  variables:
+    BASE_OS: cc7
+    BASE_TAG: 20200504-1.x86_64
+    NAME: oms-base
+    DOCKERFILE: oms-base.Dockerfile
+    CONTEXT_FOLDER: oms
+
+# OMS builder image:
+#   extends: .auto_devops_docker_image_tagged_template
+#   stage: preflight
+#   variables:
+#     BASE_OS: cc7
+#     BASE_TAG: 20200504-1.x86_64
+#     NAME: oms-base
+#     DOCKERFILE: oms-base.Dockerfile
+#     CONTEXT_FOLDER: oms
+
+
+
+# build_rpm:
+#   stage: rpm
+#   image: gitlab-registry.cern.ch/avivace/ratemon/builder
+#   script:
+#     # deploy-eos copies the content of the 'public' folder inside the specified
+#     # eos share
+#     - mkdir public
+#     - make rpm
+#     - mv *.rpm public/
+#   artifacts:
+#     paths:
+#       - public
+#     # Make it vanish in 1 hour
+#     expire_in: 1 hour
+
+# # https://gitlab.cern.ch/ci-tools/ci-web-deployer
+# deploy-eos:
+#   stage: deploy
+#   image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
+#   script:
+#     - deploy-eos
