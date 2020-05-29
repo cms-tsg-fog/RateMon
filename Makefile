@@ -11,8 +11,11 @@ HASH = $(shell git rev-parse --short HEAD)
 RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
 
 .PHONY: rpm
-
 rpm: ${RPM_NAME}
+
+.PHONY: test
+test:
+	echo todo
 
 ${RPM_NAME}:
 	# Clean up the rpmroot directory
