@@ -23,11 +23,11 @@ def stripVersion(name):
     #name = p.sub('',name,)
     return name
 
-# A class that interacts with the HLT's oracle database and fetches information that we need
+# A class that interacts with the CMS oracle database and fetches information that we need
 class DBParser:
     def __init__(self, cfg) :
         self.cfg = cfg
-	# Connect to the Database
+        # Connect to the Database
         hostname = socket.gethostname()
         if hostname.find('lxplus') > -1: self.dsn_ = cfg["dsn_info"]['offline']
         else: self.dsn_ = cfg["dsn_info"]['online']
