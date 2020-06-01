@@ -33,20 +33,6 @@
   }, {
     "api" : {
       "identifying" : false,
-      "attribute" : "x",
-      "type" : "BLOB",
-      "description" : "X",
-      "units" : "",
-      "searchable" : true,
-      "sortable" : true
-    },
-    "db" : {
-      "column" : "X",
-      "type" : "BLOB"
-    }
-  }, {
-    "api" : {
-      "identifying" : false,
       "attribute" : "rate",
       "type" : "BLOB",
       "description" : "RATE",
