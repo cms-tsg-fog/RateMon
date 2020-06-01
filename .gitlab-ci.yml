@@ -68,6 +68,8 @@ OMS Aggregator:
 💣 OMS Aggregator:
   extends: 💣 review app
   rules:
+  when:
+  - manual
   variables:
     AUTO_DEVOPS_REVIEW_MANIFEST: oms/deploy.yml
   environment:
