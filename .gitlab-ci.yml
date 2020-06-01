@@ -56,6 +56,7 @@ OMS Aggregator:
 Aggregator Docker image:
   extends: .auto_devops_docker_image_template
   stage: publish
+  rules:
   variables:
     TAG: /$CI_COMMIT_REF_SLUG:latest
     TAG2: /$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
