@@ -1,0 +1,3 @@
+[submodule "oms/aggregationapi"]
+	path = oms/aggregationapi
+	url = ssh://git@gitlab.cern.ch:7999/cmsoms/aggregationapi.git

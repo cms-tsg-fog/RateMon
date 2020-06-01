@@ -6,6 +6,7 @@ variables:
   AUTO_DEVOPS_RPM_PUBLISH_BRANCH_REGEX: /master/
   AUTO_DEVOPS_RPM_CERNBOX_FOLDER: /eos/user/a/avwebd2/ratemon_builds/$CI_COMMIT_REF_NAME/centos7_x86_64/base/RPMS/
   AUTO_DEVOPS_DOCKER_DISABLED: "true"
+
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
 - base images 1
