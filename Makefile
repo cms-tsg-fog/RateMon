@@ -42,5 +42,5 @@ ${RPM_NAME}:
 	--url "https://gitlab.cern.ch/avivace/ratemon" \
 	--vendor "CERN" \
 	.=/ && mv *.rpm ..
-	mkdir -p rpms
-	mv *.rpm rpms
+	mkdir -p build
+	mv *.rpm build
