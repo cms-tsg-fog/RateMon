@@ -1,0 +1,65 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>ch.cern.cms.daq.oms.api</groupId>
+	<artifactId>clean-up</artifactId>
+	<version>0.0.1</version>
+	<packaging>jar</packaging>
+
+    <parent>
+      <groupId>ch.cern.cms.daq.oms.api</groupId>
+      <artifactId>subsystem-top-pom</artifactId>
+      <version>0.0.1</version>
+    </parent>
+
+    
+
+    <build>
+	 <plugins>
+      <plugin>
+        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>org.codehaus.mojo</groupId>
+        <version>1.3.2</version>
+        <executions>
+            <execution>
+                <id>remove subsystem source code from aggregation folder</id>
+                <phase>clean</phase>
+                <goals>
+                    <goal>exec</goal>
+                </goals>
+                <configuration>
+                    <executable>bash</executable>
+                    <commandlineArgs>-c "rm -rf ../aggregationapi/src/main/java/${api-package.base}/model/subsystems/*"</commandlineArgs>
+                </configuration>
+            </execution>
+            <execution>
+                <id>remove package folder from aggregation folder</id>
+                <phase>clean</phase>
+                <goals>
+                    <goal>exec</goal>
+                </goals>
+                <configuration>
+                    <executable>bash</executable>
+                    <commandlineArgs>-c "rm -rf ../aggregationapi/src/package"</commandlineArgs>
+                </configuration>
+            </execution>
+            <execution>
+                <id>re-install pom.xml, configuration.yml package in aggregationapi folder</id>
+                <phase>clean</phase>
+                <goals>
+                    <goal>exec</goal>
+                </goals>
+                <configuration>
+                    <executable>bash</executable>
+                    <commandlineArgs>-c "(cd ../aggregationapi ; git checkout -- pom.xml src/package)"</commandlineArgs>
+                </configuration>
+            </execution>
+        </executions>       
+       
+      </plugin>
+     </plugins>
+    </build>
+
+</project>
