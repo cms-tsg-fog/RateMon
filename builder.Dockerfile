@@ -6,6 +6,6 @@ FROM cern/${BASE_OS}-base:${BASE_TAG}
 RUN yum install -y git ruby-devel gcc make rpm-build rubygems && \
     yum clean all
 
-RUN gem install --no-ri --no-rdoc fpm
+RUN gem install -f --no-ri --no-rdoc fpm
 
 CMD fpm
