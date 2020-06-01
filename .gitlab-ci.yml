@@ -9,8 +9,7 @@ variables:
 
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
-- base images 1
-- base images 2
+- preflight
 - build        # build and keep binaries
 - test         # run tests
 - build RPMs   # build and keep RPMs
@@ -26,7 +25,7 @@ include:
 
 builder image:
   extends: .auto_devops_docker_image_tagged_template
-  stage: base images 1
+  stage: preflight
   variables:
     BASE_OS: cc7
     BASE_TAG: 20200504-1.x86_64
@@ -35,7 +34,7 @@ builder image:
 
 OMS base image:
   extends: .auto_devops_docker_image_tagged_template
-  stage: base images 1
+  stage: preflight
   variables:
     BASE_OS: cc7
     BASE_TAG: 20200504-1.x86_64
@@ -54,11 +53,18 @@ OMS Aggregator:
     paths:
     - ./oms/aggregationapi/target/aggregation*.jar
 
+Aggregator Docker image:
+  extends: .auto_devops_docker_image_template
+  stage: publish
+  variables:
+    TAG: /$CI_COMMIT_REF_SLUG:latest
+    TAG2: /$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
+    CONTEXT_FOLDER: oms
+    DOCKERFILE: oms-aggregator.Dockerfile
+
 🚀 OMS Aggregator:
   extends: review app
   rules:
-  variables:
-    AUTO_DEVOPS_REVIEW_MANIFEST: oms/deploy.yml
   environment:
     name: oms/$CI_COMMIT_REF_NAME
     url: http://${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}.$KUBE_INGRESS_BASE_DOMAIN
@@ -68,8 +74,6 @@ OMS Aggregator:
   extends: 💣 review app
   rules:
   - when: manual
-  variables:
-    AUTO_DEVOPS_REVIEW_MANIFEST: oms/deploy.yml
   environment:
     name: oms/$CI_COMMIT_REF_NAME
     action: stop
