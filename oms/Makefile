@@ -13,5 +13,6 @@ build:
 	mvn generate-sources
 	# you get 'duplicate class' errors if you don't clean here
 	mvn clean
-	touch aggregationapi/target/release-notes.txt
+	mkdir -p aggregationapi/target
+	cp aggregationapi/target/release-notes-ratemon.txt aggregationapi/target/release-notes.txt
 	mvn package
