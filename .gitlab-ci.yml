@@ -6,6 +6,7 @@ variables:
   AUTO_DEVOPS_RPM_PUBLISH_BRANCH_REGEX: /master/
   AUTO_DEVOPS_RPM_CERNBOX_FOLDER: /eos/user/a/avwebd2/ratemon_builds/$CI_COMMIT_REF_NAME/centos7_x86_64/base/RPMS/
   AUTO_DEVOPS_DOCKER_DISABLED: "true"
+  GIT_SUBMODULE_STRATEGY: normal
 
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
@@ -51,3 +52,22 @@ OMS Aggregator:
   artifacts:
     paths:
     - ./oms/aggregationapi/target/aggregation*.jar
+
+🚀 OMS Aggregator:
+  extends: review app
+  rules:
+  variables:
+    AUTO_DEVOPS_REVIEW_MANIFEST: oms/deploy.yml
+  environment:
+    name: oms/$CI_COMMIT_REF_NAME
+    url: http://${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}.$KUBE_INGRESS_BASE_DOMAIN
+    on_stop: 💣 OMS Aggregator
+
+💣 OMS Aggregator:
+  extends: 💣 review app
+  rules:
+  variables:
+    AUTO_DEVOPS_REVIEW_MANIFEST: oms/deploy.yml
+  environment:
+    name: oms/$CI_COMMIT_REF_NAME
+    action: stop
