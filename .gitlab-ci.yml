@@ -75,6 +75,7 @@ Aggregator Docker image:
   extends: 💣 review app
   rules:
   - when: manual
+    allow_failure: true
   environment:
     name: oms/$CI_COMMIT_REF_NAME
     action: stop
