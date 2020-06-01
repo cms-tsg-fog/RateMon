@@ -5,3 +5,4 @@ COPY configuration.yml /aggregator.config.yml
 COPY start.sh /start.sh
 
 CMD ["/start.sh"]
+EXPOSE 8080
