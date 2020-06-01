@@ -21,7 +21,7 @@ stages:
 
 include:
   - project: cms-cactus/ops/auto-devops
-    ref: 0.0.1
+    # ref: 0.0.1
     file: project-types/rpm-project.yml
 
 builder image:
@@ -45,6 +45,8 @@ OMS base image:
   
 OMS Aggregator:
   extends: .auto_devops_make_build_template
+  script:
+  - make -C oms
   artifacts:
     paths:
     - ./oms/aggregationapi/target/aggregation*.jar
