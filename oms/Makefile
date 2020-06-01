@@ -14,5 +14,5 @@ build:
 	# you get 'duplicate class' errors if you don't clean here
 	mvn clean
 	mkdir -p aggregationapi/target
-	cp aggregationapi/target/release-notes-ratemon.txt aggregationapi/target/release-notes.txt
+	touch aggregationapi/target/release-notes.txt
 	mvn package
