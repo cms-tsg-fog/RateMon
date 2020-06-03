@@ -1,0 +1,9 @@
+{
+  "subsystem": "ratemon",
+  "path": "rates",
+  "identifying": ["runnumber", "trigger"],
+  "blobs": {
+    "x": "bmp",
+    "rate": "bmp"
+  }
+}

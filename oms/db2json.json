@@ -1,0 +1,90 @@
+{
+  "db" : {
+    "table" : "CMS_TRG_L1_MON.RATEMON"
+  },
+  "attributes" : [ {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "runnumber",
+      "type" : "BigInteger",
+      "description" : "RUNNUMBER",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "RUNNUMBER",
+      "type" : "NUMBER(38)"
+    }
+  }, {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "trigger",
+      "type" : "String",
+      "description" : "TRIGGER",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "TRIGGER",
+      "type" : "VARCHAR2"
+    }
+  }, {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "rate",
+      "type" : "BLOB",
+      "description" : "RATE",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "RATE",
+      "type" : "BLOB"
+    }
+  }, {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "fits",
+      "type" : "String",
+      "description" : "FITS",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "FITS",
+      "type" : "VARCHAR2"
+    }
+  }, {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "ylabel",
+      "type" : "String",
+      "description" : "YLABEL",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "YLABEL",
+      "type" : "VARCHAR2"
+    }
+  }, {
+    "api" : {
+      "identifying" : false,
+      "attribute" : "xlabel",
+      "type" : "String",
+      "description" : "XLABEL",
+      "units" : "",
+      "searchable" : true,
+      "sortable" : true
+    },
+    "db" : {
+      "column" : "XLABEL",
+      "type" : "VARCHAR2"
+    }
+  } ]
+}
