@@ -90,7 +90,7 @@ def buildMonitoredTriggersDisplay(save_dir,monitored_triggers_list):
         image_src = os.path.join(save_dir,'MoreTriggers/png/%s.png' % image_name)
         if not os.access(image_src,os.F_OK):
             # Check to make sure the image exists!
-            print "WARNING: Unable to access: %s" % image_src
+            print("WARNING: Unable to access: %s" % image_src)
             continue
         image_src = './MoreTriggers/png/%s.png' % image_name
         image_tag = ImgTag()
@@ -139,7 +139,7 @@ def getMonitoredTriggersList(f_name='TriggerLists/monitorlist_COLLISIONS.list'):
     path = f_name
     f = open(path,'r')
 
-    print "Reading trigger file: %s" % path
+    print("Reading trigger file: %s" % path)
 
     output_list = []
     for line in f:

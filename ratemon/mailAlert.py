@@ -42,8 +42,8 @@ def digest(hours,maxRate=35,printAll=False):
             expressRates = runParser.GetTriggerRatesByLS("HLTriggerFinalPath") #ExpressCosmicsOutput
         
         ExpRate = 0
-        if len(expressRates.values())>0:
-            ExpRate = sum(expressRates.values())/len(expressRates.values())
+        if len(list(expressRates.values()))>0:
+            ExpRate = sum(expressRates.values())/len(list(expressRates.values()))
         #for ls in lumiRange:
         #    ExpRate+=expressRates.get(ls,0)
         #ExpRate/=len(lumiRange)
@@ -77,10 +77,10 @@ def mailAlert(text):
         for email in emailList:
             #sendMail(email,"[HLTRateMon] Trigger Rate Warning","HLT",text)
             sendMail(email,subject,sender,text)
-            print "Mail sent to:", email
+            print("Mail sent to:", email)
     except:
-        print "Failed to send mail"
-        print text
+        print("Failed to send mail")
+        print(text)
 
 if __name__=='__main__':
     sender = "FOG <cms-tsg-fog@cern.ch>"

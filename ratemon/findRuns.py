@@ -28,7 +28,7 @@ class DBQueryTool:
         
     def test_query(self):
         try: l1_hlt_key = str(sys.argv[1])
-        except: print "Usage: python findRuns.py <L1_HLT_Key>"; return
+        except: print("Usage: python findRuns.py <L1_HLT_Key>"); return
         
         output_file_name = "runs.txt"
         output_file = open(output_file_name, "w")
@@ -46,7 +46,7 @@ class DBQueryTool:
         for run_num in run_numbers: output_file.write("%s\n"%(run_num[0]))
 
         output_file.close()
-        print "\nOutput in: %s\n" % (output_file_name)
+        print("\nOutput in: %s\n" % (output_file_name))
 
 
 ## ----------- End of class ------------ ##

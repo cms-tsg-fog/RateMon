@@ -49,10 +49,10 @@ class DBQueryTool:
             algo_ps = object[2]
             ps_index = object[3]
             #print algo_index," ",algo_name
-            if not bit_to_name_dict.has_key(algo_index): bit_to_name_dict[algo_index] = algo_name
-            if not l1_ps_table.has_key(algo_index): l1_ps_table[algo_index] = {}
+            if algo_index not in bit_to_name_dict: bit_to_name_dict[algo_index] = algo_name
+            if algo_index not in l1_ps_table: l1_ps_table[algo_index] = {}
             l1_ps_table[algo_index][ps_index] = algo_ps 
-        for algo in l1_ps_table: print algo," ",bit_to_name_dict[algo]," :  ",l1_ps_table[algo]
+        for algo in l1_ps_table: print(algo," ",bit_to_name_dict[algo]," :  ",l1_ps_table[algo])
 
 
 ## ----------- End of class ------------ ##

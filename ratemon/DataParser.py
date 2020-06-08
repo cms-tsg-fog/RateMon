@@ -100,7 +100,7 @@ class DataParser:
 
         counter = 1
         for run in sorted(run_list):
-            if self.verbose: print "Processing run: %d (%d/%d)" % (run,counter,len(run_list))
+            if self.verbose: print("Processing run: %d (%d/%d)" % (run,counter,len(run_list)))
             counter += 1
             bunches = self.parser.getNumberCollidingBunches(run)[0]
 
@@ -109,7 +109,7 @@ class DataParser:
 
             lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
             run_data = self.getRunData(run,bunches,lumi_info)
-            if len(run_data.keys()) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
+            if len(list(run_data.keys())) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
                 self.runs_skipped.append(run)
                 continue
             else:
@@ -163,16 +163,16 @@ class DataParser:
         if trigger_mode.find('cosmics') > 0:
             # This is a cosmics menu --> No luminosity info
             if self.verbose:
-                print "\tDetected cosmics run..."
-                print "\tGetting lumi info..."
+                print("\tDetected cosmics run...")
+                print("\tGetting lumi info...")
             for LS,psi in self.parser.getLSInfo(run):
                 # We hard code phys and cms_ready to both be true for all LS in the run
                 lumi_info.append([LS,0.0,psi,1,1])
         elif trigger_mode.find('collisions') > 0:
             # This is a collisions menu
             if self.verbose:
-                print "\tDetected collisions run..."
-                print "\tGetting lumi info..."
+                print("\tDetected collisions run...")
+                print("\tGetting lumi info...")
             if self.use_best_lumi:
                 lumi_info = self.parser.getQuickLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls)
             elif self.use_PLTZ_lumi:
@@ -182,8 +182,8 @@ class DataParser:
         else:
             # Unknown menu --> For now we assume it's compatibale with collisions type menus
             if self.verbose:
-                print "\tUnknown run type: %s" % (trigger_mode)
-                print "\tGetting lumi info..."
+                print("\tUnknown run type: %s" % (trigger_mode))
+                print("\tGetting lumi info...")
             if self.use_best_lumi:
                 lumi_info = self.parser.getQuickLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls)
             elif self.use_PLTZ_lumi:
@@ -191,7 +191,7 @@ class DataParser:
             elif self.use_HF_lumi:
                 lumi_info = self.parser.getLumiInfo(run,minLS=self.min_ls,maxLS=self.max_ls,lumi_source=2)
         
-        if self.ls_veto.has_key(run):
+        if run in self.ls_veto:
             new_lumi_info = []
             for LS,ilum,psi,phys,cms_ready in lumi_info:
                 if LS in self.ls_veto[run]:
@@ -209,7 +209,7 @@ class DataParser:
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         run_data = {}
         if bunches is None or bunches is 0:
-            if self.verbose: print "Unable to get bunches"
+            if self.verbose: print("Unable to get bunches")
             return {}
 
         if self.use_streams:
@@ -231,7 +231,7 @@ class DataParser:
         if self.skip_l1_triggers:
             return {}
 
-        if self.verbose: print "\tGetting L1 rates..."
+        if self.verbose: print("\tGetting L1 rates...")
         L1_rates = self.parser.getL1Rates(run,minLS=self.min_ls,maxLS=self.max_ls,scaler_type=1)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
@@ -252,7 +252,7 @@ class DataParser:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
-                if not ilum is None and L1_rates[trigger].has_key(LS):
+                if not ilum is None and LS in L1_rates[trigger]:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1_rates[trigger][LS][0]
                     prescale = L1_rates[trigger][LS][1]
@@ -299,7 +299,7 @@ class DataParser:
         if self.skip_hlt_triggers:
             return {}
 
-        if self.verbose: print "\tGetting HLT rates..."
+        if self.verbose: print("\tGetting HLT rates...")
 
         HLT_rates = self.parser.getHLTRates(run,self.hlt_triggers,minLS=self.min_ls,maxLS=self.max_ls)
 
@@ -324,7 +324,7 @@ class DataParser:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
-                if not ilum is None and HLT_rates[trigger].has_key(LS):
+                if not ilum is None and LS in HLT_rates[trigger]:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = HLT_rates[trigger][LS][0]
                     prescale = HLT_rates[trigger][LS][1]
@@ -364,7 +364,7 @@ class DataParser:
 
     def getStreamData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        if self.verbose: print "\tGetting Stream rates..."
+        if self.verbose: print("\tGetting Stream rates...")
         data = self.parser.getStreamData(run,minLS=self.min_ls,maxLS=self.max_ls)   # {'stream': [ (LS,rate,size,bandwidth) ] }
 
         stream_rates = {}   # {'stream': {LS: (rate,size,bandwidth) } }
@@ -400,7 +400,7 @@ class DataParser:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
-                if not ilum is None and stream_rates[_object].has_key(LS):
+                if not ilum is None and LS in stream_rates[_object]:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = stream_rates[_object][LS][0]
                     size = stream_rates[_object][LS][1]
@@ -435,7 +435,7 @@ class DataParser:
 
     def getDatasetData(self,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
-        if self.verbose: print "\tGetting Dataset rates..."
+        if self.verbose: print("\tGetting Dataset rates...")
         data = self.parser.getPrimaryDatasets(run,minLS=self.min_ls,maxLS=self.max_ls)   # {'dataset': [ (LS,rate) ] }
 
         dataset_rates = {}   # {'dataset': {LS: (rate) } }
@@ -464,7 +464,7 @@ class DataParser:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
-                if not ilum is None and dataset_rates[_object].has_key(LS):
+                if not ilum is None and LS in dataset_rates[_object]:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = dataset_rates[_object][LS][0]
 
@@ -497,11 +497,11 @@ class DataParser:
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         L1A_rates = {}   # {'L1A': {LS: rate } }
 
-        if self.verbose: print "\tGetting L1ATotal rates..."
+        if self.verbose: print("\tGetting L1ATotal rates...")
         L1A_rates["L1ATotal"] = self.parser.getL1rate(run)
-        if self.verbose: print "\tGetting L1APhysics rates..."
+        if self.verbose: print("\tGetting L1APhysics rates...")
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
-        if self.verbose: print "\tGetting L1APhysicsLost rates..."
+        if self.verbose: print("\tGetting L1APhysicsLost rates...")
         L1A_rates["L1APhysicsLost"] = self.parser.getL1APhysicsLost(run)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
@@ -522,7 +522,7 @@ class DataParser:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
-                if not ilum is None and L1A_rates[_object].has_key(LS):
+                if not ilum is None and LS in L1A_rates[_object]:
                     pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
                     rate = L1A_rates[_object][LS]
 
@@ -558,7 +558,7 @@ class DataParser:
         dead_time = self.parser.getDeadTime(run_number)
         for LS in dead_time:
             for trigger in Rates:
-                if Rates[trigger].has_key(LS): # Sometimes, LS's are missing
+                if LS in Rates[trigger]: # Sometimes, LS's are missing
                     Rates[trigger][LS][0] *= (1. + dead_time[LS]/100.)
                     if dead_time[LS] > self.max_deadtime: # Do not plot lumis where deadtime is greater than 10%
                         del Rates[trigger][LS]
@@ -568,10 +568,10 @@ class DataParser:
     def sumObjects(self,run_data,new_name,sum_list,obj_type):
         # type: (Dict[str,object],str,List[str],str) -> bool
         if not set(sum_list) <= set(run_data.keys()):
-            if self.verbose: print "\tERROR: Specified objects that aren't in the run_data"
+            if self.verbose: print("\tERROR: Specified objects that aren't in the run_data")
             return False
         if (len(sum_list)==0):
-            print "\tERROR: sum_list has size=0 (see sumObjects in DataParser.py). May be that there were no streams for this run."
+            print("\tERROR: sum_list has size=0 (see sumObjects in DataParser.py). May be that there were no streams for this run.")
             return False
         ref_name = sum_list[0]
         ls_array   = array.array('f')

@@ -12,7 +12,7 @@
 #    { key1: { key2:obj } }  -- denotes a nested dictionary
 #####################################################################
 
-import cPickle as pickle
+import pickle as pickle
 import math
 import array
 import os
@@ -56,14 +56,14 @@ class FitFinder:
         skipped_fits = {}   # {'trigger': 'reason'}
         nan_fits = {}       # {'trigger': { 'fit_type': param_index } }
 
-        print "Making fits..."
+        print("Making fits...")
         counter = 0
         for trigger in object_list:
             if counter % max(1,math.floor(len(object_list)/10.)) == 0:
-                print "\tProgress: %.0f%% (%d/%d)" % (100.*counter/len(object_list),counter,len(object_list))
+                print("\tProgress: %.0f%% (%d/%d)" % (100.*counter/len(object_list),counter,len(object_list)))
             counter += 1
 
-            if not data.has_key(trigger):
+            if trigger not in data:
                 continue
             x_fit_vals = array.array('f')
             y_fit_vals = array.array('f')
@@ -81,7 +81,7 @@ class FitFinder:
                 try:
                     new_fit = self.findFit(x_fit_vals,y_fit_vals,trigger)
                 except KeyError:
-                    print "\tUnable to create fit for: %s" % trigger
+                    print("\tUnable to create fit for: %s" % trigger)
                     skipped_fits[trigger] = "KeyError"
                     continue
                 # Check to see if the fitter produced a NaN value for one of the fit params
@@ -90,9 +90,9 @@ class FitFinder:
                         if i == 0:
                             continue
                         elif math.isnan(new_fit[fit_type][i]):
-                            if not nan_fits.has_key(trigger):
+                            if trigger not in nan_fits:
                                 nan_fits[trigger] = {}
-                            if not nan_fits[trigger].has_key(fit_type):
+                            if fit_type not in nan_fits[trigger]:
                                 nan_fits[trigger][fit_type] = i 
                             new_fit[fit_type][i] = 0.0
                         # Re-apply the normalization
@@ -129,12 +129,12 @@ class FitFinder:
                 skipped_fits[trigger] = "Not enough points"
 
         if len(skipped_fits) > 0:
-            print "Skipped fits:"
+            print("Skipped fits:")
             for name in sorted(skipped_fits.keys()):
-                print "\t%s: %s" % (name,skipped_fits[name])
+                print("\t%s: %s" % (name,skipped_fits[name]))
 
         if len(nan_fits) > 0:
-            print "NaN fits: %d" % len(nan_fits.keys())
+            print("NaN fits: %d" % len(list(nan_fits.keys())))
 
         return fits
 
@@ -212,7 +212,7 @@ class FitFinder:
     def tryFit(self, xVals, yVals, name, fit_type):
         supported_fits = ["linear","quad","quad2","cube","exp","sinh"]
         if not fit_type in supported_fits:
-            print "Fit not supported, generating empty fit..."
+            print("Fit not supported, generating empty fit...")
             return self.emptyFit()
 
         # Set up graph and functions
@@ -315,7 +315,7 @@ class FitFinder:
             for fit_type in fits:
                 fit_mse = fit_map[fit_type]['mse']
                 val = abs(fit_mse - best_mse)/best_mse
-                if self.weight_map.has_key(fit_type):
+                if fit_type in self.weight_map:
                     val += self.weight_map[fit_type]
                 if min_val is None:
                     min_val = val
@@ -345,18 +345,18 @@ class FitFinder:
         #pickle.dump(fits_to_save,f, 2)
         pickle.dump(fits,f, 2)
         f.close()
-        print "Fit file saved to: %s" % path
+        print("Fit file saved to: %s" % path)
 
     # Merges two fits together
     def mergeFits(self,fits1,fits2):
 
         new_fits = copy.deepcopy(fits1)
-        for trg in fits2.keys():
+        for trg in list(fits2.keys()):
 
-            if not new_fits.has_key(trg):
+            if trg not in new_fits:
                 new_fits[trg] = {}
 
-            for group, fit_types in fits2[trg].iteritems():
+            for group, fit_types in fits2[trg].items():
                 # Note: This will overwrite fits if fits1 and fits2 have a group with the same name
                 new_fits[trg][group] = copy.deepcopy(fit_types)
 
