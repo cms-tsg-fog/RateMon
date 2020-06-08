@@ -700,7 +700,7 @@ class RateMonitor:
         # index_dir: The full path to the index.html file
         # png_dir:   The relative path from the index.html file to the png_dir
         try:
-            htmlFile = open(index_dir+"/index.html","wb")
+            htmlFile = open(index_dir+"/index.html","w")
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:left; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
