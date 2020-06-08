@@ -97,7 +97,7 @@ hltRates=getTriggerRates(args.runnr,args.minLS,args.maxLS)
 spreadSheetHeader="Path,,Data Rate (Hz),,,Data Rate scaled (Hz),,,Steam Rate (Hz),,,Data - Steam (Hz),,,(Data - Steam)/Steam"
 spreadSheetStr="%s,%f,+/-,%f,%f,+/-,%f,%f,+/-,%f,%f,+/-,%f,%f,+/-,%f" 
 
-print spreadSheetHeader
+print(spreadSheetHeader)
 for path in hltRates:
     rates=hltRates[path]
    # print rates
@@ -135,5 +135,5 @@ for path in hltRates:
 
 
     if not prescaledPath:
-        print spreadSheetStr %(path,rate,rateErr,rateScaled,rateScaledErr,steamRate,steamRateErr,rateDiff,rateDiffErr,relDiff,relDiffErr)
+        print(spreadSheetStr %(path,rate,rateErr,rateScaled,rateScaledErr,steamRate,steamRateErr,rateDiff,rateDiffErr,relDiff,relDiffErr))
     

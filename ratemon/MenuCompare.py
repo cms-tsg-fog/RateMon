@@ -18,16 +18,16 @@ import csv
 ####  Charlie Mueller 8/8/2012
 #########################################################################################
 def usage():
-    print "This tool compares old menu rates to new menu rates in addition to googledoc and TMD predicions"
-    print "EXAMPLE: python MenuCompare.py --TriggerList=monitorlist_all_v4.list --json=Cert_190456-199429_8TeV_PromptReco_Collisions12_JSON.txt --oldMenu=199318-199429 --LS1=2 --nLS1=23 --newMenu=199751-199754 --LS2=54 --nLS2=20 --googleDoc=googledoc_7e33_v3.csv --TMDpred=TMDpred_7e33_v4.csv --TMDlumi=4.2e33 --gDoclumi=7e33 --lumi=4.6e33"
-    print "the only optional argument is '--json='"
+    print("This tool compares old menu rates to new menu rates in addition to googledoc and TMD predicions")
+    print("EXAMPLE: python MenuCompare.py --TriggerList=monitorlist_all_v4.list --json=Cert_190456-199429_8TeV_PromptReco_Collisions12_JSON.txt --oldMenu=199318-199429 --LS1=2 --nLS1=23 --newMenu=199751-199754 --LS2=54 --nLS2=20 --googleDoc=googledoc_7e33_v3.csv --TMDpred=TMDpred_7e33_v4.csv --TMDlumi=4.2e33 --gDoclumi=7e33 --lumi=4.6e33")
+    print("the only optional argument is '--json='")
 
 def main():
     try:
         try:
             opt,args = getopt.getopt(sys.argv[1:],"",["TriggerList=","json=","oldMenu=","LS1=","nLS1=","newMenu=","LS2=","nLS2=","TMDlumi=","gDoclumi=","lumi=","googleDoc=","TMDpred="])
-        except getopt.GetoptError, err:
-            print "Error"
+        except getopt.GetoptError as err:
+            print("Error")
             usage()
             sys.exit(2)
             
@@ -90,7 +90,7 @@ def main():
         else:
             json_string = "--json="+json
         
-        print " " 
+        print(" ") 
         cmd1 = "env DISPLAY= python DatabaseRatePredictor.py --makeFits "+trigger_string+" --NoVersion "+json_string+" --maxdt=0.10 "+oldMenu
         cmd2 = "sed -i '/TriggerToMonitorList=/ c\TriggerToMonitorList="+triggerlist+"' defaults.cfg"
         cmd3 = "sed -i '/FitFileName=/ c\FitFileName=Fits/2012/Fit_HLT_NoV_10LS_Run"+run1+"to"+run2+".pkl' defaults.cfg"
@@ -106,13 +106,13 @@ def main():
             try:
                 subprocess.call(cmd, shell=True)
             except:
-                print "Command Error:",cmd
+                print("Command Error:",cmd)
                 sys.exit(2)
                 
         compareFiles("rateMon_newmenu.csv","rateMon_oldmenu.csv",TMDpred,gDoc,TMDscaler,gDocscaler,save_string)
         
     except KeyboardInterrupt:
-        print "Exiting..."
+        print("Exiting...")
         
 
 def StripVersion(name):
@@ -202,7 +202,7 @@ def compareFiles(new,old,tmd,gdoct,TMDscaler,gDocscaler,save_file):
     f2.close()
     f3.close()
     f4.close()
-    print "output comparison file is ",save_file
+    print("output comparison file is ",save_file)
     saveF.close()    
 
 

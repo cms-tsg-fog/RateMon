@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import cx_Oracle
-import cPickle as pickle
+import pickle as pickle
 import os
 import sys
 import time
@@ -163,7 +163,7 @@ class DatabaseParser:
         try:
             self.curs.execute(query)
         except:
-            print "Unsuccessful db query." 
+            print("Unsuccessful db query.") 
         TriggerRates = {}
         for L1Pass,PSPass,HLTPass,HLTExcept,LS ,name in self.curs.fetchall():
 
@@ -174,13 +174,13 @@ class DatabaseParser:
             #print "Trg Name == ",name," rate == ",rate
             hltps = 0
 
-            if not TriggerRates.has_key(name):                
+            if name not in TriggerRates:                
                 try:
                     psi = self.PSColumnByLS[LS]
                 except:
-                    print "HLT in: Cannot figure out PSI for LS "+str(StartLS)+"  setting to 0"
-                    print "The value of LSRange[0] is:"
-                    print str(LS)
+                    print("HLT in: Cannot figure out PSI for LS "+str(StartLS)+"  setting to 0")
+                    print("The value of LSRange[0] is:")
+                    print(str(LS))
                     psi = 0
                 if psi is None:
                     psi=0
@@ -192,7 +192,7 @@ class DatabaseParser:
                         hltps = float(L1Pass)/PSPass
                 hltps = float(hltps)
                 try:
-                    if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
+                    if self.HLTSeed[name] in self.L1IndexNameMap:
                         l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                     else:
                         AvL1Prescales = self.CalculateAvL1Prescales([LS])
@@ -214,20 +214,20 @@ class DatabaseParser:
                 try:
                     psi = self.PSColumnByLS[LSRange[on]]
                 except:
-                    print "HLT out: Cannot figure out PSI for index "+str(on)+" setting to 0"
-                    print "The value of LSRange[on] is:"
-                    print str(LS)
+                    print("HLT out: Cannot figure out PSI for index "+str(on)+" setting to 0")
+                    print("The value of LSRange[on] is:")
+                    print(str(LS))
                     psi = 0
                 if psi is None:
                     psi=3
-                if self.HLTPrescaleTable.has_key(name):
+                if name in self.HLTPrescaleTable:
                     hltps = self.HLTPrescaleTable[name][psi]
                 else:
                     if PSPass:
                         hltps = float(L1Pass)/PSPass
                 hltps = float(hltps)
                 try:
-                    if self.L1IndexNameMap.has_key(self.HLTSeed[name]):
+                    if self.HLTSeed[name] in self.L1IndexNameMap:
                         l1ps = self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                     else:
                         AvL1Prescales = self.CalculateAvL1Prescales([LS])
@@ -249,21 +249,21 @@ class DatabaseParser:
         
         ###check if LS is used above, if not and deadtime is 100% add extra lumi for calculation
         lumirange_one=[]
-        for key in LSUsed.iterkeys():
+        for key in LSUsed.keys():
             lumirange_one=[key]##set LSRange equal to one LS so can get deadtime
             if LSUsed[key]:
                 continue
             if self.GetDeadTimeBeamActive(lumirange_one)<=0.9999:
                 ##print "LS",key,"gottcha", LSUsed[key]
                 LSUsed[key]=True
-                print "Some strange error LS",key, "has deadtime ", self.GetDeadTimeBeamActive(lumirange_one)
+                print("Some strange error LS",key, "has deadtime ", self.GetDeadTimeBeamActive(lumirange_one))
             else:
-                print "increasing # LS by one, LS", key, "has 100% deadtime"
-                for name,val in TriggerRates.iteritems():
+                print("increasing # LS by one, LS", key, "has 100% deadtime")
+                for name,val in TriggerRates.items():
                     [ops,orate,opsrate,on] = TriggerRates[name]
                     TriggerRates[name]= [ops,orate,opsrate,on+1]
                     
-        for name,val in TriggerRates.iteritems():
+        for name,val in TriggerRates.items():
             [ps,rate,psrate,n] = val
             avps = ps/n
             try:
@@ -323,7 +323,7 @@ class DatabaseParser:
             r = float(r)
             return [r,t]            
         except:
-            print "Failed to fetch stream ",streamName," rate from db. "
+            print("Failed to fetch stream ",streamName," rate from db. ")
             return [0,'UNABLE TO FETCH STREAM RATE FROM DB']
 
     
@@ -464,7 +464,7 @@ class DatabaseParser:
     def GetL1HLTseeds(self):
         #print self.HLTSeed
         L1HLTseeds={}
-        for HLTkey in self.HLTSeed.iterkeys():
+        for HLTkey in self.HLTSeed.keys():
             #print HLTkey, self.HLTSeed[HLTkey]
             
             dummy=str(self.HLTSeed[HLTkey])
@@ -478,7 +478,7 @@ class DatabaseParser:
             #print seedList
             L1HLTseeds[StripVersion(HLTkey)]=seedList
             if len(seedList)==1:
-                print "error: zero length L1 seed"
+                print("error: zero length L1 seed")
                 continue #shouldn't get here
         #print L1HLTseeds
         
@@ -534,7 +534,7 @@ class DatabaseParser:
                 dt=deadtime[0]
                 #print "dt=",dt
             except:
-                print "no dt for run ",self.RunNumber, ", ls ",LS
+                print("no dt for run ",self.RunNumber, ", ls ",LS)
                 dt=1.0
         
         
@@ -566,7 +566,7 @@ class DatabaseParser:
                 AvDeadTime = 1 - AvLiveLumi/AvDeliveredLumi
             else:
                 if AvLiveLumi > 0:
-                    print "Live Lumi > 0 but Delivered <= 0: problem"
+                    print("Live Lumi > 0 but Delivered <= 0: problem")
                 AvDeadTime = 0.0
             PSCols=[]
             for ls in LSRange:
@@ -578,7 +578,7 @@ class DatabaseParser:
                     PSCols.append(self.PSColumnByLS[ls])
                     nLS+=1
                 except:
-                    print "ERROR: Lumi section "+str(ls)+" not in bounds"
+                    print("ERROR: Lumi section "+str(ls)+" not in bounds")
                     return [0.,0.,0.,0.,[]]
             return [AvInstLumi/nLS,(1000.0/23.3)*AvLiveLumi/(EndLS-StartLS),(1000.0/23.3)*AvDeliveredLumi/(EndLS-StartLS), AvDeadTime,PSCols]
         except:
@@ -593,14 +593,14 @@ class DatabaseParser:
                         AvLiveLumi = self.LiveLumiByLS[StartLS+1]-self.LiveLumiByLS[StartLS]
                         AvDeliveredLumi = self.DeliveredLumiByLS[StartLS+1]-self.DeliveredLumiByLS[StartLS]
                     except:
-                        print "missing live/delivered run ",self.RunNumber, "ls ",LSRange
+                        print("missing live/delivered run ",self.RunNumber, "ls ",LSRange)
                         AvLiveLumi = 0
                         AvDeliveredLumi = 0
                 if AvDeliveredLumi > 0:
                     AvDeadTime = 1 - AvLiveLumi/AvDeliveredLumi
                   
                 elif AvLiveLumi > 0:
-                    print "Live Lumi > 0 but Delivered <= 0: problem run ",self.RunNumber, " ls ",LSRange 
+                    print("Live Lumi > 0 but Delivered <= 0: problem run ",self.RunNumber, " ls ",LSRange) 
                     AvDeadTime = 1.0
                 else:
                     AvDeadTime=1.0
@@ -656,7 +656,7 @@ class DatabaseParser:
         for ps in tmp[0]: #build the prescale table initially
             self.L1PrescaleTable.append([ps])
         for line in tmp[1:]: # now fill it
-            for ps,index in zip(line,range(len(line))):
+            for ps,index in zip(line,list(range(len(line)))):
                 self.L1PrescaleTable[index].append(ps)
         self.nAlgoBits=128
 
@@ -712,7 +712,7 @@ class DatabaseParser:
         """ % (self.HLT_Key,)
         tmpcurs.execute(sqlquery)
         for HLTPath,L1Seed in tmpcurs.fetchall():
-            if not self.HLTSeed.has_key(HLTPath): ## this should protect us from L1_SingleMuOpen
+            if HLTPath not in self.HLTSeed: ## this should protect us from L1_SingleMuOpen
                 self.HLTSeed[HLTPath] = L1Seed.lstrip('"').rstrip('"') 
         #self.GetHLTPrescaleMatrix(tmpcurs)
 
@@ -752,7 +752,7 @@ class DatabaseParser:
             if (curLS<0 and step<0) or (curLS>=self.LastLSParsed and step>0):
                 break
             if curLS>=0 and curLS<self.LastLSParsed-1:
-                if (not self.Physics.has_key(curLS) or not self.Active.has_key(curLS)) and reqPhysics:
+                if (curLS not in self.Physics or curLS not in self.Active) and reqPhysics:
                     break
                 
                 if not reqPhysics or (self.Physics[curLS] and self.Active[curLS]):
@@ -769,7 +769,7 @@ class DatabaseParser:
         try:
             if not phys:
                 maxLS=-1
-                for ls, active in self.Active.iteritems():
+                for ls, active in self.Active.items():
                     if active and ls>maxLS:
                         maxLS=ls
                 if maxLS==-1:
@@ -779,7 +779,7 @@ class DatabaseParser:
                 
             else:
                 maxLS=-1
-                for ls,phys in self.Physics.iteritems():
+                for ls,phys in self.Physics.items():
                     if phys and self.Active[ls] and ls > maxLS:
                         maxLS=ls
                 if maxLS==-1:
@@ -807,14 +807,14 @@ class DatabaseParser:
     
     def CalculateTotalPrescales(self,TriggerRates, L1Prescales):
         AvgTotalPrescales={}
-        for hltName,v in TriggerRates.iteritems():
-            if not self.HLTSeed.has_key(hltName):
+        for hltName,v in TriggerRates.items():
+            if hltName not in self.HLTSeed:
                 continue 
             hltPS=0
             if len(v)>0:
                 hltPS = v[0]
             l1Index=-1
-            if self.L1IndexNameMap.has_key(self.HLTSeed[hltName]):
+            if self.HLTSeed[hltName] in self.L1IndexNameMap:
                 l1Index = self.L1IndexNameMap[self.HLTSeed[hltName]]
 
             l1PS=0
@@ -837,7 +837,7 @@ class DatabaseParser:
             return -1 # Not an OR of seeds, really shouldn't get here...
         minPS = 99999999999
         for seed in seedList:
-            if not self.L1IndexNameMap.has_key(seed):
+            if seed not in self.L1IndexNameMap:
                 continue
             ps = L1Prescales[self.L1IndexNameMap[seed]]
             if ps:
@@ -849,8 +849,8 @@ class DatabaseParser:
     
     def UnprescaleRates(self,TriggerRates,TotalPrescales):
         UnprescaledRates = {}
-        for hltName,v in TriggerRates.iteritems():
-            if TotalPrescales.has_key(hltName):
+        for hltName,v in TriggerRates.items():
+            if hltName in TotalPrescales:
                 ps = TotalPrescales[hltName]
                 if ps:                    
                     UnprescaledRates[hltName] = v[1]*ps
@@ -891,7 +891,7 @@ class DatabaseParser:
         L1RateAll=self.curs.fetchall()
         L1RatesBits={}
         ###initialize dict of L1 bits
-        for L1seed in sorted(self.L1IndexNameMap.iterkeys()):
+        for L1seed in sorted(self.L1IndexNameMap.keys()):
             L1RatesBits[self.L1IndexNameMap[L1seed]]=0
             
         ###sum dict of L1 bits 
@@ -903,7 +903,7 @@ class DatabaseParser:
                 pass
                 #print "not filling bit",line[3]
         ###divide by number of LS
-        for name in self.L1IndexNameMap.iterkeys():
+        for name in self.L1IndexNameMap.keys():
             L1RatesBits[self.L1IndexNameMap[name]]=L1RatesBits[self.L1IndexNameMap[name]]/len(LSRange)
             
         ###total L1 PS table
@@ -917,25 +917,25 @@ class DatabaseParser:
             try: #FIXME
                 self.PSColumnByLS[LS]
             except:
-                print "No prescale column detected for LS", LS
+                print("No prescale column detected for LS", LS)
 
         ###av ps dict
         L1PSbits={}    
-        for bit in L1PSdict.iterkeys():
+        for bit in L1PSdict.keys():
             L1PSbits[bit]=0
-        for bit in L1PSdict.iterkeys():
+        for bit in L1PSdict.keys():
             for LS in LSRange:
                 try:
                     pscol = self.PSColumnByLS[LS]
                     L1PSbits[bit]=L1PSbits[bit]+L1PSdict[bit][pscol]
                 except:
                     pass
-        for bit in L1PSdict.iterkeys():
+        for bit in L1PSdict.keys():
             L1PSbits[bit]=L1PSbits[bit]/len(LSRange)
         
         ###convert dict of L1 bits to dict of L1 names        
         L1RatesNames={}
-        for name in self.L1IndexNameMap.iterkeys():
+        for name in self.L1IndexNameMap.keys():
             dummy=[]
             dummy.append(L1PSbits[self.L1IndexNameMap[name]])
             dummy.append(L1PSbits[self.L1IndexNameMap[name]])
@@ -956,7 +956,7 @@ class DatabaseParser:
         #self.L1PrescaleTable[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
         L1HLTSeeds=self.GetL1HLTseeds()
         HLTL1PS={}
-        for HLTkey in L1HLTSeeds.iterkeys():
+        for HLTkey in L1HLTSeeds.keys():
             #print HLTkey, L1HLTSeeds[HLTkey]
             dict={}
             for L1seed in L1HLTSeeds[HLTkey]:
@@ -1020,7 +1020,7 @@ class DatabaseParser:
                         self.MissingPrescale.append(key)
                         MissingName = key
                     if not n < 2:
-                        print "LS "+str(n)+" of key "+str(key)+" is missing from the LumiSections page"
+                        print("LS "+str(n)+" of key "+str(key)+" is missing from the LumiSections page")
 
         for key in self.HLTTriggerMode:
             self.HLTPrescale[key] = {}
@@ -1032,7 +1032,7 @@ class DatabaseParser:
                         self.MissingPrescale.append(key)
                         MissingName = key
                     if not n < 2:
-                        print "LS "+str(n)+" of key "+str(key)+" is missing from the LumiSections page"
+                        print("LS "+str(n)+" of key "+str(key)+" is missing from the LumiSections page")
 
         self.PrescaleValues = [self.L1Prescale,self.HLTPrescale,self.MissingPrescale]
         return self.PrescaleValues
@@ -1135,7 +1135,7 @@ class DatabaseParser:
         """
         AvLumiRange = []
         AvLumiTable = {}
-        for ls,lumi in self.InstLumiByLS.iteritems():
+        for ls,lumi in self.InstLumiByLS.items():
             try:
                 AvLumiRange.append(int(lumi))
             except:
@@ -1162,7 +1162,7 @@ class DatabaseParser:
     
     
     def GetTriggerVersion(self,triggerName):
-        for key in self.HLTSeed.iterkeys():
+        for key in self.HLTSeed.keys():
             if StripVersion(key)==triggerName:
                 return key
         return ""
@@ -1185,7 +1185,7 @@ def ConnectDB(user='trg'):
         else:
             offline=0
     except:
-        print "Please setup database parsing:\nsource set.sh"
+        print("Please setup database parsing:\nsource set.sh")
     ##print offline
     trg = ['~centraltspro/secure/cms_trg_r.txt','~/secure/cms_trg_r.txt']
     hlt = ['~hltpro/secure/cms_hlt_r.txt','~/secure/cms_hlt_r.txt']
@@ -1198,16 +1198,16 @@ def ConnectDB(user='trg'):
     try:
         line=os.popen(cmd).readlines()
     except:
-        print "ERROR Getting the database password!"
-        print "They should be in %s and %s" % (trg[offline],hlt[offline],)
-        print "You may need to copy them from the online machines"
+        print("ERROR Getting the database password!")
+        print("They should be in %s and %s" % (trg[offline],hlt[offline],))
+        print("You may need to copy them from the online machines")
         sys.exit(0)
     magic = line[0].rstrip("\n\r")
     connect = 'cms_%s_r/%s@cms_omds_lb' % (user,magic,)
     try:
         orcl = cx_Oracle.connect(connect)
     except:
-        print 'Error connecting to database'
+        print('Error connecting to database')
     return orcl.cursor()
     
 
@@ -1232,7 +1232,7 @@ def GetLatestRunNumber(runNo=9999999,newRun=False):
             r, = curs.fetchone()
             ##print "\nr=",r
         except:
-            print "not able to get run"
+            print("not able to get run")
 
         ## RunNoQuery="""SELECT MAX(RUNNUMBER) FROM CMS_RUNINFO.RUNNUMBERTBL"""
 ##         try:
@@ -1270,7 +1270,7 @@ def GetLatestRunNumber(runNo=9999999,newRun=False):
     try:
         trigm, = curs.fetchone()
     except:
-        print "unable to get trigm from query for run ",r
+        print("unable to get trigm from query for run ",r)
     isCol=0
     isGood=1
 
@@ -1292,15 +1292,15 @@ def GetLatestRunNumber(runNo=9999999,newRun=False):
         tier0, = curs.fetchone()
                     
     except:
-        print "unable to get tier0 from query for run ",r
+        print("unable to get tier0 from query for run ",r)
 
     if isCol and not tier0:
         #write(bcolors.FAIL)
-        print "WARNING tier0 transfer is off"
+        print("WARNING tier0 transfer is off")
         #write(bcolors.ENDC+"\n")
     elif not tier0:
         #write(bcolors.WARINING)
-        print "Please check if tier0 transfer is supposed to be off"
+        print("Please check if tier0 transfer is supposed to be off")
         #write(bcolors.ENDC+"\n")
 
 
@@ -1310,7 +1310,7 @@ def GetLatestRunNumber(runNo=9999999,newRun=False):
 def ClosestIndex(value,table):
     diff = 999999999;
     index = 0
-    for i,thisVal in table.iteritems():
+    for i,thisVal in table.items():
         if abs(thisVal-value)<diff:
             diff = abs(thisVal-value)
             index =i
@@ -1324,7 +1324,7 @@ def StripVersion(name):
 
 def GetLastKnownPSIndex(psindex_dict):
     psi = 3
-    for ls in reversed(psindex_dict.keys()):
+    for ls in reversed(list(psindex_dict.keys())):
         if psindex_dict[ls] is not None:
             psi = psindex_dict[ls]
             break

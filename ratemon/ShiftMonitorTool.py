@@ -15,7 +15,7 @@
 #######################################################
 
 # Imports
-import cPickle as pickle
+import pickle as pickle
 import sys
 import time
 # Parsing YAML configuration files
@@ -34,7 +34,7 @@ class CommandLineParser:
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
         except:
-            print "Error getting options. Exiting."
+            print("Error getting options. Exiting.")
             exit(1)
 
         # Remember if we were told to use all triggers
@@ -49,7 +49,7 @@ class CommandLineParser:
                     try:
                         dbCfg = yaml.safe_load(stream)
                     except yaml.YAMLError as exc:
-                        print "Unable to read the given YAML database configuration file. Error:", exc
+                        print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
                         exit(1)
                 self.monitor = ShiftMonitor(dbCfg)
@@ -57,7 +57,7 @@ class CommandLineParser:
                 pass
 
         if not dbConfigLoaded:
-            print "No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml"
+            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
             # Exit with error, we can't continue without connecting to the DB
             exit(1)
 
@@ -69,7 +69,7 @@ class CommandLineParser:
             elif label == "--triggerList":
                 self.monitor.triggerList = self.monitor.loadTriggersFromFile(str(op))
                 self.monitor.userSpecTrigList = True
-                print "Using Trigger list %s" % (str(op))
+                print("Using Trigger list %s" % (str(op)))
             elif label == "--alertsOn":
                 self.monitor.sendMailAlerts_static = True
                 self.monitor.sendAudioAlerts = True
@@ -83,7 +83,7 @@ class CommandLineParser:
                 start, end = str(op).split("-")
                 self.monitor.LSRange = [int(start), int(end)]
                 self.monitor.useLSRange = True
-                print "Using only LS in the range %s - %s" % (start, end)
+                print("Using only LS in the range %s - %s" % (start, end))
             elif label == "--allowedPercDiff":
                 self.monitor.percAccept = float(op)
             elif label == "--allowedDev":
@@ -125,43 +125,43 @@ class CommandLineParser:
 
     # Use: Prints out all the possible command line options
     def printOptions(self):
-        print ""
-        print "Usage: python ShiftMonitorTool.py [Options]"
-        print ""
-        print "OPTIONS:"
-        print "Help:"
-        print "--Help                    : Calling this option prints out all the options that exist. You have already used this option."
-        print ""
-        print "File Options:"
-        print "--fitFile=<name>          : The name of the file containing the fit for HLT and L1 Triggers."
-        print "--configFile=<name>       : The name of a configuration file."
-        print "--triggerList=<name>      : The name of a file containing a list of the HLT and L1 triggers that we want to observe."
-        print ""
-        print "Error Monitoring Options:"
-        print "--allowedPercDiff=<num>   : The allowed percent difference for the rate."
-        print "--allowedDev=<num>        : The allowed deviation for the rate."
-        print "--usePerDiff              : Cuts on percent difference instead of deviation."
-        print "--maxHLTRate=<num>        : HLT Triggers with prescaled rates above <num> are marked as bad."
-        print "--maxL1Rate=<num>         : L1 Triggers with prescaled rates above <num> are marked as bad."
-        print "--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check."
-        print "--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work."
-        print "--hideStreams             : Doesn't print out information about the streams."
-        print "--maxStream               : The maximum stream rate for a 'good' stream, streams with a rate greater then this are colored (if colors are on)"
-        print "--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query"
-        print "--mailAlertsOn            : Turns on mail alerts"
-        print "--audioAlertsOn           : Turns on audio alerts"
-        print "--alertsOn                : Turns on both email and audio alerts"
-        print ""
-        print "Secondary Capabilities:"
-        print "--LSRange=<start>-<end>   : A range of LS to look at" #if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
-        print "--simulate=<num>          : Simulates online monitoring of run <num>."
-        print ""
-        print "Format Options:"
-        print "--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible."
-        print "--quiet                   : Prints fewer messages."
-        print ""
-        print "Program by Nathaniel Rupprecht, created July 13th, 2015." #For questions, email nrupprec@nd.edu"
-        print ""
+        print("")
+        print("Usage: python ShiftMonitorTool.py [Options]")
+        print("")
+        print("OPTIONS:")
+        print("Help:")
+        print("--Help                    : Calling this option prints out all the options that exist. You have already used this option.")
+        print("")
+        print("File Options:")
+        print("--fitFile=<name>          : The name of the file containing the fit for HLT and L1 Triggers.")
+        print("--configFile=<name>       : The name of a configuration file.")
+        print("--triggerList=<name>      : The name of a file containing a list of the HLT and L1 triggers that we want to observe.")
+        print("")
+        print("Error Monitoring Options:")
+        print("--allowedPercDiff=<num>   : The allowed percent difference for the rate.")
+        print("--allowedDev=<num>        : The allowed deviation for the rate.")
+        print("--usePerDiff              : Cuts on percent difference instead of deviation.")
+        print("--maxHLTRate=<num>        : HLT Triggers with prescaled rates above <num> are marked as bad.")
+        print("--maxL1Rate=<num>         : L1 Triggers with prescaled rates above <num> are marked as bad.")
+        print("--displayBad=<num>        : Prints the first <num> triggers that are bad each time we check.")
+        print("--noColors                : Doesn't print out colors. Useful if you are dumping info to a file where colors don't work.")
+        print("--hideStreams             : Doesn't print out information about the streams.")
+        print("--maxStream               : The maximum stream rate for a 'good' stream, streams with a rate greater then this are colored (if colors are on)")
+        print("--window=<num>            : The window (number of LS) to average over. Default is averaging over every new LS since last db query")
+        print("--mailAlertsOn            : Turns on mail alerts")
+        print("--audioAlertsOn           : Turns on audio alerts")
+        print("--alertsOn                : Turns on both email and audio alerts")
+        print("")
+        print("Secondary Capabilities:")
+        print("--LSRange=<start>-<end>   : A range of LS to look at") #if we are using the --run=<num> option (you can actually use it any time, it just might not be useful)."
+        print("--simulate=<num>          : Simulates online monitoring of run <num>.")
+        print("")
+        print("Format Options:")
+        print("--keepZeros               : By default, triggers with zero rate that we don't have fits for are not shown. This makes them visible.")
+        print("--quiet                   : Prints fewer messages.")
+        print("")
+        print("Program by Nathaniel Rupprecht, created July 13th, 2015.") #For questions, email nrupprec@nd.edu"
+        print("")
         exit()
 
     # Use: Runs the shift monitor

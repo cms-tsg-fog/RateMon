@@ -59,7 +59,7 @@ class DBParser:
                 orcl = cx_Oracle.connect(user=self.cfg["hlt_connect"]['user'],password=self.cfg["hlt_connect"]['passwd'],dsn=self.dsn_)
                 return orcl.cursor()
             except cx_Oracle.DatabaseError as e:
-                print "Failed getting a connection to the HLT DB: ",e, "- Retrying.."
+                print("Failed getting a connection to the HLT DB: ",e, "- Retrying..")
 
     # Returns: a cursor to the trigger database
     def getTrgCursor(self):
@@ -68,7 +68,7 @@ class DBParser:
                 orcl = cx_Oracle.connect(user=self.cfg["trg_connect"]['user'],password=self.cfg["trg_connect"]['passwd'],dsn=self.dsn_)
                 return orcl.cursor()
             except cx_Oracle.DatabaseError as e:
-                print "Failed getting a connection to the Trigger DB: ",e, "- Retrying.."
+                print("Failed getting a connection to the Trigger DB: ",e, "- Retrying..")
 
     def getLSInfo(self, runNumber):
         sqlquery =  """
@@ -85,7 +85,7 @@ class DBParser:
             self.curs.execute(sqlquery)
             ls_info = self.curs.fetchall()
         except:
-            print "Unable to get LS list for run %s" % runNumber
+            print("Unable to get LS list for run %s" % runNumber)
         return ls_info
 
     # Returns the various keys used for the specified run as a 5-tuple
@@ -111,7 +111,7 @@ class DBParser:
             self.curs.execute(sqlquery)
             L1_HLT,HLT,GTRS,TSC,GT = self.curs.fetchone()
         except:
-            print "[ERROR] Unable to get keys for this run, %d" % (runNumber)
+            print("[ERROR] Unable to get keys for this run, %d" % (runNumber))
         return L1_HLT,HLT,GTRS,TSC,GT
 
     # Returns: True if we succeded, false if the run doesn't exist (probably)
@@ -145,7 +145,7 @@ class DBParser:
             for lumi_section, prescale_column in self.curs.fetchall():
                 self.PSColumnByLS[lumi_section] = prescale_column
         except:
-            print "Trouble getting PS column by LS"
+            print("Trouble getting PS column by LS")
 
         self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key = self.getRunKeys(runNumber)
         if self.HLT_Key == "":
@@ -287,7 +287,7 @@ class DBParser:
         try:
             self.curs.execute(sqlquery)
         except:
-            print "Getting rates failed. Exiting."
+            print("Getting rates failed. Exiting.")
             exit(2) # Exit with error
         TriggerRates = {}
 
@@ -296,7 +296,7 @@ class DBParser:
             rate = HLTPass/23.31041 # A lumisection is 23.31041 seconds
             name = stripVersion(triggerName)
 
-            if not TriggerRates.has_key(name):
+            if name not in TriggerRates:
                 # Initialize the value of TriggerRates[name] to be a dictionary, which we will fill with [ LS, rate ] data
                 TriggerRates[name] = {}
                 TriggerRates[name][LS] = rate
@@ -314,7 +314,7 @@ class DBParser:
     def getRawRates(self, runNumber, minLS=-1, maxLS=9999999):
         # First we need the HLT and L1 prescale rates and the HLT seed info
         if not self.getRunInfo(runNumber):
-            print "Failed to get run info "
+            print("Failed to get run info ")
             return {} # The run probably doesn't exist
 
         # Get L1 info
@@ -358,7 +358,7 @@ class DBParser:
         
         try: self.curs.execute(sqlquery)
         except:
-            print "Getting rates failed. Exiting."
+            print("Getting rates failed. Exiting.")
             exit(2) # Exit with error
 
         TriggerRates = {} # Initialize TriggerRates
@@ -369,7 +369,7 @@ class DBParser:
             rate = HLTPass/23.31041 # HLTPass is events in this LS, so divide by 23.31041 s to get rate
             hltps = 0 # HLT Prescale
 
-            if not TriggerRates.has_key(name):
+            if name not in TriggerRates:
                 TriggerRates[name] = {} # Initialize dictionary
             # TODO: We can probably come up with a better solution then a try, except here
             try: psi = self.PSColumnByLS[LS] # Get the prescale index
@@ -383,7 +383,7 @@ class DBParser:
             hltps = float(hltps)
                     
             try:
-                if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
+                if self.HLTSeed[name] in self.L1IndexNameMap:
                     l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                 else:
                     #AvL1Prescales = self.CalculateAvL1Prescales([LS])
@@ -401,7 +401,7 @@ class DBParser:
     def getHLTRates(self, runNumber, trigger_list=[],minLS=-1, maxLS=9999999):
         # First we need the HLT and L1 prescale rates and the HLT seed info
         if not self.getRunInfo(runNumber):
-            print "Failed to get run info "
+            print("Failed to get run info ")
             return {} # The run probably doesn't exist
 
         # Get L1 info
@@ -419,11 +419,11 @@ class DBParser:
 
         if len(trigger_list) == 0:
             # If no list is given --> get rates for all HLT triggers
-            trigger_list = self.HLT_name_map.keys()
+            trigger_list = list(self.HLT_name_map.keys())
 
         trigger_rates = {}
         for name in trigger_list:
-            if not self.HLT_name_map.has_key(name):
+            if name not in self.HLT_name_map:
                 # Ignore triggers which don't appear in this run
                 continue
             trigger_rates[name] = self.getSingleHLTRate(runNumber,name,minLS,maxLS)
@@ -455,7 +455,7 @@ class DBParser:
         try: 
             self.curs.execute(sqlquery)
         except:
-            print "Getting rates for %s failed. Exiting." % name
+            print("Getting rates for %s failed. Exiting." % name)
             exit(2) # Exit with error
 
         trigger_rates = {}
@@ -480,7 +480,7 @@ class DBParser:
             hltps = float(hltps)
                     
             try:
-                if self.L1IndexNameMap.has_key( self.HLTSeed[name] ):
+                if self.HLTSeed[name] in self.L1IndexNameMap:
                     l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
                 else:
                     l1ps = self.UnwindORSeed(self.HLTSeed[name],self.L1Prescales,psi)
@@ -556,12 +556,12 @@ class DBParser:
 
             if self.L1Mask[bit] == 0: ps_rate=0. 
 
-            if not L1Triggers.has_key(algo_name): L1Triggers[algo_name] = {}
+            if algo_name not in L1Triggers: L1Triggers[algo_name] = {}
             prescale_column = self.PSColumnByLS[ls]
             try:
                 unprescaled_rate = ps_rate*self.L1Prescales[bit][prescale_column]
             except:
-                print "prescales bit or column not avaiable "
+                print("prescales bit or column not avaiable ")
                 continue
             L1Triggers[algo_name][ls] = [ unprescaled_rate , self.L1Prescales[bit][prescale_column] ]
 
@@ -613,14 +613,14 @@ class DBParser:
         try:
             self.curs.execute(sqlquery)
         except:
-            print "Get L1 Prescales query failed"
+            print("Get L1 Prescales query failed")
             return 
 
         ps_table = self.curs.fetchall()
         self.L1Prescales = {}
 
         if len(ps_table) < 1:
-            print "Cannot get L1 Prescales"
+            print("Cannot get L1 Prescales")
             return
 
         for object in ps_table:
@@ -628,7 +628,7 @@ class DBParser:
             algo_name = object[1]
             algo_ps = object[2]
             ps_index = object[3]
-            if not self.L1Prescales.has_key(algo_index): self.L1Prescales[algo_index] = {}
+            if algo_index not in self.L1Prescales: self.L1Prescales[algo_index] = {}
             self.L1Prescales[algo_index][ps_index] = algo_ps
 
     # DEPRECATED
@@ -687,7 +687,7 @@ class DBParser:
 
         minPS = 99999999999
         for seed in seedList:
-            if not self.L1IndexNameMap.has_key(seed): continue
+            if seed not in self.L1IndexNameMap: continue
             ps = L1Prescales[self.L1IndexNameMap[seed]][psi]
             if ps: minPS = min(ps,minPS)
         if minPS == 99999999999: return 0
@@ -741,7 +741,7 @@ class DBParser:
         tmpcurs.execute(sqlquery)
         for HLTPath,L1Seed in tmpcurs.fetchall():
             name = stripVersion(HLTPath) # Strip the version from the trigger name
-            if not self.HLTSeed.has_key(name): ## this should protect us from L1_SingleMuOpen
+            if name not in self.HLTSeed: ## this should protect us from L1_SingleMuOpen
                 #self.HLTSeed[HLTPath] = L1Seed.lstrip('"').rstrip('"')
                 self.HLTSeed[name] = L1Seed.lstrip('"').rstrip('"') 
 
@@ -770,7 +770,7 @@ class DBParser:
         try:
             self.curs.execute(AlgoNameQuery)
         except:
-            print "Get L1 Name Index failed"
+            print("Get L1 Name Index failed")
             return
 
         for bit,name,mask in self.curs.fetchall():
@@ -981,7 +981,7 @@ class DBParser:
             global_tag, = self.curs.fetchone()
             global_tag = global_tag.strip('"')
         except:
-            print "[ERROR] Failed to get globaltag for run, %d" % (runNumber)
+            print("[ERROR] Failed to get globaltag for run, %d" % (runNumber))
         return global_tag
 
     # Note: This is a function from DatabaseParser.py (with slight modification)
@@ -1196,7 +1196,7 @@ class DBParser:
             self.curs.execute(query)
             runNumber = self.curs.fetchone()
         except:
-            print "Error: Unable to retrieve latest run number."
+            print("Error: Unable to retrieve latest run number.")
             return
 
         mode = self.getTriggerMode(runNumber)
@@ -1221,12 +1221,12 @@ class DBParser:
         try:
             tier0 = self.curs.fetchone()
         except:
-            print "Error: Unable to get tier0 status."
+            print("Error: Unable to get tier0 status.")
             
         if isCol and not tier0:
-            print "WARNING: tier0 transfer is off"
+            print("WARNING: tier0 transfer is off")
         elif not tier0:
-            print "Please check if tier0 transfer is supposed to be off."
+            print("Please check if tier0 transfer is supposed to be off.")
             
         return [runNumber[0], isCol, isGood, mode]
 
@@ -1283,7 +1283,7 @@ class DBParser:
             self.curs.execute(TrigModeQuery)
             mode = self.curs.fetchone()
         except:
-            print "Error: Unable to retrieve trigger mode."
+            print("Error: Unable to retrieve trigger mode.")
         return mode
 
     # Use: Retrieves the data from all streams
@@ -1327,11 +1327,11 @@ class DBParser:
             #self.curs.execute(StreamQuery)
             streamData = cursor.fetchall()
         except:
-            print "Error: Unable to retrieve stream data."
+            print("Error: Unable to retrieve stream data.")
 
         StreamData = {}
         for LS, stream, rate, size, bandwidth in streamData:
-            if not StreamData.has_key(stream):
+            if stream not in StreamData:
                 StreamData[stream] = []
             StreamData[stream].append( [LS, rate, size, bandwidth] )
 
@@ -1370,11 +1370,11 @@ class DBParser:
             #self.curs.execute(PDQuery)
             pdData = cursor.fetchall()
         except:
-            print "Error: Unable to retrieve PD data."
+            print("Error: Unable to retrieve PD data.")
 
         PrimaryDatasets = {}
         for pd, LS, rate, in pdData:
-            if not PrimaryDatasets.has_key(pd):
+            if pd not in PrimaryDatasets:
                 PrimaryDatasets[pd] = []
             PrimaryDatasets[pd].append( [LS, rate] )
 
@@ -1512,7 +1512,7 @@ class DBParser:
         stream_paths = {}       # {'stream_name': [trg_paths] }
         for trg,stream in self.curs.fetchall():
             trg = stripVersion(trg)
-            if not stream_paths.has_key(stream):
+            if stream not in stream_paths:
                 stream_paths[stream] = []
 
             if not trg in stream_paths[stream]:
@@ -1551,7 +1551,7 @@ class DBParser:
         dataset_paths = {}      # {'dataset_name': [trg_paths] }
         for trg,dataset in self.curs.fetchall():
             trg = stripVersion(trg)
-            if not dataset_paths.has_key(dataset):
+            if dataset not in dataset_paths:
                 dataset_paths[dataset] = []
 
             if not trg in dataset_paths[dataset]:
@@ -1621,7 +1621,7 @@ class DBParser:
             psi = self.PSColumnByLS[ls]
             algo_ps = self.L1Prescales[algo_bit][psi]
 
-            if not L1Triggers.has_key(algo_name):
+            if algo_name not in L1Triggers:
                 L1Triggers[algo_name] = {}
 
             L1Triggers[algo_name][ls] = [rate, algo_ps]

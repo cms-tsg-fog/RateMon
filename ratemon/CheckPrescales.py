@@ -11,18 +11,18 @@ import xml.etree.ElementTree
 from DatabaseParser import ConnectDB
 
 def usage():
-    print sys.argv[0] + " [options] HLTKey uGTKey RS Key"
-    print "options:"
-    print "-v                    Verbose Mode"
-    print "--ignore=<cols>       list (comma-separated) of prescale columns to ignore"
-    print "--l1csv=<csvfile.csv> use .csv file with comma-separated l1 bit, algo, prescales (no comments allowed)"
+    print(sys.argv[0] + " [options] HLTKey uGTKey RS Key")
+    print("options:")
+    print("-v                    Verbose Mode")
+    print("--ignore=<cols>       list (comma-separated) of prescale columns to ignore")
+    print("--l1csv=<csvfile.csv> use .csv file with comma-separated l1 bit, algo, prescales (no comments allowed)")
 
 def main():
     try:
         opt, args = getopt.getopt(sys.argv[1:],"v",["ignore=","l1csv="])
         
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(2)
 
@@ -45,7 +45,7 @@ def main():
                 try:
                     PSColsToIgnore.append(int(c))
                 except:
-                    print "\nERROR: %s is not a valid prescale column\n" % c
+                    print("\nERROR: %s is not a valid prescale column\n" % c)
                     usage()
                     sys.exit(0)
         elif o=="--l1csv":            
@@ -54,19 +54,19 @@ def main():
 
     if Verbose:
         firstPS = {}
-        for trigger,prescales in psTable.iteritems():
+        for trigger,prescales in psTable.items():
             firstPed = firstPrescaled(prescales,PSColsToIgnore)
-            if not firstPS.has_key(firstPed):
+            if firstPed not in firstPS:
                 firstPS[firstPed] = []
             firstPS[firstPed].append(trigger)
 
            
-        for col,triggers in firstPS.iteritems():
+        for col,triggers in firstPS.items():
             if col == -1:
-                print "The following triggers are never prescaled:"
+                print("The following triggers are never prescaled:")
             else:
-                print "The following triggers are first prescaled in col %d" % (col,)
-            for trig in triggers: print "\t%s" % (trig,)
+                print("The following triggers are first prescaled in col %d" % (col,))
+            for trig in triggers: print("\t%s" % (trig,))
                
             
             
@@ -103,7 +103,7 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
     curs.execute(sqlquery)
     HLTSeed = {}
     for HLTPath,L1Seed in curs.fetchall():
-        if not HLTSeed.has_key(HLTPath): ## this should protect us from L1_SingleMuOpen
+        if HLTPath not in HLTSeed: ## this should protect us from L1_SingleMuOpen
             tmp = L1Seed.lstrip('"').rstrip('"') 
             HLTSeed[HLTPath] = tmp.rstrip(' ')
             
@@ -126,9 +126,9 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
     FullPrescales = {}
     formatString = "hlt path: %s\nl1t seed: %s\ntotal p.: %s\nhlt pre.: %s\nl1t pre.: %s\n"
     if doPrint:
-        print "List of triggers with non-sequential prescales:"
+        print("List of triggers with non-sequential prescales:")
         #print formatString % ("HLT Name","L1 Name","Total","HLT","L1",)
-    for HLTName,L1Seeds in HLTSeed.iteritems():
+    for HLTName,L1Seeds in HLTSeed.items():
         if HLTName.startswith('AlCa'): ## the results don't make sense for AlCa paths
             continue
         if L1Seeds.isdigit():  ## skip TT seeded paths
@@ -138,24 +138,24 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
             seed = seed.lstrip(' ').rstrip(' ')
             if seed.isdigit():
                 continue
-            if not L1Names.has_key(seed):
-                print "WARNING: %s uses non-existant L1 seed: %s" % (HLTName,seed,)
+            if seed not in L1Names:
+                print("WARNING: %s uses non-existant L1 seed: %s" % (HLTName,seed,))
             else:
                 tmp = L1Prescales[L1Names[seed]]
                 if len(thisL1PS)==0:
                     thisL1PS = copy.copy(tmp) ## just set it for the first one
                 else:
-                    for i,a,b in zip(range(len(tmp)),thisL1PS,tmp):
+                    for i,a,b in zip(list(range(len(tmp))),thisL1PS,tmp):
                         if b<a:
                             thisL1PS[i] = b # choose the minimum PS for each column
         if len(thisL1PS)==0:
             continue  ## this probably means that the seeding was an OR of TTs
-        if HLTPrescales.has_key(HLTName):   ## if the HLT path is totally unprescaled it won't be listed in the PS service
+        if HLTName in HLTPrescales:   ## if the HLT path is totally unprescaled it won't be listed in the PS service
             thisHLTPS = HLTPrescales[HLTName]
         else:
             thisHLTPS = [1]*len(thisL1PS)
         if not len(thisHLTPS) == len(thisL1PS):
-            print "Incompatible number of prescales columns for trigger %s" % HLTName
+            print("Incompatible number of prescales columns for trigger %s" % HLTName)
             continue
         prescales = []
 #        if L1Seeds == 'L1_ZeroBias': pdb.set_trace()
@@ -164,7 +164,7 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
 
         #print HLTName+" HLT: "+str(thisHLTPS)+" L1: "+str(thisL1PS)+" Total: "+str(prescales)
         if not isSequential(prescales,PSColsToIgnore) and doPrint:
-            print formatString % (HLTName,L1Seeds,prescales,thisHLTPS,thisL1PS,)
+            print(formatString % (HLTName,L1Seeds,prescales,thisHLTPS,thisL1PS,))
         FullPrescales[HLTName] = prescales
         
         if ('HLT_Physics_v' in HLTName):
@@ -172,10 +172,10 @@ def GetPrescaleTable(HLT_Key,uGT_Key,RS_Key,PSColsToIgnore,doPrint,L1CSV):
             #print prescales
             #print thisHLTPS
             #print thisL1PS
-            print " "
-            print "Prescales of HLT_Physics in Express (should be 18000 in first few columns):"
-            print [x*ExpressHLTPhysicsSmartPS for x in thisHLTPS]
-            print " "
+            print(" ")
+            print("Prescales of HLT_Physics in Express (should be 18000 in first few columns):")
+            print([x*ExpressHLTPhysicsSmartPS for x in thisHLTPS])
+            print(" ")
         
     return FullPrescales
             
@@ -254,7 +254,7 @@ def GetL1AlgoPrescales(curs,RS_Key,L1CSV):
                         if row.tag == 'row':
                             line = row.text.replace('\n','').replace(' ','').split(',')
                             try: line = [ int(x) for x in line ]
-                            except: print "\n\nERROR IN PRESCALE TABLE!!!!!!\nPlease check row: %s\n\n" % (line)
+                            except: print("\n\nERROR IN PRESCALE TABLE!!!!!!\nPlease check row: %s\n\n" % (line))
                             bit = line[0]
                             prescales = line[1:]
                             L1PrescaleTable[bit] = prescales
