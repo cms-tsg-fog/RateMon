@@ -847,13 +847,20 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get the trigger data
         for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
 
-        # Sort by % diff if need be
+        # Sort
+        # Note: Since tup[4] can be a float or an empty str, avoid TypeError by creating tuple where first element 
+        # is True of False (based on whether or not tup[4] is a str), second is 0 or tup[4] and sort that tuple instead
         if doPred:
             # [4] is % diff, [6] is deviation
-            if self.usePerDiff: self.tableData.sort(key=lambda tup : tup[4], reverse = True)
-            else: self.tableData.sort(key=lambda tup : tup[6], reverse = True)
+            if self.usePerDiff:
+                #self.tableData.sort(key=lambda tup : tup[4], reverse = True)
+                self.tableData.sort(key=lambda tup : ( isinstance(tup[4],str) , tup[4] if not isinstance(tup[4],str) else 0 ) , reverse = True)
+            else:
+                #self.tableData.sort(key=lambda tup : tup[6], reverse = True)
+                self.tableData.sort(key=lambda tup : ( isinstance(tup[6],str) , tup[6] if not isinstance(tup[6],str) else 0 ) , reverse = True)
         elif self.sortRates:
-            self.tableData.sort(key=lambda tup: tup[1], reverse = True)
+            #self.tableData.sort(key=lambda tup: tup[1], reverse = True)
+            self.tableData.sort(key=lambda tup : ( isinstance(tup[1],str) , tup[1] if not isinstance(tup[1],str) else 0 ) , reverse = True)
 
         nRows = 0
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
