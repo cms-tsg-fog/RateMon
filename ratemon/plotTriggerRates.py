@@ -43,9 +43,9 @@ class MonitorController:
                 "createFit",
                 "multiFit",
                 "bestFit",
-                "vsInstLumi",
+                #"vsInstLumi", # Does not work properly, should look into this later
                 "vsLS",
-                "useCrossSection",
+                #"useCrossSection", # Does not work properly, should look into this later
                 "useFills",
                 "useBunches",
                 "compareFits=",
@@ -154,9 +154,9 @@ class MonitorController:
                 "createFit",
                 "multiFit",
                 "bestFit",
-                "vsInstLumi",
+                #"vsInstLumi",
                 "vsLS",
-                "useCrossSection",
+                #"useCrossSection",
                 "useFills",
                 "useBunches",
                 "compareFits=",
@@ -378,20 +378,20 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
-            elif label == "--vsInstLumi":
-                # Plot vs the instantaenous luminosity
-                self.rate_monitor.use_pileup = False
-                self.rate_monitor.use_lumi = True
-                self.rate_monitor.use_LS = False
+            #elif label == "--vsInstLumi":
+            #    # Plot vs the instantaenous luminosity
+            #    self.rate_monitor.use_pileup = False
+            #    self.rate_monitor.use_lumi = True
+            #    self.rate_monitor.use_LS = False
             elif label == "--vsLS":
                 # Plot vs the LS
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = False
                 self.rate_monitor.use_LS = True
-            elif label == "--useCrossSection":
-                # Plot the (rate/inst. lumi) vs. <PU>
-                self.rate_monitor.data_parser.normalize_bunches = False
-                self.rate_monitor.data_parser.use_cross_section = True
+            #elif label == "--useCrossSection":
+            #    # Plot the (rate/inst. lumi) vs. <PU>
+            #    self.rate_monitor.data_parser.normalize_bunches = False
+            #    self.rate_monitor.data_parser.use_cross_section = True
             elif label == "--useFills":
                 # Specify that the data should fetched by fill number
                 self.rate_monitor.use_fills = True
