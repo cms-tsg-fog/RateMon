@@ -1011,21 +1011,34 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 row.append(dev)  # abs deviation
             else:
                 diff = aveRate-expected
-                if expected!=0: perc = 100*diff/expected
-                else: perc = "INF"
+                if expected!=0:
+                    perc = 100*diff/expected
+                else:
+                    perc = "INF"
                 if mse!=0:
                     dev = diff/mse
-                    if abs(dev)>1000000: dev = ">1E6"
-                else: dev = "INF"
-                if perc>0: sign=1
-                else: sign=-1
+                    if abs(dev)>1000000:
+                        dev = ">1E6"
+                else:
+                    dev = "INF"
+                # perc can be a str, in python2 "str">0 is True, for python3 we get a TypeError, so check if str before checking if >0
+                if type(perc) is str: 
+                    sign=1
+                else: 
+                    if perc>0:
+                        sign=1
+                    else:
+                        sign=-1
                 row.append(sign)       # Sign of % diff
-                if perc!="INF": row.append(abs(perc))  # abs % diff
-                else: row.append("INF")
+                if perc!="INF":
+                    row.append(abs(perc))  # abs % diff
+                else:
+                    row.append("INF")
                 row.append(sign)       # Sign of the deviation
                 if dev!="INF" and dev!=">1E6":
                     row.append(abs(dev))   # abs deviation
-                else: row.append(dev)
+                else:
+                    row.append(dev)
         else:
             row.append("") # No prediction, so no sign of a % diff
             row.append("") # No prediction, so no % diff
