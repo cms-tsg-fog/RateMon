@@ -85,9 +85,11 @@ class CommandLineParser:
                 self.monitor.useLSRange = True
                 print("Using only LS in the range %s - %s" % (start, end))
             elif label == "--allowedPercDiff":
-                self.monitor.percAccept = float(op)
+                #self.monitor.percAccept = float(op)
+                self.monitor.percAcceptDefault = float(op)
             elif label == "--allowedDev":
-                self.monitor.devAccept = float(op)
+                #self.monitor.devAccept = float(op)
+                self.monitor.devAcceptDefault = float(op)
             elif label == "--simulate":
                 self.monitor.sendMailAlerts_static = False
                 self.monitor.sendMailAlerts_dynamic = False
