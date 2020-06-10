@@ -1363,13 +1363,21 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.lastCfgFileAccess = os.stat(self.configFilePath).st_mtime
             print('\nConfiguration file has been modified (or this is the first query), reading file...')
             configFile = open(self.configFilePath)
-            old_properties = copy.deepcopy(self.__dict__)
+            #old_properties = copy.deepcopy(self.__dict__)
+            old_properties = {}
+            for k,v in self.__dict__.items():
+                if k not in self.PROTECTED:
+                    old_properties[k] = copy.deepcopy(v)
             try:
                 properties_dict = json.load(configFile)
                 #print '\tDev thresholds prior to updating:' , self.trgDevThresholds
                 self.setProperties(**properties_dict)
                 #print '\tDev thresholds after updating:' , self.trgDevThresholds
-                new_properties = copy.deepcopy(self.__dict__)
+                #new_properties = copy.deepcopy(self.__dict__)
+                new_properties = {}
+                for k,v in self.__dict__.items():
+                    if k not in self.PROTECTED:
+                        new_properties[k] = copy.deepcopy(v)
                 prop_changed = False
                 for prop in list(new_properties.keys()):
                     #if new_properties[prop] != old_properties[prop] and (str(new_properties[prop]).find('<') == -1):
