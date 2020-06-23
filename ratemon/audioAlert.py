@@ -19,7 +19,7 @@ def sendAudio(message, details = None, sound = 'alert'):
         while s.recv(1024):
           pass
     except:
-        print "Failed to send audio alarm to %s:%d:\n%s" % (server, port, body)
+        print("Failed to send audio alarm to %s:%d:\n%s" % (server, port, body))
 
 
 def audioAlert(message, details = None):

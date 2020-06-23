@@ -103,7 +103,7 @@ class MenuAnalyzer:
         self.AnalysisList.append(name)
 
     def AddAllAnalyses(self):
-        for name in self.AnalysisMap.iterkeys():
+        for name in self.AnalysisMap.keys():
             self.AddAnalysis(name)
 
     def Analyze(self):
@@ -115,25 +115,25 @@ class MenuAnalyzer:
         self.GetProcessName(cursor)
         isError = False
         if len(self.perStreamPDList) == 0:
-            print "FATAL ERROR: Cannot find any streams in this menu"
+            print("FATAL ERROR: Cannot find any streams in this menu")
             isError=True
         if len(self.perPDPathList) ==0:
-            print "FATAL ERROR: Cannot find any PDs in this menu"
+            print("FATAL ERROR: Cannot find any PDs in this menu")
             isError=True
         if isError:
-            print "ABORTING"
+            print("ABORTING")
             sys.exit()
         self.findParkingTriggers()
         for analysis in self.AnalysisList: 
-            if not self.AnalysisMap.has_key(analysis):
-                print "ERROR: Analysis %s not defined" % (analysis,)
+            if analysis not in self.AnalysisMap:
+                print("ERROR: Analysis %s not defined" % (analysis,))
                 continue
             self.AnalysisMap[analysis]()
             
 
     def checkModuleLength(self):
         self.Results['moduleLength'] = []
-        for modName,type in self.perModuleTypeList.iteritems():
+        for modName,type in self.perModuleTypeList.items():
             if len(modName) > self.maxModuleNameLength: self.Results['moduleLength'].append(modName)
         
     def checkNumPaths(self):
@@ -148,8 +148,8 @@ class MenuAnalyzer:
             self.Results['numberOfEndPaths'] = 0
     def reqStreamsAndPDs(self):
         self.Results['reqStreamsAndPDs'] = []
-        for stream,PDList in self.requiredStreamsAndPDs.iteritems():
-            if not self.perStreamPDList.has_key(stream):
+        for stream,PDList in self.requiredStreamsAndPDs.items():
+            if stream not in self.perStreamPDList:
                 self.Results['reqStreamsAndPDs'].append(stream)
                 continue
             for PD in PDList:
@@ -163,7 +163,7 @@ class MenuAnalyzer:
 
     def checkExpress(self):
         self.Results['checkExpress'] = []
-        if not self.perStreamPDList.has_key(self.ExpressStreamName):
+        if self.ExpressStreamName not in self.perStreamPDList:
             self.Results['checkExpress'].append(self.ExpressStreamName)
             return
 
@@ -173,7 +173,7 @@ class MenuAnalyzer:
             self.Results['checkExpress'].append("NO_PDS")
 
         for PD in self.perStreamPDList[self.ExpressStreamName]:
-            if not self.expressPDs.has_key(PD):
+            if PD not in self.expressPDs:
                 self.Results['checkExpress'].append(self.ExpressStreamName+"::"+PD)
             else:
                 self.expressType = self.expressPDs[PD]
@@ -182,14 +182,14 @@ class MenuAnalyzer:
 
     def checkNameFormats(self):
         self.Results['checkNameFormats']=[]
-        for PD,path in self.perPDPathList.iteritems():
+        for PD,path in self.perPDPathList.items():
             if not self.T0REGEXP['RXDATASET'].match(PD):
-                for k,v in self.perStreamPDList.iteritems():
+                for k,v in self.perStreamPDList.items():
                     if PD in v:
                         self.Results['checkNameFormats'].append(k+"::"+PD+"::"+str(path))
                         break
                 self.Results['checkNameFormats'].append('NO STREAM::'+PD+"::"+str(path))
-        for path in self.perPathModuleList.iterkeys():
+        for path in self.perPathModuleList.keys():
             if not self.T0REGEXP['RXSAFEPATH'].match(path):
                 self.Results['checkNameFormats'].append(path)
 
@@ -204,11 +204,11 @@ class MenuAnalyzer:
 
     def checkEventContent(self):
         self.Results['checkEventContent']=[]
-        for stream,content in self.eventContent.iteritems():
+        for stream,content in self.eventContent.items():
             #first check for a drop statement
             if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
                 self.Results['checkEventContent'].append(stream+'::drop *')
-            if not eventContent.requiredEventContent.has_key(stream):
+            if stream not in eventContent.requiredEventContent:
                 continue
             elif ('Protonion' in self.menuName) and stream == 'DQM':
                 stream = 'DQM_PA'
@@ -292,7 +292,7 @@ class MenuAnalyzer:
         
         cursor.execute(sqlquery)
         for PathName,ModuleName,ModuleType,endPath in cursor.fetchall():
-            if not self.perPathModuleList.has_key(PathName): self.perPathModuleList[PathName] = []
+            if PathName not in self.perPathModuleList: self.perPathModuleList[PathName] = []
             self.perPathModuleList[PathName].append(ModuleName)
             self.perModuleTypeList[ModuleName] = ModuleType
             if not ModuleName in self.ModuleList: self.ModuleList.append(ModuleName)
@@ -360,9 +360,9 @@ class MenuAnalyzer:
         for StreamName,PDName,PathName in cursor.fetchall():
             #print StreamName, ' ', PDName,' ', PathName
             #print self.menuName
-            if not self.perStreamPDList.has_key(StreamName): self.perStreamPDList[StreamName] = []
+            if StreamName not in self.perStreamPDList: self.perStreamPDList[StreamName] = []
             if not PDName in self.perStreamPDList[StreamName]: self.perStreamPDList[StreamName].append(PDName)
-            if not self.perPDPathList.has_key(PDName): self.perPDPathList[PDName] = []
+            if PDName not in self.perPDPathList: self.perPDPathList[PDName] = []
             self.perPDPathList[PDName].append(PathName)
 
     def GetESModules(self,cursor):
@@ -403,7 +403,7 @@ class MenuAnalyzer:
 
         cursor.execute(sqlquery)
         for stream,keep,Class,module,extra,process in cursor.fetchall():
-            if not self.eventContent.has_key(stream): self.eventContent[stream]=[]
+            if stream not in self.eventContent: self.eventContent[stream]=[]
             statement = "%s_%s_%s_%s" % (Class,module,extra,process,)
             if statement == "*_*_*_*": statement = "*"
             if keep == 1: statement = "keep "+statement

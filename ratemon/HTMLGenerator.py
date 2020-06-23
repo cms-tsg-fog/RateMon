@@ -27,7 +27,7 @@ class BaseHTMLTag:
     # Modify an existing attribute (if found)
     def setAttribute(self,opt_name,opt_val):
         if self.use_dict:
-            if self.tag_attributes.has_key(opt_name):
+            if opt_name in self.tag_attributes:
                 self.tag_attributes[opt_name] = opt_val
             return
         else:
@@ -47,7 +47,7 @@ class BaseHTMLTag:
     def getFirstTagByAttribute(self,attr,val):
         if self.use_dict:
             for tag in self.nested_tags:
-                if not tag.tag_attributes.has_key(attr):
+                if attr not in tag.tag_attributes:
                     continue
                 if tag.tag_attributes[attr] == val:
                     return tag
@@ -67,7 +67,7 @@ class BaseHTMLTag:
         string = "<" + self.tag_name
         if self.use_dict:
             ### Alternate attribute reading
-            for tag_opt in self.tag_attributes.keys():
+            for tag_opt in list(self.tag_attributes.keys()):
                 string += " "
                 if type(self.tag_attributes[tag_opt]) is int:
                     string += tag_opt + "=%d" % self.tag_attributes[tag_opt]
@@ -151,19 +151,19 @@ class TableTag(BaseHTMLTag):
         self.table_head_index = -1
         self.table_body_index = -1
 
-        for k,v in attributes.iteritems():
+        for k,v in attributes.items():
             self.addAttribute(k,v)
 
         if len(header_cols) > 0:
             header_row = []
             for tag_info in header_cols:
                 new_col = HeaderCellTag()
-                if tag_info.has_key('content'):
+                if 'content' in tag_info:
                     new_col.setContent(tag_info['content'])
-                if tag_info.has_key('attributes'):
-                    for k,v, in tag_info['attributes'].iteritems():
+                if 'attributes' in tag_info:
+                    for k,v, in tag_info['attributes'].items():
                         new_col.addAttribute(k,v)
-                if tag_info.has_key('tags'):
+                if 'tags' in tag_info:
                     for tag in tag_info['tags']:
                         new_col.addTag(tag)
                 header_row.append(new_col)
@@ -197,7 +197,7 @@ class TableTag(BaseHTMLTag):
     # Returns the n-th <th> tag for this <table> tag
     def getHeaderColumn(self,n):
         if n >= self.nCols or n < 0:
-            print "ERROR: Requested column out of range!"
+            print("ERROR: Requested column out of range!")
             return
         elif self.table_head_index < 0:
             return
@@ -239,17 +239,17 @@ class TableTag(BaseHTMLTag):
             return
 
         row = TableRowTag()
-        for k,v in row_attributes.iteritems():
+        for k,v in row_attributes.items():
             row.addAttribute(k,v)
 
         for tag_info in cell_list:
             new_cell = DataCellTag()
-            if tag_info.has_key('content'):
+            if 'content' in tag_info:
                 new_cell.setContent(tag_info['content'])
-            if tag_info.has_key('attributes'):
-                for k,v in tag_info['attributes'].iteritems():
+            if 'attributes' in tag_info:
+                for k,v in tag_info['attributes'].items():
                     new_cell.addAttribute(k,v)
-            if tag_info.has_key('tags'):
+            if 'tags' in tag_info:
                 for tag in tag_info['tags']:
                     new_cell.addTag(tag)
             row.addTag(new_cell)
@@ -258,7 +258,7 @@ class TableTag(BaseHTMLTag):
     # Adds a <tr> tag to the <tbody> (if present) for this <table> tag, otherwise add the row directly to the table
     def addTableRow(self,table_row):
         if not self.nCols() is None and self.nCols() != table_row.nCols():
-            print "ERROR: Column Mismatch!"
+            print("ERROR: Column Mismatch!")
             return
 
         table_body = self.getTableBody()
@@ -273,7 +273,7 @@ class TableTag(BaseHTMLTag):
     # Adds a <tr> tag to the <tbody> for this <table> tag
     def addRow(self,td_list):
         if self.nCols() != len(td_list):
-            print "ERROR: Column Mismatch!"
+            print("ERROR: Column Mismatch!")
             return
         new_row = TableRowTag()
         for td in td_list:
@@ -318,7 +318,7 @@ class TableHeadTag(BaseHTMLTag):
     # Returns the n-th <th> tag for this <thead> tag
     def getColumn(self,n):
         if n >= self.nCols or n < 0:
-            print "ERROR: Requested column out of range!"
+            print("ERROR: Requested column out of range!")
             return
         head_row = self.getHeaderRow()
         return head_row.nested_tags[n]
@@ -386,7 +386,7 @@ class MetaTag(BaseHTMLTag):
 
         if self.use_dict:
             ### Alternate attribute reading
-            for tag_opt in self.tag_attributes.keys():
+            for tag_opt in list(self.tag_attributes.keys()):
                 string += " "
                 if type(self.tag_attributes[tag_opt]) is int:
                     string += tag_opt + "=%d" % self.tag_attributes[tag_opt]
@@ -471,7 +471,7 @@ class HTMLGenerator:
         output = self.html.dumpTag()
         f_path = os.path.join(f_dir,f_name);
         
-        print "Saving HTML output to: %s" % f_path
+        print("Saving HTML output to: %s" % f_path)
         
         html_file = open(f_path,'wb')
         html_file.write(output)

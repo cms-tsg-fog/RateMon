@@ -4,7 +4,7 @@ class selectionParser(object):
         self.__result={}
         self.__strresult={}
         strresult=json.loads(selectStr)
-        for k,v in strresult.items():
+        for k,v in list(strresult.items()):
             expandedvalues=[]
             for w in v:
             ###weed out [10]-like stuff just in case they exist
@@ -19,7 +19,7 @@ class selectionParser(object):
             self.__result[int(k)]=expandedvalues
             self.__strresult[k]=[str(x) for x in expandedvalues]
     def runs(self):
-        return self.__result.keys()
+        return list(self.__result.keys())
     def runsandls(self):
         '''return expanded {run:lslist}
         '''
@@ -29,13 +29,13 @@ class selectionParser(object):
         '''
         return self.__strresult
     def numruns(self):
-        return len(self.__result.keys())
+        return len(list(self.__result.keys()))
     def numls(self,run):
         return len(self.__result[run])
 if __name__ == "__main__":
     s=selectionParser('{"1":[[3,45]],"2":[[4,8],[10,10]]}')
-    print 'runs : ',s.runs()
-    print 'full result : ',s.runsandls()
-    print 'str result : ',s.runsandlsStr()
-    print 'num runs : ',s.numruns()
-    print 'numls in run : ',s.numls(1)
+    print('runs : ',s.runs())
+    print('full result : ',s.runsandls())
+    print('str result : ',s.runsandlsStr())
+    print('num runs : ',s.numruns())
+    print('numls in run : ',s.numls(1))

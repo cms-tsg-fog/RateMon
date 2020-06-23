@@ -43,10 +43,9 @@ class MonitorController:
                 "createFit",
                 "multiFit",
                 "bestFit",
-                "nonLinear",
-                "vsInstLumi",
+                #"vsInstLumi", # Does not work properly, should look into this later
                 "vsLS",
-                "useCrossSection",
+                #"useCrossSection", # Does not work properly, should look into this later
                 "useFills",
                 "useBunches",
                 "compareFits=",
@@ -54,7 +53,7 @@ class MonitorController:
             ])
 
         except:
-            print "Error getting options: command unrecognized. Exiting."
+            print("Error getting options: command unrecognized. Exiting.")
             return False
 
         dbConfigLoaded = False;
@@ -66,7 +65,7 @@ class MonitorController:
                     try:
                         dbCfg = yaml.safe_load(stream)
                     except yaml.YAMLError as exc:
-                        print "Unable to read the given YAML database configuration file. Error:", exc
+                        print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
                         exit(1)
                 self.parser = DBParser(dbCfg)
@@ -75,7 +74,7 @@ class MonitorController:
                 pass
 
         if not dbConfigLoaded:
-            print "No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml"
+            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
             # Exit with error, we can't continue without connecting to the DB
             exit(1)
 
@@ -155,10 +154,9 @@ class MonitorController:
                 "createFit",
                 "multiFit",
                 "bestFit",
-                "nonLinear",
-                "vsInstLumi",
+                #"vsInstLumi",
                 "vsLS",
-                "useCrossSection",
+                #"useCrossSection",
                 "useFills",
                 "useBunches",
                 "compareFits=",
@@ -166,7 +164,7 @@ class MonitorController:
             ])
 
         except:
-            print "Error getting options: command unrecognized. Exiting."
+            print("Error getting options: command unrecognized. Exiting.")
             return False
 
         self.rate_monitor.ops = opt
@@ -380,20 +378,20 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
-            elif label == "--vsInstLumi":
-                # Plot vs the instantaenous luminosity
-                self.rate_monitor.use_pileup = False
-                self.rate_monitor.use_lumi = True
-                self.rate_monitor.use_LS = False
+            #elif label == "--vsInstLumi":
+            #    # Plot vs the instantaenous luminosity
+            #    self.rate_monitor.use_pileup = False
+            #    self.rate_monitor.use_lumi = True
+            #    self.rate_monitor.use_LS = False
             elif label == "--vsLS":
                 # Plot vs the LS
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = False
                 self.rate_monitor.use_LS = True
-            elif label == "--useCrossSection":
-                # Plot the (rate/inst. lumi) vs. <PU>
-                self.rate_monitor.data_parser.normalize_bunches = False
-                self.rate_monitor.data_parser.use_cross_section = True
+            #elif label == "--useCrossSection":
+            #    # Plot the (rate/inst. lumi) vs. <PU>
+            #    self.rate_monitor.data_parser.normalize_bunches = False
+            #    self.rate_monitor.data_parser.use_cross_section = True
             elif label == "--useFills":
                 # Specify that the data should fetched by fill number
                 self.rate_monitor.use_fills = True
@@ -409,9 +407,9 @@ class MonitorController:
                 self.rate_monitor.plotter.show_fit_run_groups = True
             elif label == "--dbConfigFile":
                 # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
-                print "DB Configuration file loaded"
+                print("DB Configuration file loaded")
             else:
-                print "Unimplemented option '%s'." % label
+                print("Unimplemented option '%s'." % label)
                 return False
 
         # Process Arguments
@@ -430,13 +428,13 @@ class MonitorController:
 
         # Append the user specified fills or runs to the dictionary made from the compareFits text file 
         unique_runs = set()
-        for data_group,runs in self.rate_monitor.fitter.data_dict.iteritems():
+        for data_group,runs in self.rate_monitor.fitter.data_dict.items():
                 unique_runs = unique_runs.union(runs)
         self.rate_monitor.run_list = list(unique_runs)
         #print self.rate_monitor.run_list 
 
         if len(self.rate_monitor.run_list) == 0:
-            print "ERROR: No runs specified!"
+            print("ERROR: No runs specified!")
             return False
 
         #if self.set_plotter_fits:
@@ -446,12 +444,12 @@ class MonitorController:
 
         # This needs to be done after we have our run_list, otherwise we can't get the run_list!
         if self.do_cron_job:
-            if len(self.rate_monitor.plotter.fits.keys()) == 0:
-                print "WARNING: No fit file specified!"
+            if len(list(self.rate_monitor.plotter.fits.keys())) == 0:
+                print("WARNING: No fit file specified!")
                 self.rate_monitor.plotter.use_fit = False
 
             if len(self.rate_monitor.object_list) == 0:
-                print "WARNING: No trigger list specified! Plotting all triggers..."
+                print("WARNING: No trigger list specified! Plotting all triggers...")
 
             run_list = sorted(self.rate_monitor.run_list)
 
@@ -464,7 +462,7 @@ class MonitorController:
             #run_list = list(tmp_list)
 
             if len(run_list) == 0:
-                print "No valid runs. Exiting"
+                print("No valid runs. Exiting")
                 return False
 
             ## Find which HLT paths are included in which streams
@@ -505,13 +503,13 @@ class MonitorController:
                     tmp_map = self.parser.getPathsInDatasets(run)
                     #tmp_map = self.parser.getPathsInStreams(run)
                     for group_name in tmp_map:
-                        if not path_mapping.has_key(group_name):
+                        if group_name not in path_mapping:
                             path_mapping[group_name] = set()
                         path_mapping[group_name] = path_mapping[group_name] | set(tmp_map[group_name])
                 for group_name in path_mapping:
                     path_mapping[group_name] = list(path_mapping[group_name])
             except:
-                print "ERROR: Failed to get stream/dataset map"
+                print("ERROR: Failed to get stream/dataset map")
                 return False
 
             group_map = {}
@@ -556,18 +554,18 @@ class MonitorController:
         fit_info = {}
         # Try to open the file containing the fit info
 
-        print "Reading fit file: %s" % (fit_file)
+        print("Reading fit file: %s" % (fit_file))
 
         try:
             pkl_file = open(fit_file, 'rb')
             #fits = pickle.load(pkl_file)    # {'obj': fit_params}
             fit_dict = pickle.load(pkl_file)
-            if fit_dict.has_key('run_groups'):
+            if 'run_groups' in fit_dict:
                 fit_info = fit_dict
                 fits_format = 'multi_info'
             else:
                 fits = fit_dict
-                for trig in fits.keys():
+                for trig in list(fits.keys()):
                     if type(fits[trig]) is list:
                         fits_format = 'dict_of_lists'
                     if type(fits[trig]) is dict:
@@ -598,8 +596,8 @@ class MonitorController:
 
         except:
             # File failed to open
-            print "Error: could not open fit file: %s" % (fit_file)
-            print "Info:",sys.exc_info()[0]
+            print("Error: could not open fit file: %s" % (fit_file))
+            print("Info:",sys.exc_info()[0])
             return {}
 
     def readTriggerList(self,trigger_file):
@@ -607,7 +605,7 @@ class MonitorController:
         path = trigger_file
         f = open(path,'r')
 
-        print "Reading trigger file: %s" % path
+        print("Reading trigger file: %s" % path)
 
         output_list = []
         for line in f:
@@ -633,16 +631,16 @@ class MonitorController:
     def getRuns(self,arg_list):
         # type: (List[int]) -> List[int]
         if len(arg_list) == 0:
-            print "No fills specified!"
+            print("No fills specified!")
             return []
 
         run_list = []
         fill_map = {}   # {run_number: fill_number}
         for fill in sorted(arg_list):
-            print "Getting runs from fill %d..." % fill
+            print("Getting runs from fill %d..." % fill)
             new_runs = self.parser.getFillRuns(fill)
             if len(new_runs) == 0:
-                print "\tFill %d has no eligible runs!"
+                print("\tFill %d has no eligible runs!")
                 continue
             for run in new_runs:
                 fill_map[run] = fill

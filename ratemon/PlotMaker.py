@@ -124,7 +124,7 @@ class PlotMaker:
     def getRunList(self):
         src_list = []
         for trigger in self.plotting_data:
-            for item in self.plotting_data[trigger].keys():
+            for item in list(self.plotting_data[trigger].keys()):
                 if not item in src_list:
                     src_list.append(item)
         return src_list 
@@ -135,8 +135,8 @@ class PlotMaker:
 
         run_list = self.getRunList()
         
-        if len(self.fill_map.keys()) == 0 and self.color_by_fill:
-            print "WARNING: Unable to find fill map, will color by runs instead"
+        if len(list(self.fill_map.keys())) == 0 and self.color_by_fill:
+            print("WARNING: Unable to find fill map, will color by runs instead")
             self.color_by_fill = False
 
         old_fill = -1
@@ -190,8 +190,8 @@ class PlotMaker:
     def plotAllData(self,trigger):
         # paramlist == fits
         missing_fit = False
-        if not self.plotting_data.has_key(trigger):
-            print "\tERROR: Trigger not found in plotting data - %s" % trigger
+        if trigger not in self.plotting_data:
+            print("\tERROR: Trigger not found in plotting data - %s" % trigger)
             return False
         else:
             data = self.plotting_data[trigger]  # { run_number: ( [x_vals], [y_vals], [det_status], [phys_status] ) }
@@ -233,9 +233,9 @@ class PlotMaker:
             #print "\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts)
             return False
 
-        if self.use_fit and not self.fits.has_key(trigger):
+        if self.use_fit and trigger not in self.fits:
             # No fit found for this plot
-            print "\tWARNING: Missing fit - %s" % trigger
+            print("\tWARNING: Missing fit - %s" % trigger)
             missing_fit = True
 
         # Find max and min values
@@ -289,17 +289,17 @@ class PlotMaker:
         if len(maximumRR) > 0:
             max_yaxis_val = max(maximumRR)
         else:
-            print "\tERROR: Invalid boundary for plot axis: no yVals. Skipping trigger.." + trigger
+            print("\tERROR: Invalid boundary for plot axis: no yVals. Skipping trigger.." + trigger)
             return False
         if len(maximumVals) > 0:
             max_xaxis_val = max(maximumVals)
             min_xaxis_val = min(minimumVals)
         else:
-            print "\tERROR: Invalid boundary for plot axis: no maximumVals. Skipping trigger.." + trigger
+            print("\tERROR: Invalid boundary for plot axis: no maximumVals. Skipping trigger.." + trigger)
             return False
 
         if max_xaxis_val == 0 or max_yaxis_val == 0:
-            print "\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger
+            print("\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger)
             return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
@@ -332,14 +332,14 @@ class PlotMaker:
             leg_entries += run_count
 
         if self.use_fit and not missing_fit:
-            if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+            if self.use_multi_fit or len(list(self.run_groups.keys())) > 1:
                 for group in self.fits[trigger]:
-                    leg_entries += len(self.fits[trigger][group].keys())
+                    leg_entries += len(list(self.fits[trigger][group].keys()))
             else:
                 leg_entries += 1
 
         #legend = self.getLegend(num_entries=leg_entries)
-        if self.use_fit and len(self.run_groups.keys()) > 1:
+        if self.use_fit and len(list(self.run_groups.keys())) > 1:
             legend = self.getLegend(num_entries=2*leg_entries)
         else:
             legend = self.getLegend(num_entries=leg_entries)
@@ -373,7 +373,7 @@ class PlotMaker:
             else: graphList[-1].Draw("P")
             canvas.Update()
 
-            if self.bunch_map.has_key(run):
+            if run in self.bunch_map:
                 bunches = str(self.bunch_map[run])
             else:
                 bunches = "-"
@@ -398,10 +398,10 @@ class PlotMaker:
                     #legend.AddEntry(fit_func[fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
 
                     #if self.show_errors and not self.use_multi_fit:
-                    if not self.use_multi_fit and not len(self.run_groups.keys()) > 1:
+                    if not self.use_multi_fit and not len(list(self.run_groups.keys())) > 1:
                         legend.AddEntry(fit_func[group][fit_type], "%s Fit ( %s \sigma )" % (fit_type,self.sigmas))
                     #elif self.compare_fits or len(self.run_groups) > 1:
-                    elif self.compare_fits or len(self.run_groups.keys()) > 1:
+                    elif self.compare_fits or len(list(self.run_groups.keys())) > 1:
                         #legend.AddEntry(fit_func[group][fit_type],"%s: %s,\nmse:%f" % (group,fit_type,fit_mse[group][fit_type]))
                         legend.AddEntry(fit_func[group][fit_type],"#splitline{%s: %s}{(mse:%f)}" % (group,fit_type,fit_mse[group][fit_type]))
                     else:
@@ -412,13 +412,13 @@ class PlotMaker:
                     fit_func[group][fit_type].Draw("same")
                     color_counter += 1
 
-                    if self.show_errors and not self.use_multi_fit and not len(self.run_groups.keys()) > 1: # Display the error band
+                    if self.show_errors and not self.use_multi_fit and not len(list(self.run_groups.keys())) > 1: # Display the error band
                         fit_error_band = self.getErrorGraph(fit_func[group][fit_type],fit_mse[group][fit_type])
                         fit_error_band.Draw("3")
 
-                    if self.show_eq and not self.use_multi_fit and not len(self.run_groups.keys()) > 1: # Display the fit equation
+                    if self.show_eq and not self.use_multi_fit and not len(list(self.run_groups.keys())) > 1: # Display the fit equation
                         func_leg = TLegend(.146, .71, .47, .769)
-                        for group in func_str.keys():
+                        for group in list(func_str.keys()):
                             func_leg.SetHeader("f(x) = " + func_str[group][fit_type])
                         func_leg.SetFillColor(0)
                         #func_leg.SetFillColorAlpha(0,0.5)
@@ -569,9 +569,9 @@ class PlotMaker:
         ##############################################################################################
 
         # Record for the purpose of doing checks
-        prediction_rec.setdefault(trigger_name,{})[run] = zip(lumisecs, predictions, pred_error)
+        prediction_rec.setdefault(trigger_name,{})[run] = list(zip(lumisecs, predictions, pred_error))
         # Set some graph options
-        if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+        if self.use_multi_fit or len(list(self.run_groups.keys())) > 1:
             fit_graph = TGraph(len(lumisecs), lumisecs, predictions) # Don't show errors if plotting more than one fit
             fit_graph.SetFillColor(0)
             fit_graph.SetFillStyle(0)
@@ -593,14 +593,14 @@ class PlotMaker:
     # Note1: I would like to remove the dependance on lumi_info from this function, but for now this works
     # lumi_info - [ (LS,ilum,psi,phys,cms_ready) ]
     def makeCertifyPlot(self,trigger,run,lumi_info):
-        if not self.fits.has_key(trigger):
+        if trigger not in self.fits:
             # Missing the fit for this trigger, so skip it
             return False
-        elif not self.plotting_data.has_key(trigger):
-            print "\tERROR: Trigger not found in plotting data, %s" % trigger
+        elif trigger not in self.plotting_data:
+            print("\tERROR: Trigger not found in plotting data, %s" % trigger)
             return False
-        elif not self.plotting_data[trigger].has_key(run):
-            print "\tERROR: Trigger is missing run, %s" % run
+        elif run not in self.plotting_data[trigger]:
+            print("\tERROR: Trigger is missing run, %s" % run)
             return False
         else:
             data = self.plotting_data[trigger][run]  # ([x_vals], [y_vals], [status])
@@ -639,7 +639,7 @@ class PlotMaker:
             #if not self.use_multi_fit:
             #    best_fit_type,best_fit = self.fitFinder.getBestFit(self.fits[trigger][group])
             #    fits[trigger][group][best_fit_type] = best_fit
-            for fit_type, fit in self.fits[trigger][group].iteritems():
+            for fit_type, fit in self.fits[trigger][group].items():
                 predictionTGraph[group][fit_type] = self.getPredictionGraph( fit,
                                                         min_xaxis_val,
                                                         max_xaxis_val,
@@ -653,7 +653,7 @@ class PlotMaker:
                     pt_color = pt_color+1 # Skip white
 
         num_LS = len(data[0])
-        n_leg_entries = len(self.run_groups.keys()) + 1
+        n_leg_entries = len(list(self.run_groups.keys())) + 1
         legend = self.getLegend(num_entries=n_leg_entries)
         plotTGraph = TGraph(num_LS, data[0], data[1])
 
@@ -677,7 +677,7 @@ class PlotMaker:
         plotTGraph.Draw("AP")
         canvas.Update()
 
-        if self.bunch_map.has_key(run):
+        if run in self.bunch_map:
             bunches = str(self.bunch_map[run])
         else:
             bunches = "-"
@@ -692,7 +692,7 @@ class PlotMaker:
             for fit_type in self.fits[trigger][group]:
                 predictionTGraph[group][fit_type].Draw("PZ3")
                 canvas.Update()
-                if self.use_multi_fit or len(self.run_groups.keys()) > 1:
+                if self.use_multi_fit or len(list(self.run_groups.keys())) > 1:
                     legend.AddEntry(predictionTGraph[group][fit_type], "%s fit, %s " % (fit_type,group))
                 else: 
                     legend.AddEntry(predictionTGraph[group][fit_type], "Fit, %s ( %s \sigma )" % (fit_type,self.sigmas))
@@ -746,7 +746,7 @@ class PlotMaker:
         total_paths = 0
         for trigger in pred_data:
             # data - ( [x_vals], [y_vals], [status] )
-            if pred_data[trigger].has_key(group):
+            if group in pred_data[trigger]:
 
                 total_paths += 1
 
@@ -797,7 +797,7 @@ class PlotMaker:
 
 
                 for fit_type in self.fitFinder.fits_to_try:
-                    if pred_data[trigger][group].has_key(fit_type):
+                    if fit_type in pred_data[trigger][group]:
                         data = self.plotting_data[trigger][run]
                         ls_set.update(data[0])
                         for LS,pred,err in pred_data[trigger][group][fit_type]:
@@ -805,11 +805,11 @@ class PlotMaker:
                                 if data_ls != LS:
                                     continue
                                 if abs(data_rate - pred) > err:
-                                    if not trg_bad_ls.has_key(trigger):
+                                    if trigger not in trg_bad_ls:
                                         trg_bad_ls[trigger] = []
                                     trg_bad_ls[trigger].append(int(LS))
 
-                                    if bad_ls.has_key(LS):
+                                    if LS in bad_ls:
                                         bad_ls[LS] += 1
                                     else:
                                         bad_ls[LS] = 1
@@ -822,7 +822,7 @@ class PlotMaker:
             if count > max_bad_paths:
                 max_bad_paths = count
                 
-            if not bad_ls_inverted.has_key(count):
+            if count not in bad_ls_inverted:
                 bad_ls_inverted[count] = []
             bad_ls_inverted[count].append(int(LS))
 
@@ -861,7 +861,7 @@ class PlotMaker:
         max_ls = max(ls_set)
         tot_ls = len(ls_set)
 
-        for count in sorted(bad_ls_inverted.keys(),reverse=True):
+        for count in sorted(list(bad_ls_inverted.keys()),reverse=True):
             log_file.write("     %d : %s\n" % (count,str(bad_ls_inverted[count])))
 
         log_file.write("\n")
@@ -869,7 +869,7 @@ class PlotMaker:
         log_file.write("\n")
 
         #bad_count = sum([bad_ls[x] for x in bad_ls.keys()])
-        bad_count = len(bad_ls.keys())
+        bad_count = len(list(bad_ls.keys()))
         total_count = len(ls_set)
 
         log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % bad_count)
@@ -880,7 +880,7 @@ class PlotMaker:
         log_file.write("BAD PATH SUMMARY:\n")
         log_file.write("\n")
 
-        bad_count = len(trg_bad_ls.keys())
+        bad_count = len(list(trg_bad_ls.keys()))
         #total_count = len(pred_data.keys())
 
         log_file.write("---- Total Bad Paths: %d\n" % bad_count)
@@ -962,7 +962,7 @@ class PlotMaker:
         latex.SetTextSize(0.03)
         latex.SetTextFont(40)
         i=0
-        if len(run_dict.keys()) == 1:
+        if len(list(run_dict.keys())) == 1:
             latex.DrawLatex(x, (y+0.03), "Runs used to make fit:")
             for run in sorted(run_dict['user_input']):
                 latex.SetTextSize(0.025)
@@ -970,7 +970,7 @@ class PlotMaker:
                 i = i+1
         else:
             latex.DrawLatex(x, (y+0.03), "Runs used to make fits:")
-            for group,runs in run_dict.iteritems():
+            for group,runs in run_dict.items():
                 latex.SetTextSize(0.025)
                 latex.DrawLatex(x, y-0.025*i, "Group: %s" %(group))
                 i=i+1
