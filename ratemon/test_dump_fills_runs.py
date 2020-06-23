@@ -5,10 +5,10 @@ recentRunsFill = dbparser.getRecentRuns()
 
 lastFill = str(recentRunsFill[1])
 
-print lastFill
+print(lastFill)
 
 runList = []
 for item in recentRunsFill[0]:
     runList.append(str(item))
 
-print " ".join(runList)
+print(" ".join(runList))
