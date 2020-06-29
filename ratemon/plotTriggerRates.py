@@ -22,63 +22,97 @@ from RateMonitor import *
 
 class MonitorController:
     def __init__(self):
-        try:
-            opt, args = getopt.getopt(sys.argv[1:],"",[
-                "dbConfigFile=",
-                "fitFile=",
-                "triggerList=",
-                "saveDirectory=",
-                "useFit=",
-                "psFilter=",
-                "lsVeto=",
-                "pathVeto=",
-                "Secondary",
-                "datasetRate",
-                "L1ARate",
-                "streamRate",
-                "streamBandwidth",
-                "streamSize",
-                "cronJob",
-                "updateOnlineFits",
-                "createFit",
-                "multiFit",
-                "bestFit",
-                #"vsInstLumi", # Does not work properly, should look into this later
-                "vsLS",
-                #"useCrossSection", # Does not work properly, should look into this later
-                "useFills",
-                "useBunches",
-                "compareFits=",
-                "showFitRunGroups"
-            ])
 
-        except:
-            print("Error getting options: command unrecognized. Exiting.")
-            return False
+        self.ops_dict = {
+            "dbConfigFile="    : None,
+            "fitFile="         : None,
+            "triggerList="     : None,
+            "saveDirectory="   : None,
+            "useFit="          : None,
+            "psFilter="        : None,
+            "lsVeto="          : None,
+            "pathVeto"         : None,
+            "Secondary"        : None,
+            "datasetRate"      : None,
+            "L1ARate"          : None,
+            "streamRate"       : None,
+            "streamBandwidth"  : None,
+            "streamSize"       : None,
+            "cronJob"          : None,
+            "updateOnlineFits" : None,
+            "createFit"        : None,
+            "multiFit"         : None,
+            "bestFit"          : None,
+            #"vsInstLumi"      : None,
+            "vsLS"             : None,
+            #"useCrossSection" : None,
+            "useFills"         : None,
+            "useBunches"       : None,
+            "compareFits="     : None,
+            "showFitRunGroups" : None,
+        }
+        self.usr_input_data_lst = None
 
-        dbConfigLoaded = False;
-        # First, we need to init and connect to the database
-        for label, op in opt:
-            if label == "--dbConfigFile":
-                dbConfigLoaded = True;
-                with open(str(op), 'r') as stream:
-                    try:
-                        dbCfg = yaml.safe_load(stream)
-                    except yaml.YAMLError as exc:
-                        print("Unable to read the given YAML database configuration file. Error:", exc)
-                        # Exit with error, we can't continue without connecting to the DB
-                        exit(1)
-                self.parser = DBParser(dbCfg)
-                self.rate_monitor = RateMonitor(dbCfg)
-            else:
-                pass
+        #try:
+        #    opt, args = getopt.getopt(sys.argv[1:],"",[
+        #        "dbConfigFile=",
+        #        "fitFile=",
+        #        "triggerList=",
+        #        "saveDirectory=",
+        #        "useFit=",
+        #        "psFilter=",
+        #        "lsVeto=",
+        #        "pathVeto=",
+        #        "Secondary",
+        #        "datasetRate",
+        #        "L1ARate",
+        #        "streamRate",
+        #        "streamBandwidth",
+        #        "streamSize",
+        #        "cronJob",
+        #        "updateOnlineFits",
+        #        "createFit",
+        #        "multiFit",
+        #        "bestFit",
+        #        #"vsInstLumi", # Does not work properly, should look into this later
+        #        "vsLS",
+        #        #"useCrossSection", # Does not work properly, should look into this later
+        #        "useFills",
+        #        "useBunches",
+        #        "compareFits=",
+        #        "showFitRunGroups"
+        #    ])
 
-        if not dbConfigLoaded:
-            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
-            # Exit with error, we can't continue without connecting to the DB
-            exit(1)
+        #except:
+        #    print("Error getting options: command unrecognized. Exiting.")
+        #    return False
 
-        self.rate_monitor.ops = opt
+
+        #dbConfigLoaded = False;
+        ## First, we need to init and connect to the database
+        #for label, op in opt:
+        #    if label == "--dbConfigFile":
+        #        dbConfigLoaded = True;
+        #        with open(str(op), 'r') as stream:
+        #            try:
+        #                dbCfg = yaml.safe_load(stream)
+        #            except yaml.YAMLError as exc:
+        #                print("Unable to read the given YAML database configuration file. Error:", exc)
+        #                # Exit with error, we can't continue without connecting to the DB
+        #                exit(1)
+        #        self.parser = DBParser(dbCfg)
+        #        self.rate_monitor = RateMonitor(dbCfg)
+        #    else:
+        #        pass
+
+        #if not dbConfigLoaded:
+        #    print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
+        #    # Exit with error, we can't continue without connecting to the DB
+        #    exit(1)
+
+        #self.rate_monitor.ops = opt
+
+    def setDefaults(self):
 
         # type: () -> None
         self.do_cron_job = False
@@ -130,44 +164,73 @@ class MonitorController:
     # Use: Parses arguments from the command line and sets class variables
     # Returns: True if parsing was successful, False if not
     def parseArgs(self):
-        # type: () -> bool
 
+        #print ("sys.argv[1:]",sys.argv[1:])
+        #print ("keys",list(self.ops_dict.keys()),type(list(self.ops_dict.keys())))
         # Get the command line arguments
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",[
-                "dbConfigFile=",
-                "fitFile=",
-                "triggerList=",
-                "saveDirectory=",
-                "useFit=",
-                "psFilter=",
-                "lsVeto=",
-                "pathVeto=",
-                "Secondary",
-                "datasetRate",
-                "L1ARate",
-                "streamRate",
-                "streamBandwidth",
-                "streamSize",
-                "cronJob",
-                "updateOnlineFits",
-                "createFit",
-                "multiFit",
-                "bestFit",
-                #"vsInstLumi",
-                "vsLS",
-                #"useCrossSection",
-                "useFills",
-                "useBunches",
-                "compareFits=",
-                "showFitRunGroups"
-            ])
+            opt, args = getopt.getopt(sys.argv[1:],"",list(self.ops_dict.keys()))
+            #opt, args = getopt.getopt(sys.argv[1:],"",[
+            #    "dbConfigFile=",
+            #    "fitFile=",
+            #    "triggerList=",
+            #    "saveDirectory=",
+            #    "useFit=",
+            #    "psFilter=",
+            #    "lsVeto=",
+            #    "pathVeto=",
+            #    "Secondary",
+            #    "datasetRate",
+            #    "L1ARate",
+            #    "streamRate",
+            #    "streamBandwidth",
+            #    "streamSize",
+            #    "cronJob",
+            #    "updateOnlineFits",
+            #    "createFit",
+            #    "multiFit",
+            #    "bestFit",
+            #    #"vsInstLumi",
+            #    "vsLS",
+            #    #"useCrossSection",
+            #    "useFills",
+            #    "useBunches",
+            #    "compareFits=",
+            #    "showFitRunGroups"
+            #])
 
         except:
             print("Error getting options: command unrecognized. Exiting.")
             return False
 
+        dbConfigLoaded = False;
+        # First, we need to init and connect to the database
+        for label, op in opt:
+            if label == "--dbConfigFile":
+                dbConfigLoaded = True;
+                with open(str(op), 'r') as stream:
+                    try:
+                        dbCfg = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        print("Unable to read the given YAML database configuration file. Error:", exc)
+                        # Exit with error, we can't continue without connecting to the DB
+                        exit(1)
+                #print ("db cfg",dbCfg)
+                self.parser = DBParser(dbCfg)
+                self.rate_monitor = RateMonitor(dbCfg)
+                self.ops_dict["dbConfigFile="] = dbCfg
+            else:
+                pass
+
+        if not dbConfigLoaded:
+            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
+            # Exit with error, we can't continue without connecting to the DB
+            exit(1)
+
         self.rate_monitor.ops = opt
+
+        # Set all of the default options
+        self.setDefaults()
 
         for label,op in opt:
             if label == "--fitFile":
@@ -176,16 +239,17 @@ class MonitorController:
                 #fits = self.readFits(str(op))
                 #self.rate_monitor.plotter.setFits(fits)
                 fit_info = self.readFits(str(op))
+                self.ops_dict["fitFile="] = fit_info
 
-                #self.set_plotter_fits = True
                 self.rate_monitor.plotter.set_plotter_fits = True
-
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+
             elif label == "--triggerList":
                 # Specify the .list file that determines which triggers will be plotted
                 trigger_list = self.readTriggerList(str(op))
+                self.ops_dict["triggerList"] = trigger_list
                 self.rate_monitor.object_list = trigger_list
                 self.rate_monitor.data_parser.hlt_triggers = []
                 self.rate_monitor.data_parser.l1_triggers = []
@@ -194,37 +258,55 @@ class MonitorController:
                         self.rate_monitor.data_parser.hlt_triggers.append(name)
                     elif name[0:3] == "L1_":
                         self.rate_monitor.data_parser.l1_triggers.append(name)
+
             elif label == "--saveDirectory":
                 # Specify the directory that the plots will be saved to
                 # NOTE: Doesn't work with --Secondary option
+                self.ops_dict["saveDirectory="] = str(op)
+
                 self.rate_monitor.save_dir = str(op)
+
             elif label == "--useFit":
                 # Use a specific fit type as the 'default' fit
                 # NEEDS TO BE IMPLEMENTED/TESTED
-                self.rate_monitor.make_fits  = True
 
+                self.ops_dict["useFit="] = str(op)
                 self.rate_monitor.plotter.default_fit = str(op)
 
+                self.rate_monitor.make_fits  = True
                 self.rate_monitor.plotter.use_multi_fit = False
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+
             elif label == "--psFilter":
                 # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
+
+                self.ops_dict["psFilter="] = [int(x) for x in str(op).split(',')]
+
                 self.rate_monitor.data_parser.use_ps_mask = True
                 self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
+
             elif label == "--lsVeto":
                 # Specifiy certain LS to veto/remove from consideration
+
                 ls_veto = self.readLSVetoFile(str(op))
                 self.rate_monitor.data_parser.ls_veto = ls_veto
+                self.ops_dict["lsVeto="] = ls_veto
+
             elif label == "--pathVeto":
                 # Specify certain paths to veto/remove from consideration
                 path_veto_list = self.readTriggerList(str(op))
                 self.rate_monitor.data_parser.name_veto = path_veto_list
+                self.ops_dict["pathVeto="] = path_veto_list
+
             elif label == "--Secondary":
                 # Set the code to produce certification plots
                 # NOTE: Still need to specify --fitFile and --triggerList
                 # NEEDS TO BE IMPLEMENTED/TESTED
+
+                self.ops_dict["Secondary"] = True
+
                 self.rate_monitor.certify_mode = True
 
                 self.rate_monitor.use_pileup = False
@@ -242,7 +324,11 @@ class MonitorController:
 
                 self.rate_monitor.plotter.use_fit = True
                 self.rate_monitor.plotter.save_root_file = True
+
             elif label == "--datasetRate":
+
+                self.ops_dict["datasetRate"] = True
+
                 # Make plots of dataset rates
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
@@ -252,8 +338,10 @@ class MonitorController:
                 
                 self.rate_monitor.plotter.root_file_name   = "Dataset_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
+
             elif label == "--L1ARate":
                 # Make plots of the L1A rate
+                self.ops_dict["L1ARate"] = True
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = False 
@@ -262,8 +350,10 @@ class MonitorController:
                 
                 self.rate_monitor.plotter.root_file_name   = "L1A_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
+
             elif label == "--streamRate":
                 # Make plots of the stream rates
+                self.ops_dict["streamRate"] = True
                 self.rate_monitor.data_parser.use_L1_triggers  = False
                 self.rate_monitor.data_parser.use_HLT_triggers = False
                 self.rate_monitor.data_parser.use_streams  = True 
@@ -272,9 +362,11 @@ class MonitorController:
                 
                 self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
                 #self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+
             elif label == "--streamBandwidth":
                 # Make plots of the stream bandwidths
                 # NEEDS TO BE TESTED
+                self.ops_dict["streamBandwidth"] = True
                 self.rate_monitor.use_stream_bandwidth = True
 
                 self.rate_monitor.data_parser.use_L1_triggers  = False
@@ -286,9 +378,11 @@ class MonitorController:
                 self.rate_monitor.data_parser.normalize_bunches = False
 
                 self.rate_monitor.plotter.root_file_name   = "Stream_Bandwidth.root"
+
             elif label == "--streamSize":
                 # Make plots of stream sizes
                 # NEEDS TO BE TESTED
+                self.ops_dict["streamSize"] = True
                 self.rate_monitor.use_stream_size = True
 
                 self.rate_monitor.data_parser.use_L1_triggers  = False
@@ -300,10 +394,12 @@ class MonitorController:
                 self.rate_monitor.data_parser.normalize_bunches = False
                 
                 self.rate_monitor.plotter.root_file_name   = "Stream_Size.root"
+
             elif label == "--cronJob":
                 # Set the code to produce plots for the cron jobs
                 # NOTE: Still need to specify --triggerList, --saveDirectory, and --fitFile
                 # NEEDS MORE TESTING
+                self.ops_dict["cronJob"] = True
                 self.do_cron_job = True
 
                 self.rate_monitor.use_pileup = True
@@ -333,9 +429,11 @@ class MonitorController:
                 #self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
                 self.rate_monitor.plotter.name_X = "< PU >"
                 self.rate_monitor.plotter.label_Y = "< PU >"
+
             elif label == "--updateOnlineFits":
                 # Creates fits and saves them to the Fits directory
                 # NEEDS TO BE IMPLEMENTED/TESTED
+                self.ops_dict["updateOnlineFits"] = True
                 self.rate_monitor.update_online_fits = True
 
                 self.rate_monitor.use_pileup = True
@@ -354,23 +452,29 @@ class MonitorController:
                 self.rate_monitor.plotter.save_root_file = False
 
                 self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
+
             elif label == "--createFit":
                 # Specify that we should create fits
+                self.ops_dict["createFit"] = True
                 self.rate_monitor.make_fits = True
 
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+
             elif label == "--multiFit":
                 # Specify that we should plot all of the fit functions on the same plot
                 #self.rate_monitor.make_fits = True
+                self.ops_dict["multiFit"] = True
 
                 self.rate_monitor.plotter.use_fit       = True
                 self.rate_monitor.plotter.use_multi_fit = True
                 self.rate_monitor.plotter.show_errors   = False
                 self.rate_monitor.plotter.show_eq       = False
+
             elif label == "--bestFit":
                 # Specify that only the best fit is to be used (as opposed to only the default one)
+                self.ops_dict["bestFit"] = True
                 self.rate_monitor.make_fits = True
 
                 self.rate_monitor.fitter.use_best_fit = True
@@ -378,36 +482,50 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit     = True
                 self.rate_monitor.plotter.show_errors = True
                 self.rate_monitor.plotter.show_eq     = True
+
             #elif label == "--vsInstLumi":
             #    # Plot vs the instantaenous luminosity
             #    self.rate_monitor.use_pileup = False
             #    self.rate_monitor.use_lumi = True
             #    self.rate_monitor.use_LS = False
+
             elif label == "--vsLS":
                 # Plot vs the LS
+                self.ops_dict["vsLS"] = True
                 self.rate_monitor.use_pileup = False
                 self.rate_monitor.use_lumi = False
                 self.rate_monitor.use_LS = True
+
             #elif label == "--useCrossSection":
             #    # Plot the (rate/inst. lumi) vs. <PU>
             #    self.rate_monitor.data_parser.normalize_bunches = False
             #    self.rate_monitor.data_parser.use_cross_section = True
+
             elif label == "--useFills":
                 # Specify that the data should fetched by fill number
+                self.ops_dict["useFills"] = True
                 self.rate_monitor.use_fills = True
                 self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
+
             elif label == "--useBunches":
                 # Don't try to normalize the rates by colliding bunches
+                self.ops_dict["useBunches"] = True
                 self.rate_monitor.data_parser.normalize_bunches = False
+
             elif label == "--compareFits":
                 data_dict = self.readDataListTextFile(str(op))
                 self.rate_monitor.fitter.data_dict = data_dict
                 self.rate_monitor.plotter.compare_fits = True
+                self.ops_dict["compareFits"] = self.readDataListTextFile(str(op))
+
             elif label == "--showFitRunGroups":
+                self.ops_dict["showFitRunGroups"] = True
                 self.rate_monitor.plotter.show_fit_run_groups = True
+
             elif label == "--dbConfigFile":
                 # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
                 print("DB Configuration file loaded")
+
             else:
                 print("Unimplemented option '%s'." % label)
                 return False
@@ -417,6 +535,8 @@ class MonitorController:
             arg_list = []
             for item in args:
                 arg_list.append(int(item))
+            self.usr_input_data_lst = arg_list
+
             if self.rate_monitor.use_fills:
                 self.rate_monitor.fill_list = arg_list
                 #self.rate_monitor.run_list = self.getRuns(arg_list)
@@ -426,6 +546,7 @@ class MonitorController:
                 #self.rate_monitor.run_list = arg_list
                 self.rate_monitor.fitter.data_dict['user_input'] = arg_list
 
+        #print ("args lst",arg_list)
         # Append the user specified fills or runs to the dictionary made from the compareFits text file 
         unique_runs = set()
         for data_group,runs in self.rate_monitor.fitter.data_dict.items():
@@ -545,6 +666,8 @@ class MonitorController:
             self.rate_monitor.object_list += list(hlt_triggers)
             self.rate_monitor.group_map = group_map
 
+        print ("\nOptions dictionary:",self.ops_dict)
+        print ("Data list:",self.usr_input_data_lst) 
         return True
 
     def readFits(self,fit_file):
