@@ -52,69 +52,11 @@ class MonitorController:
             "showFitRunGroups" : None,
         }
         self.usr_input_data_lst = None
+        #self.do_cron_job = False # A default option
 
-        #try:
-        #    opt, args = getopt.getopt(sys.argv[1:],"",[
-        #        "dbConfigFile=",
-        #        "fitFile=",
-        #        "triggerList=",
-        #        "saveDirectory=",
-        #        "useFit=",
-        #        "psFilter=",
-        #        "lsVeto=",
-        #        "pathVeto=",
-        #        "Secondary",
-        #        "datasetRate",
-        #        "L1ARate",
-        #        "streamRate",
-        #        "streamBandwidth",
-        #        "streamSize",
-        #        "cronJob",
-        #        "updateOnlineFits",
-        #        "createFit",
-        #        "multiFit",
-        #        "bestFit",
-        #        #"vsInstLumi", # Does not work properly, should look into this later
-        #        "vsLS",
-        #        #"useCrossSection", # Does not work properly, should look into this later
-        #        "useFills",
-        #        "useBunches",
-        #        "compareFits=",
-        #        "showFitRunGroups"
-        #    ])
-
-        #except:
-        #    print("Error getting options: command unrecognized. Exiting.")
-        #    return False
-
-
-        #dbConfigLoaded = False;
-        ## First, we need to init and connect to the database
-        #for label, op in opt:
-        #    if label == "--dbConfigFile":
-        #        dbConfigLoaded = True;
-        #        with open(str(op), 'r') as stream:
-        #            try:
-        #                dbCfg = yaml.safe_load(stream)
-        #            except yaml.YAMLError as exc:
-        #                print("Unable to read the given YAML database configuration file. Error:", exc)
-        #                # Exit with error, we can't continue without connecting to the DB
-        #                exit(1)
-        #        self.parser = DBParser(dbCfg)
-        #        self.rate_monitor = RateMonitor(dbCfg)
-        #    else:
-        #        pass
-
-        #if not dbConfigLoaded:
-        #    print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
-        #    # Exit with error, we can't continue without connecting to the DB
-        #    exit(1)
-
-        #self.rate_monitor.ops = opt
-
+    # Set the default values for variables
     def setDefaults(self):
 
-        # type: () -> None
         self.do_cron_job = False
 
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
@@ -161,392 +103,181 @@ class MonitorController:
         self.rate_monitor.plotter.ls_options['rm_bad_beams'] = False
         self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
 
-    # Use: Parses arguments from the command line and sets class variables
-    # Returns: True if parsing was successful, False if not
-    def parseArgs(self):
-
-        #print ("sys.argv[1:]",sys.argv[1:])
-        #print ("keys",list(self.ops_dict.keys()),type(list(self.ops_dict.keys())))
-        # Get the command line arguments
-        try:
-            opt, args = getopt.getopt(sys.argv[1:],"",list(self.ops_dict.keys()))
-            #opt, args = getopt.getopt(sys.argv[1:],"",[
-            #    "dbConfigFile=",
-            #    "fitFile=",
-            #    "triggerList=",
-            #    "saveDirectory=",
-            #    "useFit=",
-            #    "psFilter=",
-            #    "lsVeto=",
-            #    "pathVeto=",
-            #    "Secondary",
-            #    "datasetRate",
-            #    "L1ARate",
-            #    "streamRate",
-            #    "streamBandwidth",
-            #    "streamSize",
-            #    "cronJob",
-            #    "updateOnlineFits",
-            #    "createFit",
-            #    "multiFit",
-            #    "bestFit",
-            #    #"vsInstLumi",
-            #    "vsLS",
-            #    #"useCrossSection",
-            #    "useFills",
-            #    "useBunches",
-            #    "compareFits=",
-            #    "showFitRunGroups"
-            #])
-
-        except:
-            print("Error getting options: command unrecognized. Exiting.")
-            return False
-
-        dbConfigLoaded = False;
-        # First, we need to init and connect to the database
-        for label, op in opt:
-            if label == "--dbConfigFile":
-                dbConfigLoaded = True;
-                with open(str(op), 'r') as stream:
-                    try:
-                        dbCfg = yaml.safe_load(stream)
-                    except yaml.YAMLError as exc:
-                        print("Unable to read the given YAML database configuration file. Error:", exc)
-                        # Exit with error, we can't continue without connecting to the DB
-                        exit(1)
-                #print ("db cfg",dbCfg)
-                self.parser = DBParser(dbCfg)
-                self.rate_monitor = RateMonitor(dbCfg)
-                self.ops_dict["dbConfigFile="] = dbCfg
-            else:
-                pass
-
-        if not dbConfigLoaded:
-            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
-            # Exit with error, we can't continue without connecting to the DB
-            exit(1)
-
-        self.rate_monitor.ops = opt
-
-        # Set all of the default options
+    # Set variables based on options provided
+    def setOptions(self,ops_dict,data_lst):
+        self.parser = DBParser(ops_dict["dbConfigFile="])
+        self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
         self.setDefaults()
 
-        for label,op in opt:
-            if label == "--fitFile":
-                # Specify the .pkl file to be used to extract fits from
-                # TODO: Needs to be updated to account for the fact that the plotter is expecting a different input
-                #fits = self.readFits(str(op))
-                #self.rate_monitor.plotter.setFits(fits)
-                fit_info = self.readFits(str(op))
-                self.ops_dict["fitFile="] = fit_info
+        for op_name, op_val in ops_dict.items():
+            if op_val is not None:
+                print (op_name, op_val)
+                #if op_name == "dbConfigFile=":
+                    #self.parser = DBParser(op_val)
+                    #self.rate_monitor = RateMonitor(op_val)
+                if op_name == "fitFile=":
+                    fit_info = op_val
+                    self.rate_monitor.plotter.set_plotter_fits = True
+                    self.rate_monitor.plotter.use_fit     = True
+                    self.rate_monitor.plotter.show_errors = True
+                    self.rate_monitor.plotter.show_eq     = True
+                elif op_name == "triggerList=":
+                    trigger_list = op_val
+                    self.rate_monitor.object_list = trigger_list
+                    self.rate_monitor.data_parser.hlt_triggers = []
+                    self.rate_monitor.data_parser.l1_triggers = []
+                    for name in trigger_list:
+                        if name[0:4] == "HLT_":
+                            self.rate_monitor.data_parser.hlt_triggers.append(name)
+                        elif name[0:3] == "L1_":
+                            self.rate_monitor.data_parser.l1_triggers.append(name)
+                elif op_name == "saveDirectory=":
+                   self.rate_monitor.save_dir = op_val
+                elif op_name == "useFit=":
+                    self.rate_monitor.plotter.default_fit = op_val
+                    self.rate_monitor.make_fits  = True
+                    self.rate_monitor.plotter.use_multi_fit = False
+                    self.rate_monitor.plotter.use_fit     = True
+                    self.rate_monitor.plotter.show_errors = True
+                    self.rate_monitor.plotter.show_eq     = True
+                elif op_name == "psFilter=":
+                    self.rate_monitor.data_parser.psi_filter = op_val
+                    self.rate_monitor.data_parser.use_ps_mask = True
+                elif op_name == "lsVeto=":
+                    self.ops_dict["lsVeto="] = op_val
+                elif op_name == "pathVeto=":
+                    self.rate_monitor.data_parser.name_veto = op_val
+                elif op_name == "compareFits=":
+                    data_dict = op_val
+                    self.rate_monitor.fitter.data_dict = data_dict
+                    self.rate_monitor.plotter.compare_fits = True
+                elif op_name == "Secondary":
+                    self.rate_monitor.certify_mode = True
+                    self.rate_monitor.use_pileup   = False
+                    self.rate_monitor.use_lumi     = False
+                    self.rate_monitor.use_fills    = False
+                    self.rate_monitor.use_LS       = True
+                    self.rate_monitor.make_fits    = False
+                    self.rate_monitor.data_parser.use_L1_triggers    = True
+                    self.rate_monitor.data_parser.use_HLT_triggers   = True
+                    self.rate_monitor.data_parser.normalize_bunches  = False
+                    self.rate_monitor.data_parser.use_prescaled_rate = False
+                    self.rate_monitor.data_parser.max_deadtime       = 100.
+                    self.rate_monitor.plotter.use_fit        = True
+                    self.rate_monitor.plotter.save_root_file = True
+                elif op_name == "datasetRate":
+                    self.rate_monitor.data_parser.use_L1_triggers  = False
+                    self.rate_monitor.data_parser.use_HLT_triggers = False
+                    self.rate_monitor.data_parser.use_streams  = False 
+                    self.rate_monitor.data_parser.use_datasets = True
+                    self.rate_monitor.data_parser.use_L1A_rate = False
+                    self.rate_monitor.plotter.root_file_name   = "Dataset_Rates.root"
+                elif op_name == "L1ARate":
+                    self.rate_monitor.data_parser.use_L1_triggers  = False
+                    self.rate_monitor.data_parser.use_HLT_triggers = False
+                    self.rate_monitor.data_parser.use_streams  = False 
+                    self.rate_monitor.data_parser.use_datasets = False
+                    self.rate_monitor.data_parser.use_L1A_rate = True
+                    self.rate_monitor.plotter.root_file_name   = "L1A_Rates.root"
+                elif op_name == "streamRate":
+                    self.rate_monitor.data_parser.use_L1_triggers  = False
+                    self.rate_monitor.data_parser.use_HLT_triggers = False
+                    self.rate_monitor.data_parser.use_streams  = True 
+                    self.rate_monitor.data_parser.use_datasets = False
+                    self.rate_monitor.data_parser.use_L1A_rate = False
+                    self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
+                elif op_name == "streamBandwidth":
+                    self.rate_monitor.use_stream_bandwidth = True
+                    self.rate_monitor.data_parser.use_L1_triggers  = False
+                    self.rate_monitor.data_parser.use_HLT_triggers = False
+                    self.rate_monitor.data_parser.use_streams  = True 
+                    self.rate_monitor.data_parser.use_datasets = False
+                    self.rate_monitor.data_parser.use_L1A_rate = False
+                    self.rate_monitor.data_parser.normalize_bunches = False
+                    self.rate_monitor.plotter.root_file_name   = "Stream_Bandwidth.root"
+                elif op_name == "streamSize":
+                    self.rate_monitor.use_stream_size = True
+                    self.rate_monitor.data_parser.use_L1_triggers  = False
+                    self.rate_monitor.data_parser.use_HLT_triggers = False
+                    self.rate_monitor.data_parser.use_streams  = True 
+                    self.rate_monitor.data_parser.use_datasets = False
+                    self.rate_monitor.data_parser.use_L1A_rate = False
+                    self.rate_monitor.data_parser.normalize_bunches = False
+                    self.rate_monitor.plotter.root_file_name   = "Stream_Size.root"
+                elif op_name == "cronJob":
+                    self.do_cron_job = True
+                    self.rate_monitor.use_pileup   = True
+                    self.rate_monitor.use_fills    = False
+                    self.rate_monitor.make_fits    = False
+                    self.rate_monitor.use_grouping = True
+                    self.rate_monitor.data_parser.use_L1_triggers  = True
+                    self.rate_monitor.data_parser.use_HLT_triggers = True
+                    self.rate_monitor.data_parser.use_streams      = True
+                    self.rate_monitor.data_parser.use_datasets     = True
+                    self.rate_monitor.data_parser.use_L1A_rate     = True
+                    self.rate_monitor.plotter.color_by_fill = False
+                    self.rate_monitor.plotter.use_fit       = True
+                    self.rate_monitor.plotter.show_errors   = True
+                    self.rate_monitor.plotter.show_eq       = True
+                    self.rate_monitor.plotter.ls_options['show_bad_ls']  = True
+                    self.rate_monitor.plotter.ls_options['rm_bad_beams'] = True
+                    self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
+                    self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
+                    self.rate_monitor.plotter.name_X  = "< PU >"
+                    self.rate_monitor.plotter.label_Y = "< PU >"
+                elif op_name == "updateOnlineFits":
+                    self.rate_monitor.update_online_fits = True
+                    self.rate_monitor.use_pileup = True
+                    self.rate_monitor.make_fits  = False    # We make this false, since we need to make more then one fit file
+                    self.rate_monitor.data_parser.use_L1_triggers  = True
+                    self.rate_monitor.data_parser.use_HLT_triggers = True
+                    self.rate_monitor.data_parser.use_streams  = False
+                    self.rate_monitor.data_parser.use_datasets = False
+                    self.rate_monitor.data_parser.use_L1A_rate = False
+                    self.rate_monitor.plotter.use_fit     = True
+                    self.rate_monitor.plotter.show_errors = True
+                    self.rate_monitor.plotter.show_eq     = True
+                    self.rate_monitor.plotter.save_root_file = False
+                    self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
+                elif op_name == "createFit":
+                    self.rate_monitor.make_fits = True
+                    self.rate_monitor.plotter.use_fit     = True
+                    self.rate_monitor.plotter.show_errors = True
+                    self.rate_monitor.plotter.show_eq     = True
+                elif op_name == "multiFit":
+                    self.rate_monitor.plotter.use_fit       = True
+                    self.rate_monitor.plotter.use_multi_fit = True
+                    self.rate_monitor.plotter.show_errors   = False
+                    self.rate_monitor.plotter.show_eq       = False
+                elif op_name == "bestFit":
+                    self.rate_monitor.make_fits = True
+                    self.rate_monitor.fitter.use_best_fit = True
+                    self.rate_monitor.plotter.use_fit     = True
+                    self.rate_monitor.plotter.show_errors = True
+                    self.rate_monitor.plotter.show_eq     = True
+                elif op_name == "vsLS":
+                    self.rate_monitor.use_pileup = False
+                    self.rate_monitor.use_lumi = False
+                    self.rate_monitor.use_LS = True
+                elif op_name == "useFills":
+                    self.rate_monitor.use_fills = True
+                    self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
+                elif op_name == "useBunches":
+                    self.rate_monitor.data_parser.normalize_bunches = False
+                elif op_name == "showFitRunGroups":
+                    self.rate_monitor.plotter.show_fit_run_groups = True
+                else:
+                    print("Unimplemented option '%s'." % op_name)
+
+        # Process the runs and fills
+        arg_list = self.usr_input_data_lst
+        if self.rate_monitor.use_fills:
+            self.rate_monitor.fill_list = arg_list
+            self.rate_monitor.fitter.data_dict['user_input'] = self.getRuns(arg_list)
+        else:
+            self.rate_monitor.fill_list = []
+            self.rate_monitor.fitter.data_dict['user_input'] = arg_list
 
-                self.rate_monitor.plotter.set_plotter_fits = True
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-            elif label == "--triggerList":
-                # Specify the .list file that determines which triggers will be plotted
-                trigger_list = self.readTriggerList(str(op))
-                self.ops_dict["triggerList"] = trigger_list
-                self.rate_monitor.object_list = trigger_list
-                self.rate_monitor.data_parser.hlt_triggers = []
-                self.rate_monitor.data_parser.l1_triggers = []
-                for name in trigger_list:
-                    if name[0:4] == "HLT_":
-                        self.rate_monitor.data_parser.hlt_triggers.append(name)
-                    elif name[0:3] == "L1_":
-                        self.rate_monitor.data_parser.l1_triggers.append(name)
-
-            elif label == "--saveDirectory":
-                # Specify the directory that the plots will be saved to
-                # NOTE: Doesn't work with --Secondary option
-                self.ops_dict["saveDirectory="] = str(op)
-
-                self.rate_monitor.save_dir = str(op)
-
-            elif label == "--useFit":
-                # Use a specific fit type as the 'default' fit
-                # NEEDS TO BE IMPLEMENTED/TESTED
-
-                self.ops_dict["useFit="] = str(op)
-                self.rate_monitor.plotter.default_fit = str(op)
-
-                self.rate_monitor.make_fits  = True
-                self.rate_monitor.plotter.use_multi_fit = False
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-            elif label == "--psFilter":
-                # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
-
-                self.ops_dict["psFilter="] = [int(x) for x in str(op).split(',')]
-
-                self.rate_monitor.data_parser.use_ps_mask = True
-                self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
-
-            elif label == "--lsVeto":
-                # Specifiy certain LS to veto/remove from consideration
-
-                ls_veto = self.readLSVetoFile(str(op))
-                self.rate_monitor.data_parser.ls_veto = ls_veto
-                self.ops_dict["lsVeto="] = ls_veto
-
-            elif label == "--pathVeto":
-                # Specify certain paths to veto/remove from consideration
-                path_veto_list = self.readTriggerList(str(op))
-                self.rate_monitor.data_parser.name_veto = path_veto_list
-                self.ops_dict["pathVeto="] = path_veto_list
-
-            elif label == "--Secondary":
-                # Set the code to produce certification plots
-                # NOTE: Still need to specify --fitFile and --triggerList
-                # NEEDS TO BE IMPLEMENTED/TESTED
-
-                self.ops_dict["Secondary"] = True
-
-                self.rate_monitor.certify_mode = True
-
-                self.rate_monitor.use_pileup = False
-                self.rate_monitor.use_lumi   = False
-                self.rate_monitor.use_fills  = False
-                self.rate_monitor.use_LS     = True
-                self.rate_monitor.make_fits  = False
-
-                self.rate_monitor.data_parser.use_L1_triggers    = True
-                self.rate_monitor.data_parser.use_HLT_triggers   = True
-                self.rate_monitor.data_parser.normalize_bunches  = False
-                self.rate_monitor.data_parser.use_prescaled_rate = False
-
-                self.rate_monitor.data_parser.max_deadtime = 100.
-
-                self.rate_monitor.plotter.use_fit = True
-                self.rate_monitor.plotter.save_root_file = True
-
-            elif label == "--datasetRate":
-
-                self.ops_dict["datasetRate"] = True
-
-                # Make plots of dataset rates
-                self.rate_monitor.data_parser.use_L1_triggers  = False
-                self.rate_monitor.data_parser.use_HLT_triggers = False
-                self.rate_monitor.data_parser.use_streams  = False 
-                self.rate_monitor.data_parser.use_datasets = True
-                self.rate_monitor.data_parser.use_L1A_rate = False
-                
-                self.rate_monitor.plotter.root_file_name   = "Dataset_Rates.root"
-                #self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
-
-            elif label == "--L1ARate":
-                # Make plots of the L1A rate
-                self.ops_dict["L1ARate"] = True
-                self.rate_monitor.data_parser.use_L1_triggers  = False
-                self.rate_monitor.data_parser.use_HLT_triggers = False
-                self.rate_monitor.data_parser.use_streams  = False 
-                self.rate_monitor.data_parser.use_datasets = False
-                self.rate_monitor.data_parser.use_L1A_rate = True
-                
-                self.rate_monitor.plotter.root_file_name   = "L1A_Rates.root"
-                #self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
-
-            elif label == "--streamRate":
-                # Make plots of the stream rates
-                self.ops_dict["streamRate"] = True
-                self.rate_monitor.data_parser.use_L1_triggers  = False
-                self.rate_monitor.data_parser.use_HLT_triggers = False
-                self.rate_monitor.data_parser.use_streams  = True 
-                self.rate_monitor.data_parser.use_datasets = False
-                self.rate_monitor.data_parser.use_L1A_rate = False
-                
-                self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
-                #self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
-
-            elif label == "--streamBandwidth":
-                # Make plots of the stream bandwidths
-                # NEEDS TO BE TESTED
-                self.ops_dict["streamBandwidth"] = True
-                self.rate_monitor.use_stream_bandwidth = True
-
-                self.rate_monitor.data_parser.use_L1_triggers  = False
-                self.rate_monitor.data_parser.use_HLT_triggers = False
-                self.rate_monitor.data_parser.use_streams  = True 
-                self.rate_monitor.data_parser.use_datasets = False
-                self.rate_monitor.data_parser.use_L1A_rate = False
-                
-                self.rate_monitor.data_parser.normalize_bunches = False
-
-                self.rate_monitor.plotter.root_file_name   = "Stream_Bandwidth.root"
-
-            elif label == "--streamSize":
-                # Make plots of stream sizes
-                # NEEDS TO BE TESTED
-                self.ops_dict["streamSize"] = True
-                self.rate_monitor.use_stream_size = True
-
-                self.rate_monitor.data_parser.use_L1_triggers  = False
-                self.rate_monitor.data_parser.use_HLT_triggers = False
-                self.rate_monitor.data_parser.use_streams  = True 
-                self.rate_monitor.data_parser.use_datasets = False
-                self.rate_monitor.data_parser.use_L1A_rate = False
-
-                self.rate_monitor.data_parser.normalize_bunches = False
-                
-                self.rate_monitor.plotter.root_file_name   = "Stream_Size.root"
-
-            elif label == "--cronJob":
-                # Set the code to produce plots for the cron jobs
-                # NOTE: Still need to specify --triggerList, --saveDirectory, and --fitFile
-                # NEEDS MORE TESTING
-                self.ops_dict["cronJob"] = True
-                self.do_cron_job = True
-
-                self.rate_monitor.use_pileup = True
-                self.rate_monitor.use_fills  = False
-                self.rate_monitor.make_fits  = False
-
-                self.rate_monitor.use_grouping = True
-
-                self.rate_monitor.data_parser.use_L1_triggers  = True
-                self.rate_monitor.data_parser.use_HLT_triggers = True
-                self.rate_monitor.data_parser.use_streams  = True
-                self.rate_monitor.data_parser.use_datasets = True
-                #self.rate_monitor.data_parser.use_L1A_rate = False
-                self.rate_monitor.data_parser.use_L1A_rate = True
-
-                self.rate_monitor.plotter.color_by_fill = False
-
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-                self.rate_monitor.plotter.ls_options['show_bad_ls']  = True
-                self.rate_monitor.plotter.ls_options['rm_bad_beams'] = True
-                self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
-
-                self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
-                #self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
-                self.rate_monitor.plotter.name_X = "< PU >"
-                self.rate_monitor.plotter.label_Y = "< PU >"
-
-            elif label == "--updateOnlineFits":
-                # Creates fits and saves them to the Fits directory
-                # NEEDS TO BE IMPLEMENTED/TESTED
-                self.ops_dict["updateOnlineFits"] = True
-                self.rate_monitor.update_online_fits = True
-
-                self.rate_monitor.use_pileup = True
-                self.rate_monitor.make_fits  = False    # We make this false, since we need to make more then one fit file
-
-                self.rate_monitor.data_parser.use_L1_triggers  = True
-                self.rate_monitor.data_parser.use_HLT_triggers = True
-                self.rate_monitor.data_parser.use_streams  = False
-                self.rate_monitor.data_parser.use_datasets = False
-                self.rate_monitor.data_parser.use_L1A_rate = False
-
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-                self.rate_monitor.plotter.save_root_file = False
-
-                self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
-
-            elif label == "--createFit":
-                # Specify that we should create fits
-                self.ops_dict["createFit"] = True
-                self.rate_monitor.make_fits = True
-
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-            elif label == "--multiFit":
-                # Specify that we should plot all of the fit functions on the same plot
-                #self.rate_monitor.make_fits = True
-                self.ops_dict["multiFit"] = True
-
-                self.rate_monitor.plotter.use_fit       = True
-                self.rate_monitor.plotter.use_multi_fit = True
-                self.rate_monitor.plotter.show_errors   = False
-                self.rate_monitor.plotter.show_eq       = False
-
-            elif label == "--bestFit":
-                # Specify that only the best fit is to be used (as opposed to only the default one)
-                self.ops_dict["bestFit"] = True
-                self.rate_monitor.make_fits = True
-
-                self.rate_monitor.fitter.use_best_fit = True
-
-                self.rate_monitor.plotter.use_fit     = True
-                self.rate_monitor.plotter.show_errors = True
-                self.rate_monitor.plotter.show_eq     = True
-
-            #elif label == "--vsInstLumi":
-            #    # Plot vs the instantaenous luminosity
-            #    self.rate_monitor.use_pileup = False
-            #    self.rate_monitor.use_lumi = True
-            #    self.rate_monitor.use_LS = False
-
-            elif label == "--vsLS":
-                # Plot vs the LS
-                self.ops_dict["vsLS"] = True
-                self.rate_monitor.use_pileup = False
-                self.rate_monitor.use_lumi = False
-                self.rate_monitor.use_LS = True
-
-            #elif label == "--useCrossSection":
-            #    # Plot the (rate/inst. lumi) vs. <PU>
-            #    self.rate_monitor.data_parser.normalize_bunches = False
-            #    self.rate_monitor.data_parser.use_cross_section = True
-
-            elif label == "--useFills":
-                # Specify that the data should fetched by fill number
-                self.ops_dict["useFills"] = True
-                self.rate_monitor.use_fills = True
-                self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
-
-            elif label == "--useBunches":
-                # Don't try to normalize the rates by colliding bunches
-                self.ops_dict["useBunches"] = True
-                self.rate_monitor.data_parser.normalize_bunches = False
-
-            elif label == "--compareFits":
-                data_dict = self.readDataListTextFile(str(op))
-                self.rate_monitor.fitter.data_dict = data_dict
-                self.rate_monitor.plotter.compare_fits = True
-                self.ops_dict["compareFits"] = self.readDataListTextFile(str(op))
-
-            elif label == "--showFitRunGroups":
-                self.ops_dict["showFitRunGroups"] = True
-                self.rate_monitor.plotter.show_fit_run_groups = True
-
-            elif label == "--dbConfigFile":
-                # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
-                print("DB Configuration file loaded")
-
-            else:
-                print("Unimplemented option '%s'." % label)
-                return False
-
-        # Process Arguments
-        if len(args) > 0: # There are arguments to look at
-            arg_list = []
-            for item in args:
-                arg_list.append(int(item))
-            self.usr_input_data_lst = arg_list
-
-            if self.rate_monitor.use_fills:
-                self.rate_monitor.fill_list = arg_list
-                #self.rate_monitor.run_list = self.getRuns(arg_list)
-                self.rate_monitor.fitter.data_dict['user_input'] = self.getRuns(arg_list)
-            else:
-                self.rate_monitor.fill_list = []
-                #self.rate_monitor.run_list = arg_list
-                self.rate_monitor.fitter.data_dict['user_input'] = arg_list
-
-        #print ("args lst",arg_list)
         # Append the user specified fills or runs to the dictionary made from the compareFits text file 
         unique_runs = set()
         for data_group,runs in self.rate_monitor.fitter.data_dict.items():
@@ -558,11 +289,11 @@ class MonitorController:
             print("ERROR: No runs specified!")
             return False
 
-        #if self.set_plotter_fits:
+        # Could go inside fitFile option stuff?
         if self.rate_monitor.plotter.set_plotter_fits:
-            #self.rate_monitor.plotter.setFits(fits)
             self.rate_monitor.plotter.setFits(fit_info)
 
+        # Cron job stuff:
         # This needs to be done after we have our run_list, otherwise we can't get the run_list!
         if self.do_cron_job:
             if len(list(self.rate_monitor.plotter.fits.keys())) == 0:
@@ -574,48 +305,9 @@ class MonitorController:
 
             run_list = sorted(self.rate_monitor.run_list)
 
-            # We check that each run used a physics menu
-            #tmp_list = []
-            #for run in run_list:
-            #    if self.parser.getRunInfo(run):
-            #        if self.parser.HLT_Key[:14] == "/cdaq/physics/":
-            #            tmp_list.append(run)
-            #run_list = list(tmp_list)
-
             if len(run_list) == 0:
                 print("No valid runs. Exiting")
                 return False
-
-            ## Find which HLT paths are included in which streams
-            #try:
-            #    # {'stream': ['trigger_name'] }
-            #    #stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
-            #    stream_map = {}
-            #    for run in run_list:
-            #        tmp_map = self.parser.getPathsInStreams(run)
-            #        for stream in tmp_map:
-            #            if not stream_map.has_key(stream):
-            #                stream_map[stream] = set()
-            #            stream_map[stream] = stream_map[stream] | set(tmp_map[stream])
-            #    for stream in stream_map:
-            #        stream_map[stream] = list(stream_map[stream])
-            #except:
-            #    print "ERROR: Failed to get stream map"
-            #    return False
-            ## Find which HLT paths are included in which datasets
-            #try:
-            #    dataset_map = {}
-            #    for run in run_list:
-            #        tmp_map = self.parser.getPathsInDatasets(run)
-            #        for dataset in tmp_map:
-            #            if not dataset_map.has_key(dataset):
-            #                dataset_map[dataset] = set()
-            #            dataset_map[dataset] = dataset_map[dataset] | set(tmp_map[dataset])
-            #    for dataset in dataset_map:
-            #        dataset_map[dataset] = list(dataset_map[dataset])
-            #except:
-            #    print "ERROR: Failed to get dataset map"
-            #    return False
 
             # Find which HLT paths are included in which streams/datasets
             try:
@@ -666,8 +358,454 @@ class MonitorController:
             self.rate_monitor.object_list += list(hlt_triggers)
             self.rate_monitor.group_map = group_map
 
+    # Use: Parses arguments from the command line and sets class variables
+    # Returns: True if parsing was successful, False if not
+    def parseArgs(self):
+
+        #print ("sys.argv[1:]",sys.argv[1:])
+        #print ("keys",list(self.ops_dict.keys()),type(list(self.ops_dict.keys())))
+        # Get the command line arguments
+        try:
+            opt, args = getopt.getopt(sys.argv[1:],"",list(self.ops_dict.keys()))
+        except:
+            print("Error getting options: command unrecognized. Exiting.")
+            return False
+
+        dbConfigLoaded = False;
+        # First, we need to init and connect to the database
+        for label, op in opt:
+            if label == "--dbConfigFile":
+                dbConfigLoaded = True;
+                with open(str(op), 'r') as stream:
+                    try:
+                        dbCfg = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        print("Unable to read the given YAML database configuration file. Error:", exc)
+                        # Exit with error, we can't continue without connecting to the DB
+                        exit(1)
+                #self.parser = DBParser(dbCfg)
+                #self.rate_monitor = RateMonitor(dbCfg)
+                self.ops_dict["dbConfigFile="] = dbCfg
+            else:
+                pass
+
+        if not dbConfigLoaded:
+            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
+            # Exit with error, we can't continue without connecting to the DB
+            exit(1)
+
+        #self.rate_monitor.ops = opt # Move this to somewhere after we've done self.rate_monitor = RateMonitor(dbCfg) ...
+
+        # Set all of the default options (move this to be after we've done the db config stuff)
+        #self.setDefaults()
+
+        for label,op in opt:
+            if label == "--fitFile":
+                # Specify the .pkl file to be used to extract fits from
+                # TODO: Needs to be updated to account for the fact that the plotter is expecting a different input
+                #fits = self.readFits(str(op))
+                #self.rate_monitor.plotter.setFits(fits)
+                fit_info = self.readFits(str(op))
+                self.ops_dict["fitFile="] = fit_info
+
+                #self.rate_monitor.plotter.set_plotter_fits = True
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+
+            elif label == "--triggerList":
+                # Specify the .list file that determines which triggers will be plotted
+                trigger_list = self.readTriggerList(str(op))
+                self.ops_dict["triggerList="] = trigger_list
+                #self.rate_monitor.object_list = trigger_list
+                #self.rate_monitor.data_parser.hlt_triggers = []
+                #self.rate_monitor.data_parser.l1_triggers = []
+                #for name in trigger_list:
+                #    if name[0:4] == "HLT_":
+                #        self.rate_monitor.data_parser.hlt_triggers.append(name)
+                #    elif name[0:3] == "L1_":
+                #        self.rate_monitor.data_parser.l1_triggers.append(name)
+
+            elif label == "--saveDirectory":
+                # Specify the directory that the plots will be saved to
+                # NOTE: Doesn't work with --Secondary option
+                self.ops_dict["saveDirectory="] = str(op)
+
+                #self.rate_monitor.save_dir = str(op)
+
+            elif label == "--useFit":
+                # Use a specific fit type as the 'default' fit
+                # NEEDS TO BE IMPLEMENTED/TESTED
+
+                self.ops_dict["useFit="] = str(op)
+                #self.rate_monitor.plotter.default_fit = str(op)
+                #self.rate_monitor.make_fits  = True
+                #self.rate_monitor.plotter.use_multi_fit = False
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+
+            elif label == "--psFilter":
+                # Specify which prescale indicies to use, ex: '--psFilter=1,2,3' will only use PSI 1,2,3
+
+                self.ops_dict["psFilter="] = [int(x) for x in str(op).split(',')]
+
+                #self.rate_monitor.data_parser.use_ps_mask = True
+                #self.rate_monitor.data_parser.psi_filter = [int(x) for x in str(op).split(',')]
+
+            elif label == "--lsVeto":
+                # Specifiy certain LS to veto/remove from consideration
+
+                ls_veto = self.readLSVetoFile(str(op))
+                self.ops_dict["lsVeto="] = ls_veto
+                #self.rate_monitor.data_parser.ls_veto = ls_veto
+
+            elif label == "--pathVeto":
+                # Specify certain paths to veto/remove from consideration
+                path_veto_list = self.readTriggerList(str(op))
+                self.ops_dict["pathVeto="] = path_veto_list
+                #self.rate_monitor.data_parser.name_veto = path_veto_list
+
+            elif label == "--Secondary":
+                # Set the code to produce certification plots
+                # NOTE: Still need to specify --fitFile and --triggerList
+                # NEEDS TO BE IMPLEMENTED/TESTED
+
+                self.ops_dict["Secondary"] = True
+
+                #self.rate_monitor.certify_mode = True
+                #self.rate_monitor.use_pileup = False
+                #self.rate_monitor.use_lumi   = False
+                #self.rate_monitor.use_fills  = False
+                #self.rate_monitor.use_LS     = True
+                #self.rate_monitor.make_fits  = False
+                #self.rate_monitor.data_parser.use_L1_triggers    = True
+                #self.rate_monitor.data_parser.use_HLT_triggers   = True
+                #self.rate_monitor.data_parser.normalize_bunches  = False
+                #self.rate_monitor.data_parser.use_prescaled_rate = False
+                #self.rate_monitor.data_parser.max_deadtime = 100.
+                #self.rate_monitor.plotter.use_fit = True
+                #self.rate_monitor.plotter.save_root_file = True
+
+            elif label == "--datasetRate":
+                self.ops_dict["datasetRate"] = True
+                # Make plots of dataset rates
+                #self.rate_monitor.data_parser.use_L1_triggers  = False
+                #self.rate_monitor.data_parser.use_HLT_triggers = False
+                #self.rate_monitor.data_parser.use_streams  = False 
+                #self.rate_monitor.data_parser.use_datasets = True
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.plotter.root_file_name   = "Dataset_Rates.root"
+                ##self.rate_monitor.plotter.label_Y = "dataset rate / num colliding bx [Hz]"
+
+            elif label == "--L1ARate":
+                # Make plots of the L1A rate
+                self.ops_dict["L1ARate"] = True
+                #self.rate_monitor.data_parser.use_L1_triggers  = False
+                #self.rate_monitor.data_parser.use_HLT_triggers = False
+                #self.rate_monitor.data_parser.use_streams  = False 
+                #self.rate_monitor.data_parser.use_datasets = False
+                #self.rate_monitor.data_parser.use_L1A_rate = True
+                #self.rate_monitor.plotter.root_file_name   = "L1A_Rates.root"
+                ##self.rate_monitor.plotter.label_Y = "L1A rate / num colliding bx [Hz]"
+
+            elif label == "--streamRate":
+                # Make plots of the stream rates
+                self.ops_dict["streamRate"] = True
+                #self.rate_monitor.data_parser.use_L1_triggers  = False
+                #self.rate_monitor.data_parser.use_HLT_triggers = False
+                #self.rate_monitor.data_parser.use_streams  = True 
+                #self.rate_monitor.data_parser.use_datasets = False
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
+                ##self.rate_monitor.plotter.label_Y = "stream rate / num colliding bx [Hz]"
+
+            elif label == "--streamBandwidth":
+                # Make plots of the stream bandwidths
+                # NEEDS TO BE TESTED
+                self.ops_dict["streamBandwidth"] = True
+                #self.rate_monitor.use_stream_bandwidth = True
+                #self.rate_monitor.data_parser.use_L1_triggers  = False
+                #self.rate_monitor.data_parser.use_HLT_triggers = False
+                #self.rate_monitor.data_parser.use_streams  = True 
+                #self.rate_monitor.data_parser.use_datasets = False
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.data_parser.normalize_bunches = False
+                #self.rate_monitor.plotter.root_file_name   = "Stream_Bandwidth.root"
+
+            elif label == "--streamSize":
+                # Make plots of stream sizes
+                # NEEDS TO BE TESTED
+                self.ops_dict["streamSize"] = True
+                #self.rate_monitor.use_stream_size = True
+                #self.rate_monitor.data_parser.use_L1_triggers  = False
+                #self.rate_monitor.data_parser.use_HLT_triggers = False
+                #self.rate_monitor.data_parser.use_streams  = True 
+                #self.rate_monitor.data_parser.use_datasets = False
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.data_parser.normalize_bunches = False
+                #self.rate_monitor.plotter.root_file_name   = "Stream_Size.root"
+
+            elif label == "--cronJob":
+                # Set the code to produce plots for the cron jobs
+                # NOTE: Still need to specify --triggerList, --saveDirectory, and --fitFile
+                # NEEDS MORE TESTING
+                self.ops_dict["cronJob"] = True
+                #self.do_cron_job = True
+                #self.rate_monitor.use_pileup = True
+                #self.rate_monitor.use_fills  = False
+                #self.rate_monitor.make_fits  = False
+                #self.rate_monitor.use_grouping = True
+                #self.rate_monitor.data_parser.use_L1_triggers  = True
+                #self.rate_monitor.data_parser.use_HLT_triggers = True
+                #self.rate_monitor.data_parser.use_streams  = True
+                #self.rate_monitor.data_parser.use_datasets = True
+                ###self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.data_parser.use_L1A_rate = True
+                #self.rate_monitor.plotter.color_by_fill = False
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+                #self.rate_monitor.plotter.ls_options['show_bad_ls']  = True
+                #self.rate_monitor.plotter.ls_options['rm_bad_beams'] = True
+                #self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
+                #self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
+                ###self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
+                #self.rate_monitor.plotter.name_X = "< PU >"
+                #self.rate_monitor.plotter.label_Y = "< PU >"
+
+            elif label == "--updateOnlineFits":
+                # Creates fits and saves them to the Fits directory
+                # NEEDS TO BE IMPLEMENTED/TESTED
+                self.ops_dict["updateOnlineFits"] = True
+                #self.rate_monitor.update_online_fits = True
+                #self.rate_monitor.use_pileup = True
+                #self.rate_monitor.make_fits  = False    # We make this false, since we need to make more then one fit file
+                #self.rate_monitor.data_parser.use_L1_triggers  = True
+                #self.rate_monitor.data_parser.use_HLT_triggers = True
+                #self.rate_monitor.data_parser.use_streams  = False
+                #self.rate_monitor.data_parser.use_datasets = False
+                #self.rate_monitor.data_parser.use_L1A_rate = False
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+                #self.rate_monitor.plotter.save_root_file = False
+                #self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
+
+            elif label == "--createFit":
+                # Specify that we should create fits
+                self.ops_dict["createFit"] = True
+                #self.rate_monitor.make_fits = True
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+
+            elif label == "--multiFit":
+                # Specify that we should plot all of the fit functions on the same plot
+                #self.rate_monitor.make_fits = True
+                self.ops_dict["multiFit"] = True
+                #self.rate_monitor.plotter.use_fit       = True
+                #self.rate_monitor.plotter.use_multi_fit = True
+                #self.rate_monitor.plotter.show_errors   = False
+                #self.rate_monitor.plotter.show_eq       = False
+
+            elif label == "--bestFit":
+                # Specify that only the best fit is to be used (as opposed to only the default one)
+                self.ops_dict["bestFit"] = True
+                #self.rate_monitor.make_fits = True
+                #self.rate_monitor.fitter.use_best_fit = True
+                #self.rate_monitor.plotter.use_fit     = True
+                #self.rate_monitor.plotter.show_errors = True
+                #self.rate_monitor.plotter.show_eq     = True
+
+            #elif label == "--vsInstLumi":
+            #    # Plot vs the instantaenous luminosity
+            #    self.rate_monitor.use_pileup = False
+            #    self.rate_monitor.use_lumi = True
+            #    self.rate_monitor.use_LS = False
+
+            elif label == "--vsLS":
+                # Plot vs the LS
+                self.ops_dict["vsLS"] = True
+                #self.rate_monitor.use_pileup = False
+                #self.rate_monitor.use_lumi = False
+                #self.rate_monitor.use_LS = True
+
+            #elif label == "--useCrossSection":
+            #    # Plot the (rate/inst. lumi) vs. <PU>
+            #    self.rate_monitor.data_parser.normalize_bunches = False
+            #    self.rate_monitor.data_parser.use_cross_section = True
+
+            elif label == "--useFills":
+                # Specify that the data should fetched by fill number
+                self.ops_dict["useFills"] = True
+                #self.rate_monitor.use_fills = True
+                #self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
+
+            elif label == "--useBunches":
+                # Don't try to normalize the rates by colliding bunches
+                self.ops_dict["useBunches"] = True
+                #self.rate_monitor.data_parser.normalize_bunches = False
+
+            elif label == "--compareFits":
+                #data_dict = self.readDataListTextFile(str(op))
+                #self.rate_monitor.fitter.data_dict = data_dict
+                #self.rate_monitor.plotter.compare_fits = True
+                self.ops_dict["compareFits"] = self.readDataListTextFile(str(op))
+
+            elif label == "--showFitRunGroups":
+                self.ops_dict["showFitRunGroups"] = True
+                #self.rate_monitor.plotter.show_fit_run_groups = True
+
+            elif label == "--dbConfigFile":
+                # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
+                print("DB Configuration file loaded")
+
+            else:
+                print("Unimplemented option '%s'." % label)
+                return False
+
+        # Process Arguments
+        if len(args) > 0: # There are arguments to look at
+            arg_list = []
+            for item in args:
+                arg_list.append(int(item))
+            self.usr_input_data_lst = arg_list
+
+       #     if self.rate_monitor.use_fills:
+       #         self.rate_monitor.fill_list = arg_list
+       #         #self.rate_monitor.run_list = self.getRuns(arg_list)
+       #         self.rate_monitor.fitter.data_dict['user_input'] = self.getRuns(arg_list)
+       #     else:
+       #         self.rate_monitor.fill_list = []
+       #         #self.rate_monitor.run_list = arg_list
+       #         self.rate_monitor.fitter.data_dict['user_input'] = arg_list
+
+       # #print ("args lst",arg_list)
+       # # Append the user specified fills or runs to the dictionary made from the compareFits text file 
+       # unique_runs = set()
+       # for data_group,runs in self.rate_monitor.fitter.data_dict.items():
+       #         unique_runs = unique_runs.union(runs)
+       # self.rate_monitor.run_list = list(unique_runs)
+       # #print self.rate_monitor.run_list 
+
+       # if len(self.rate_monitor.run_list) == 0:
+       #     print("ERROR: No runs specified!")
+       #     return False
+
+       # #if self.set_plotter_fits:
+       # if self.rate_monitor.plotter.set_plotter_fits:
+       #     #self.rate_monitor.plotter.setFits(fits)
+       #     self.rate_monitor.plotter.setFits(fit_info)
+
+        ## This needs to be done after we have our run_list, otherwise we can't get the run_list!
+        #if self.do_cron_job:
+        #    if len(list(self.rate_monitor.plotter.fits.keys())) == 0:
+        #        print("WARNING: No fit file specified!")
+        #        self.rate_monitor.plotter.use_fit = False
+
+        #    if len(self.rate_monitor.object_list) == 0:
+        #        print("WARNING: No trigger list specified! Plotting all triggers...")
+
+        #    run_list = sorted(self.rate_monitor.run_list)
+
+        #    # We check that each run used a physics menu
+        #    #tmp_list = []
+        #    #for run in run_list:
+        #    #    if self.parser.getRunInfo(run):
+        #    #        if self.parser.HLT_Key[:14] == "/cdaq/physics/":
+        #    #            tmp_list.append(run)
+        #    #run_list = list(tmp_list)
+
+        #    if len(run_list) == 0:
+        #        print("No valid runs. Exiting")
+        #        return False
+
+        #    ## Find which HLT paths are included in which streams
+        #    #try:
+        #    #    # {'stream': ['trigger_name'] }
+        #    #    #stream_map = self.parser.getPathsInStreams(run_list[-1])    # Use the most recent run to generate the map
+        #    #    stream_map = {}
+        #    #    for run in run_list:
+        #    #        tmp_map = self.parser.getPathsInStreams(run)
+        #    #        for stream in tmp_map:
+        #    #            if not stream_map.has_key(stream):
+        #    #                stream_map[stream] = set()
+        #    #            stream_map[stream] = stream_map[stream] | set(tmp_map[stream])
+        #    #    for stream in stream_map:
+        #    #        stream_map[stream] = list(stream_map[stream])
+        #    #except:
+        #    #    print "ERROR: Failed to get stream map"
+        #    #    return False
+        #    ## Find which HLT paths are included in which datasets
+        #    #try:
+        #    #    dataset_map = {}
+        #    #    for run in run_list:
+        #    #        tmp_map = self.parser.getPathsInDatasets(run)
+        #    #        for dataset in tmp_map:
+        #    #            if not dataset_map.has_key(dataset):
+        #    #                dataset_map[dataset] = set()
+        #    #            dataset_map[dataset] = dataset_map[dataset] | set(tmp_map[dataset])
+        #    #    for dataset in dataset_map:
+        #    #        dataset_map[dataset] = list(dataset_map[dataset])
+        #    #except:
+        #    #    print "ERROR: Failed to get dataset map"
+        #    #    return False
+
+        #    # Find which HLT paths are included in which streams/datasets
+        #    try:
+        #        path_mapping = {}
+        #        for run in run_list:
+        #            tmp_map = self.parser.getPathsInDatasets(run)
+        #            #tmp_map = self.parser.getPathsInStreams(run)
+        #            for group_name in tmp_map:
+        #                if group_name not in path_mapping:
+        #                    path_mapping[group_name] = set()
+        #                path_mapping[group_name] = path_mapping[group_name] | set(tmp_map[group_name])
+        #        for group_name in path_mapping:
+        #            path_mapping[group_name] = list(path_mapping[group_name])
+        #    except:
+        #        print("ERROR: Failed to get stream/dataset map")
+        #        return False
+
+        #    group_map = {}
+
+        #    # Add specific triggers to monitor to the group map, list of all objects from .list file
+        #    group_map["Monitored_Triggers"] = list(self.rate_monitor.object_list)
+
+        #    # We look for triggers in all runs to ensure we don't miss any (this should be unnecessary for the cron job though)
+        #    L1_triggers = set()
+        #    for run in sorted(run_list):
+        #        tmp_list = self.parser.getL1Triggers(run)
+        #        for item in tmp_list:
+        #            L1_triggers.add(item)
+
+        #    # Add L1 triggers to the group map, list of all L1 triggers
+        #    group_map["L1_Triggers"] = list(L1_triggers)
+        #    self.rate_monitor.data_parser.l1_triggers = list(L1_triggers)
+
+        #    # Add HLT triggers to the group map
+        #    hlt_triggers = set()
+        #    for path_owner in path_mapping:
+        #        group_map[path_owner] = path_mapping[path_owner]
+        #        for item in path_mapping[path_owner]:
+        #            hlt_triggers.add(item)
+
+        #    # Make a group for all HLT triggers
+        #    group_map["HLT_Triggers"] = list(hlt_triggers)
+
+        #    self.rate_monitor.data_parser.hlt_triggers = list(hlt_triggers)
+
+        #    # Update the object_list to include all the L1/HLT triggers in the menu
+        #    self.rate_monitor.object_list += list(L1_triggers)
+        #    self.rate_monitor.object_list += list(hlt_triggers)
+        #    self.rate_monitor.group_map = group_map
+
         print ("\nOptions dictionary:",self.ops_dict)
         print ("Data list:",self.usr_input_data_lst) 
+        self.setOptions(self.ops_dict,self.usr_input_data_lst)
+        #self.setDefaults()
+        self.rate_monitor.ops = opt 
         return True
 
     def readFits(self,fit_file):
