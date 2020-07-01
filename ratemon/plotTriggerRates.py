@@ -62,9 +62,7 @@ class MonitorController:
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
         self.rate_monitor.object_list = []
 
-        #self.set_plotter_fits = False
         self.rate_monitor.plotter.set_plotter_fits = False
-
         self.rate_monitor.plotter.compare_fits = False
 
         self.rate_monitor.use_fills          = False
@@ -113,7 +111,8 @@ class MonitorController:
 
         # Loop over options and set class variables
         for op_name, op_val in ops_dict.items():
-            if op_val is not None:
+            if op_val is not None and op_val is not False: # Should think more about this if statement and edge cases...
+            #if op_val or op_val is 0:
                 #print ("\tk,v:",op_name, op_val)
                 if op_name == "dbConfigFile=":
                     pass # DB cfg already implemented
@@ -638,11 +637,6 @@ class MonitorController:
         self.rate_monitor.plotter.fill_map = fill_map
         return run_list
 
-    # Use: Runs the rateMonitor object using parameters supplied as command line arguments
-    def run(self):
-        # type: () -> None
-        if self.parseArgs(): self.rate_monitor.run()
-
     def readDataListTextFile(self,datalist_file):
         path = datalist_file
         f = open(path,'r')
@@ -674,6 +668,25 @@ class MonitorController:
                 dict1[key] = self.getRuns(dict1[key])
         f.close()
         return dict1
+
+    # Use: Runs the rateMonitor object using parameters supplied as command line arguments
+    def run(self):
+        if self.parseArgs():
+            self.rate_monitor.run()
+
+    def runStandalone(self,**kwargs):
+        # Fill in self.ops_dict to pass to setOptions
+        for k,v in kwargs.items():
+            if k in self.ops_dict:
+                self.ops_dict[k] = v
+            elif k == "data_lst":
+                self.usr_input_data_lst = v
+            else:
+                print("\nError: Unknown option",k,", raising exception.")
+                raise Exception
+        print (self.usr_input_data_lst, self.ops_dict)
+        self.setOptions(self.ops_dict,self.usr_input_data_lst)
+        self.rate_monitor.run()
 
 
 ## ----------- End of class MonitorController ------------ #
