@@ -245,6 +245,7 @@ class RateMonitor:
             #self.printHtml(plotted_objects,self.plotter.save_dir)
             self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
             counter += len(plotted_objects)
+        return plotted_objects
         print("Total plot count: %d" % counter)
 
     # Makes some basic checks to ensure that the specified options don't create conflicting problems
@@ -381,7 +382,7 @@ class RateMonitor:
             prog_counter += 1
             if _object not in self.plotter.plotting_data:
                 # No valid data points could be found for _object in any of the runs
-                print "\tWARNING: Unknown object - %s" % _object
+                print("\tWARNING: Unknown object - %s" % _object)
                 rundata["plots"][_object] = "NODATA"
                 continue
             self.formatLabels(_object)
@@ -394,7 +395,7 @@ class RateMonitor:
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
-        runnumber = self.plotter.plotting_data[self.plotter.plotting_data.keys()[0]].keys()[0]
+        runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
         
         rundata["runnumber"] = runnumber
 
@@ -426,7 +427,7 @@ class RateMonitor:
                   ".json", "w") as out_file:
             json.dump(rundata, out_file)
 
-        return plotted_objects
+        return rundata
 
     # Formats the plot labels based on the type of object being plotted
     # TODO: Might want to move this (along with makePlots() into PlotMaker.py),
