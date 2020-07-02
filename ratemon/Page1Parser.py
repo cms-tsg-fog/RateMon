@@ -1,6 +1,6 @@
-from HTMLParser import HTMLParser
-from urllib2 import urlopen
-import cPickle as pickle
+from html.parser import HTMLParser
+from urllib.request import urlopen
+import pickle as pickle
 import sys
 
 class Page1Parser(HTMLParser):
@@ -37,11 +37,11 @@ class Page1Parser(HTMLParser):
         self.hyperlinks = []
         try:
             req = urlopen(url)
-            print req
+            print(req)
             self.feed(req.read())
         except:
-            print "Error Getting page: "+url
-            print "Please retry.  If problem persists, contact developer"
+            print("Error Getting page: "+url)
+            print("Please retry.  If problem persists, contact developer")
             sys.exit(1)
             
     def handle_starttag(self,tag,attrs):
@@ -84,7 +84,7 @@ class Page1Parser(HTMLParser):
                     self.RunPage = link
                     return link
         except:
-            print "Cannot parse Page 1 to find the most recent run. Is WBM down?  If not, and this message persists, post problem on elog!"
+            print("Cannot parse Page 1 to find the most recent run. Is WBM down?  If not, and this message persists, post problem on elog!")
             sys.exit(0)
         
     def ParseRunPage(self):
@@ -99,7 +99,7 @@ class Page1Parser(HTMLParser):
                     self.LumiPage = "http://cmswbm/cmsdb/servlet/"+entry
             return [self.RatePage,self.LumiPage,self.L1Page]
         except:
-            print "Cannot parse Run Page. Is WBM down?  If not, and this message persists, post problem on elog!"
+            print("Cannot parse Run Page. Is WBM down?  If not, and this message persists, post problem on elog!")
             sys.exit(0)
 
     def ParseRunSummaryPage(self):
@@ -117,7 +117,7 @@ class Page1Parser(HTMLParser):
 
                     self.TriggerRates.append([TriggerName,TriggerRate,PS,line[9]])
         except:
-            print "Cannot parse HLT Rate Page. Is WBM down?  If not, and this message persists, post problem on elog!"
+            print("Cannot parse HLT Rate Page. Is WBM down?  If not, and this message persists, post problem on elog!")
             sys.exit(0)
 
     def ParseLumiPage(self, StartLS=999999, EndEndLS=111111):
@@ -152,9 +152,9 @@ class Page1Parser(HTMLParser):
                     StartLS = len(self.LiveLumiByLS)+StartLS-3 #start LS is -1*window, plus an offset of 3 LS to mitigate problems from parsing WBM live
 
                 if StartLS < self.FirstLS:
-                    print "\n>>> Selected LS is before stable beam, defaulting to first LS of stable beam\n"
+                    print("\n>>> Selected LS is before stable beam, defaulting to first LS of stable beam\n")
                 elif StartLS>len(self.LiveLumiByLS):
-                    print "\n>>> Selected LS is out of range!"
+                    print("\n>>> Selected LS is out of range!")
                     sys.exit(0)
                 else:
                     self.FirstLS = StartLS
@@ -178,7 +178,7 @@ class Page1Parser(HTMLParser):
             self.LastLS+=2
 
         except:
-            print "Cannot parse Lumi Page. Is WBM down?  If not, and this message persists, post problem on elog!"
+            print("Cannot parse Lumi Page. Is WBM down?  If not, and this message persists, post problem on elog!")
             sys.exit(0)
 
     def ParseL1Page(self):
@@ -189,7 +189,7 @@ class Page1Parser(HTMLParser):
                 if line[1].startswith('L1_'):
                     self.L1Prescales.append([line[1],float(line[8])])
         except:
-            print "Cannot parse L1 Page. Is WBM down?  If not, and this message persists, post problem on elog!"
+            print("Cannot parse L1 Page. Is WBM down?  If not, and this message persists, post problem on elog!")
             sys.exit(0)
 
     def Parse_LS_L1Page(self):
@@ -199,10 +199,10 @@ class Page1Parser(HTMLParser):
                 if line != [] and len(line)<5:
                         MostRecent = line[:]
                         if '%' in MostRecent:
-                            print MostRecent
+                            print(MostRecent)
                             self.DeadTime.append(MostRecent[2])
         except:
-            print"Unable to parse DeadTimes"
+            print("Unable to parse DeadTimes")
             sys.exit(0)
         
     def Save(self, fileName):

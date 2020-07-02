@@ -11,8 +11,11 @@ HASH = $(shell git rev-parse --short HEAD)
 RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
 
 .PHONY: rpm
-
 rpm: ${RPM_NAME}
+
+.PHONY: test
+test:
+	echo todo
 
 ${RPM_NAME}:
 	# Clean up the rpmroot directory
@@ -39,3 +42,5 @@ ${RPM_NAME}:
 	--url "https://gitlab.cern.ch/avivace/ratemon" \
 	--vendor "CERN" \
 	.=/ && mv *.rpm ..
+	mkdir -p rpms
+	mv *.rpm rpms

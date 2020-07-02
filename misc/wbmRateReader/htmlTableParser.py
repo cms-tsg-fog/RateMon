@@ -10,7 +10,7 @@
 # Licence:     GPLv3
 # -----------------------------------------------------------------------------
 
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 
 
 class HTMLTableParser(HTMLParser):

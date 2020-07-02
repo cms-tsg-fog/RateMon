@@ -313,7 +313,7 @@ def OnScreenMessage(alert):
   level   = alert.alert_level()
   color   = AlertLevel.color[level]
   if message is not None:
-    print('%s%s%s' % (color, message, bcolors.ENDC))
+    print(('%s%s%s' % (color, message, bcolors.ENDC)))
     if details is not None:
       print(details)
 
@@ -423,8 +423,8 @@ if __name__=='__main__':
 
   for t in range(120):
     rates = get_rates(t)
-    print
-    print 'time:', t
+    print()
+    print('time:', t)
     if not m.check(rates):
       m.alert()
     time.sleep(1)

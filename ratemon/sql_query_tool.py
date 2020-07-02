@@ -26,7 +26,7 @@ class DBQueryTool:
         self.curs = orcl.cursor()
 
     def getLumiInfo(self,runNumber,minLS=-1,maxLS=9999999):
-        print "Getting Mini Lumi Info..."
+        print("Getting Mini Lumi Info...")
         query = """
                 SELECT
                     B.INSTLUMI,
@@ -65,7 +65,7 @@ class DBQueryTool:
         return _list
 
     def getFullLumiInfo(self,runNumber,minLS=-1,maxLS=9999999,lumi_source=0):
-        print "Getting Full Lumi Info..."
+        print("Getting Full Lumi Info...")
         lumi_nibble = 16
         query = """
                 SELECT
@@ -119,7 +119,7 @@ class DBQueryTool:
 
     # Returns a tuple: (L1_HLT_Key,HLT_Key,GTRS_Key,TSC_Key,GT_Key)
     def getRunInfo(self,runNumber):
-        print "Getting run info..."
+        print("Getting run info...")
         query =  """
                 SELECT
                     B.ID,
@@ -141,11 +141,11 @@ class DBQueryTool:
             run_keys = self.curs.fetchone()
             return run_keys
         except:
-            print "Unable to get L1 and HLT keys for this run"
+            print("Unable to get L1 and HLT keys for this run")
             return None
 
     def getPrescaleColumns(self,runNumber):
-        print "Getting PS columns..."
+        print("Getting PS columns...")
         query =  """
                 SELECT
                     LUMI_SECTION,
@@ -163,11 +163,11 @@ class DBQueryTool:
                 PSColumnByLS[lumi_section] = prescale_column
             return PSColumnByLS
         except:
-            print "Trouble getting PS column by LS"
+            print("Trouble getting PS column by LS")
             return None
 
     def getL1Prescales(self,runNumber):
-        print "Getting L1 Prescales..."
+        print("Getting L1 Prescales...")
         query =  """
                 SELECT
                     A.ALGO_INDEX,
@@ -188,14 +188,14 @@ class DBQueryTool:
         try:
             self.curs.execute(query)
         except:
-            print "Get L1 Prescales query failed"
+            print("Get L1 Prescales query failed")
             return None
 
         ps_table = self.curs.fetchall()
         L1Prescales = {}
 
         if len(ps_table) < 1:
-            print "Cannot get L1 Prescales"
+            print("Cannot get L1 Prescales")
             return None
 
         for obj in ps_table:
@@ -203,14 +203,14 @@ class DBQueryTool:
             algo_name = obj[1]
             algo_ps = obj[2]
             ps_index = obj[3]
-            if not L1Prescales.has_key(algo_index):
+            if algo_index not in L1Prescales:
                 L1Prescales[algo_index] = {}
             L1Prescales[algo_index][ps_index] = algo_ps
 
         return L1Prescales
 
     def getL1NameIndexAssoc(self,runNumber):
-        print "Getting Index Assoc..."
+        print("Getting Index Assoc...")
         query = """
                 SELECT
                     ALGO_INDEX,
@@ -224,7 +224,7 @@ class DBQueryTool:
         try:
             self.curs.execute(query)
         except:
-            print "Get L1 Name Index failed"
+            print("Get L1 Name Index failed")
             return None
 
         L1IndexNameMap = {}
@@ -267,7 +267,7 @@ class DBQueryTool:
         return trigger_rates
 
     def getAllL1Rates(self,runNumber,scaler_type=0):
-        print "Getting L1 Rates..."
+        print("Getting L1 Rates...")
         run_str = "0%d" % runNumber
         query = """
                 SELECT
@@ -286,7 +286,7 @@ class DBQueryTool:
         for ls,rate,algo_bit in self.curs.fetchall():
             ls = int(ls.split('_')[1].lstrip('0'))
 
-            if not all_trigger_rates.has_key(algo_bit):
+            if algo_bit not in all_trigger_rates:
                 all_trigger_rates[algo_bit] = {}
 
             all_trigger_rates[algo_bit][ls] = rate
@@ -294,7 +294,7 @@ class DBQueryTool:
         return all_trigger_rates
 
     def getHLTNameMap(self,runNumber):
-        print "Getting HLT Name Map..."
+        print("Getting HLT Name Map...")
         query = """
                 SELECT DISTINCT
                     C.PATHID,
@@ -339,7 +339,7 @@ class DBQueryTool:
         try: 
             self.curs.execute(query)
         except:
-            print "Getting rates for %s failed. Exiting." % name
+            print("Getting rates for %s failed. Exiting." % name)
             return None
 
         trigger_rates = {}
@@ -351,7 +351,7 @@ class DBQueryTool:
         return trigger_rates
 
     def getAllHLTRates(self,runNumber):
-        print "Getting All HLT Rates..."
+        print("Getting All HLT Rates...")
         query = """
                 SELECT
                     A.LSNUMBER,
@@ -380,7 +380,7 @@ class DBQueryTool:
         try:
             self.curs.execute(query)
         except:
-            print "Getting rates failed. Exiting."
+            print("Getting rates failed. Exiting.")
             return None
 
         all_trigger_rates = {}
@@ -388,7 +388,7 @@ class DBQueryTool:
             name = stripVersion(triggerName)
             rate = HLTPass/23.31041
 
-            if not all_trigger_rates.has_key(name):
+            if name not in all_trigger_rates:
                 all_trigger_rates[name] = {}
 
             all_trigger_rates[name][LS] = rate
@@ -406,7 +406,7 @@ class DBQueryTool:
         self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            if verbose: print tup
+            if verbose: print(tup)
         return arr
 
     def printOwnerTables(self,owner,verbose=False):
@@ -426,7 +426,7 @@ class DBQueryTool:
         self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            if verbose: print tup
+            if verbose: print(tup)
         return arr
 
     def printTableColumns(self,owner,table,verbose=False):
@@ -452,7 +452,7 @@ class DBQueryTool:
         self.curs.execute(query)
         for tup in self.curs.fetchall():
             arr.append(tup)
-            if verbose: print tup
+            if verbose: print(tup)
         return arr
 
     def customQuery(self,columns,tables,filters=[],order_by=None,verbose=False):
@@ -478,11 +478,11 @@ class DBQueryTool:
         if order_by:
             query += "\nORDER BY"
             query += "\n\t%s" % (order_by)
-        print query
+        print(query)
         arr = []
         self.curs.execute(query)
         for tup in self.curs.fetchall():
-            if verbose: print tup
+            if verbose: print(tup)
             arr.append(tup)
         return arr
 
@@ -491,7 +491,7 @@ class DBQueryTool:
 
         system_query_map = {}
         index = 0
-        for system in sub_systems.keys():
+        for system in list(sub_systems.keys()):
             if len(sub_systems[system]) == 0:
                 continue
 
@@ -500,7 +500,7 @@ class DBQueryTool:
                     query += "%s" % (col_name)
                 else:
                     query += ",%s" % (col_name)
-                if not system_query_map.has_key(system):
+                if system not in system_query_map:
                     system_query_map[system] = []
                 system_query_map[system].append([index,col_name])
                 index += 1
@@ -514,12 +514,12 @@ class DBQueryTool:
 
         self.curs.execute(query)
         for tup in self.curs.fetchall():
-            for sys_name in sub_systems.keys():
-                if not system_query_map.has_key(sys_name):
+            for sys_name in list(sub_systems.keys()):
+                if sys_name not in system_query_map:
                     continue
-                print "%s" % (sys_name)
+                print("%s" % (sys_name))
                 for index,col_name in system_query_map[sys_name]:
-                    print "\t%s: %d" % (col_name,tup[index])
+                    print("\t%s: %d" % (col_name,tup[index]))
 
     def benchmarkRatesQueries(self,runNumber):
         t_run_info = time.time()
@@ -551,12 +551,12 @@ class DBQueryTool:
         l1_iterations = 100
         #l1_iterations = len(L1IndexNameMap.keys())
         counter = 0
-        for algo_bit,algo_name in L1NameIndexMap.iteritems():
+        for algo_bit,algo_name in L1NameIndexMap.items():
             if counter > l1_iterations:
                 break
             l1_rates[algo_name] = self.getSingleL1Rate(runNumber,algo_bit,0)
             counter += 1
-        print ""
+        print("")
         t_single_l1 = time.time() - t_single_l1
 
         t_l1_rates = time.time()
@@ -573,12 +573,12 @@ class DBQueryTool:
         hlt_iterations = 100
         #hlt_iterations = len(hlt_name_map.keys())
         counter = 0
-        for hlt_name,path_id in hlt_name_map.iteritems():
+        for hlt_name,path_id in hlt_name_map.items():
             if counter > hlt_iterations:
                 break
             hlt_rates[hlt_name] = self.getSingleHLTRate(runNumber,path_id)
             counter += 1
-        print ""
+        print("")
         t_single_hlt = time.time() - t_single_hlt
 
         t_hlt_rates = time.time()
@@ -586,27 +586,27 @@ class DBQueryTool:
         HLTRates = self.getAllHLTRates(runNumber)
         t_hlt_rates = time.time() - t_hlt_rates
 
-        l1_counts  = max(len(L1Rates.keys()),1)
-        hlt_counts = max(len(HLTRates.keys()),1)
+        l1_counts  = max(len(list(L1Rates.keys())),1)
+        hlt_counts = max(len(list(HLTRates.keys())),1)
 
         l1_iterations  = max(l1_iterations,1)
         hlt_iterations = max(hlt_iterations,1)
 
-        print "L1 Triggers:  %d (%d)" % (l1_iterations,len(L1Rates.keys()))
-        print "HLT Triggers: %d (%d)" % (hlt_iterations,len(HLTRates.keys()))
+        print("L1 Triggers:  %d (%d)" % (l1_iterations,len(list(L1Rates.keys()))))
+        print("HLT Triggers: %d (%d)" % (hlt_iterations,len(list(HLTRates.keys()))))
 
-        print "Timer Info:"
-        print "\tRun Info:     %.3f" % (t_run_info)
-        print "\tMini Lumi:    %.3f" % (t_lumi_info)
-        print "\tFull Lumi:    %.3f" % (t_full_lumi)
-        print "\tPS Columns:   %.3f" % (t_ps_columns)
-        print "\tL1 Prescales: %.3f" % (t_l1_prescales)
-        print "\tIndex Assoc:  %.3f" % (t_index_assoc)
-        print "\tSingle L1:    %.3f (%.2f)" % (t_single_l1/l1_iterations,t_single_l1)
-        print "\tL1 Rates:     %.3f (%.2f)" % (t_l1_rates/l1_counts,t_l1_rates)
-        print "\tHLT Name Map: %.3f" % (t_hlt_map)
-        print "\tSingle HLT:   %.3f (%.2f)" % (t_single_hlt/hlt_iterations,t_single_hlt)
-        print "\tHLT Rates:    %.3f (%.2f)" % (t_hlt_rates/hlt_counts,t_hlt_rates)
+        print("Timer Info:")
+        print("\tRun Info:     %.3f" % (t_run_info))
+        print("\tMini Lumi:    %.3f" % (t_lumi_info))
+        print("\tFull Lumi:    %.3f" % (t_full_lumi))
+        print("\tPS Columns:   %.3f" % (t_ps_columns))
+        print("\tL1 Prescales: %.3f" % (t_l1_prescales))
+        print("\tIndex Assoc:  %.3f" % (t_index_assoc))
+        print("\tSingle L1:    %.3f (%.2f)" % (t_single_l1/l1_iterations,t_single_l1))
+        print("\tL1 Rates:     %.3f (%.2f)" % (t_l1_rates/l1_counts,t_l1_rates))
+        print("\tHLT Name Map: %.3f" % (t_hlt_map))
+        print("\tSingle HLT:   %.3f (%.2f)" % (t_single_hlt/hlt_iterations,t_single_hlt))
+        print("\tHLT Rates:    %.3f (%.2f)" % (t_hlt_rates/hlt_counts,t_hlt_rates))
 
     def getPrescaleNames(self,runNumber):
         query = """
@@ -661,7 +661,7 @@ class DBQueryTool:
         self.curs.execute(query)
         name,ps_str = self.curs.fetchone()
         ps_names = [x.strip().strip('"') for x in ps_str.strip().split(',')]
-        print ps_names
+        print(ps_names)
         return ps_names
 
     def test_query(self):
@@ -711,7 +711,7 @@ class DBQueryTool:
         #    print tup
 
         for tup in owner_tables:
-            print "#"*100
+            print("#"*100)
             self.printTableColumns(tup[0],tup[1])
 
         #self.buildQuery(runNumber,sub_systems)
@@ -736,7 +736,7 @@ if __name__ == "__main__":
     elif args.owner_columns:
         tables = query_tool.printOwnerTables(args.owner_columns)
         for idx,tup in enumerate(tables):
-            print "#"*100
+            print("#"*100)
             query_tool.printTableColumns(tup[0],tup[1],verbose=True)
     elif args.table_columns:
         query_tool.printTableColumns(args.table_columns[0],args.table_columns[1],verbose=True)
@@ -745,6 +745,6 @@ if __name__ == "__main__":
         for idx,tup in enumerate(rows):
             if idx >= 20:
                 break
-            print tup
+            print(tup)
     else:
         query_tool.test_query()

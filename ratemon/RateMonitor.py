@@ -87,11 +87,11 @@ class RateMonitor:
         # type: () -> None
 
         if not self.setupCheck():
-            print "ERROR: Bad setup"
+            print("ERROR: Bad setup")
             return
         
-        print "Using runs:",self.run_list
-        print "Using Prescaled rates:",self.data_parser.use_prescaled_rate
+        print("Using runs:",self.run_list)
+        print("Using Prescaled rates:",self.data_parser.use_prescaled_rate)
 
         if self.update_online_fits:
             # Ensures that DataParser gets all triggers
@@ -163,9 +163,9 @@ class RateMonitor:
 
         normalization = 1
         if self.data_parser.normalize_bunches:
-            max_key = max(bunch_map.iterkeys(), key=(lambda key: bunch_map[key]))
+            max_key = max(iter(bunch_map.keys()), key=(lambda key: bunch_map[key]))
             normalization = bunch_map[max_key]
-        print "Fit Normalization: %d" % normalization
+        print("Fit Normalization: %d" % normalization)
 
         # Make a fit of each object to be plotted, and save it to a .pkl file
         if self.make_fits:
@@ -174,11 +174,11 @@ class RateMonitor:
                 'run_groups': copy.deepcopy(self.fitter.data_dict),
                 'triggers': {}
             }
-            for group,runs in self.fitter.data_dict.iteritems():
+            for group,runs in self.fitter.data_dict.items():
                 data = self.getData(x_vals,y_vals,det_status,phys_status,runs)
                 data_fits = self.fitter.makeFits(data,self.object_list,normalization,group)
                 fit_info['triggers'] = self.fitter.mergeFits(fit_info['triggers'],data_fits)
-                print group,runs
+                print(group,runs)
 
             self.plotter.setFits(fit_info)
             self.fitter.saveFits(self.plotter.fit_info,"fit_file.pkl",self.save_dir)
@@ -194,12 +194,12 @@ class RateMonitor:
 
         # We want fits and no fits were specified --> make some
         # NOTE: This 'if' is true only when ZERO fits exist
-        if self.plotter.use_fit and len(self.plotter.fits.keys()) == 0:
+        if self.plotter.use_fit and len(list(self.plotter.fits.keys())) == 0:
             #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
             #self.plotter.setFits(fits)
             fit_info = {
                 'run_groups': copy.deepcopy(self.fitter.data_dict),
-                'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+                'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
             }
             self.plotter.setFits(fit_info)
 
@@ -210,7 +210,7 @@ class RateMonitor:
         counter = 0
         # Specifies how we want to organize the plots in the output directory
         if self.use_grouping:
-            print "Making Plots..."
+            print("Making Plots...")
 
             # Create plots for *EVERYTHING* we've queried for
             objs_to_plot = set()
@@ -245,7 +245,7 @@ class RateMonitor:
             #self.printHtml(plotted_objects,self.plotter.save_dir)
             self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
             counter += len(plotted_objects)
-        print "Total plot count: %d" % counter
+        print("Total plot count: %d" % counter)
 
     # Makes some basic checks to ensure that the specified options don't create conflicting problems
     def setupCheck(self):
@@ -258,40 +258,40 @@ class RateMonitor:
 
         # We can't specify two different x_axis at the same time
         if self.use_pileup and self.use_lumi:
-            print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
+            print("ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi")
             return False
 
         # If we specify a fit file, we don't want to make new fits
         if self.use_fit_file and self.update_online_fits:
-            print "ERROR SETUP: Fit file specified while trying updating online fits"
+            print("ERROR SETUP: Fit file specified while trying updating online fits")
             return False
         elif self.use_fit_file and self.make_fits:
-            print "ERROR SETUP: Fit file specified while trying to make fits"
+            print("ERROR SETUP: Fit file specified while trying to make fits")
             return False
 
         # Check to see if the online fits directory exists
         if self.update_online_fits and not os.path.exists(self.online_fits_dir):
-            print "ERROR SETUP: Could not find fit directory"
+            print("ERROR SETUP: Could not find fit directory")
             return False
 
         # We need to make sure we have the map between the plot objects and directories
-        if self.use_grouping and len(self.group_map.keys()) == 0:
-            print "ERROR SETUP: Grouping selected, but no group map found"
+        if self.use_grouping and len(list(self.group_map.keys())) == 0:
+            print("ERROR SETUP: Grouping selected, but no group map found")
             return False
 
         # We don't want to accidentally remove all the contents from the current working directory
         if self.save_dir == self.rate_mon_dir:
-            print "ERROR SETUP: Save directory is the same as RateMon directory"
+            print("ERROR SETUP: Save directory is the same as RateMon directory")
             return False
 
         # Certify mode doesn't create any fits, so we shouldn't be updating any existing fits
         if self.update_online_fits + self.certify_mode > 1:
-            print "ERROR SETUP: Can't update online fits and user certify mode at the same time"
+            print("ERROR SETUP: Can't update online fits and user certify mode at the same time")
             return False
 
         # In certify_mode we need to specify pre-made fits to use
-        if self.certify_mode and len(self.plotter.fits.keys()) == 0:
-            print "ERROR SETUP: No fits were found while in certify mode"
+        if self.certify_mode and len(list(self.plotter.fits.keys())) == 0:
+            print("ERROR SETUP: No fits were found while in certify mode")
             return False
 
         ## We are configured to only create/display the default fit, so only generate one fit
@@ -304,23 +304,23 @@ class RateMonitor:
     # Sets up the save directories, will setup the directories based on CLI options
     def setupDirectory(self):
         # type: () -> None
-        print "Setting up directories..."
+        print("Setting up directories...")
 
         if self.update_online_fits:
             mon_trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")   # $rate_mon_dir/Fits/Monitor_Triggers
             all_trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")         # $rate_mon_dir/Fits/All_Triggers
             if os.path.exists(mon_trg_dir):
                 shutil.rmtree(mon_trg_dir)
-                print "\tRemoving existing directory: %s " % (mon_trg_dir)
+                print("\tRemoving existing directory: %s " % (mon_trg_dir))
             if os.path.exists(all_trg_dir):
                 shutil.rmtree(all_trg_dir)
-                print "\tRemoving existing directory: %s " % (all_trg_dir)
-            print "\tCreating directory: %s " % (mon_trg_dir)
+                print("\tRemoving existing directory: %s " % (all_trg_dir))
+            print("\tCreating directory: %s " % (mon_trg_dir))
             os.mkdir(mon_trg_dir)
             os.chdir(mon_trg_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
-            print "\tCreating directory: %s " % (all_trg_dir)
+            print("\tCreating directory: %s " % (all_trg_dir))
             os.mkdir(all_trg_dir)
             os.chdir(all_trg_dir)
             os.mkdir("plots")
@@ -333,14 +333,14 @@ class RateMonitor:
             self.certify_dir = os.path.join(self.rate_mon_dir,dir_str)
             if os.path.exists(self.certify_dir):
                 shutil.rmtree(self.certify_dir)
-                print "\tRemoving existing directory: %s " % (self.certify_dir)
-            print "\tCreating directory: %s " % (self.certify_dir)
+                print("\tRemoving existing directory: %s " % (self.certify_dir))
+            print("\tCreating directory: %s " % (self.certify_dir))
             os.mkdir(self.certify_dir)
             os.chdir(self.certify_dir)
             for run in self.run_list:
                 run_str = "run%d" % run
                 run_dir = os.path.join(self.certify_dir,run_str)
-                print "\tCreating directory: %s " % (run_dir)
+                print("\tCreating directory: %s " % (run_dir))
                 os.mkdir(run_dir)
                 os.chdir(run_dir)
                 os.mkdir("png")
@@ -349,15 +349,15 @@ class RateMonitor:
         else:
             if os.path.exists(self.save_dir):
                 shutil.rmtree(self.save_dir)
-                print "\tRemoving existing directory: %s " % (self.save_dir)
+                print("\tRemoving existing directory: %s " % (self.save_dir))
             os.mkdir(self.save_dir)
             os.chdir(self.save_dir)
-            print "\tCreating directory: %s " % (self.save_dir)
+            print("\tCreating directory: %s " % (self.save_dir))
             os.mkdir("png")
             if self.use_grouping:
-                for grp_dir in self.group_map.keys():
+                for grp_dir in list(self.group_map.keys()):
                     os.mkdir(grp_dir)
-                    print "\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir))
+                    print("\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir)))
             os.chdir("../")
             return
 
@@ -366,7 +366,7 @@ class RateMonitor:
 
         # type: (List[str]) -> List[str]
         if not self.use_grouping:
-            print "Making plots..."
+            print("Making plots...")
 
         plotted_objects = []
         counter = 1
@@ -377,9 +377,9 @@ class RateMonitor:
         for _object in sorted(plot_list):
 
             if prog_counter % max(1,math.floor(len(plot_list)/10.)) == 0:
-                print "\tProgress: %.0f%% (%d/%d)" % (100.*prog_counter/len(plot_list),prog_counter,len(plot_list))
+                print("\tProgress: %.0f%% (%d/%d)" % (100.*prog_counter/len(plot_list),prog_counter,len(plot_list)))
             prog_counter += 1
-            if not self.plotter.plotting_data.has_key(_object):
+            if _object not in self.plotter.plotting_data:
                 # No valid data points could be found for _object in any of the runs
                 print "\tWARNING: Unknown object - %s" % _object
                 rundata["plots"][_object] = "NODATA"
@@ -502,8 +502,8 @@ class RateMonitor:
         self.plotter.plot_dir = "plots"
 
         # Plots the monitored paths
-        print "Updating monitored trigger fits..."
-        print "Total Triggers: %d" % (len(self.object_list))
+        print("Updating monitored trigger fits...")
+        print("Total Triggers: %d" % (len(self.object_list)))
         self.plotter.save_dir = mon_trg_dir
         #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         #self.plotter.setFits(fits)
@@ -511,15 +511,15 @@ class RateMonitor:
         #fit_info = self.fitter.makeFits(plot_data,self.object_list,normalization)
         fit_info = {
             'run_groups': copy.deepcopy(self.fitter.data_dict),
-            'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+            'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
         }
         self.plotter.setFits(fit_info)
         self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",mon_trg_dir)
         plotted_objects = self.makePlots(self.object_list)
 
         # Plots all trigger paths
-        print "Updating all trigger fits..."
-        print "Total Triggers: %d" % (len(all_triggers))
+        print("Updating all trigger fits...")
+        print("Total Triggers: %d" % (len(all_triggers)))
         self.plotter.save_dir = all_trg_dir
         #fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
         #self.plotter.setFits(fits)
@@ -527,7 +527,7 @@ class RateMonitor:
         #fit_info = self.fitter.makeFits(plot_data,all_triggers,normalization)
         fit_info = {
             'run_groups': copy.deepcopy(self.fitter.data_dict),
-            'triggers': self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+            'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
          }
         self.plotter.setFits(fit_info)
         self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",all_trg_dir)
@@ -603,7 +603,7 @@ class RateMonitor:
                 log_file.write("Group: %s\n" % (group))
                 self.plotter.makeCertifySummary(run,pred_data,log_file,group)
 
-            print "Making certification plots for run %d..." % run
+            print("Making certification plots for run %d..." % run)
             run_dir = os.path.join(self.certify_dir,"run%d" % run)
             self.plotter.save_dir = run_dir
             self.plotter.plot_dir = "png"
@@ -611,11 +611,11 @@ class RateMonitor:
             plotted_objects = []
             for obj in self.object_list:
                 if not obj in self.data_parser.name_list:
-                    print "Skipping missing trigger: %s" % (obj)
+                    print("Skipping missing trigger: %s" % (obj))
                     continue
                 self.formatLabels(obj)
                 if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
-                    print "Plotting %s..." % obj
+                    print("Plotting %s..." % obj)
                     plotted_objects.append(obj)
             self.printHtml(png_list=plotted_objects,save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
 
@@ -641,9 +641,9 @@ class RateMonitor:
 
 
         for obj in self.plotter.fits:
-            if not pu_data.has_key(obj):
+            if obj not in pu_data:
                 continue
-            elif not pu_data[obj].has_key(run):
+            elif run not in pu_data[obj]:
                 continue
 
             pred_dict[obj] = {}
@@ -659,12 +659,12 @@ class RateMonitor:
                 puVals = []
                 for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
                     if not ilum is None and phys:
-                        if not pu_data[obj][run].has_key(LS):
+                        if LS not in pu_data[obj][run]:
                             continue
                         lsVals.append(LS)
                         puVals.append(pu_data[obj][run][LS])
                 lumisecs,predictions,ls_error,pred_error = self.fitter.getPredictionPoints(best_fit,lsVals,puVals,bunch_map[run],0)
-                pred_dict[obj][group][best_fit_type] = zip(lumisecs,predictions,pred_error)
+                pred_dict[obj][group][best_fit_type] = list(zip(lumisecs,predictions,pred_error))
 
 
 
@@ -744,7 +744,7 @@ class RateMonitor:
         # index_dir: The full path to the index.html file
         # png_dir:   The relative path from the index.html file to the png_dir
         try:
-            htmlFile = open(index_dir+"/index.html","wb")
+            htmlFile = open(index_dir+"/index.html","w")
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:left; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
@@ -760,16 +760,16 @@ class RateMonitor:
                     htmlFile.write(html_str)
             htmlFile.write("</html>\n")
         except:
-            print "Unable to write index.html file"
+            print("Unable to write index.html file")
     
     # Returns {'object_name': { run_number:  ( [x_vals], [y_vals], [det_status] , [phys_status] ) } }
     def getData(self,x_vals,y_vals,det_status,phys_status,runs=[]):
         data = {}
         for name in self.data_parser.getNameList():
-                if not data.has_key(name):
+                if name not in data:
                         data[name] = {}
                 for run in sorted(self.data_parser.getRunsUsed()):
-                        if not x_vals[name].has_key(run):
+                        if run not in x_vals[name]:
                                 continue
                         if len(runs) > 0 and run not in runs:
                                 continue
