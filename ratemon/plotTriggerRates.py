@@ -376,6 +376,7 @@ class MonitorController:
         # Load the db config file
         dbConfigLoaded = False;
         for label, op in opt:
+            print(label)
             if label == "--dbConfigFile":
                 dbConfigLoaded = True;
                 with open(str(op), 'r') as stream:
@@ -679,6 +680,10 @@ class MonitorController:
         for k,v in kwargs.items():
             if k in self.ops_dict:
                 self.ops_dict[k] = v
+            elif k == "dbConfig":
+                self.ops_dict["dbConfigFile="] = v
+            elif k == "triggerList":
+                self.ops_dict["triggerList="] = v
             elif k == "data_lst":
                 self.usr_input_data_lst = v
             else:
@@ -686,7 +691,7 @@ class MonitorController:
                 raise Exception
         print (self.usr_input_data_lst, self.ops_dict)
         self.setOptions(self.ops_dict,self.usr_input_data_lst)
-        self.rate_monitor.run()
+        return self.rate_monitor.run()
 
 
 ## ----------- End of class MonitorController ------------ #
