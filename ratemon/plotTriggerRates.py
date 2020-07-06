@@ -145,7 +145,7 @@ class MonitorController:
                     self.rate_monitor.data_parser.psi_filter = op_val
                     self.rate_monitor.data_parser.use_ps_mask = True
                 elif op_name == "lsVeto=":
-                    self.ops_dict["lsVeto="] = op_val
+                    self.rate_monitor.data_parser.ls_veto = op_val
                 elif op_name == "pathVeto=":
                     self.rate_monitor.data_parser.name_veto = op_val
                 elif op_name == "compareFits=":
