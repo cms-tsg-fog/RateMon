@@ -2,3 +2,4 @@
 *.pyo
 rpmroot/
 rpms/
+dbConfig.yaml
