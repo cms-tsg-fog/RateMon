@@ -9,14 +9,14 @@ variables:
 
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
-- preflight
+#- preflight
 - build        # build and keep binaries
-- test         # run tests
+#- test         # run tests
 - build RPMs   # build and keep RPMs
 - publish      # publish RPMs and docker images
-- review       # deploy to review cluster
-- deploy       # deploy to P5 (manually)
-- cleanup      # un-deploy review (manually or when branch deleted)
+#- review       # deploy to review cluster
+#- deploy       # deploy to P5 (manually)
+#- cleanup      # un-deploy review (manually or when branch deleted)
 
 include:
   - project: cms-cactus/ops/auto-devops
