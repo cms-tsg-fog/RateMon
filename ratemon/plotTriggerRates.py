@@ -31,6 +31,8 @@ class MonitorController:
             "useFit="          : None,
             "psFilter="        : None,
             "lsVeto="          : None,
+            "rootFileName="    : None,
+            "exportRoot"       : None,
             "pathVeto"         : None,
             "Secondary"        : None,
             "datasetRate"      : None,
@@ -50,6 +52,8 @@ class MonitorController:
             "useBunches"       : None,
             "compareFits="     : None,
             "showFitRunGroups" : None,
+            "makeTitle"        : None,
+            "exportJSON"      : None,
         }
         self.usr_input_data_lst = None
         #self.do_cron_job = False # A default option
@@ -89,7 +93,7 @@ class MonitorController:
         self.rate_monitor.plotter.show_errors    = False
         self.rate_monitor.plotter.show_eq        = False
         self.rate_monitor.plotter.save_png       = True
-        self.rate_monitor.plotter.save_root_file = True
+        self.rate_monitor.plotter.save_root_file = False
         self.rate_monitor.plotter.show_fit_runs  = False
 
         self.rate_monitor.plotter.root_file_name   = "rate_plots.root"
@@ -132,6 +136,15 @@ class MonitorController:
                             self.rate_monitor.data_parser.hlt_triggers.append(name)
                         elif name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
+                elif op_name == "exportRoot":
+                    self.rate_monitor.plotter.save_root_file = True
+                elif op_name == "exportJSON":
+                    self.rate_monitor.exportJSON = op_val
+                elif op_name == "makeTitle":
+                    self.rate_monitor.plotter.styleTitle = op_val
+                elif op_name == "rootFileName=":
+                    self.rate_monitor.plotter.save_root_file = True
+                    self.rate_monitor.root_file_name = op_val
                 elif op_name == "saveDirectory=":
                    self.rate_monitor.save_dir = op_val
                 elif op_name == "useFit=":
@@ -376,7 +389,7 @@ class MonitorController:
         # Load the db config file
         dbConfigLoaded = False;
         for label, op in opt:
-            print(label)
+            #print(label)
             if label == "--dbConfigFile":
                 dbConfigLoaded = True;
                 with open(str(op), 'r') as stream:
@@ -680,16 +693,19 @@ class MonitorController:
         for k,v in kwargs.items():
             if k in self.ops_dict:
                 self.ops_dict[k] = v
+            # FIXME: bad workaround
             elif k == "dbConfig":
                 self.ops_dict["dbConfigFile="] = v
             elif k == "triggerList":
                 self.ops_dict["triggerList="] = v
+            elif k == "saveDirectory":
+                self.ops_dict["saveDirectory="] = v
             elif k == "data_lst":
                 self.usr_input_data_lst = v
             else:
                 print("\nError: Unknown option",k,", raising exception.")
                 raise Exception
-        print (self.usr_input_data_lst, self.ops_dict)
+        # print (self.usr_input_data_lst, self.ops_dict)
         self.setOptions(self.ops_dict,self.usr_input_data_lst)
         return self.rate_monitor.run()
 
