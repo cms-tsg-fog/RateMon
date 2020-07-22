@@ -9,14 +9,14 @@ variables:
 
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
-#- preflight
+- preflight
 - build        # build and keep binaries
-#- test         # run tests
+- test         # run tests
 - build RPMs   # build and keep RPMs
 - publish      # publish RPMs and docker images
-#- review       # deploy to review cluster
-#- deploy       # deploy to P5 (manually)
-#- cleanup      # un-deploy review (manually or when branch deleted)
+- review       # deploy to review cluster
+- deploy       # deploy to P5 (manually)
+- cleanup      # un-deploy review (manually or when branch deleted)
 
 include:
   - project: cms-cactus/ops/auto-devops
@@ -31,51 +31,3 @@ builder image:
     BASE_TAG: 20200504-1.x86_64
     NAME: builder
     DOCKERFILE: builder.Dockerfile
-
-OMS base image:
-  extends: .auto_devops_docker_image_tagged_template
-  stage: preflight
-  variables:
-    BASE_OS: cc7
-    BASE_TAG: 20200504-1.x86_64
-    NAME: oms-base
-    DOCKERFILE: oms-base.Dockerfile
-    CONTEXT_FOLDER: oms
-  
-OMS Aggregator:
-  extends: .auto_devops_make_build_template
-  rules:
-  image: ${CI_REGISTRY_IMAGE}/oms-base:${CI_COMMIT_REF_NAME}-cc7
-  script:
-  - git clone https://${CI_CLONE_USER}:${CI_CLONE_TOKEN}@gitlab.cern.ch/cmsoms/aggregationapi.git oms/aggregationapi
-  - make -C oms
-  artifacts:
-    paths:
-    - ./oms/aggregationapi/target/aggregation*.jar
-
-Aggregator Docker image:
-  extends: .auto_devops_docker_image_template
-  stage: publish
-  rules:
-  variables:
-    TAG: /$CI_COMMIT_REF_SLUG:latest
-    TAG2: /$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
-    CONTEXT_FOLDER: oms
-    DOCKERFILE: oms-aggregator.Dockerfile
-
-🚀 OMS Aggregator:
-  extends: review app
-  rules:
-  environment:
-    name: oms/$CI_COMMIT_REF_NAME
-    url: http://${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}.$KUBE_INGRESS_BASE_DOMAIN
-    on_stop: 💣 OMS Aggregator
-
-💣 OMS Aggregator:
-  extends: 💣 review app
-  rules:
-  - when: manual
-    allow_failure: true
-  environment:
-    name: oms/$CI_COMMIT_REF_NAME
-    action: stop
