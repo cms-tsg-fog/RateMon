@@ -15,11 +15,24 @@ def getRatesROOT(runNumber: int, triggerKey: str):
 	rates = controller.runStandalone(
 						 dbConfig=dbCfg,
                          exportRoot=True,
-                         exportJSON=False,
                          saveDirectory=saveDirectory,
-                         makeTitle=True,
+                         makeTitle=False,
                          triggerList=[triggerKey],
-                         vsLS=False,
+                         createFit=True,
+                         bestFit=True,
+                         data_lst=[runNumber])
+
+	return send_from_directory(saveDirectory,
+							   triggerKey + '.ROOT',
+							   as_attachment=True) # Keep the filename
+
+def getRatesJSON(runNumber: int, triggerKey: str):
+	saveDirectory = "/rtmdata/" + str(runNumber)
+	rates = controller.runStandalone(
+						 dbConfig=dbCfg,
+                         exportJson=True,
+                         saveDirectory=saveDirectory,
+                         triggerList=[triggerKey],
                          createFit=True,
                          bestFit=True,
                          data_lst=[runNumber])
