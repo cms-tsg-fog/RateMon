@@ -27,9 +27,10 @@ def getRatesROOT(runNumber: int, triggerKey: str):
 							   as_attachment=True) # Keep the filename
 
 def getRatesJSON(runNumber: int, triggerKey: str):
-	saveDirectory = "/rtmdata/" + str(runNumber)
+	saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
 	rates = controller.runStandalone(
 						 dbConfig=dbCfg,
+                         exportRoot=False,
                          exportJson=True,
                          saveDirectory=saveDirectory,
                          triggerList=[triggerKey],
@@ -38,5 +39,5 @@ def getRatesJSON(runNumber: int, triggerKey: str):
                          data_lst=[runNumber])
 
 	return send_from_directory(saveDirectory,
-							   triggerKey + '.ROOT',
+							   'pu_VS_pre-dt-unprescaled-rate.json',
 							   as_attachment=True) # Keep the filename
