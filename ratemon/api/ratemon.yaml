@@ -8,9 +8,9 @@ servers:
 paths:
   /ratesROOT:
     get:
-      tags: [Rates]
+      tags: [Trigger Rates]
       description: |
-        test
+        Get ROOT plot of the Rates of the specified Trigger Path and LHC Run Number
       operationId: app.getRatesROOT
       parameters:
         - name: runNumber
@@ -23,19 +23,19 @@ paths:
             type: integer
         - name: triggerKey
           in: query
-          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/avivace/ratemon/raw/master/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
+          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/api/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
           example: HLT_CaloJet500_NoJetID
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: a cat
+          description: ROOT binary file of the computed plot
   /ratesJSON:
     get:
-      tags: [Rates]
+      tags: [Trigger Rates]
       description: |
-        test
+        Get a JSON file with raw Rates of the specified Trigger Path and LHC Run Number
       operationId: app.getRatesJSON
       parameters:
         - name: runNumber
@@ -48,11 +48,11 @@ paths:
             type: integer
         - name: triggerKey
           in: query
-          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/avivace/ratemon/raw/master/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
+          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/api/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
           example: HLT_CaloJet500_NoJetID
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: a cat
+          description: JSON file with the raw rates
