@@ -8,6 +8,7 @@ variables:
   AUTO_DEVOPS_DOCKER_DISABLED: "true"
   AUTO_DEVOPS_DOCS_BUILD_DISABLED: "true"
   AUTO_DEVOPS_COVERAGE_REVIEW_DISABLED: "true"
+  AUTO_DEVOPS_TEST_DISABLED: "true"
 
 # from https://gitlab.cern.ch/cms-cactus/ops/auto-devops/blob/master/project-types/rpm-project.yml
 stages:
