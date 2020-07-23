@@ -15,6 +15,7 @@
 import math
 import array
 import ROOT
+import json
 
 from ROOT import TLatex, TH1D, TLine
 
@@ -55,6 +56,7 @@ class PlotMaker:
         self.root_file_name = "a.root"
         self.save_dir = "."
         self.plot_dir = "png"
+        self.styleTitle = True
 
         self.default_fit = "quad"
 
@@ -63,7 +65,7 @@ class PlotMaker:
         self.use_multi_fit = False
         self.show_errors = False
         self.show_eq = False
-        self.save_png = False
+        self.save_png = True
         self.save_root_file = False
 
         self.set_plotter_fits = False
@@ -482,12 +484,20 @@ class PlotMaker:
         canvas.Update()
 
         if self.save_root_file:
-            self.saveRootFile(canvas)
+            self.saveRootFile(trigger, canvas)
 
         if self.save_png:
             self.savePlot(trigger,canvas)
+        
+        export = {}
+        export["plotname"] = trigger+"_"+self.var_X+"_vs_"+self.var_Y
+        export["xvar"] = self.var_X
+        export["yvar"] = self.var_Y
+        export["xVals"] = xVals.tolist()
+        export["yVals"] = yVals.tolist()
+        export["fit"] = func_str["user_input"]
 
-        return True
+        return export
 
     # Create legend
     def getLegend(self,num_entries):
@@ -914,16 +924,18 @@ class PlotMaker:
 
         canvas.Update()
 
-        latex = TLatex()
-        latex.SetNDC()
-        latex.SetTextColor(1)
-        latex.SetTextAlign(11)
-        latex.SetTextFont(62)
-        latex.SetTextSize(0.05)
-        latex.DrawLatex(0.15, 0.84, "CMS")
-        latex.SetTextSize(0.035)
-        latex.SetTextFont(52)
-        latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+        if self.styleTitle:
+            print("STYLING..")
+            latex = TLatex()
+            latex.SetNDC()
+            latex.SetTextColor(1)
+            latex.SetTextAlign(11)
+            latex.SetTextFont(62)
+            latex.SetTextSize(0.05)
+            latex.DrawLatex(0.15, 0.84, "CMS2")
+            latex.SetTextSize(0.035)
+            latex.SetTextFont(52)
+            latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
 
         canvas.Update()
 
@@ -944,12 +956,14 @@ class PlotMaker:
 
         gStyle.SetOptStat(1)
 
-    def saveRootFile(self,canvas):
+    def saveRootFile(self, name, canvas):
         # Update root file
-        path = self.save_dir + "/" + self.root_file_name
+        path = self.save_dir + "/"+ name + '.ROOT'
         file = TFile(path,"UPDATE")
         canvas.Modified()
         canvas.Write()
+        print("Exported ROOT file:", path)
+
 
     def savePlot(self,name,canvas):
         canvas.Print(self.save_dir + "/" + self.plot_dir + "/" + name + ".png", "png")
