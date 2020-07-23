@@ -366,7 +366,6 @@ class RateMonitor:
 
     # Stiching function that interfaces with the plotter object
     def makePlots(self,plot_list):
-
         # type: (List[str]) -> List[str]
         if not self.use_grouping:
             print("Making plots...")

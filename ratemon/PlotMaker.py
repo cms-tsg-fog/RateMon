@@ -224,7 +224,6 @@ class PlotMaker:
 
         run_count = 0
         num_pts = 0
-
         for run in data:
             x_pts,y_pts = self.fitFinder.removePoints(data[run][0],data[run][1])
             x_pts,y_pts = self.fitFinder.getGoodPoints(x_pts,y_pts)
