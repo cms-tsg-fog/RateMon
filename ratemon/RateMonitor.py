@@ -56,6 +56,8 @@ class RateMonitor:
         self.use_lumi   = False     # plot iLumi vs. rate
         self.use_LS     = False     # plot LS vs. rate
 
+        self.exportJSON = False
+
         self.use_stream_bandwidth = False
         self.use_stream_size      = False
 
@@ -418,14 +420,12 @@ class RateMonitor:
         rundata["x_axis"] = xlabel
         rundata["y_axis"] = ylabel
 
-        with open("json_dumps/"+
-                  str(runnumber)+
-                  "_"+
-                  xlabel+
-                  "_VS_"+
-                  ylabel+
-                  ".json", "w") as out_file:
-            json.dump(rundata, out_file)
+        if self.exportJSON:
+           
+            filepath = "json_dumps/"+ str(runnumber)+ "_"+ xlabel+ "_VS_"+ ylabel+".json"
+            with open(filepath, "w") as out_file:
+                json.dump(rundata, out_file)
+            print("Exported JSON:", filepath)
 
         return rundata
 
