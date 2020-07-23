@@ -115,7 +115,7 @@ class MonitorController:
 
         # Loop over options and set class variables
         for op_name, op_val in ops_dict.items():
-            if op_val is not None and op_val is not False: # Should think more about this if statement and edge cases...
+            if op_val is not None: # Should think more about this if statement and edge cases...
             #if op_val or op_val is 0:
                 #print ("\tk,v:",op_name, op_val)
                 if op_name == "dbConfigFile=":
