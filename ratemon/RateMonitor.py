@@ -353,7 +353,7 @@ class RateMonitor:
             if os.path.exists(self.save_dir):
                 shutil.rmtree(self.save_dir)
                 print("\tRemoving existing directory: %s " % (self.save_dir))
-            os.mkdir(self.save_dir)
+            os.makedirs(self.save_dir)
             os.chdir(self.save_dir)
             print("\tCreating directory: %s " % (self.save_dir))
             os.mkdir("png")
@@ -421,7 +421,7 @@ class RateMonitor:
 
         if self.exportJSON:
            
-            filepath = "json_dumps/"+ str(runnumber)+ "_"+ xlabel+ "_VS_"+ ylabel+".json"
+            filepath = self.save_dir + xlabel+ "_VS_"+ ylabel+".json"
             with open(filepath, "w") as out_file:
                 json.dump(rundata, out_file)
             print("Exported JSON:", filepath)

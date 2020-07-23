@@ -445,16 +445,17 @@ class PlotMaker:
             canvas.Update()
 
         # draw text
-        latex = TLatex()
-        latex.SetNDC()
-        latex.SetTextColor(1)
-        latex.SetTextAlign(11)
-        latex.SetTextFont(62)
-        latex.SetTextSize(0.05)
-        latex.DrawLatex(0.15, 0.84, "CMS")
-        latex.SetTextSize(0.035)
-        latex.SetTextFont(52)
-        latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
+        if self.styleTitle:
+            latex = TLatex()
+            latex.SetNDC()
+            latex.SetTextColor(1)
+            latex.SetTextAlign(11)
+            latex.SetTextFont(62)
+            latex.SetTextSize(0.05)
+            latex.DrawLatex(0.15, 0.84, "CMS")
+            latex.SetTextSize(0.035)
+            latex.SetTextFont(52)
+            latex.DrawLatex(0.15, 0.80, "Rate Monitoring")
 
         # Write the fit runs onto the plot (if using --showFitRuns option)
         if self.show_fit_run_groups and self.run_groups != {}:
@@ -925,14 +926,13 @@ class PlotMaker:
         canvas.Update()
 
         if self.styleTitle:
-            print("STYLING..")
             latex = TLatex()
             latex.SetNDC()
             latex.SetTextColor(1)
             latex.SetTextAlign(11)
             latex.SetTextFont(62)
             latex.SetTextSize(0.05)
-            latex.DrawLatex(0.15, 0.84, "CMS2")
+            latex.DrawLatex(0.15, 0.84, "CMS")
             latex.SetTextSize(0.035)
             latex.SetTextFont(52)
             latex.DrawLatex(0.15, 0.80, "Rate Monitoring")

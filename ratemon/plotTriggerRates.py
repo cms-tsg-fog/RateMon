@@ -53,7 +53,7 @@ class MonitorController:
             "compareFits="     : None,
             "showFitRunGroups" : None,
             "makeTitle"        : None,
-            "exportJSON"      : None,
+            "exportJson"      : None,
         }
         self.usr_input_data_lst = None
         #self.do_cron_job = False # A default option
@@ -115,7 +115,7 @@ class MonitorController:
 
         # Loop over options and set class variables
         for op_name, op_val in ops_dict.items():
-            if op_val is not None and op_val is not False: # Should think more about this if statement and edge cases...
+            if op_val is not None: # Should think more about this if statement and edge cases...
             #if op_val or op_val is 0:
                 #print ("\tk,v:",op_name, op_val)
                 if op_name == "dbConfigFile=":
@@ -138,7 +138,7 @@ class MonitorController:
                             self.rate_monitor.data_parser.l1_triggers.append(name)
                 elif op_name == "exportRoot":
                     self.rate_monitor.plotter.save_root_file = True
-                elif op_name == "exportJSON":
+                elif op_name == "exportJson":
                     self.rate_monitor.exportJSON = op_val
                 elif op_name == "makeTitle":
                     self.rate_monitor.plotter.styleTitle = op_val

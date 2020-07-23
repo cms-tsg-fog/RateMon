@@ -1,0 +1,58 @@
+openapi: "3.0.0"
+info:
+  version: 0.0.2
+  title: RateMon API
+  description: API exposing CMS Trigger Rates exported by the RateMon tools
+servers:
+  - url: http://brandeis.cern.ch/api/v1
+paths:
+  /ratesROOT:
+    get:
+      tags: [Rates]
+      description: |
+        test
+      operationId: app.getRatesROOT
+      parameters:
+        - name: runNumber
+          in: query
+          description: "Run number"
+          example: 305112
+          required: true
+          style: form
+          schema:
+            type: integer
+        - name: triggerKey
+          in: query
+          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/avivace/ratemon/raw/master/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
+          example: HLT_CaloJet500_NoJetID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: a cat
+  /ratesJSON:
+    get:
+      tags: [Rates]
+      description: |
+        test
+      operationId: app.getRatesJSON
+      parameters:
+        - name: runNumber
+          in: query
+          description: "Run number"
+          example: 305112
+          required: true
+          style: form
+          schema:
+            type: integer
+        - name: triggerKey
+          in: query
+          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/avivace/ratemon/raw/master/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
+          example: HLT_CaloJet500_NoJetID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: a cat
