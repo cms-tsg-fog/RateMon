@@ -108,6 +108,9 @@ class DataParser:
                 bunches = 1
 
             lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
+            if lumi_info is None:
+                print("\nError: no known data for {run_number}, skipping run.\n".format(run_number=run))
+                continue # Skip this run
             run_data = self.getRunData(run,bunches,lumi_info)
             if len(list(run_data.keys())) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
                 self.runs_skipped.append(run)
@@ -158,6 +161,8 @@ class DataParser:
         # [( LS,ilum,psi,phys,cms_ready ) ]
         lumi_info = []
 
+        if self.parser.getTriggerMode(run) is None:
+            return None
         trigger_mode = self.parser.getTriggerMode(run)[0]
 
         if trigger_mode.find('cosmics') > 0:
