@@ -28,6 +28,7 @@ builder image:
   stage: 🛠️ setup
   variables:
     DOCKERFILE: builder.Dockerfile
+    CONTEXT_FOLDER: .gitlab/ci
     NAME: builder
 
 make:
