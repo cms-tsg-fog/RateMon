@@ -38,4 +38,10 @@ make:
   - make
   artifacts:
     paths:
-    - "*.rpm"
+    - "/rpms"
+
+docker:
+  extends: .auto_devops_docker_builder_autotag
+  stage: 📦 publish
+  variables:
+    BUILD_ARG_CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME

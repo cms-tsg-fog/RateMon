@@ -8,15 +8,18 @@ ARCH = amd64
 BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 HASH = $(shell git rev-parse --short HEAD)
 
-RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
-
-.PHONY: rpm
-rpm: ${RPM_NAME}
-
 .PHONY: test
 test:
 	echo todo
 
+.PHONY: build
+build:
+	make -C ratemon build
+
+RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
+
+.PHONY: rpm
+rpm: build ${RPM_NAME}
 ${RPM_NAME}:
 	# Clean up the rpmroot directory
 	rm -rf rpmroot
