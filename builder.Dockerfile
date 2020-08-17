@@ -1,11 +1,4 @@
-ARG BASE_OS=cc7
-ARG BASE_TAG
-FROM cern/${BASE_OS}-base:${BASE_TAG}
+FROM gitlab-registry.cern.ch/cms-cactus/ops/auto-devops/basics-c8:tag-0.0.3
 # LABEL maintainer="name <email@cern.ch>"
 
-RUN yum install -y git ruby-devel gcc make rpm-build rubygems && \
-    yum clean all
-
-RUN gem install -f --no-ri --no-rdoc fpm
-
-CMD fpm
+RUN dnf install python3 root python36-root
