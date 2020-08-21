@@ -49,6 +49,9 @@ docker:
 test:ratemon:
   stage: 🚀 deploy
   extends: .auto_devops_k8s_basic_deployment
+  image: gitlab-registry.cern.ch/cms-cactus/ops/auto-devops/kubectl:master-007ace82
+  variables:
+    HTTP_PORT: 8085
   environment:
     on_stop: 💣 test:ratemon
 
