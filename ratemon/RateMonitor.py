@@ -261,7 +261,7 @@ class RateMonitor:
 
         # We can't specify two different x_axis at the same time
         if self.use_pileup and self.use_lumi:
-            print("ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi")
+            print("ERROR SETUP: Improper selection for self.use_pileup (" + self.use_pileup + ") and self.use_lumi (" + self.use_lumi  + "). They should never be both enabled")
             return False
 
         # If we specify a fit file, we don't want to make new fits
@@ -274,7 +274,7 @@ class RateMonitor:
 
         # Check to see if the online fits directory exists
         if self.update_online_fits and not os.path.exists(self.online_fits_dir):
-            print("ERROR SETUP: Could not find fit directory")
+            print("ERROR SETUP: Could not find fit directory (" + self.online_fits_dir + ")")
             return False
 
         # We need to make sure we have the map between the plot objects and directories
@@ -284,7 +284,7 @@ class RateMonitor:
 
         # We don't want to accidentally remove all the contents from the current working directory
         if self.save_dir == self.rate_mon_dir:
-            print("ERROR SETUP: Save directory is the same as RateMon directory")
+            print("ERROR SETUP: Save directory (" + self.save_dir + ") is the same as RateMon directory (" + self.rate_mon_dir + ")")
             return False
 
         # Certify mode doesn't create any fits, so we shouldn't be updating any existing fits
