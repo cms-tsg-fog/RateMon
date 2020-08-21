@@ -54,6 +54,11 @@ test:ratemon:
     HTTP_PORT: 8085
   environment:
     on_stop: 💣 test:ratemon
+  script:
+  - mkdir -p build/manifests
+  - rendersecretstemplate | rendertemplate -v - | tee build/manifests/secret.yml
+  - rendertemplate -v /opt/k8s/templates/basicdeployment.yaml | tee build/manifests/deploy.yml
+  - kubectl --kubeconfig="$K8S_CONFIG" apply -Rf build/manifests
 
 💣 test:ratemon:
   stage: 💣 cleanup
