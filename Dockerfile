@@ -6,6 +6,6 @@ COPY ratemon /ratemon
 WORKDIR /ratemon
 RUN make
 
-ENTRYPOINT ["python3", "server.py"]
+ENTRYPOINT ["/ratemon/startServer_ci.sh"]
 
 EXPOSE 8085
