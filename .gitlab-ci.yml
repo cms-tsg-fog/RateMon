@@ -45,3 +45,14 @@ docker:
   stage: 📦 publish
   variables:
     BUILD_ARG_CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+
+test:ratemon:
+  stage: 🚀 deploy
+  extends: .auto_devops_k8s_basic_deployment
+  environment:
+    on_stop: 💣 test:ratemon
+
+💣 test:ratemon:
+  stage: 💣 cleanup
+  extends: .auto_devops_k8s_basic_deployment_stop
+  dependencies: ["test:ratemon"]
