@@ -1,4 +1,4 @@
-FROM gitlab-registry.cern.ch/avivace/ratemon/oms-base:cc7
+FROM gitlab-registry.cern.ch/cms-tsg-fog/ratemon/oms-base:cc7
 
 COPY aggregationapi/target/aggregation*.jar /aggregator.jar
 COPY configuration.yml /aggregator.config.yml

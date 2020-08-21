@@ -42,7 +42,7 @@ ${RPM_NAME}:
 	-a ${ARCH} \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
-	--url "https://gitlab.cern.ch/avivace/ratemon" \
+	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
 	--vendor "CERN" \
 	.=/ && mv *.rpm ..
 	mkdir -p rpms
