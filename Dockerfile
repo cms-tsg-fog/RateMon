@@ -6,4 +6,6 @@ COPY ratemon /ratemon
 WORKDIR /ratemon
 RUN make
 
-ENTRYPOINT ["python3", "plotTriggerRates.py"]
+ENTRYPOINT ["python3", "server.py"]
+
+EXPOSE 8085
