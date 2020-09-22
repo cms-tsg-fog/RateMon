@@ -37,7 +37,7 @@ make:
   - make
   artifacts:
     paths:
-    - "/rpms"
+    - "rpms"
 
 docker:
   extends: .auto_devops_docker_builder_autotag
