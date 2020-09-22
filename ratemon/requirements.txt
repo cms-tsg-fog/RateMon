@@ -18,7 +18,7 @@ openapi-spec-validator==0.2.9
 pyrsistent==0.16.0
 PyYAML==5.3.1
 requests==2.24.0
-ROOT==6.22.0
+ROOT==6.22.02
 six==1.15.0
 swagger-ui-bundle==0.0.8
 tornado==6.0.4
