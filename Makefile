@@ -44,6 +44,6 @@ ${RPM_NAME}:
 	--description "Rate monitoring tools for HLT and L1" \
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
 	--vendor "CERN" \
-	rpmroot=/
+	rpmroot/=/
 	mkdir -p rpms
 	mv *.rpm rpms
