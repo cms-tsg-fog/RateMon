@@ -33,17 +33,18 @@ ${RPM_NAME}:
 	cp -r ratemon rpmroot/opt
 
 	# Launch fpm to package the prepared folder	
-	cd rpmroot && fpm \
+	fpm \
 	-p ${RPM_NAME} \
 	-n ratemon \
 	-s dir \
 	-t rpm \
 	-v ${VERSION} \
 	-a ${ARCH} \
+	-d python3 -d root -d python36-root \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
 	--vendor "CERN" \
-	.=/ && mv *.rpm ..
+	rpmroot/=/
 	mkdir -p rpms
 	mv *.rpm rpms

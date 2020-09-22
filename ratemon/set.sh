@@ -32,5 +32,9 @@ then
     cd -
 fi
 
-alias rateMon='python2 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
-alias plotRates='python2 plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
+if [[ -f /opt/ratemon/venv/bin/python3 ]]; then
+    export PATH="/opt/ratemon/venv/bin:$PATH"
+fi
+
+alias rateMon='python3 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
+alias plotRates='python3 plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
