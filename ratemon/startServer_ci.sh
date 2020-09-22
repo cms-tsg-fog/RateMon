@@ -23,4 +23,9 @@ for s in `cat dbConfig.yaml | grep "'user': " | sed -E "s|  'user': '(.*)'|\1|"`
   fi
 done
 
-python3 server.py
+
+if [[ -f ./venv/bin/python3 ]]; then
+  ./venv/bin/python3 server.py
+else
+  python3 server.py
+fi
