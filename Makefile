@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 .DEFAULT_GOAL := rpm
 
-VERSION = 1.0.0
+VERSION = $${CI_COMMIT_TAG:-0.0.0}
 RELEASE = 1
 ARCH = amd64
 # Get the git branch name and the short commit hash
@@ -32,6 +32,8 @@ ${RPM_NAME}:
 	# Copy the ratemon folder
 	cp -r ratemon rpmroot/opt
 
+	mkdir -p rpms rpms_p5
+
 	# Launch fpm to package the prepared folder	
 	fpm \
 	-p ${RPM_NAME}-python36.rpm \
@@ -47,6 +49,8 @@ ${RPM_NAME}:
 	--vendor "CERN" \
 	rpmroot/=/
 
+	mv *-python36.rpm rpms
+
 	fpm \
 	-p ${RPM_NAME}-python34.rpm \
 	-n ratemon \
@@ -61,5 +65,4 @@ ${RPM_NAME}:
 	--vendor "CERN" \
 	rpmroot/=/
 
-	mkdir -p rpms
-	mv *.rpm rpms
+	mv *-python34.rpm rpms_p5

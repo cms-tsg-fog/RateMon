@@ -30,30 +30,68 @@ builder image:
     CONTEXT_FOLDER: .gitlab/ci
     NAME: builder
 
-make:
+build:RPMs:
   image: $CI_REGISTRY_IMAGE/builder:$CI_COMMIT_REF_NAME-latest
   stage: 🏗️ build
   script:
   - make
   artifacts:
     paths:
-    - "rpms"
+    - rpms
+    - rpms_p5
 
-docker:
+publish:docker:
   extends: .auto_devops_docker_builder_autotag
   stage: 📦 publish
   variables:
     BUILD_ARG_CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
 
-test:ratemon:
+
+publish:RPMs:
+  stage: 📦 publish
+  extends: .auto_devops_upload_yum_repo_eos_template
+  variables:
+    LOCAL_FOLDER: rpms
+    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
+
+publish:RPMs:P5:
+  stage: 📦 publish
+  extends: .auto_devops_upload_yum_repo_eos_template
+  variables:
+    LOCAL_FOLDER: rpms_p5
+    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/p5/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
+
+
+deploy:test:
   stage: 🚀 deploy
   extends: .auto_devops_k8s_basic_deployment
   variables:
     HTTP_PORT: 8085
   environment:
-    on_stop: 💣 test:ratemon
+    on_stop: cleanup:test
 
-💣 test:ratemon:
+cleanup:test:
   stage: 💣 cleanup
   extends: .auto_devops_k8s_basic_deployment_stop
-  dependencies: ["test:ratemon"]
+  dependencies: ["deploy:test"]
+
+# trigger this job by manually creating a pipeline with your P5 credentials
+deploy:P5:
+  stage: 🚀 deploy
+  extends: .auto_devops_p5_dropbox_push
+  rules:
+    # omit if user did not supply P5 credentials
+  - if: $P5_USER == null || $P5_PASS == null
+    when: never
+    # only when tagged
+  - if: $PACKAGE_VER_PATCH || $CI_COMMIT_TAG
+    when: manual
+    allow_failure: false
+  - when: never
+  variables:
+    LOCAL_FOLDER: rpms_p5
+    DROPBOX_OS: cc7
+    DROPBOX_ZONE: cms
+    DROPBOX_NAME: ratemon
+    SSH_USERNAME: $P5_USER
+    SSH_PASS: $P5_PASS
