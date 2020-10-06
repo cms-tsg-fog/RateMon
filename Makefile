@@ -16,7 +16,7 @@ test:
 build:
 	make -C ratemon build
 
-RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}.rpm
+RPM_NAME = ratemon-${VERSION}.${ARCH}.${BRANCH}.${HASH}
 
 .PHONY: rpm
 rpm: build ${RPM_NAME}
@@ -34,7 +34,7 @@ ${RPM_NAME}:
 
 	# Launch fpm to package the prepared folder	
 	fpm \
-	-p ${RPM_NAME}-python36 \
+	-p ${RPM_NAME}-python36.rpm \
 	-n ratemon \
 	-s dir \
 	-t rpm \
@@ -48,7 +48,7 @@ ${RPM_NAME}:
 	rpmroot/=/
 
 	fpm \
-	-p ${RPM_NAME}-python34 \
+	-p ${RPM_NAME}-python34.rpm \
 	-n ratemon \
 	-s dir \
 	-t rpm \
