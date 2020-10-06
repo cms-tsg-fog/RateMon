@@ -38,7 +38,6 @@ build:RPMs:
   artifacts:
     paths:
     - rpms
-    - rpms_p5
 
 publish:docker:
   extends: .auto_devops_docker_builder_autotag
@@ -51,15 +50,15 @@ publish:RPMs:
   stage: 📦 publish
   extends: .auto_devops_upload_yum_repo_eos_template
   variables:
-    LOCAL_FOLDER: rpms
-    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
+    LOCAL_FOLDER: rpms/python36
+    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/python36/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
 
 publish:RPMs:P5:
   stage: 📦 publish
   extends: .auto_devops_upload_yum_repo_eos_template
   variables:
-    LOCAL_FOLDER: rpms_p5
-    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/p5/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
+    LOCAL_FOLDER: rpms/python34
+    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/python34/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
 
 
 deploy:test:
@@ -89,7 +88,7 @@ deploy:P5:
     allow_failure: false
   - when: never
   variables:
-    LOCAL_FOLDER: rpms_p5
+    LOCAL_FOLDER: rpms/python34
     DROPBOX_OS: cc7
     DROPBOX_ZONE: cms
     DROPBOX_NAME: ratemon

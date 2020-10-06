@@ -33,7 +33,7 @@ ${RPM_NAME}:
 	# Copy the ratemon folder
 	cp -r ratemon rpmroot/opt
 
-	mkdir -p rpms rpms_p5
+	mkdir -p rpms/python34 rpms/python36
 
 	# Launch fpm to package the prepared folder	
 	fpm \
@@ -50,7 +50,7 @@ ${RPM_NAME}:
 	--vendor "CERN" \
 	rpmroot/=/
 
-	mv *-python36.rpm rpms
+	mv *-python36.rpm rpms/python36
 
 	fpm \
 	-p ${RPM_NAME}-python34.rpm \
@@ -66,4 +66,4 @@ ${RPM_NAME}:
 	--vendor "CERN" \
 	rpmroot/=/
 
-	mv *-python34.rpm rpms_p5
+	mv *-python34.rpm rpms/python34
