@@ -34,7 +34,7 @@ ${RPM_NAME}:
 
 	# Launch fpm to package the prepared folder	
 	fpm \
-	-p ${RPM_NAME} \
+	-p ${RPM_NAME}-python36 \
 	-n ratemon \
 	-s dir \
 	-t rpm \
@@ -46,5 +46,20 @@ ${RPM_NAME}:
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
 	--vendor "CERN" \
 	rpmroot/=/
+
+	fpm \
+	-p ${RPM_NAME}-python34 \
+	-n ratemon \
+	-s dir \
+	-t rpm \
+	-v ${VERSION} \
+	-a ${ARCH} \
+	-d python34 -d root -d python34-root \
+	--iteration ${RELEASE} \
+	--description "Rate monitoring tools for HLT and L1" \
+	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
+	--vendor "CERN" \
+	rpmroot/=/
+
 	mkdir -p rpms
 	mv *.rpm rpms
