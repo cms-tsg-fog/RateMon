@@ -14,6 +14,7 @@ import cx_Oracle
 import socket
 # For the parsing
 import re
+import sys
 
 # Key version stripper
 def stripVersion(name):
@@ -288,7 +289,7 @@ class DBParser:
             self.curs.execute(sqlquery)
         except:
             print("Getting rates failed. Exiting.")
-            exit(2) # Exit with error
+            sys.exit(2) # Exit with error
         TriggerRates = {}
 
         for LS, HLTPass, triggerName in self.curs.fetchall():
@@ -359,7 +360,7 @@ class DBParser:
         try: self.curs.execute(sqlquery)
         except:
             print("Getting rates failed. Exiting.")
-            exit(2) # Exit with error
+            sys.exit(2) # Exit with error
 
         TriggerRates = {} # Initialize TriggerRates
         
@@ -456,7 +457,7 @@ class DBParser:
             self.curs.execute(sqlquery)
         except:
             print("Getting rates for %s failed. Exiting." % name)
-            exit(2) # Exit with error
+            sys.exit(2) # Exit with error
 
         trigger_rates = {}
         for LS, L1Pass, PSPass, HLTPass, HLTExcept in self.curs.fetchall():

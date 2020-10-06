@@ -16,6 +16,7 @@ import getopt # For getting command line options
 import json
 import sys
 import yaml
+import sys
 
 from DBParser import *
 from RateMonitor import *
@@ -398,7 +399,7 @@ class MonitorController:
                     except yaml.YAMLError as exc:
                         print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
-                        exit(1)
+                        sys.exit(1)
                 #self.parser = DBParser(dbCfg)
                 #self.rate_monitor = RateMonitor(dbCfg)
                 self.ops_dict["dbConfigFile="] = dbCfg
@@ -407,7 +408,7 @@ class MonitorController:
         if not dbConfigLoaded:
             print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
             # Exit with error, we can't continue without connecting to the DB
-            exit(1)
+            sys.exit(1)
 
         for label,op in opt:
 

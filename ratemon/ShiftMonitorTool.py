@@ -18,6 +18,7 @@
 import pickle as pickle
 import sys
 import time
+import sys
 # Parsing YAML configuration files
 import yaml
 # For getting command line options
@@ -35,7 +36,7 @@ class CommandLineParser:
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
         except:
             print("Error getting options. Exiting.")
-            exit(1)
+            sys.exit(1)
 
         # Remember if we were told to use all triggers
         #usingAll = False
@@ -51,7 +52,7 @@ class CommandLineParser:
                     except yaml.YAMLError as exc:
                         print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
-                        exit(1)
+                        sys.exit(1)
                 self.monitor = ShiftMonitor(dbCfg)
             else:
                 pass
@@ -59,7 +60,7 @@ class CommandLineParser:
         if not dbConfigLoaded:
             print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
             # Exit with error, we can't continue without connecting to the DB
-            exit(1)
+            sys.exit(1)
 
         for label, op in opt:
             if label == "--fitFile":
@@ -164,7 +165,7 @@ class CommandLineParser:
         print("")
         print("Program by Nathaniel Rupprecht, created July 13th, 2015.") #For questions, email nrupprec@nd.edu"
         print("")
-        exit()
+        sys.exit()
 
     # Use: Runs the shift monitor
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
@@ -177,7 +178,7 @@ class CommandLineParser:
     #        file = open(self.cfgFile, "r")
     #    except:
     #        print "Config file failed to open. Exiting program."
-    #        exit()
+    #        sys.exit()
     #        
     #    for line in file:
     #        # Get rid of new line

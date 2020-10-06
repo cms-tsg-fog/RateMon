@@ -976,7 +976,7 @@ class DatabaseParser:
                         dummylist.append(1)
                     dict[L1seed]=dummylist
                     
-                    #exit(2)
+                    #sys.exit(2)
             #print HLTkey, dict    
             
             HLTL1PS[HLTkey]=dict
