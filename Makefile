@@ -1,7 +1,8 @@
 SHELL:=/bin/bash
 .DEFAULT_GOAL := rpm
 
-VERSION = $${CI_COMMIT_TAG:-0.0.0}
+CI_COMMIT_TAG ?= 0.0.0
+VERSION = ${CI_COMMIT_TAG}
 RELEASE = 1
 ARCH = amd64
 # Get the git branch name and the short commit hash
