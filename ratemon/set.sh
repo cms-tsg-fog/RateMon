@@ -26,10 +26,12 @@ fi
 
 if [[ -d ${VO_CMS_SW_DIR:-} ]]
 then
+    set +o errexit +o nounset +o pipefail # CMSSW scripts are shitty
     source $VO_CMS_SW_DIR/cmsset_default.sh
     cd $VO_CMS_SW_DIR/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/
     eval `scramv1 runtime -sh`
     cd -
+    set -o errexit -o nounset -o pipefail # reset to non shitty mode
 fi
 
 if [[ -f /opt/ratemon/venv/bin/python3 ]]; then
