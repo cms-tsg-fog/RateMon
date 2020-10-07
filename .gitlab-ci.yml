@@ -45,12 +45,12 @@ publish:docker:
   variables:
     BUILD_ARG_CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
 
-publish:docker:
+publish:docker:P5:
   extends: .auto_devops_docker_builder_autotag
   stage: 📦 publish
   variables:
     DOCKERFILE: P5.Dockerfile
-    NAME: P5
+    NAME: p5
 
 
 publish:RPMs:
