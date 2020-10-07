@@ -6,7 +6,8 @@ VERSION = ${CI_COMMIT_TAG}
 RELEASE = 1
 ARCH = amd64
 # Get the git branch name and the short commit hash
-BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+CI_COMMIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+BRANCH = ${CI_COMMIT_BRANCH}
 HASH = $(shell git rev-parse --short HEAD)
 
 PYTHON_VERSION = $(shell python3 --version | sed -E 's|^Python ([0-9]).([0-9]).[0-9]$$|python\1\2|') # e.g. 'python36'
