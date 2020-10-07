@@ -9,6 +9,9 @@ ARCH = amd64
 BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 HASH = $(shell git rev-parse --short HEAD)
 
+PYTHON_VERSION = $(shell python3 --version | sed -E 's|^Python ([0-9]).([0-9]).[0-9]$$|python\1\2|') # e.g. 'python36'
+$(info python version ${PYTHON_VERSION})
+
 .PHONY: test
 test:
 	echo todo
@@ -33,37 +36,21 @@ ${RPM_NAME}:
 	# Copy the ratemon folder
 	cp -r ratemon rpmroot/opt
 
-	mkdir -p rpms/python34 rpms/python36
+	mkdir -p rpms/${PYTHON_VERSION}
 
 	# Launch fpm to package the prepared folder	
 	fpm \
-	-p ${RPM_NAME}-python36.rpm \
+	-p ${RPM_NAME}-${PYTHON_VERSION}.rpm \
 	-n ratemon \
 	-s dir \
 	-t rpm \
 	-v ${VERSION} \
 	-a ${ARCH} \
-	-d python3 -d root -d python36-root \
+	-d root -d ${PYTHON_VERSION}-root \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
 	--vendor "CERN" \
 	rpmroot/=/
 
-	mv *-python36.rpm rpms/python36
-
-	fpm \
-	-p ${RPM_NAME}-python34.rpm \
-	-n ratemon \
-	-s dir \
-	-t rpm \
-	-v ${VERSION} \
-	-a ${ARCH} \
-	-d python34 -d root -d python34-root \
-	--iteration ${RELEASE} \
-	--description "Rate monitoring tools for HLT and L1" \
-	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
-	--vendor "CERN" \
-	rpmroot/=/
-
-	mv *-python34.rpm rpms/python34
+	mv *-${PYTHON_VERSION}.rpm rpms/${PYTHON_VERSION}

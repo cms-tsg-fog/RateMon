@@ -5,4 +5,4 @@ SHELL:=/bin/bash
 build:
 	virtualenv -p /usr/bin/python3 --system-site-packages --download --copies venv
 	source venv/bin/activate && \
-	pip3 install -r requirements.txt
+	python -m pip install -r requirements.txt
