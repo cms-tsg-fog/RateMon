@@ -10,8 +10,9 @@ CI_COMMIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH = ${CI_COMMIT_BRANCH}
 HASH = $(shell git rev-parse --short HEAD)
 
-PYTHON_VERSION = $(shell python3 --version | sed -E 's|^Python ([0-9])\.([0-9])\.*$$|python\1\2|') # e.g. 'python36'
-$(info python version ${PYTHON_VERSION})
+# e.g. 'python36'
+PYTHON_VERSION = $(shell python3 --version | sed -E 's|^Python ([0-9])\.([0-9])\..*$$|python\1\2|')
+$(info python version '${PYTHON_VERSION}')
 
 .PHONY: test
 test:
