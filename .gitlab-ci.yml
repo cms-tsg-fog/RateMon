@@ -66,23 +66,23 @@ cleanup:test:
   extends: .auto_devops_k8s_basic_deployment_stop
   dependencies: ["deploy:test"]
 
-# trigger this job by manually creating a pipeline with your P5 credentials
-deploy:P5:
-  stage: 🚀 deploy
-  extends: .auto_devops_p5_dropbox_push
-  rules:
-    # omit if user did not supply P5 credentials
-  - if: $P5_USER == null || $P5_PASS == null
-    when: never
-    # only when tagged
-  - if: $PACKAGE_VER_PATCH || $CI_COMMIT_TAG
-    when: manual
-    allow_failure: false
-  - when: never
-  variables:
-    LOCAL_FOLDER: rpms/python34
-    DROPBOX_OS: cc7
-    DROPBOX_ZONE: cms
-    DROPBOX_NAME: ratemon
-    SSH_USERNAME: $P5_USER
-    SSH_PASS: $P5_PASS
+# # trigger this job by manually creating a pipeline with your P5 credentials
+# deploy:P5:
+#   stage: 🚀 deploy
+#   extends: .auto_devops_p5_dropbox_push
+#   rules:
+#     # omit if user did not supply P5 credentials
+#   - if: $P5_USER == null || $P5_PASS == null
+#     when: never
+#     # only when tagged
+#   - if: $PACKAGE_VER_PATCH || $CI_COMMIT_TAG
+#     when: manual
+#     allow_failure: false
+#   - when: never
+#   variables:
+#     LOCAL_FOLDER: rpms/python34
+#     DROPBOX_OS: cc7
+#     DROPBOX_ZONE: cms
+#     DROPBOX_NAME: ratemon
+#     SSH_USERNAME: $P5_USER
+#     SSH_PASS: $P5_PASS
