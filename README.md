@@ -23,11 +23,12 @@ This is not needed on LXPLUS.
 
 Ratemon now works on CC7 / CentOS.
 
-Prerequisites:
+System requisites:
 
 ```bash
 # Install python
 yum install python3
+
 # Install ROOT
 yum install root
 yum install python36-root
@@ -57,8 +58,17 @@ Then, when running `plotTriggerRates` or `ShiftMonitorTool`, pass the `--dbConfi
 
 ### Running
 
-Example:
+plotTriggerRates:
 
 ```bash
 python3 plotTriggerRates.py --dbConfigFile=dbConfig.yaml --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
 ```
+
+ShiftMonitorTool:
+
+```bash
+./start.sh
+```
+or, if you installed the package, you should have a ratemon service installed. `systemctl status ratemon.service` will give you the current
+status, while ``systemctl start ratemon.service` starts it. Run `sudo journalctl -fu ratemon` to see the output.
+
