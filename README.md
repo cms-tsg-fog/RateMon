@@ -70,5 +70,5 @@ ShiftMonitorTool:
 ./start.sh
 ```
 or, if you installed the package, you should have a ratemon service installed. `systemctl status ratemon.service` will give you the current
-status, while ``systemctl start ratemon.service` starts it. Run `sudo journalctl -fu ratemon` to see the output.
+status, while `systemctl start ratemon.service` starts it. Run `sudo journalctl -fu ratemon` to see the output.
 
