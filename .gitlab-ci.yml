@@ -4,6 +4,10 @@ include:
     ref: 0.0.8
     file: presets/blank-slate.yml
 
+# disable CI checkout of oms/aggregationapi
+variables:
+  GIT_SUBMODULE_STRATEGY: none
+
 stages:
 - 🛠️ setup
 - 🏗️ build
