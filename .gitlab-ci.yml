@@ -1,18 +1,8 @@
 # include all templates in https://gitlab.cern.ch/cms-cactus/ops/auto-devops/-/tree/0.0.3
 include:
   - project: cms-cactus/ops/auto-devops
-    ref: 0.0.7
-    file: templates/all.yml
-
-# Only run when a branch or git tag is defined
-# this avoids accidents like
-# - detached pipelines causing undefined behavior
-# - triggering for merge requests, where the CI pretends your code is already on the master branch, 
-#   and thus you unintentionally push your RPMs to your production yum repo prematurely
-workflow:
-  rules:
-  - if: $CI_COMMIT_TAG     
-  - if: $CI_COMMIT_BRANCH
+    ref: 0.0.8
+    file: presets/blank-slate.yml
 
 stages:
 - 🛠️ setup
