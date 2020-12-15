@@ -14,7 +14,7 @@
 
 import array
 
-from DBParser import *
+from OldDBParser import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -158,7 +158,7 @@ class DataParser:
         # [( LS,ilum,psi,phys,cms_ready ) ]
         lumi_info = []
 
-        trigger_mode = self.parser.getTriggerMode(run)[0]
+        trigger_mode = self.parser.getTriggerMode(run)
 
         if trigger_mode.find('cosmics') > 0:
             # This is a cosmics menu --> No luminosity info

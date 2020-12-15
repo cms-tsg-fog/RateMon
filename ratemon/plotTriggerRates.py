@@ -18,7 +18,7 @@ import sys
 import yaml
 import sys
 
-from DBParser import *
+from OldDBParser import *
 from RateMonitor import *
 
 class MonitorController:
