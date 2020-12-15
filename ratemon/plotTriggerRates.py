@@ -3,7 +3,7 @@
 # Author: Charlie Mueller, Nathaniel Rupprecht, Andrew Wightman
 # Date Created: June 19, 2015
 #
-# Dependencies: RateMonitor.py, DBParser.py
+# Dependencies: RateMonitor.py, OldDBParser.py
 #
 # Data Type Key:
 #    ( a, b, c, ... )       -- denotes a tuple

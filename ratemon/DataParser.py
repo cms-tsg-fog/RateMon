@@ -3,7 +3,7 @@
 # Author: Andrew Wightman
 # Date Created: September 15, 2016
 #
-# Dependencies: DBParser.py
+# Dependencies: OldDBParser.py
 #
 # Data Type Key:
 #    ( a, b, c, ... )        -- denotes a tuple
