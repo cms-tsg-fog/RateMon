@@ -12,7 +12,8 @@
 # Imports
 # For the parsing
 import re
-
+import sys
+import os
 import DBConfigFile as cfg
 
 from omsapi import OMSAPI
@@ -21,6 +22,12 @@ from omsapi import OMSAPI
 omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
 omsapi.auth_krb()
 #note this authentication only works on lxplus           
+
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
 
 # Key version stripper
 def stripVersion(name):
@@ -114,13 +121,13 @@ class DBParser:
 
         for item in response['data']:
             thing = item['attributes']
-            adjusted_lumi = 10000*thing['init_lumi']
-            q2.clear_filter()
-            q2.filter("run_number", runNumber)
             if thing['lumisection_number'] < minLS:
                 continue
             if thing['lumisection_number'] > maxLS:
                 break
+            adjusted_lumi = 10000*thing['init_lumi']
+            q2.clear_filter()
+            q2.filter("run_number", runNumber)
             q2.filter("first_lumisection_number", thing['lumisection_number'])
             data2 = q2.data().json()
             if data2['data'] == []:
@@ -148,6 +155,10 @@ class DBParser:
 
         for item in response['data']:
             thing = item['attributes']
+            if thing['lumisection_number'] < minLS:
+                continue
+            if thing['lumisection_number'] > maxLS:
+                break
             adjusted_lumi = 10000*thing['init_lumi']
             q2.clear_filter()
             q2.filter("run_number", runNumber)
@@ -195,56 +206,111 @@ class DBParser:
 
         return TriggerRates
 
-    # Similar to the 'getRawRates' query, but is restricted to triggers that appear in trigger_list
     def getHLTRates(self, runNumber, trigger_list=[],minLS=-1, maxLS=9999999):
-        # First we need the HLT and L1 prescale rates and the HLT seed info
+
+        # First we need the HLT and L1 prescale rates and the HLT seed info                                                                                                                                
         if not self.getRunInfo(runNumber):
             print("Failed to get run info ")
             return {} # The run probably doesn't exist
-
-        # Get L1 info
+        #print(self.PSColumnByLS)
+        blockPrint()
+        # Get L1 info                                                                                                                                                                                     
         self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)
-        # Get HLT info
+        # Get HLT info                                                                                                                                                                                     
         self.getHLTSeeds(runNumber)
-        #self.getHLTPrescales(runNumber)
+        self.getHLTPrescales(runNumber)
+
+        # Get the prescale index as a function of LS                                                                                                                                                       
+        #for LS, psi in self.curs.fetchall():
+        #    self.PSColumnByLS[LS] = psi
 
         self.HLT_name_map = self.getHLTNameMap(runNumber)
 
         if len(trigger_list) == 0:
-            # If no list is given --> get rates for all HLT triggers
-            trigger_list = list(self.HLT_name_map.keys())
+            # If no list is given --> get rates for all HLT triggers                                                                                                                                       
+            trigger_list = self.HLT_name_map.keys()
 
-        
-        q = omsapi.query('hltprescalesets')
-        q.custom("filter[run_number]", runNumber)
-        q.set_validation(False)
-        q.per_page = 4000
-        response = q.data()
-        item = response.json()
-        data = item['data']
         trigger_rates = {}
-        for thing in data:
-            something = thing['attributes']
-            q2 = omsapi.query("hltpathrates")
-            q2.filter("run_number", runNumber)
-            q2.filter("path_name", something['path_name'])
-            q2.per_page = 4000
-            response2 = q2.data()
-            item2 = response2.json()
-            
-            if something['path_name'] not in trigger_rates:
-                trigger_rates[something['path_name']] = {}
-            data2 = item2['data']
-            for thing2 in data2:
-                something2 = thing2['attributes']
-                if something2['first_lumisection_number'] < minLS:
-                    continue
-                if something2['first_lumisection_number'] > maxLS:
-                    break
-                trigger_rates[something['path_name']][something2['first_lumisection_number']] = [something['prescales'][1]['prescale']*something2['rate'], something2['rate']]
+        for name in trigger_list:
+            if not self.HLT_name_map:
+                # Ignore triggers which don't appear in this run                                                                                                                                           
+                continue
+            trigger_rates[stripVersion(name)] = self.getSingleHLTRate(runNumber,name,minLS,maxLS)
 
+        enablePrint()
         return trigger_rates
+
+    def getSingleHLTRate(self, runNumber, name, minLS=-1, maxLS=9999999):
+        #path_id = self.HLT_name_map[name]
+        q = omsapi.query("hltpathrates")
+        q.filter("run_number", runNumber)
+        q.filter("path_name", name)
+        q.per_page = 400
+        thing = q.data().json()
+        #print(thing)
+        data = thing['data']
+        trigger_rates = {}
+
+        for item in data:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
+            LS = item['attributes']['first_lumisection_number']
+            rate = item['attributes']['rate']
+            hltps = 0 # HLT Prescale                                                                                                                                                                       
+
+            # TODO: We can probably come up with a better solution then a try, except here                                                                                                                 
+            try:
+                psi = self.PSColumnByLS[LS] # Get the prescale index                                                                                                                                       
+            except:
+                psi = 0
+            if psi is None:
+                psi = 0
+            try:
+                hltps = self.HLTPrescales[name][psi]
+            except:
+                hltps = 1.
+            hltps = float(hltps)
+            try:
+                if self.HLTSeed[name] in self.L1IndexNameMap:
+                    l1ps = self.L1Prescales[self.L1IndexNameMap[self.HLTSeed[name]]][psi]
+                else:
+                    l1ps = self.UnwindORSeed(self.HLTSeed[name],self.L1Prescales,psi)
+            except:
+                l1ps = 1
+            ps = l1ps*hltps
+
+            blockPrint()
+            trigger_rates[LS] = [ps*rate, ps]
+        return trigger_rates
+
+    # Returns: The minimum prescale value                                                                                                                                                                   
+    def UnwindORSeed(self,expression,L1Prescales,psi):
+        """                                                                                                                                                                                                
+        Figures out the effective prescale for the OR of several seeds                                                                                                                                     
+        we take this to be the *LOWEST* prescale of the included seeds                                                                                                                                     
+        """
+        if expression.find(" AND ") != -1:
+            return 1
+        seedList = []
+        # This 'if' might be redundent                                                                                                                                                                     
+        if expression.find(" OR ") != -1:
+            for elem in expression.split(" OR "):
+                # Strip all whitespace from the split strings                                                                                                                                              
+                seedList.append(elem.replace(" ",""))
+        else:
+            expression = expression.replace(" ","")
+            seedList.append(expression)
+        minPS = 99999999999
+        for seed in seedList:
+            if seed not in self.L1IndexNameMap:
+                continue
+            ps = L1Prescales[self.L1IndexNameMap[seed]][psi]
+            if ps: minPS = min(ps,minPS)
+        if minPS == 99999999999: return 0
+        else: return minPS
 
     # Generates a dictionary that maps HLT path names to the corresponding path_id
     def getHLTNameMap(self,runNumber):
@@ -259,9 +325,8 @@ class DBParser:
         name_map = {}
         for thing in data:
             something = thing['attributes']
-            name = stripVersion(something['path_name'])
+            name = something['path_name']
             name_map[name] = something['path_id']
-
         
         return name_map
 
@@ -300,7 +365,8 @@ class DBParser:
         data = item['data']
         for thing in data:
             something = thing['attributes']
-            self.HLTSeed[something['path_name']] = something['l1_prerequisite']
+            if something['l1_prerequisite'] != None:
+                self.HLTSeed[something['path_name']] = something['l1_prerequisite'].lstrip('"').rstrip('"')
 
 
     # Note: This function is from DatabaseParser.py (with slight modification)
@@ -398,7 +464,7 @@ class DBParser:
                 continue
             if thing['first_lumisection_number'] > maxLS:
                 break
-            deadTime[thing['first_lumisection_number']] = thing['beamactive_total_deadtime']['counter']
+            deadTime[thing['first_lumisection_number']] = thing['beamactive_total_deadtime']['percent']
             
         return deadTime
 
@@ -602,7 +668,7 @@ class DBParser:
         
         L1Triggers = {}
         q = omsapi.query("l1algorithmtriggers")
-        q.per_page=200
+        q.per_page=4000
         q.filter("run_number", runNumber)
         q.custom("group[granularity]", "run")
         data = q.data().json()['data'][0]['attributes']
