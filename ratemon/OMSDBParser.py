@@ -431,7 +431,6 @@ class DBParser:
         response = q.data()
         something = response.json()
         q2 = omsapi.query("fills")
-        print(something['data'][0]['attributes']['fill_number'])
         q2.filter("fill_number", something['data'][0]['attributes']['fill_number'])
         response2 = q2.data()
         something2 = response2.json()
@@ -676,7 +675,7 @@ class DBParser:
             minLS = data['first_lumisection_number']
         if data['last_lumisection_number'] < maxLS:
             maxLS = data['last_lumisection_number']
-        for i in range(minLS, maxLS):
+        for i in range(minLS, maxLS+1):
             q.clear_filter()
             q.filter("run_number", runNumber)
             q.filter("first_lumisection_number", i)
@@ -684,8 +683,7 @@ class DBParser:
             for item in data:
                 if item['attributes']['name'] not in L1Triggers:
                     L1Triggers[item['attributes']['name']] = {}
-                L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_rate'], item['attributes']['initial_prescale']['prescale']]
-                
+                L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
         return L1Triggers
 
     def getStreamData(self, runNumber, misLS=-1, maxLS=9999999):
