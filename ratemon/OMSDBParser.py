@@ -29,7 +29,7 @@ def stripVersion(name):
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
 class DBParser:
-    def __init__(self) :
+    def __init__(self, cfg) :
 
         #initiate connection to endpoints and authenticate
         #omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
@@ -102,6 +102,40 @@ class DBParser:
         else:
             return True
 
+    # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )                                                                                                                    
+    def getLumiInfo(self,runNumber,minLS=-1,maxLS=9999999):
+        _list = []
+
+        q = omsapi.query("lumisections")
+        q.filter("run_number", runNumber)
+        q.per_page = 400
+        response = q.data().json()
+        q2 = omsapi.query("l1algorithmtriggers")
+
+        for item in response['data']:
+            thing = item['attributes']
+            adjusted_lumi = 10000*thing['init_lumi']
+            q2.clear_filter()
+            q2.filter("run_number", runNumber)
+            if thing['lumisection_number'] < minLS:
+                continue
+            if thing['lumisection_number'] > maxLS:
+                break
+            q2.filter("first_lumisection_number", thing['lumisection_number'])
+            data2 = q2.data().json()
+            if data2['data'] == []:
+                break
+            _list.append([thing['lumisection_number'], adjusted_lumi, data2['data'][0]['attributes']['initial_prescale']['prescale_index'], thing['physics_flag']*thing['beam1_present'],
+                           thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
+                           thing['eep_ready']*thing['eem_ready']*thing['hbhea_ready']*thing['hbheb_ready']*
+                           thing['hbhec_ready']*thing['hf_ready']*thing['ho_ready']*thing['rpc_ready']*thing['dt0_ready']*
+                           thing['dtp_ready']*thing['dtm_ready']*thing['cscp_ready']*thing['cscm_ready']*thing['tob_ready']*
+                           thing['tibtid_ready']*thing['tecp_ready']*thing['tecm_ready']*thing['bpix_ready']*
+                           thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']])
+
+
+            return _list
+
     # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
     def getQuickLumiInfo(self,runNumber,minLS=-1,maxLS=9999999):
         _list = []
@@ -139,20 +173,26 @@ class DBParser:
         
         q = omsapi.query("hltpathrates")
         q.filter("run_number", runNumber)
-        q.filter("last_lumisection_number", 400)
-        q.per_page = 10000
-        response = q.data()
-        item = response.json()
-        data = item['data']
+        q.custom("group[granularity]", "run")
+        data = q.data().json()['data'][0]['attributes']
+        if data['first_lumisection_number'] > minLS:
+            minLS = data['first_lumisection_number']
+        if data['last_lumisection_number'] < maxLS:
+            maxLS = data['last_lumisection_number']
         TriggerRates = {}
-        for thing in data:
-            something = thing['attributes']
-            if something['path_name'] not in TriggerRates:
-                TriggerRates[something['path_name']] = {}
-                TriggerRates[something['path_name']][something['first_lumisection_number']] = something['rate']
-            else:
-                TriggerRates[something['path_name']][something['first_lumisection_number']] = something['rate']
-        
+        for i in range(minLS, maxLS):
+            q.clear_filter()
+            q.filter("run_number", runNumber)
+            q.filter("first_lumisection_number", i)
+            data = q.data().json()['data']
+            for thing in data:
+                something = thing['attributes']
+                if something['path_name'] not in TriggerRates:
+                    TriggerRates[something['path_name']] = {}
+                    TriggerRates[something['path_name']][something['first_lumisection_number']] = something['rate']
+                else:
+                    TriggerRates[something['path_name']][something['first_lumisection_number']] = something['rate']
+
         return TriggerRates
 
     # Similar to the 'getRawRates' query, but is restricted to triggers that appear in trigger_list
@@ -198,6 +238,10 @@ class DBParser:
             data2 = item2['data']
             for thing2 in data2:
                 something2 = thing2['attributes']
+                if something2['first_lumisection_number'] < minLS:
+                    continue
+                if something2['first_lumisection_number'] > maxLS:
+                    break
                 trigger_rates[something['path_name']][something2['first_lumisection_number']] = [something['prescales'][1]['prescale']*something2['rate'], something2['rate']]
 
         return trigger_rates
@@ -350,6 +394,10 @@ class DBParser:
         deadTime = {}
         for something in data['data']:
             thing = something['attributes']
+            if thing['first_lumisection_number'] < minLS:
+                continue
+            if thing['first_lumisection_number'] > maxLS:
+                break
             deadTime[thing['first_lumisection_number']] = thing['beamactive_total_deadtime']['counter']
             
         return deadTime
@@ -365,6 +413,10 @@ class DBParser:
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
             l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["trigger_physics_lost"]["rate"]
         
         return l1rate
@@ -381,6 +433,10 @@ class DBParser:
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
             l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["l1a_physics"]["rate"]
 
         return l1rate
@@ -396,6 +452,10 @@ class DBParser:
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
             l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["l1a_calibration"]["rate"]
             
         return l1rate
@@ -411,6 +471,10 @@ class DBParser:
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
             l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["l1a_random"]["rate"]
 
         return l1rate
@@ -426,6 +490,10 @@ class DBParser:
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
+            if item['attributes']['first_lumisection_number'] < minLS:
+                continue
+            if item['attributes']['first_lumisection_number'] > maxLS:
+                break
             l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["l1a_total"]["rate"]
 
         return l1rate    
@@ -538,9 +606,11 @@ class DBParser:
         q.filter("run_number", runNumber)
         q.custom("group[granularity]", "run")
         data = q.data().json()['data'][0]['attributes']
-        first_LS = data['first_lumisection_number']
-        last_LS = data['last_lumisection_number']
-        for i in range(first_LS, last_LS):
+        if data['first_lumisection_number'] > minLS:
+            minLS = data['first_lumisection_number']
+        if data['last_lumisection_number'] < maxLS:
+            maxLS = data['last_lumisection_number']
+        for i in range(minLS, maxLS):
             q.clear_filter()
             q.filter("run_number", runNumber)
             q.filter("first_lumisection_number", i)
@@ -551,5 +621,10 @@ class DBParser:
                 L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_rate'], item['attributes']['initial_prescale']['prescale']]
                 
         return L1Triggers
+
+    def getStreamData(self, runNumber, misLS=-1, maxLS=9999999):
+        raise NotImplemented()
+    def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
+        raise NotImplemented()
 
 # -------------------- End of class DBParsing -------------------- #

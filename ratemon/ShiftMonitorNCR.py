@@ -560,14 +560,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if not self.useLSRange:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
-            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
-            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            try:
+                self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            except:
+                print("no strem or dataset")
         else:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.LSRange[0],self.LSRange[1])
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1],1)
-            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
-        self.totalStreams = len(list(self.streamData.keys()))
+            try:
+                self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
+            except:
+                print("no strem or dataset")
+        try:
+            self.totalStreams = len(list(self.streamData.keys()))
+        except:
+            print("no strem or dataset")
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
