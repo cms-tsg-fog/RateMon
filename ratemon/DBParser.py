@@ -21,7 +21,10 @@ from omsapi import OMSAPI
 
 #initiate connection to endpoints and authenticate                                                                                                               
 omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
-omsapi.auth_krb()
+try:
+    omsapi.auth_krb()
+except:
+    print("Kerberos authentication failed. If not able to access OMS endpoints make sure you have proper authentication.")
 #note this authentication only works on lxplus           
 
 def blockPrint():

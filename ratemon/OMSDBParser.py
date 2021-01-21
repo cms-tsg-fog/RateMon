@@ -14,13 +14,17 @@
 import re
 import sys
 import os
+
 import DBConfigFile as cfg
 
 from omsapi import OMSAPI
 
 #initiate connection to endpoints and authenticate                                                                                                               
 omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
-omsapi.auth_krb()
+try:
+    omsapi.auth_krb()
+except:
+    print("Kerberos authentication failed. If not able to access OMS endpoints make sure you have proper authentication.")
 #note this authentication only works on lxplus           
 
 def blockPrint():
@@ -181,7 +185,7 @@ class DBParser:
     # Parameters: runNumber: the number of the run that we want data for
     # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
     def getPSRates(self, runNumber, minLS=-1, maxLS=9999999):
-        
+
         q = omsapi.query("hltpathrates")
         q.filter("run_number", runNumber)
         q.custom("group[granularity]", "run")
