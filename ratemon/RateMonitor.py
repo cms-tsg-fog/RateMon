@@ -400,24 +400,26 @@ class RateMonitor:
         
         rundata["runnumber"] = runnumber
 
-        if self.use_pileup: # plot PU vs. rate
-            xlabel = "pu"
-        elif self.use_lumi: # plot iLumi vs. rate
-            xlabel = "il"
-        else:               # plot LS vs. rate
-            xlabel = "ls"
+        if _object in self.plotter.plotting_data:
 
-        if self.data_parser.type_map[_object] == "trigger":
-            if self.data_parser.correct_for_DT == True:
-                ylabel = "pre-dt-"
+            if self.use_pileup: # plot PU vs. rate
+                xlabel = "pu"
+            elif self.use_lumi: # plot iLumi vs. rate
+                xlabel = "il"
+            else:               # plot LS vs. rate
+                xlabel = "ls"
 
-            if self.data_parser.use_prescaled_rate:
-                ylabel += "prescaled-rate"
-            else:
-                ylabel += "unprescaled-rate"
-        
-        rundata["x_axis"] = xlabel
-        rundata["y_axis"] = ylabel
+            if self.data_parser.type_map[_object] == "trigger":
+                if self.data_parser.correct_for_DT == True:
+                    ylabel = "pre-dt-"
+
+                if self.data_parser.use_prescaled_rate:
+                    ylabel += "prescaled-rate"
+                else:
+                    ylabel += "unprescaled-rate"
+
+            rundata["x_axis"] = xlabel
+            rundata["y_axis"] = ylabel
 
         if self.exportJSON:
            
