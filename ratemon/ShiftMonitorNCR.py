@@ -12,7 +12,9 @@
 #######################################################
 
 # Imports
-from DBParser import *
+import DBParser
+import OldDBParser
+from DBParser import stripVersion
 import ROOT
 from ROOT import TF1
 import pickle as pickle
@@ -96,7 +98,7 @@ class ShiftMonitor:
             'mode',
             'streamData']
 
-    def __init__(self, dbCfg):
+    def __init__(self, dbCfg, oldParser):
         self.FitFinder = FitFinder()
 
         # Suppress root warnings
@@ -108,7 +110,10 @@ class ShiftMonitor:
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
         # DBParser
-        self.parser = DBParser(dbCfg)   # A database parser
+        if oldParser:
+            self.parser = OldDBParser.DBParser(dbCfg)
+        else:
+            self.parser = DBParser.DBParser(dbCfg)   # A database parser
 
         # Rates
         self.HLTRates = None            # HLT rates
@@ -499,7 +504,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def setMode(self):
         self.sendMailAlerts_dynamic = self.sendMailAlerts_static
         try:
-            self.triggerMode = self.parser.getTriggerMode(self.runNumber)[0]
+            self.triggerMode = self.parser.getTriggerMode(self.runNumber)
         except:
             self.triggerMode = "Other"
         if self.triggerMode.find("cosmics") > -1:
@@ -560,14 +565,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if not self.useLSRange:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
-            self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
-            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            try:
+                self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
+            except:
+                print("no stream or dataset")
         else:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.LSRange[0],self.LSRange[1])
             self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1],1)
-            self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
-            self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
-        self.totalStreams = len(list(self.streamData.keys()))
+            try:
+                self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
+                self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
+            except:
+                print("no stream or dataset")
+        try:
+            self.totalStreams = len(list(self.streamData.keys()))
+        except:
+            print("no stream or dataset")
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)

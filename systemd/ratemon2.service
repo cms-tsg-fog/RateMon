@@ -1,0 +1,14 @@
+[Unit]
+Description=HLT Rate Monitoring
+Documentation=https://twiki.cern.ch/twiki/bin/viewauth/CMS/TriggerShifterGuideRateMonitoring
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=5s
+Type=simple
+User=hltpro
+ExecStart=/opt/ratemon/alternate_start.sh
+
+[Install]
+WantedBy=multi-user.target

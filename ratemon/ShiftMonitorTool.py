@@ -33,17 +33,19 @@ class CommandLineParser:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
-                                                       "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate="])
+                                                       "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate=", "oldParser"])
         except:
             print("Error getting options. Exiting.")
             sys.exit(1)
 
         # Remember if we were told to use all triggers
         #usingAll = False
-        
+        oldParser = False
         dbConfigLoaded = False;
         # First, we need to init and connect to the database
         for label, op in opt:
+            if label == "--oldParser":
+                oldParser = True
             if label == "--dbConfigFile":
                 dbConfigLoaded = True;
                 with open(str(op), 'r') as stream:
@@ -53,7 +55,7 @@ class CommandLineParser:
                         print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
                         sys.exit(1)
-                self.monitor = ShiftMonitor(dbCfg)
+                self.monitor = ShiftMonitor(dbCfg, oldParser)
             else:
                 pass
 
