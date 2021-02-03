@@ -496,7 +496,8 @@ class PlotMaker:
         export["yvar"] = self.var_Y
         export["xVals"] = xVals.tolist()
         export["yVals"] = yVals.tolist()
-        export["fit"] = func_str["user_input"]
+        if self.use_fit and not missing_fit:
+            export["fit"] = func_str["user_input"]
 
         return export
 
