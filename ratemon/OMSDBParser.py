@@ -15,8 +15,6 @@ import re
 import sys
 import os
 
-import DBConfigFile as cfg
-
 from omsapi import OMSAPI
 
 #initiate connection to endpoints and authenticate                                                                                                               

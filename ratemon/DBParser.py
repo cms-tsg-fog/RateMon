@@ -15,12 +15,11 @@ import re
 import sys
 import os
 
-import DBConfigFile as cfg
-
 from omsapi import OMSAPI
 
-#initiate connection to endpoints and authenticate                                                                                                               
-omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
+#initiate connection to endpoints and authenticate
+omsapi = OMSAPI("http://cmsoms.cms:8080/api")
+#omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
 try:
     omsapi.auth_krb()
 except:

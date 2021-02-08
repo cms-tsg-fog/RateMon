@@ -48,7 +48,7 @@ ${RPM_NAME}:
 	-t rpm \
 	-v ${VERSION} \
 	-a ${ARCH} \
-	-d root -d ${PYTHON_VERSION}-root \
+	-d root -d ${PYTHON_VERSION}-root -d ${PYTHON_VERSION}-omsapi \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
