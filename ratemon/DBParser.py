@@ -479,7 +479,11 @@ class DBParser:
         except:
             print("Failed to get run info")
             return [0,0]
-        
+
+        if bunches[0] == None:
+            bunches[0] = 0
+        if bunches[1] == None:
+            bunches[1] = 0
         return bunches
 
     def getLHCStatus(self):
