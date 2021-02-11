@@ -70,7 +70,11 @@ class DBParser:
         q.filter("run_number", runNumber)
         q.filter("bit", 1)
         blockPrint()
-        data = q.data().json()['data']
+        try:
+            data = q.data().json()['data']
+        except:
+            enablePrint()
+            print("Unable to get LS list for run %s" % runNumber)
         enablePrint()
         for thing in data:
             something = thing['attributes']
@@ -79,21 +83,26 @@ class DBParser:
 
     # Returns the various keys used for the specified run as a 5-tuple
     def getRunKeys(self,runNumber):
+        L1_HLT,HLT,GTRS,TSC,GT = "","","","",""
+        blockPrint()
         q = omsapi.query("l1configurationkeys")
         q.filter("run_number", runNumber)
-        blockPrint()
-        item = q.data().json()['data'][0]['attributes']
-        L1_HLT = item['l1_hlt_mode_stripped']
-        GTRS = item['run_settings_key']
-        TSC = item['l1_key']
-        GT = item['gt_key']
+        q2 = omsapi.query("hltconfigdata")
+        q2.set_validation(False)
+        q2.filter("run_number", runNumber)
+        try:
+            item = q.data().json()['data'][0]['attributes']
+            L1_HLT = item['l1_hlt_mode_stripped']
+            GTRS = item['run_settings_key']
+            TSC = item['l1_key']
+            GT = item['gt_key']
+            item = q2.data().json()['data'][0]['attributes']
+            HLT = item['config_name']
+        except:
+            enablePrint()
+            print("[ERROR] Unable to get keys for this run, %d" % (runNumber))
 
-        q = omsapi.query("hltconfigdata")
-        q.set_validation(False)
-        q.filter("run_number", runNumber)
-        item = q.data().json()['data'][0]['attributes']
         enablePrint()
-        HLT = item['config_name']        
         
         return L1_HLT,HLT,GTRS,TSC,GT
 
@@ -105,7 +114,11 @@ class DBParser:
         q.filter("run_number", runNumber)
         q.filter("bit",1)
         blockPrint()
-        data = q.data().json()['data']
+        try:
+            data = q.data().json()['data']
+        except:
+            enablePrint()
+            print("Trouble getting PS column by LS")
         enablePrint()
         for thing in data:
             something = thing['attributes']
@@ -436,7 +449,10 @@ class DBParser:
         q.per_page = 4000
         response = q.data()
         item = response.json()
-        data = item['data'][0]['attributes']['prescales']
+        try:
+            data = item['data'][0]['attributes']['prescales']
+        except:
+            print("Unable to get prescalenames")
         ps_names = []
         enablePrint()
         for something in data:
@@ -609,7 +625,11 @@ class DBParser:
         blockPrint()
         data = q.data().json()
         enablePrint()
-        runNumber = data['data'][0]['attributes']['run_number']
+        try:
+            runNumber = data['data'][0]['attributes']['run_number']
+        except:
+            print("Error: Unable to retrieve latest run number.")
+            return
 
         mode = self.getTriggerMode(runNumber)
         isCol = 0
@@ -633,7 +653,10 @@ class DBParser:
         response = q.data()
         item = response.json()
         enablePrint()
-        mode = item['data'][0]['attributes']['trigger_mode']
+        try:
+            mode = item['data'][0]['attributes']['trigger_mode']
+        except:
+            print("Error: Unable to retrieve trigger mode.")
         
         return mode
 
