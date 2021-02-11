@@ -67,3 +67,20 @@ cd ratemon
 source venv/bin/activate
 python3 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml
 ```
+
+### Database Parser
+
+The ShiftMonitorTool has been updated to use the OMS databate parser via the OMS API. 
+
+To switch back to the old database parser run (requires `sudo` access from maintainers):
+```bash
+sudo systemctl stop ratemon.service
+sudo systemctl start ratemon2.service
+```
+
+> Note: Other `systemctl` commands are also available, such as: `status`, `restart`, `reload` or `reload-or-restart`.
+
+To view logs:
+```bash
+journalctl -fu ratemon2
+```

@@ -1,6 +1,6 @@
 [Unit]
 Description=HLT Rate Monitoring
-Documentation=https://twiki.cern.ch/twiki/bin/viewauth/CMS/TriggerShifterGuideRateMonitoring
+Documentation=https://twiki.cern.ch/twiki/bin/viewauth/CMS/RateMonitoringScriptWithReferenceComparison
 After=network.target
 
 [Service]
