@@ -49,6 +49,8 @@ ${RPM_NAME}:
 	-v ${VERSION} \
 	-a ${ARCH} \
 	-d root -d ${PYTHON_VERSION}-root -d ${PYTHON_VERSION}-omsapi \
+	--rpm-group cms_ratemon_librarian \
+	--rpm-auto-add-directories \
 	--after-install ratemon/.secure/.secureReplace.sh \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
