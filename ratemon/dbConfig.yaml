@@ -6,7 +6,6 @@ hlt_connect:
   'user': 'cms_hlt_r'
   'passwd': '__cms_hlt_r_pass__'
 
-
 trg_connect:
   'user': 'cms_trg_r'
   'passwd': '__cms_trg_r_pass__'
