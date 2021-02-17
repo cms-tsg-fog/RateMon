@@ -1,35 +1,30 @@
 #!/usr/bin/env bash
 
+# copy password files as hidden files to this directory
+
 secure_dir="/nfshome0/centraltspro/secure/"
 hlt_connect_file="cms_hlt_r.txt"
 trg_connect_file="cms_trg_r.txt"
 
-# copy password files as hidden files to this directory
+for file in $hlt_connect_file $trg_connect_file
+do
+    if [ -s $secure_dir$file ]
+    then
+        if ! [ -s ./.$file ]
+        then
+            cp $secure_dir$file ./.$file
+        fi
+    fi
+done
 
-#for file in $hlt_connect_file $trg_connect_file
-#do
-#    if [ -s $secure_dir$file ]
-#    then
-#        if ! [ -s ./.$file ]
-#        then
-#            cp $secure_dir$file ./.$file
-#        fi
-#    fi
-#done
-
-# extract passwords
-
-hlt_connect_file="${secure_dir}cms_hlt_r.txt"
-trg_connect_file="${secure_dir}cms_trg_r.txt"
-
-if [ -s $hlt_connect_file ]
+if [ -s .$hlt_connect_file ]
 then
-    hlt_connect_pass=$(cat $hlt_connect_file)
+    hlt_connect_pass=$(cat .$hlt_connect_file)
 fi
 
-if [ -s $trg_connect_file ]
+if [ -s .$trg_connect_file ]
 then
-    trg_connect_pass=$(cat $trg_connect_file)
+    trg_connect_pass=$(cat .$trg_connect_file)
 fi
 
 # replace passwords in YAML file
