@@ -51,7 +51,7 @@ ${RPM_NAME}:
 	-d root -d ${PYTHON_VERSION}-root -d ${PYTHON_VERSION}-omsapi \
 	--rpm-group cms_ratemon_librarian \
 	--directories /opt/ratemon \
-	--after-install .after-install.sh \
+	--after-install ratemon/.after-install.sh \
 	--iteration ${RELEASE} \
 	--description "Rate monitoring tools for HLT and L1" \
 	--url "https://gitlab.cern.ch/cms-tsg-fog/ratemon" \
