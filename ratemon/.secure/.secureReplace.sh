@@ -2,6 +2,8 @@
 
 # copy password files as hidden files to this directory
 
+cd /opt/ratemon/.secure
+
 secure_dir="/nfshome0/centraltspro/secure/"
 hlt_connect_file="cms_hlt_r.txt"
 trg_connect_file="cms_trg_r.txt"
