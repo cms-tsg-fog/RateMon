@@ -1,6 +1,5 @@
 import connexion
 import logging
-import app
 from flask_cors import CORS
 
 logging.basicConfig(level=logging.INFO)
