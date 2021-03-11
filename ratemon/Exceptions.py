@@ -3,7 +3,7 @@ class Error(Exception):
     pass
 
 class NoDataError(Error):
-    """Raised when there is not enough valid data for the given triggers/runs.
+    """Raised when there is not enough valid data for the given runs.
     Attributes:
         message -- explanation of the error
         runlst -- list of runs
@@ -13,3 +13,12 @@ class NoDataError(Error):
         self.message = "{message}, runs: {runs}.".format(message=message,runs=self.runlst)
         #super(Exception,self).__init__(self.message)
     
+class TriggerModeNoneError(Error):
+    """Raised when the trigger mode is None for a given run.
+    Attributes:
+        message -- explanation of the error
+        runlst -- runs number
+    """
+    def __init__(self,run,message="The trigger mode is None"):
+        self.run = run
+        self.message = "{message}, run: {runs}.".format(message=message,runs=self.run)

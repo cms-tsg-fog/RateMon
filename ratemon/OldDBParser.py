@@ -14,6 +14,7 @@ import cx_Oracle
 import socket
 # For the parsing
 import re
+from Exceptions import *
 
 # Key version stripper
 def stripVersion(name):
@@ -1284,7 +1285,10 @@ class DBParser:
             mode = self.curs.fetchone()
         except:
             print("Error: Unable to retrieve trigger mode.")
-        return mode[0]
+        if mode is None:
+            raise TriggerModeNoneError(runNumber)
+        else:
+            return mode[0]
 
     # Use: Retrieves the data from all streams
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }

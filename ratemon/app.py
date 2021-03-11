@@ -26,6 +26,8 @@ def getRatesROOT(runNumber: int, triggerKey: str):
             )
         except NoDataError as e:
             return e.message,400
+        except TriggerModeNoneError as e:
+            return e.message,400
         else:
             return send_from_directory(
                 saveDirectory,
@@ -48,6 +50,8 @@ def getRatesJSON(runNumber: int, triggerKey: str):
             )
 
         except NoDataError as e:
+            return e.message,400
+        except TriggerModeNoneError as e:
             return e.message,400
         else:
             return send_from_directory(
