@@ -15,6 +15,7 @@
 import array
 
 from OldDBParser import *
+from Exceptions import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -99,6 +100,7 @@ class DataParser:
             self.skip_l1_triggers = True
 
         counter = 1
+        n_runs_usable = 0
         for run in sorted(run_list):
             if self.verbose: print("Processing run: %d (%d/%d)" % (run,counter,len(run_list)))
             counter += 1
@@ -153,6 +155,9 @@ class DataParser:
                 self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
+            n_runs_usable += 1
+        if n_runs_usable == 0:
+            raise NoDataError(run_list)
 
     def parseLumiInfo(self,run):
         # [( LS,ilum,psi,phys,cms_ready ) ]
