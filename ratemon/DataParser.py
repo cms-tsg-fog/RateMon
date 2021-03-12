@@ -110,6 +110,8 @@ class DataParser:
                 bunches = 1
 
             lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
+            if lumi_info is None:
+                continue
             run_data = self.getRunData(run,bunches,lumi_info)
             if len(list(run_data.keys())) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
                 self.runs_skipped.append(run)
@@ -165,7 +167,9 @@ class DataParser:
 
         trigger_mode = self.parser.getTriggerMode(run)
 
-        if trigger_mode.find('cosmics') > 0:
+        if trigger_mode is None:
+            return None
+        elif trigger_mode.find('cosmics') > 0:
             # This is a cosmics menu --> No luminosity info
             if self.verbose:
                 print("\tDetected cosmics run...")
