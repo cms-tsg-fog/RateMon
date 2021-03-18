@@ -521,6 +521,9 @@ class MonitorController:
                 # Don't try to normalize the rates by colliding bunches
                 self.ops_dict["useBunches"] = True
 
+            elif label == "--exportJson":
+                self.ops_dict["exportJson"] = True
+
             elif label == "--compareFits":
                 data_dict = self.readDataListTextFile(str(op))
                 self.ops_dict["compareFits"] = data_dict
