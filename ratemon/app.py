@@ -56,6 +56,7 @@ def getRatesJSON(runNumber: int, triggerKey: str):
         else:
             return send_from_directory(
                 saveDirectory,
-                'pu_VS_pre-dt-unprescaled-rate.json',
+                #'pu_VS_pre-dt-unprescaled-rate.json',
+                triggerKey + '.json',
                 as_attachment=True # Keep the filename
             )

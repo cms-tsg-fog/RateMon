@@ -396,37 +396,46 @@ class RateMonitor:
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
+            if self.exportJSON:
+                filepath = os.path.join(self.save_dir, _object+".json")
+                with open(filepath, "w") as out_file:
+                    json.dump(rundata, out_file)
+                print("Exported JSON:", filepath)
+
         runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
         
         rundata["runnumber"] = runnumber
 
-        if _object in self.plotter.plotting_data:
+        #if _object in self.plotter.plotting_data:
 
-            if self.use_pileup: # plot PU vs. rate
-                xlabel = "pu"
-            elif self.use_lumi: # plot iLumi vs. rate
-                xlabel = "il"
-            else:               # plot LS vs. rate
-                xlabel = "ls"
+        #    if self.use_pileup: # plot PU vs. rate
+        #        xlabel = "pu"
+        #    elif self.use_lumi: # plot iLumi vs. rate
+        #        xlabel = "il"
+        #    else:               # plot LS vs. rate
+        #        xlabel = "ls"
 
-            if self.data_parser.type_map[_object] == "trigger":
-                if self.data_parser.correct_for_DT == True:
-                    ylabel = "pre-dt-"
+        #    if self.data_parser.type_map[_object] == "trigger":
+        #        if self.data_parser.correct_for_DT == True:
+        #            ylabel = "pre-dt-"
 
-                if self.data_parser.use_prescaled_rate:
-                    ylabel += "prescaled-rate"
-                else:
-                    ylabel += "unprescaled-rate"
+        #        if self.data_parser.use_prescaled_rate:
+        #            ylabel += "prescaled-rate"
+        #        else:
+        #            ylabel += "unprescaled-rate"
 
-            rundata["x_axis"] = xlabel
-            rundata["y_axis"] = ylabel
+        #    rundata["x_axis"] = xlabel
+        #    rundata["y_axis"] = ylabel
 
-        if self.exportJSON:
-           
-            filepath = self.save_dir + xlabel+ "_VS_"+ ylabel+".json"
-            with open(filepath, "w") as out_file:
-                json.dump(rundata, out_file)
-            print("Exported JSON:", filepath)
+        #if self.exportJSON:
+        #   
+        #    filepath = self.save_dir + xlabel+ "_VS_"+ ylabel+".json"
+        #    with open(filepath, "w") as out_file:
+        #        json.dump(rundata, out_file)
+        #    print("Exported JSON:", filepath)
+
+        rundata["x_axis"] = self.plotter.label_X
+        rundata["y_axis"] = self.plotter.label_Y
 
         return rundata
 
