@@ -16,7 +16,7 @@ jsonschema==3.2.0
 MarkupSafe==1.1.1
 openapi-spec-validator==0.2.9
 pyrsistent==0.16.0
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.24.0
 # yum install python36-root
 # ROOT==6.22.02
