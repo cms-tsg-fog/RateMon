@@ -23,6 +23,7 @@ import json
 from FitFinder import *
 from DataParser import *
 from PlotMaker import *
+from Exceptions import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -91,7 +92,7 @@ class RateMonitor:
         if not self.setupCheck():
             print("ERROR: Bad setup")
             return
-        
+
         print("Using runs:",self.run_list)
         print("Using Prescaled rates:",self.data_parser.use_prescaled_rate)
 
@@ -153,9 +154,10 @@ class RateMonitor:
 
         plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.fitter.data_dict['user_input'])
 
-        # If no objects are specified, plot everything!
+        # If no objects are specified, raise error:
         if len(self.object_list) == 0:
-            self.object_list = [x for x in self.data_parser.name_list]
+            #self.object_list = [x for x in self.data_parser.name_list]
+            raise NoValidTriggersError
 
         self.setupDirectory()
 
@@ -194,16 +196,17 @@ class RateMonitor:
             self.certifyRuns(plot_data)
             return  # Same as above
 
-        # We want fits and no fits were specified --> make some
-        # NOTE: This 'if' is true only when ZERO fits exist
-        if self.plotter.use_fit and len(list(self.plotter.fits.keys())) == 0:
-            #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-            #self.plotter.setFits(fits)
-            fit_info = {
-                'run_groups': copy.deepcopy(self.fitter.data_dict),
-                'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
-            }
-            self.plotter.setFits(fit_info)
+        ## Get rid of this?
+        ## We want fits and no fits were specified --> make some
+        ## NOTE: This 'if' is true only when ZERO fits exist
+        #if self.plotter.use_fit and len(list(self.plotter.fits.keys())) == 0:
+        #    #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
+        #    #self.plotter.setFits(fits)
+        #    fit_info = {
+        #        'run_groups': copy.deepcopy(self.fitter.data_dict),
+        #        'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
+        #    }
+        #    self.plotter.setFits(fit_info)
 
         # This is after update_online_fits, so as to ensure the proper save dir is set
         self.plotter.save_dir = self.save_dir
@@ -258,6 +261,11 @@ class RateMonitor:
         #if not (self.use_pileup ^ self.use_lumi): # ^ == XOR
         #    print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
         #    return False
+
+        # Have to specify triggers to plot data for
+        if self.object_list == []:
+            print("ERROR SETUP: A trigger list must be specified.")
+            return False
 
         # We can't specify two different x_axis at the same time
         if self.use_pileup and self.use_lumi:
@@ -373,6 +381,7 @@ class RateMonitor:
         plotted_objects = []
         counter = 1
         prog_counter = 0
+        n_skipped = 0
         rundata = {}
         # self.plotter.plotting_data.keys()
         rundata["plots"] = {}
@@ -385,6 +394,7 @@ class RateMonitor:
                 # No valid data points could be found for _object in any of the runs
                 print("\tWARNING: Unknown object - %s" % _object)
                 rundata["plots"][_object] = "NODATA"
+                n_skipped += 1
                 continue
             self.formatLabels(_object)
             
@@ -401,6 +411,9 @@ class RateMonitor:
                 with open(filepath, "w") as out_file:
                     json.dump(rundata, out_file)
                 print("Exported JSON:", filepath)
+
+        if n_skipped == len(plot_list):
+            raise NoValidTriggersError
 
         runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
         

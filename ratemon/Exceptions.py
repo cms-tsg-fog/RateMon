@@ -22,3 +22,11 @@ class TriggerModeNoneError(Error):
     def __init__(self,run,message="The trigger mode is None"):
         self.run = run
         self.message = "{message}, run: {runs}.".format(message=message,runs=self.run)
+
+class NoValidTriggersError(Error):
+    """Raised when there are no valid triggers specified
+    Attributes:
+        message -- explanation of the error
+    """
+    def __init__(self,message="There were no valid triggers specified"):
+        self.message = "{message}".format(message=message)

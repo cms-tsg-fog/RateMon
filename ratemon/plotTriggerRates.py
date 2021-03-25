@@ -20,6 +20,7 @@ import sys
 
 from OldDBParser import *
 from RateMonitor import *
+from Exceptions import *
 
 class MonitorController:
     def __init__(self):
@@ -317,7 +318,8 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit = False
 
             if len(self.rate_monitor.object_list) == 0:
-                print("WARNING: No trigger list specified! Plotting all triggers...")
+                #print("WARNING: No trigger list specified! Plotting all triggers...")
+                raise NoValidTriggersError
 
             run_list = sorted(self.rate_monitor.run_list)
 
