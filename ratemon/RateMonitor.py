@@ -382,6 +382,8 @@ class RateMonitor:
         counter = 1
         prog_counter = 0
         n_skipped = 0
+        n_invalid_trg = 0
+        n_not_enough_good_data = 0
         rundata = {}
         # self.plotter.plotting_data.keys()
         rundata["plots"] = {}
@@ -395,6 +397,7 @@ class RateMonitor:
                 print("\tWARNING: Unknown object - %s" % _object)
                 rundata["plots"][_object] = "NODATA"
                 n_skipped += 1
+                n_invalid_trg += 1
                 continue
             self.formatLabels(_object)
             
@@ -406,18 +409,32 @@ class RateMonitor:
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
-            if self.exportJSON:
-                filepath = os.path.join(self.save_dir, _object+".json")
-                with open(filepath, "w") as out_file:
-                    json.dump(rundata, out_file)
-                print("Exported JSON:", filepath)
+                if self.exportJSON:
+                    filepath = os.path.join(self.save_dir, _object+".json")
+                    with open(filepath, "w") as out_file:
+                        json.dump(rundata, out_file)
+                    print("Exported JSON:", filepath)
+            else:
+                n_skipped += 1
+                n_not_enough_good_data += 1
+                continue
 
+        # Not sure what to do in the case where skip some due to invalid trigger, others due to not enough data..
+        # right now just raising noDataError in that case since seems more general
+        runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
         if n_skipped == len(plot_list):
-            raise NoValidTriggersError
+            if n_invalid_trg == len(plot_list):
+                raise NoValidTriggersError
+            else:
+                raise NoDataError(runs)
 
-        runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
-        
-        rundata["runnumber"] = runnumber
+        # Not sure we need this right now, or if this is how we want to do it anyway.
+        # Should consider the case where we have multiple runs. But the dictionary that
+        # this function returns is not being used right now anyway But it at some point
+        # in the future we want to start using it, should re-evaluate what info we want
+        # to put into it.
+        #runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
+        #rundata["runnumber"] = runnumber
 
         #if _object in self.plotter.plotting_data:
 
