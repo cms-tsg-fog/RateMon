@@ -407,7 +407,6 @@ class RateMonitor:
 
         if self.exportJSON:
            
-            #filepath = self.save_dir + xlabel+ "_VS_"+ ylabel+".json"
             filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
             with open(filepath, "w") as out_file:
                 json.dump(rundata, out_file)
