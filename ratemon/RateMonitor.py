@@ -250,8 +250,8 @@ class RateMonitor:
             #self.printHtml(plotted_objects,self.plotter.save_dir)
             self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
             counter += len(plotted_objects)
-        return plotted_objects
         print("Total plot count: %d" % counter)
+        return plotted_objects
 
     # Makes some basic checks to ensure that the specified options don't create conflicting problems
     def setupCheck(self):
@@ -403,27 +403,40 @@ class RateMonitor:
             
             # Produces the plot for the selected trigger, returns the raw data
             triggerplotdata = self.plotter.plotAllData(_object)
-            
+
             if triggerplotdata:
                 plotted_objects.append(_object)
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
-        runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
-        
-        rundata["runnumber"] = runnumber
+                if self.exportJSON:
+                    #filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
+                    filepath = os.path.join(self.save_dir, _object+".json")
+                    with open(filepath, "w") as out_file:
+                        json.dump(rundata, out_file)
+                    print("Exported JSON:", filepath)
+
+            else:
+                n_skipped += 1
+                n_not_enough_good_data += 1
+                continue
+
+        # Not sure what to do in the case where skip some due to invalid trigger, others due to not enough data..
+        # right now just raising noDataError in that case since seems more general
+        runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
+        if n_skipped == len(plot_list):
+            if n_invalid_trg == len(plot_list):
+                raise NoValidTriggersError
+            else:
+                raise NoDataError(runs)
+
+        #runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
+        #rundata["runnumber"] = runnumber
 
         if _object in self.plotter.plotting_data:
 
             rundata["x_axis"] = self.plotter.var_X_simple
             rundata["y_axis"] = self.plotter.var_Y_simple
-
-        if self.exportJSON:
-           
-            filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
-            with open(filepath, "w") as out_file:
-                json.dump(rundata, out_file)
-            print("Exported JSON:", filepath)
 
         return rundata
 
