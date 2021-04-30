@@ -526,6 +526,9 @@ class MonitorController:
             elif label == "--exportJson":
                 self.ops_dict["exportJson"] = True
 
+            elif label == "--exportRoot":
+                self.ops_dict["exportRoot"] = True
+
             elif label == "--compareFits":
                 data_dict = self.readDataListTextFile(str(op))
                 self.ops_dict["compareFits"] = data_dict

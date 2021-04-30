@@ -409,63 +409,21 @@ class RateMonitor:
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
-                if self.exportJSON:
-                    filepath = os.path.join(self.save_dir, _object+".json")
-                    with open(filepath, "w") as out_file:
-                        json.dump(rundata, out_file)
-                    print("Exported JSON:", filepath)
-            else:
-                n_skipped += 1
-                n_not_enough_good_data += 1
-                continue
+        runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
+        
+        rundata["runnumber"] = runnumber
 
-        # Not sure what to do in the case where skip some due to invalid trigger, others due to not enough data..
-        # right now just raising noDataError in that case since seems more general
-        runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
-        if n_skipped == len(plot_list):
-            if n_invalid_trg == len(plot_list):
-                raise NoValidTriggersError
-            else:
-                raise NoDataError(runs)
+        if _object in self.plotter.plotting_data:
 
-        # Not sure we need this right now, or if this is how we want to do it anyway.
-        # Should consider the case where we have multiple runs. But the dictionary that
-        # this function returns is not being used right now anyway But it at some point
-        # in the future we want to start using it, should re-evaluate what info we want
-        # to put into it.
-        #runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
-        #rundata["runnumber"] = runnumber
+            rundata["x_axis"] = self.plotter.var_X_simple
+            rundata["y_axis"] = self.plotter.var_Y_simple
 
-        #if _object in self.plotter.plotting_data:
-
-        #    if self.use_pileup: # plot PU vs. rate
-        #        xlabel = "pu"
-        #    elif self.use_lumi: # plot iLumi vs. rate
-        #        xlabel = "il"
-        #    else:               # plot LS vs. rate
-        #        xlabel = "ls"
-
-        #    if self.data_parser.type_map[_object] == "trigger":
-        #        if self.data_parser.correct_for_DT == True:
-        #            ylabel = "pre-dt-"
-
-        #        if self.data_parser.use_prescaled_rate:
-        #            ylabel += "prescaled-rate"
-        #        else:
-        #            ylabel += "unprescaled-rate"
-
-        #    rundata["x_axis"] = xlabel
-        #    rundata["y_axis"] = ylabel
-
-        #if self.exportJSON:
-        #   
-        #    filepath = self.save_dir + xlabel+ "_VS_"+ ylabel+".json"
-        #    with open(filepath, "w") as out_file:
-        #        json.dump(rundata, out_file)
-        #    print("Exported JSON:", filepath)
-
-        rundata["x_axis"] = self.plotter.label_X
-        rundata["y_axis"] = self.plotter.label_Y
+        if self.exportJSON:
+           
+            filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
+            with open(filepath, "w") as out_file:
+                json.dump(rundata, out_file)
+            print("Exported JSON:", filepath)
 
         return rundata
 
@@ -486,27 +444,36 @@ class RateMonitor:
 
         if self.use_pileup: # plot PU vs. rate
             x_axis_var = "< PU >"
+            x_axis_var_simple = "PU"
         elif self.use_lumi: # plot iLumi vs. rate
             x_axis_var = "instLumi"
+            x_axis_var_simple = "il"
         else:               # plot LS vs. rate
             x_axis_var = "lumisection"
+            x_axis_var_simple = "ls"
 
         if self.data_parser.type_map[_object] == "trigger":
             if self.data_parser.correct_for_DT == True:
                 y_axis_var = "pre-deadtime "
+                y_axis_var_simple = "pre-dt-"
 
             if self.data_parser.use_prescaled_rate:
                 y_axis_var += "prescaled rate"
+                y_axis_var_simple += "prescaled-rate"
             else:
                 y_axis_var += "unprescaled rate"
+                y_axis_var_simple += "unprescaled-rate"
         elif self.data_parser.type_map[_object] == "stream":
             if self.use_stream_size or self.use_stream_bandwidth:
                 y_units = "[bytes]"
             y_axis_var = "stream rate"
+            y_axis_var_simple = "stream-rate"
         elif self.data_parser.type_map[_object] == "dataset":
             y_axis_var = "dataset rate"
+            y_axis_var_simple = "dataset-rate"
         elif self.data_parser.type_map[_object] == "L1A":
             y_axis_var = "L1A rate"
+            y_axis_var_simple = "L1A-rate"
 
         x_axis_label += x_axis_var
         y_axis_label += y_axis_var
@@ -523,6 +490,8 @@ class RateMonitor:
 
         self.plotter.var_X = x_axis_var
         self.plotter.var_Y = y_axis_var
+        self.plotter.var_X_simple = x_axis_var_simple
+        self.plotter.var_Y_simple = y_axis_var_simple
         self.plotter.label_X = x_axis_label
         self.plotter.label_Y = y_axis_label
         self.plotter.units_X = x_units
@@ -789,6 +758,7 @@ class RateMonitor:
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:left; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
+            png_list = list(png_list["plots"].keys())
             for path_name in sorted(png_list):  # This controls the order that the images will be displayed in
                 file_name = "%s/png/%s.png" % (save_dir,path_name)
                 if os.access(file_name,os.F_OK):

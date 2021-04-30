@@ -49,6 +49,8 @@ class PlotMaker:
         self.label_Y = "Y-axis"
         self.var_X = "X variable"
         self.var_Y = "Y variable"
+        self.var_X_simple = "Xvar"
+        self.var_Y_simple = "Yvar"
         #self.name_X = "name"
         self.units_X = "[unit]"
         self.units_Y = "[unit]"
