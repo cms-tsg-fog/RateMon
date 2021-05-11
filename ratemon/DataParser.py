@@ -91,15 +91,17 @@ class DataParser:
 
         self.verbose = True
 
-    def parseRuns(self,run_list):
+    def parseRuns(self,run_list,get_all_rates):
         # type: (List[int]) -> None
-        #if len(self.hlt_triggers) == 0 and len(self.l1_triggers) > 0:
-        if len(self.hlt_triggers) == 0:
-            self.skip_hlt_triggers = True
-        
-        #if len(self.hlt_triggers) > 0 and len(self.l1_triggers) == 0:
-        if len(self.l1_triggers) == 0:
-            self.skip_l1_triggers = True
+
+        if get_all_rates:
+            self.skip_hlt_triggers = False
+            self.skip_l1_triggers = False
+        else:
+            if len(self.hlt_triggers) == 0:
+                self.skip_hlt_triggers = True
+            if len(self.l1_triggers) == 0:
+                self.skip_l1_triggers = True
 
         if self.skip_hlt_triggers and self.skip_l1_triggers:
             raise NoValidTriggersError

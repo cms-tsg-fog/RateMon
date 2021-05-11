@@ -65,10 +65,10 @@ class RateMonitor:
         self.use_grouping = False   # Creates sub directories to group the outputs, utilizes self.group_map
 
         # TESTING: START #
-
         self.certify_mode = False
-
         # TESTING: END #
+
+        self.all_triggers = False
 
         self.group_map = {}     # {'group_name': [trigger_name] }
 
@@ -102,7 +102,7 @@ class RateMonitor:
             self.data_parser.l1_triggers = []
 
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
-        self.data_parser.parseRuns(self.run_list)
+        self.data_parser.parseRuns(self.run_list,self.all_triggers)
 
         if self.data_parser.use_streams:
             # We want to manually add the streams to the list of objects to plot
@@ -154,10 +154,12 @@ class RateMonitor:
 
         plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.fitter.data_dict['user_input'])
 
-        # If no objects are specified, raise error:
+        # If no objects are specified, plot everything or raise error:
         if len(self.object_list) == 0:
-            #self.object_list = [x for x in self.data_parser.name_list]
-            raise NoValidTriggersError
+            if self.all_triggers:
+                self.object_list = [x for x in self.data_parser.name_list]
+            else:
+                raise NoValidTriggersError
 
         self.setupDirectory()
 
@@ -222,7 +224,7 @@ class RateMonitor:
             for obj in self.object_list:
                 objs_to_plot.add(obj)
             plotted_objects = self.makePlots(list(objs_to_plot))
-            counter += len(plotted_objects)
+            counter += len(plotted_objects["plots"])
 
             # Create index.html files to display specific groups of plots
             for grp in self.group_map:
@@ -249,7 +251,7 @@ class RateMonitor:
             plotted_objects = self.makePlots(self.object_list)
             #self.printHtml(plotted_objects,self.plotter.save_dir)
             self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
-            counter += len(plotted_objects)
+            counter += len(plotted_objects["plots"])
         print("Total plot count: %d" % counter)
         return plotted_objects
 
@@ -263,8 +265,13 @@ class RateMonitor:
         #    return False
 
         # Have to specify triggers to plot data for
-        if self.object_list == []:
+        if self.object_list == [] and not self.all_triggers:
             print("ERROR SETUP: A trigger list must be specified.")
+            return False
+
+        # Cannot specify some triggers and all triggers at the same time
+        if self.object_list != [] and self.all_triggers:
+            print("ERROR SETUP: Cannot specify specific triggers when using allTriggers option.")
             return False
 
         # We can't specify two different x_axis at the same time
