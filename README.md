@@ -23,6 +23,7 @@ To set things up:
 ```bash
 yum install python3 root python36-root
 cd ratemon
+python3 -m venv .
 source bin/activate
 pip3 install -r requirements.txt
 ```
@@ -83,4 +84,10 @@ sudo systemctl start ratemon2.service
 To view logs:
 ```bash
 journalctl -fu ratemon2
+```
+
+### Run the API server
+
+```bash
+python3 app.py
 ```
