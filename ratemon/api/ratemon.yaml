@@ -32,7 +32,7 @@ paths:
         '200':
           description: ROOT binary file of the computed plot
         '400':
-          description: Some useful description here
+          description: Bad request
   /ratesJSON:
     get:
       tags: [Trigger Rates]
@@ -59,4 +59,4 @@ paths:
         '200':
           description: JSON file with the raw rates
         '400':
-          description: Some useful description here
+          description: Bad request
