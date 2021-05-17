@@ -430,11 +430,11 @@ class RateMonitor:
 
         # Not sure what to do in the case where skip some due to invalid trigger, others due to not enough data..
         # right now just raising noDataError in that case since seems more general
-        runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
         if n_skipped == len(plot_list):
             if n_invalid_trg == len(plot_list):
                 raise NoValidTriggersError
             else:
+                runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
                 raise NoDataError(runs)
 
         #runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
