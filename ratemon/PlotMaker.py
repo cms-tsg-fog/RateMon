@@ -234,7 +234,7 @@ class PlotMaker:
                 run_count += 1
 
         if num_pts < self.min_plot_pts:
-            #print "\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts)
+            print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
             return False
 
         if self.use_fit and trigger not in self.fits:
