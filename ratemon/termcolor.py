@@ -115,13 +115,13 @@ def colored(text, color=None, on_color=None, attrs=None):
     return text
 
 
-def cprint(text, color=None, on_color=None, attrs=None, **kwargs):
+def cprint(text, color=None, on_color=None, attrs=None):
     """Print colorize text.
 
     It accepts arguments of print function.
     """
 
-    print((colored(text, color, on_color, attrs)), **kwargs)
+    print((colored(text, color, on_color, attrs)))
 
 
 if __name__ == '__main__':
