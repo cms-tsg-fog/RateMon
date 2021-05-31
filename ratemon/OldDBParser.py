@@ -14,7 +14,6 @@ import cx_Oracle
 import socket
 # For the parsing
 import re
-#from Exceptions import *
 
 # Key version stripper
 def stripVersion(name):
@@ -1286,7 +1285,7 @@ class DBParser:
         except:
             print("Error: Unable to retrieve trigger mode.")
         if mode is None:
-            #raise TriggerModeNoneError(runNumber) # Probably do not want to raise this here, since if we're running plotTriggerRates with a list of runs, do not want to crash if only one of them is invalid
+            # Probably do not want to raise TriggerModeNoneError here, since if we're running plotTriggerRates with a list of runs, do not want to crash if only one of them is invalid
             return None
         else:
             return mode[0]

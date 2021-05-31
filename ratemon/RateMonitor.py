@@ -198,18 +198,6 @@ class RateMonitor:
             self.certifyRuns(plot_data)
             return  # Same as above
 
-        ## Get rid of this?
-        ## We want fits and no fits were specified --> make some
-        ## NOTE: This 'if' is true only when ZERO fits exist
-        #if self.plotter.use_fit and len(list(self.plotter.fits.keys())) == 0:
-        #    #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-        #    #self.plotter.setFits(fits)
-        #    fit_info = {
-        #        'run_groups': copy.deepcopy(self.fitter.data_dict),
-        #        'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
-        #    }
-        #    self.plotter.setFits(fit_info)
-
         # This is after update_online_fits, so as to ensure the proper save dir is set
         self.plotter.save_dir = self.save_dir
         self.plotter.plot_dir = "png"
@@ -417,7 +405,6 @@ class RateMonitor:
                 rundata["plots"][_object] = triggerplotdata
 
                 if self.exportJSON:
-                    #filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
                     filepath = os.path.join(self.save_dir, _object+".json")
                     with open(filepath, "w") as out_file:
                         json.dump(rundata, out_file)
@@ -436,9 +423,6 @@ class RateMonitor:
             else:
                 runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
                 raise NoDataError(runs)
-
-        #runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
-        #rundata["runnumber"] = runnumber
 
         if _object in self.plotter.plotting_data:
 
