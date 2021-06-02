@@ -4,7 +4,7 @@ info:
   title: RateMon API
   description: API exposing CMS Trigger Rates exported by the RateMon tools
 servers:
-  - url: http://brandeis.cern.ch/api/v1
+  - url: http://ater.cern.ch/api/v1
 paths:
   /ratesROOT:
     get:
@@ -31,6 +31,8 @@ paths:
       responses:
         '200':
           description: ROOT binary file of the computed plot
+        '400':
+          description: Bad request
   /ratesJSON:
     get:
       tags: [Trigger Rates]
@@ -56,3 +58,5 @@ paths:
       responses:
         '200':
           description: JSON file with the raw rates
+        '400':
+          description: Bad request

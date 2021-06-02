@@ -15,6 +15,7 @@
 import array
 
 from OldDBParser import *
+from Exceptions import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -90,15 +91,23 @@ class DataParser:
 
         self.verbose = True
 
-    def parseRuns(self,run_list):
+    def parseRuns(self,run_list,get_all_rates):
         # type: (List[int]) -> None
-        if len(self.hlt_triggers) == 0 and len(self.l1_triggers) > 0:
-            self.skip_hlt_triggers = True
-        
-        if len(self.hlt_triggers) > 0 and len(self.l1_triggers) == 0:
-            self.skip_l1_triggers = True
+
+        if get_all_rates:
+            self.skip_hlt_triggers = False
+            self.skip_l1_triggers = False
+        else:
+            if len(self.hlt_triggers) == 0:
+                self.skip_hlt_triggers = True
+            if len(self.l1_triggers) == 0:
+                self.skip_l1_triggers = True
+
+        if self.skip_hlt_triggers and self.skip_l1_triggers:
+            raise NoValidTriggersError
 
         counter = 1
+        n_runs_usable = 0
         for run in sorted(run_list):
             if self.verbose: print("Processing run: %d (%d/%d)" % (run,counter,len(run_list)))
             counter += 1
@@ -108,6 +117,8 @@ class DataParser:
                 bunches = 1
 
             lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
+            if lumi_info is None:
+                continue
             run_data = self.getRunData(run,bunches,lumi_info)
             if len(list(run_data.keys())) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
                 self.runs_skipped.append(run)
@@ -153,6 +164,9 @@ class DataParser:
                 self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
+            n_runs_usable += 1
+        if n_runs_usable == 0:
+            raise NoDataError(run_list)
 
     def parseLumiInfo(self,run):
         # [( LS,ilum,psi,phys,cms_ready ) ]
@@ -160,7 +174,9 @@ class DataParser:
 
         trigger_mode = self.parser.getTriggerMode(run)
 
-        if trigger_mode.find('cosmics') > 0:
+        if trigger_mode is None:
+            return None
+        elif trigger_mode.find('cosmics') > 0:
             # This is a cosmics menu --> No luminosity info
             if self.verbose:
                 print("\tDetected cosmics run...")

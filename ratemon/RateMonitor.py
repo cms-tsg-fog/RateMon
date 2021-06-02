@@ -23,6 +23,7 @@ import json
 from FitFinder import *
 from DataParser import *
 from PlotMaker import *
+from Exceptions import *
 
 # --- 13 TeV constant values ---
 ppInelXsec = 80000.
@@ -64,10 +65,10 @@ class RateMonitor:
         self.use_grouping = False   # Creates sub directories to group the outputs, utilizes self.group_map
 
         # TESTING: START #
-
         self.certify_mode = False
-
         # TESTING: END #
+
+        self.all_triggers = False
 
         self.group_map = {}     # {'group_name': [trigger_name] }
 
@@ -91,7 +92,7 @@ class RateMonitor:
         if not self.setupCheck():
             print("ERROR: Bad setup")
             return
-        
+
         print("Using runs:",self.run_list)
         print("Using Prescaled rates:",self.data_parser.use_prescaled_rate)
 
@@ -101,7 +102,7 @@ class RateMonitor:
             self.data_parser.l1_triggers = []
 
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
-        self.data_parser.parseRuns(self.run_list)
+        self.data_parser.parseRuns(self.run_list,self.all_triggers)
 
         if self.data_parser.use_streams:
             # We want to manually add the streams to the list of objects to plot
@@ -153,9 +154,12 @@ class RateMonitor:
 
         plot_data = self.getData(x_vals,y_vals,det_status,phys_status,self.fitter.data_dict['user_input'])
 
-        # If no objects are specified, plot everything!
+        # If no objects are specified, plot everything or raise error:
         if len(self.object_list) == 0:
-            self.object_list = [x for x in self.data_parser.name_list]
+            if self.all_triggers:
+                self.object_list = [x for x in self.data_parser.name_list]
+            else:
+                raise NoValidTriggersError
 
         self.setupDirectory()
 
@@ -194,17 +198,6 @@ class RateMonitor:
             self.certifyRuns(plot_data)
             return  # Same as above
 
-        # We want fits and no fits were specified --> make some
-        # NOTE: This 'if' is true only when ZERO fits exist
-        if self.plotter.use_fit and len(list(self.plotter.fits.keys())) == 0:
-            #fits = self.fitter.makeFits(plot_data,plot_data.keys(),normalization)
-            #self.plotter.setFits(fits)
-            fit_info = {
-                'run_groups': copy.deepcopy(self.fitter.data_dict),
-                'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
-            }
-            self.plotter.setFits(fit_info)
-
         # This is after update_online_fits, so as to ensure the proper save dir is set
         self.plotter.save_dir = self.save_dir
         self.plotter.plot_dir = "png"
@@ -219,7 +212,7 @@ class RateMonitor:
             for obj in self.object_list:
                 objs_to_plot.add(obj)
             plotted_objects = self.makePlots(list(objs_to_plot))
-            counter += len(plotted_objects)
+            counter += len(plotted_objects["plots"])
 
             # Create index.html files to display specific groups of plots
             for grp in self.group_map:
@@ -246,9 +239,9 @@ class RateMonitor:
             plotted_objects = self.makePlots(self.object_list)
             #self.printHtml(plotted_objects,self.plotter.save_dir)
             self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
-            counter += len(plotted_objects)
-        return plotted_objects
+            counter += len(plotted_objects["plots"])
         print("Total plot count: %d" % counter)
+        return plotted_objects
 
     # Makes some basic checks to ensure that the specified options don't create conflicting problems
     def setupCheck(self):
@@ -258,6 +251,16 @@ class RateMonitor:
         #if not (self.use_pileup ^ self.use_lumi): # ^ == XOR
         #    print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
         #    return False
+
+        # Have to specify triggers to plot data for
+        if self.object_list == [] and not self.all_triggers:
+            print("ERROR SETUP: A trigger list must be specified.")
+            return False
+
+        # Cannot specify some triggers and all triggers at the same time
+        if self.object_list != [] and self.all_triggers:
+            print("ERROR SETUP: Cannot specify specific triggers when using allTriggers option.")
+            return False
 
         # We can't specify two different x_axis at the same time
         if self.use_pileup and self.use_lumi:
@@ -373,6 +376,9 @@ class RateMonitor:
         plotted_objects = []
         counter = 1
         prog_counter = 0
+        n_skipped = 0
+        n_invalid_trg = 0
+        n_not_enough_good_data = 0
         rundata = {}
         # self.plotter.plotting_data.keys()
         rundata["plots"] = {}
@@ -385,32 +391,43 @@ class RateMonitor:
                 # No valid data points could be found for _object in any of the runs
                 print("\tWARNING: Unknown object - %s" % _object)
                 rundata["plots"][_object] = "NODATA"
+                n_skipped += 1
+                n_invalid_trg += 1
                 continue
             self.formatLabels(_object)
             
             # Produces the plot for the selected trigger, returns the raw data
             triggerplotdata = self.plotter.plotAllData(_object)
-            
+
             if triggerplotdata:
                 plotted_objects.append(_object)
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
-        runnumber = list(self.plotter.plotting_data[list(self.plotter.plotting_data)[0]])[0]
-        
-        rundata["runnumber"] = runnumber
+                if self.exportJSON:
+                    filepath = os.path.join(self.save_dir, _object+".json")
+                    with open(filepath, "w") as out_file:
+                        json.dump(rundata, out_file)
+                    print("Exported JSON:", filepath)
+
+            else:
+                n_skipped += 1
+                n_not_enough_good_data += 1
+                continue
+
+        # Not sure what to do in the case where skip some due to invalid trigger, others due to not enough data..
+        # right now just raising noDataError in that case since seems more general
+        if n_skipped == len(plot_list):
+            if n_invalid_trg == len(plot_list):
+                raise NoValidTriggersError
+            else:
+                runs = list(self.plotter.plotting_data[_object].keys()) # Need runs if raising NoDataError
+                raise NoDataError(runs)
 
         if _object in self.plotter.plotting_data:
 
             rundata["x_axis"] = self.plotter.var_X_simple
             rundata["y_axis"] = self.plotter.var_Y_simple
-
-        if self.exportJSON:
-           
-            filepath = os.path.join(self.save_dir , self.plotter.var_Y_simple + "_VS_"+ self.plotter.var_X_simple +".json")
-            with open(filepath, "w") as out_file:
-                json.dump(rundata, out_file)
-            print("Exported JSON:", filepath)
 
         return rundata
 

@@ -159,7 +159,7 @@ class PlotMaker:
 
     def getFuncStr(self,fit_params):
         if fit_params[0] == "exp":          # Exponential
-             plotFuncStr = "%.15f + %.5f*exp( %.15f+%.15f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
+             plotFuncStr = "%.15f + %.15f*exp( %.15f+%.15f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
              funcStr = "%.5f + %.5f*exp( %.5f+%.5f*x )" % (fit_params[1], fit_params[2], fit_params[3], fit_params[4])
         elif fit_params[0] == "linear":     # Linear
             plotFuncStr = "%.15f + x*%.15f" % (fit_params[1], fit_params[2])
@@ -234,7 +234,7 @@ class PlotMaker:
                 run_count += 1
 
         if num_pts < self.min_plot_pts:
-            #print "\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts)
+            print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
             return False
 
         if self.use_fit and trigger not in self.fits:
@@ -499,7 +499,7 @@ class PlotMaker:
         export["xVals"] = xVals.tolist()
         export["yVals"] = yVals.tolist()
         if self.use_fit and not missing_fit:
-            export["fit"] = func_str["user_input"]
+            export["fit"] = plot_func_str["user_input"]
 
         return export
 

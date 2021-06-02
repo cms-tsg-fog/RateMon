@@ -20,6 +20,7 @@ import sys
 
 from OldDBParser import *
 from RateMonitor import *
+from Exceptions import *
 
 class MonitorController:
     def __init__(self):
@@ -54,7 +55,8 @@ class MonitorController:
             "compareFits="     : None,
             "showFitRunGroups" : None,
             "makeTitle"        : None,
-            "exportJson"      : None,
+            "exportJson"       : None,
+            "allTriggers"      : None
         }
         self.usr_input_data_lst = None
         #self.do_cron_job = False # A default option
@@ -137,6 +139,8 @@ class MonitorController:
                             self.rate_monitor.data_parser.hlt_triggers.append(name)
                         elif name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
+                elif op_name == "allTriggers":
+                    self.rate_monitor.all_triggers = True
                 elif op_name == "exportRoot":
                     self.rate_monitor.plotter.save_root_file = True
                 elif op_name == "exportJson":
@@ -317,7 +321,10 @@ class MonitorController:
                 self.rate_monitor.plotter.use_fit = False
 
             if len(self.rate_monitor.object_list) == 0:
-                print("WARNING: No trigger list specified! Plotting all triggers...")
+                if self.rate_monitor.all_triggers:
+                    print("WARNING: No trigger list specified! Plotting all triggers...")
+                else:
+                    raise NoValidTriggersError
 
             run_list = sorted(self.rate_monitor.run_list)
 
@@ -533,6 +540,9 @@ class MonitorController:
 
             elif label == "--showFitRunGroups":
                 self.ops_dict["showFitRunGroups"] = True
+
+            elif label == "--allTriggers":
+                self.ops_dict["allTriggers"] = True
 
             elif label == "--dbConfigFile":
                 # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below

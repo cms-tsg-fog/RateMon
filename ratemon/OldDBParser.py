@@ -1284,7 +1284,11 @@ class DBParser:
             mode = self.curs.fetchone()
         except:
             print("Error: Unable to retrieve trigger mode.")
-        return mode[0]
+        if mode is None:
+            # Probably do not want to raise TriggerModeNoneError here, since if we're running plotTriggerRates with a list of runs, do not want to crash if only one of them is invalid
+            return None
+        else:
+            return mode[0]
 
     # Use: Retrieves the data from all streams
     # Returns: A dictionary [ stream name ] { LS, rate, size, bandwidth }
