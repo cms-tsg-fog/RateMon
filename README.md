@@ -48,7 +48,7 @@ Follow the instructions to install that code in your local area to run ShiftMoni
 ### Running plotTriggerRates
 
 ```bash
-python3 plotTriggerRates.py --dbConfigFile=dbConfig.yaml --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
+python3 plotTriggerRates.py --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
 ```
 
 ### Running ShiftMonitorTool
@@ -64,7 +64,7 @@ To run outside P5:
 ```bash
 cd ratemon
 source venv/bin/activate
-python3 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml
+python3 ShiftMonitorTool.py
 ```
 
 ### Database Parser
