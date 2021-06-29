@@ -112,8 +112,7 @@ class DBParser:
         q.per_page = 4000
         q.filter("run_number", runNumber)
         q.filter("bit",1)
-        print(runNumber)
-        #blockPrint()
+        blockPrint()
         try:
             data = q.data().json()['data']
         except:

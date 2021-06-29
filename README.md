@@ -42,7 +42,12 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
 
 This code depends on the OMS API client, which can be found [here](https://gitlab.cern.ch/cmsoms/oms-api-client).
 
-Follow the instructions to install that code in your local area to run ShiftMonitorTool.py or plotTriggerRates.py
+```bash
+git clone ssh://git@gitlab.cern.ch:7999/cmsoms/oms-api-client.git
+cd oms-api-client
+python3 -m pip install -r requirements.txt
+python3 setup.py install --user
+```
 
 
 ### Running plotTriggerRates
