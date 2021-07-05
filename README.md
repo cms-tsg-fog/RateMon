@@ -42,6 +42,7 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
 
 This code depends on the OMS API client, which can be found [here](https://gitlab.cern.ch/cmsoms/oms-api-client).
 
+To install:
 ```bash
 git clone ssh://git@gitlab.cern.ch:7999/cmsoms/oms-api-client.git
 cd oms-api-client

@@ -20,15 +20,17 @@ from omsapi import OMSAPI
 
 #initiate connection to endpoints and authenticate
 hostname = socket.gethostname()
-if "lxplus" not in hostname:
-    omsapi = OMSAPI("http://cmsoms.cms:8080/api")
-else:
+
+if "lxplus" in hostname:
     omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False)
-try:
     omsapi.auth_krb()
-except:
-    print("Kerberos authentication failed. If not able to access OMS endpoints make sure you have proper authentication.")
-#note this authentication only works on lxplus           
+elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
+    my_app_id='token_name'
+    my_app_secret='token_secret'
+    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=True)
+    omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
+else:
+    omsapi = OMSAPI("http://cmsoms.cms:8080/api")
 
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
