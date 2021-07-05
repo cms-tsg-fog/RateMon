@@ -15,6 +15,7 @@ import re
 import sys
 import os
 import socket
+import yaml
 
 from omsapi import OMSAPI
 
@@ -25,8 +26,10 @@ if "lxplus" in hostname:
     omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False)
     omsapi.auth_krb()
 elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
-    my_app_id='token_name'
-    my_app_secret='token_secret'
+    stream = open(str('OMSConfig.yaml'), 'r')
+    cfg  = yaml.safe_load(stream)
+    my_app_id = cfg['token_info']['token_name']
+    my_app_secret = cfg['token_info']['token_secret']
     omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=True)
     omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
 else:
