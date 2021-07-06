@@ -38,19 +38,23 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
   - Set variables `P5_USER` and `P5_PASS` to your P5 username and password.
 - In this newly created pipeline, press the `deploy:P5` play button
 
-### Database configuration
+### Installing OMS API
 
-Before running either the plot making script or shift monitor tool, you will need to fill the appropriate database connection info in the `dbConfig.yaml` file.
+This code depends on the OMS API client, which can be found [here](https://gitlab.cern.ch/cmsoms/oms-api-client).
 
-Then, when running `plotTriggerRates` or `ShiftMonitorTool`, pass the `--dbConfigFile=dbConfig.yaml` argument.
-
-> Note: `dump_l1_prescales`, `findRuns` and `sql_query_tool` scripts still need the database configuration in a "DBConfigFile.py"
+To install:
+```bash
+git clone ssh://git@gitlab.cern.ch:7999/cmsoms/oms-api-client.git
+cd oms-api-client
+python3 -m pip install -r requirements.txt
+python3 setup.py install --user
+```
 
 
 ### Running plotTriggerRates
 
 ```bash
-python3 plotTriggerRates.py --dbConfigFile=dbConfig.yaml --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
+python3 plotTriggerRates.py --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
 ```
 
 ### Running ShiftMonitorTool
@@ -66,7 +70,7 @@ To run outside P5:
 ```bash
 cd ratemon
 source venv/bin/activate
-python3 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml
+python3 ShiftMonitorTool.py
 ```
 
 ### Database Parser

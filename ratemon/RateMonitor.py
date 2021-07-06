@@ -41,11 +41,14 @@ def stringSegment(strng, tot):
     return string
     
 class RateMonitor:
-    def __init__(self, cfg):
+    def __init__(self, cfg=None):
         # type: () -> None
         self.plotter     = PlotMaker()
         self.fitter      = FitFinder()
-        self.data_parser = DataParser(cfg)
+        if cfg == None:
+            self.data_parser = DataParser()
+        else:
+            self.data_parser = DataParser(cfg)
 
         self.use_fills          = False
         self.make_fits          = False

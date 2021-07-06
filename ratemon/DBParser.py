@@ -14,17 +14,26 @@
 import re
 import sys
 import os
+import socket
+import yaml
 
 from omsapi import OMSAPI
 
 #initiate connection to endpoints and authenticate
-omsapi = OMSAPI("http://cmsoms.cms:8080/api")
-#omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
-try:
+hostname = socket.gethostname()
+
+if "lxplus" in hostname:
+    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False)
     omsapi.auth_krb()
-except:
-    print("Kerberos authentication failed. If not able to access OMS endpoints make sure you have proper authentication.")
-#note this authentication only works on lxplus           
+elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
+    stream = open(str('OMSConfig.yaml'), 'r')
+    cfg  = yaml.safe_load(stream)
+    my_app_id = cfg['token_info']['token_name']
+    my_app_secret = cfg['token_info']['token_secret']
+    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=True)
+    omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
+else:
+    omsapi = OMSAPI("http://cmsoms.cms:8080/api")
 
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
@@ -39,12 +48,7 @@ def stripVersion(name):
 
 # A class that interacts with the HLT's oracle database and fetches information that we need
 class DBParser:
-    def __init__(self, cfg) :
-
-        #initiate connection to endpoints and authenticate
-        #omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1")
-        #omsapi.auth_krb()
-        #note this authentication only works on lxplus
+    def __init__(self) :
 
         self.L1Prescales = {}       # {algo_index: {psi: prescale}}
         self.HLTPrescales = {}      # {'trigger': [prescales]}
@@ -119,6 +123,7 @@ class DBParser:
         except:
             enablePrint()
             print("Trouble getting PS column by LS")
+            return False
         enablePrint()
         for thing in data:
             something = thing['attributes']
@@ -188,7 +193,10 @@ class DBParser:
             q2.filter("run_number", runNumber)
             q2.filter("first_lumisection_number", thing['lumisection_number'])
             data2 = q2.data().json()
-            if data2['data'] == []:
+            try:
+                if data2['data'] == []:
+                    break
+            except:
                 break
             _list.append([thing['lumisection_number'], adjusted_lumi, data2['data'][0]['attributes']['initial_prescale']['prescale_index'], thing['physics_flag']*thing['beam1_present'],
                            thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
@@ -252,13 +260,20 @@ class DBParser:
 
         self.HLT_name_map = self.getHLTNameMap(runNumber)
 
+        trigger_list_version = []
+
         if len(trigger_list) == 0:
             # If no list is given --> get rates for all HLT triggers                                                                                                                                       
-            trigger_list = self.HLT_name_map.keys()
+            trigger_list_version = self.HLT_name_map.keys()
+        else:
+            for trigger in self.HLT_name_map.keys():
+                if stripVersion(trigger) in trigger_list:
+                    trigger_list_version.append(trigger)
+                
 
         trigger_rates = {}
         blockPrint()
-        for name in trigger_list:
+        for name in trigger_list_version:
             if not self.HLT_name_map:
                 # Ignore triggers which don't appear in this run                                                                                                                                           
                 continue
@@ -365,8 +380,11 @@ class DBParser:
         q.per_page = 4000
         q.filter("run_number", runNumber)
         blockPrint()
-        response = q.data().json()
-        data = response['data']
+        try:
+            data = q.data().json()['data']
+        except:
+            print("Get L1 Prescales query failed")
+            return
         enablePrint()
         
         for row in data:
@@ -407,9 +425,12 @@ class DBParser:
         q.filter("run_number", runNumber)
         blockPrint()
         q.per_page = 4000
-        response = q.data()
-        item = response.json()
-        data = item['data']
+        try:
+            data = q.data().json()['data']
+        except:
+            enablePrint()
+            print("Get L1 Name Index failed")
+            return
         enablePrint()
         for thing in data:
             filler = thing['attributes']
@@ -624,9 +645,9 @@ class DBParser:
     # Use: Returns the number of the latest run to be stored in the DB
     def getLatestRunInfo(self):
         q = omsapi.query("runs")
-        q.filter("number_of_lumisections", 1, "GE")
+        q.filter("last_lumisection_number", 1, "GE")
         q.sort("run_number", asc=False)
-        blockPrint()
+        #blockPrint()
         data = q.data().json()
         enablePrint()
         try:
@@ -733,7 +754,7 @@ class DBParser:
 
         return L1_list
 
-    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, scalar_type=0):
+    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, scaler_type=0):
         self.getRunInfo(runNumber)
         self.getL1Prescales(runNumber)
         self.getL1NameIndexAssoc(runNumber)
@@ -766,8 +787,31 @@ class DBParser:
         enablePrint()
         return L1Triggers
 
-    def getStreamData(self, runNumber, misLS=-1, maxLS=9999999):
-        raise NotImplemented()
+    def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
+        StreamData = {}
+        blockPrint()
+        if minLS < 1:
+            minLS = 1
+        for LS in range(minLS, maxLS):
+            q = omsapi.query("streams")
+            q.per_page=4000
+            q.filter("run_number", runNumber)
+            q.filter("last_lumisection_number", LS)
+            response = q.data().json()['data']
+            if response == []:
+                break
+            for item in response:
+                stream_name = item['attributes']['stream_name']
+                if stream_name not in StreamData:
+                    StreamData[stream_name] = []
+                StreamData[stream_name].append([item['attributes']['last_lumisection_number'], 
+                                                item['attributes']['rate'], 
+                                                item['attributes']['file_size']*1000000000, 
+                                                item['attributes']['bandwidth']*1000000])
+        enablePrint()
+        return StreamData
+        
+
     def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
         raise NotImplemented()
 

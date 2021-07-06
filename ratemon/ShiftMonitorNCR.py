@@ -98,7 +98,7 @@ class ShiftMonitor:
             'mode',
             'streamData']
 
-    def __init__(self, dbCfg, oldParser):
+    def __init__(self, dbCfg=None, oldParser=False):
         self.FitFinder = FitFinder()
 
         # Suppress root warnings

@@ -3,7 +3,7 @@
 # Author: Charlie Mueller, Nathaniel Rupprecht, Andrew Wightman
 # Date Created: June 19, 2015
 #
-# Dependencies: RateMonitor.py, OldDBParser.py
+# Dependencies: RateMonitor.py, DBParser.py
 #
 # Data Type Key:
 #    ( a, b, c, ... )       -- denotes a tuple
@@ -18,7 +18,8 @@ import sys
 import yaml
 import sys
 
-from OldDBParser import *
+import DBParser
+import OldDBParser
 from RateMonitor import *
 from Exceptions import *
 
@@ -56,7 +57,8 @@ class MonitorController:
             "showFitRunGroups" : None,
             "makeTitle"        : None,
             "exportJson"       : None,
-            "allTriggers"      : None
+            "allTriggers"      : None,
+            "oldParser"        : None
         }
         self.usr_input_data_lst = None
         #self.do_cron_job = False # A default option
@@ -112,8 +114,12 @@ class MonitorController:
     def setOptions(self,ops_dict,data_lst):
 
         # Take care of db config file first and set defualts
-        self.parser = DBParser(ops_dict["dbConfigFile="])
-        self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
+        if ops_dict["oldParser"]:
+            self.parser = OldDBParser.DBParser(ops_dict["dbConfigFile="])
+            self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
+        else:
+            self.parser = DBParser.DBParser()
+            self.rate_monitor = RateMonitor()
         self.setDefaults()
 
         # Loop over options and set class variables
@@ -285,6 +291,8 @@ class MonitorController:
                     self.rate_monitor.data_parser.normalize_bunches = False
                 elif op_name == "showFitRunGroups":
                     self.rate_monitor.plotter.show_fit_run_groups = True
+                elif op_name == "oldParser":
+                    print("Using old parser")
                 else:
                     print("Unimplemented option '%s'." % op_name)
                     return False
@@ -412,10 +420,6 @@ class MonitorController:
                 self.ops_dict["dbConfigFile="] = dbCfg
             else:
                 pass
-        if not dbConfigLoaded:
-            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
-            # Exit with error, we can't continue without connecting to the DB
-            sys.exit(1)
 
         for label,op in opt:
 
@@ -429,6 +433,9 @@ class MonitorController:
                 # Specify the .list file that determines which triggers will be plotted
                 trigger_list = self.readTriggerList(str(op))
                 self.ops_dict["triggerList="] = trigger_list
+
+            elif label == "--oldParser":
+                self.ops_dict["oldParser"] = True
 
             elif label == "--saveDirectory":
                 # Specify the directory that the plots will be saved to

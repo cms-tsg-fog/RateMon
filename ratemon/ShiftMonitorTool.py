@@ -60,9 +60,7 @@ class CommandLineParser:
                 pass
 
         if not dbConfigLoaded:
-            print("No database configuration file specified. Call the script with --dbConfigFile=dbConfigFile.yaml")
-            # Exit with error, we can't continue without connecting to the DB
-            sys.exit(1)
+            self.monitor = ShiftMonitor()
 
         for label, op in opt:
             if label == "--fitFile":
