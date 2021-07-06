@@ -30,7 +30,7 @@ elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
     cfg  = yaml.safe_load(stream)
     my_app_id = cfg['token_info']['token_name']
     my_app_secret = cfg['token_info']['token_secret']
-    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=True)
+    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False)
     omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
 else:
     omsapi = OMSAPI("http://cmsoms.cms:8080/api")
