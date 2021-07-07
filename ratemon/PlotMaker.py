@@ -491,15 +491,17 @@ class PlotMaker:
 
         if self.save_png:
             self.savePlot(trigger,canvas)
-        
+
         export = {}
         export["plotname"] = trigger+"_"+self.var_X+"_vs_"+self.var_Y
-        export["xvar"] = self.var_X
-        export["yvar"] = self.var_Y
-        export["xVals"] = xVals.tolist()
-        export["yVals"] = yVals.tolist()
+        export["runs"]     = sorted(data)
+        export["xvar"]     = self.var_X
+        export["yvar"]     = self.var_Y
+        export["xVals"]    = xVals.tolist()
+        export["yVals"]    = yVals.tolist()
         if self.use_fit and not missing_fit:
             export["fit"] = plot_func_str["user_input"]
+            export["fit_mse"] = fit_mse["user_input"]
 
         return export
 
