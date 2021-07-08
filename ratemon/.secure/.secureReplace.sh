@@ -12,10 +12,7 @@ for file in $hlt_connect_file $trg_connect_file
 do
     if [ -s $secure_dir$file ]
     then
-        if ! [ -s ./.$file ]
-        then
-            cp $secure_dir$file ./.$file
-        fi
+        cp $secure_dir$file ./.$file
     fi
 done
 
