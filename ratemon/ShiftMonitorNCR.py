@@ -113,7 +113,7 @@ class ShiftMonitor:
         if oldParser:
             self.parser = OldDBParser.DBParser(dbCfg)
         else:
-            self.parser = DBParser.DBParser(dbCfg)   # A database parser
+            self.parser = DBParser.DBParser()   # A database parser
 
         # Rates
         self.HLTRates = None            # HLT rates
