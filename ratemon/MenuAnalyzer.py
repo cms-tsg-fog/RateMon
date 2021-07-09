@@ -18,7 +18,7 @@ class MenuAnalyzer:
         self.maxModuleNameLength = 300
         self.maxModulesPerPath   = 50
         self.maxPaths = 1000
-        self.maxEndPaths = 50 # It was 30, Thiago changed 2016-10-12
+        self.maxEndPaths = 100 # arbitrary maximum number of EndPaths, increased to 100 end of Run 2 
 
         ##required streams
         self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcal'],
@@ -52,7 +52,6 @@ class MenuAnalyzer:
         self.NotParkingTriggers=[]
 
         self.AnalysisList=[]
-        
 
         ## statically define the analysis map: new analyses must be registered here
         self.AnalysisMap = {
@@ -69,11 +68,13 @@ class MenuAnalyzer:
             'checkStreamB':self.checkStreamB,
             'checkProcessName':self.checkProcessName
             }
+
         self.ProblemDescriptions = {
             'moduleLength':'Modules too long',
             'numberOfPaths':'Too many paths',
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
+            'reqEndPaths':'Missing required endpaths',
             'checkExpress' : 'Invalid or missing express stream/PD',
             'checkNameFormats' : 'Invalid stream, PD or path name format',
             'checkEventContent' : 'Invalid Event Content',
@@ -117,7 +118,7 @@ class MenuAnalyzer:
         if len(self.perStreamPDList) == 0:
             print("FATAL ERROR: Cannot find any streams in this menu")
             isError=True
-        if len(self.perPDPathList) ==0:
+        if len(self.perPDPathList) == 0:
             print("FATAL ERROR: Cannot find any PDs in this menu")
             isError=True
         if isError:
@@ -126,11 +127,10 @@ class MenuAnalyzer:
         self.findParkingTriggers()
         for analysis in self.AnalysisList: 
             if analysis not in self.AnalysisMap:
-                print("ERROR: Analysis %s not defined" % (analysis,))
+                print("ERROR: Analysis %s not defined" % (analysis))
                 continue
             self.AnalysisMap[analysis]()
             
-
     def checkModuleLength(self):
         self.Results['moduleLength'] = []
         for modName,type in self.perModuleTypeList.items():
@@ -138,7 +138,7 @@ class MenuAnalyzer:
         
     def checkNumPaths(self):
         if len(self.perPathModuleList) > self.maxPaths:
-            self.Results['numberOfPaths'] = len(self.perPathModuleList) 
+            self.Results['numberOfPaths'] = len(self.perPathModuleList)
         else:
             self.Results['numberOfPaths'] = 0
     def checkNumEndPaths(self):
@@ -167,9 +167,9 @@ class MenuAnalyzer:
             self.Results['checkExpress'].append(self.ExpressStreamName)
             return
 
-        if len(self.perStreamPDList[self.ExpressStreamName]) >1:
+        if len(self.perStreamPDList[self.ExpressStreamName]) > 1:
             self.Results['checkExpress'].append("MULTIPLE_PDS")
-        if len(self.perStreamPDList[self.ExpressStreamName]) <1:
+        if len(self.perStreamPDList[self.ExpressStreamName]) < 1:
             self.Results['checkExpress'].append("NO_PDS")
 
         for PD in self.perStreamPDList[self.ExpressStreamName]:
@@ -177,8 +177,6 @@ class MenuAnalyzer:
                 self.Results['checkExpress'].append(self.ExpressStreamName+"::"+PD)
             else:
                 self.expressType = self.expressPDs[PD]
-                
-        
 
     def checkNameFormats(self):
         self.Results['checkNameFormats']=[]
@@ -198,9 +196,7 @@ class MenuAnalyzer:
                 self.Results['checkNameFormats'].append('WRONG STREAM NAME '+str(stream))
             for pd in self.perStreamPDList[stream]:
                     if 'part' in str(pd):
-                        self.Results['checkNameFormats'].append('WRONG DATASET NAME '+str(pd)+' in stream ' + stream )  
-
-       
+                        self.Results['checkNameFormats'].append('WRONG DATASET NAME '+str(pd)+' in stream ' + stream )
 
     def checkEventContent(self):
         self.Results['checkEventContent']=[]
@@ -230,14 +226,13 @@ class MenuAnalyzer:
         if 'L1GtTriggerMaskTechTrigTrivialProducer' in self.ESModuleList:
             self.Results['checkL1Unmask'].append('L1GtTriggerMaskTechTrigTrivialProducer')
 
-
     def findParkingPDs(self):
         ParkingPDs=[]
         NotParkingPDs=[]
         for key in self.perStreamPDList:
-            if key.startswith("Physics"):             # look at PDs only in streams that start with Physics
-                for PD in self.perStreamPDList[key]:         
-                    if PD.find("Parked")!=-1:         # look for PDs with Parked in the name
+            if key.startswith("Physics"): # look at PDs only in streams that start with Physics
+                for PD in self.perStreamPDList[key]:
+                    if (PD.find("Parked") != -1 or PD.find("ParkingBPH") != -1 or PD.find("Ephemeral") != -1): # look for PDs with Parked in the name
                         ParkingPDs.append(PD)
                     else:
                         NotParkingPDs.append(PD)
@@ -254,11 +249,14 @@ class MenuAnalyzer:
 
     def checkDQMStream(self):
         self.Results['checkDQMStream']=[]
-        for trig in self.NotParkingTriggers:
-            if trig.find("LogMonitor")!=-1: continue
-            if not trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
-        for trig in self.ParkingTriggers:
-            if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
+        for trig in sorted(self.NotParkingTriggers):
+            if trig.find("LogMonitor") != -1: continue
+            if trig.startswith("DST_"): continue
+            if ('OnlineMonitor' not in self.perPDPathList) or (not trig in self.perPDPathList["OnlineMonitor"]):
+               self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
+        if 'OnlineMonitor' in self.perPDPathList:
+           for trig in sorted(self.ParkingTriggers):
+               if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
 
     def checkStreamB(self):
         self.Results['checkStreamB']=[]
@@ -272,7 +270,7 @@ class MenuAnalyzer:
                 self.Results['checkProcessName'].append('process name is "'+self.processName+'"')
             else:
                 self.Results['checkProcessName'].append('process name is EMPTY')
-            
+
     def GetModules(self,cursor):
         sqlquery ="""  
         SELECT cms_hlt_gdr.u_paths.name path, cms_hlt_gdr.u_paelements.name  module, cms_hlt_gdr.u_moduletemplates.name template, cms_hlt_gdr.u_pathids.isendpath
@@ -288,7 +286,7 @@ class MenuAnalyzer:
         cms_hlt_gdr.u_paelements.paetype=1 and
         cms_hlt_gdr.u_pathid2conf.id_confver = cms_hlt_gdr.u_confversions.id and
         cms_hlt_gdr.u_confversions.name='%s'
-        """ % (self.menuName,)
+        """ % (self.menuName)
         
         cursor.execute(sqlquery)
         for PathName,ModuleName,ModuleType,endPath in cursor.fetchall():
@@ -324,7 +322,7 @@ class MenuAnalyzer:
         # AND g.id = e.id_datasetid
         # AND b.id = g.id_dataset
         # ORDER BY path, dataset, stream
-        # """ % (self.menuName,)
+        # """ % (self.menuName)
         sqlquery= """
         SELECT distinct a.name AS stream,
         b.name AS dataset,
@@ -354,12 +352,10 @@ class MenuAnalyzer:
         AND j.id_streamid=e.id_streamid
         AND j.id_datasetid=e.id_datasetid
         ORDER BY path, dataset, stream
-        """ % (self.menuName,)
+        """ % (self.menuName)
         
         cursor.execute(sqlquery)
         for StreamName,PDName,PathName in cursor.fetchall():
-            #print StreamName, ' ', PDName,' ', PathName
-            #print self.menuName
             if StreamName not in self.perStreamPDList: self.perStreamPDList[StreamName] = []
             if not PDName in self.perStreamPDList[StreamName]: self.perStreamPDList[StreamName].append(PDName)
             if PDName not in self.perPDPathList: self.perPDPathList[PDName] = []
@@ -375,7 +371,7 @@ class MenuAnalyzer:
         AND i.id_confver = d.id
         AND i.id_esmodule=a.id
         ORDER by name
-        """ % (self.menuName,)
+        """ % (self.menuName)
         
         cursor.execute(sqlquery)
         for ModuleName, in cursor.fetchall():
@@ -399,21 +395,19 @@ class MenuAnalyzer:
         i.id=c.id_evcoid and u.id=i.id_evco and c.id_confver=d.id and e.id_evcoid=i.id and
         s.id=e.id_stat and t.id_evcoid=i.id and l.id=t.id_streamid and n.id=l.id_stream
         ORDER BY streamlabel
-        """ % (self.menuName,)
+        """ % (self.menuName)
 
         cursor.execute(sqlquery)
         for stream,keep,Class,module,extra,process in cursor.fetchall():
             if stream not in self.eventContent: self.eventContent[stream]=[]
-            statement = "%s_%s_%s_%s" % (Class,module,extra,process,)
+            statement = "%s_%s_%s_%s" % (Class,module,extra,process)
             if statement == "*_*_*_*": statement = "*"
             if keep == 1: statement = "keep "+statement
             else: statement = "drop "+statement
             if not statement in self.eventContent[stream]:
                 self.eventContent[stream].append( statement )
 
-
     def GetProcessName(self,cursor):
-
         sqlquery = """
         SELECT confver.ProcessName FROM  cms_hlt_gdr.u_confversions confver
         WHERE 
@@ -421,6 +415,5 @@ class MenuAnalyzer:
         """  % (self.menuName)
 
         cursor.execute(sqlquery)
-        #should be exactly 1 entry and that will have a tuple with one entry "processName"
+        # should be exactly 1 entry and that will have a tuple with one entry "processName"
         self.processName = cursor.fetchall()[0][0]
-        
