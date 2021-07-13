@@ -407,6 +407,10 @@ class RateMonitor:
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
 
+                # Include the fill in the json if querying by fill
+                if self.use_fills:
+                    rundata["plots"][_object]["fills"] = self.fill_list
+
                 if self.exportJSON:
                     filepath = os.path.join(self.save_dir, _object+".json")
                     with open(filepath, "w") as out_file:
