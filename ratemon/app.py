@@ -35,6 +35,37 @@ def getRatesROOT(runNumber: int, triggerKey: str):
                 as_attachment=True # Keep the filename
             )
 
+def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool):
+        # Initialize the RateMon controller
+        controller = ptr.MonitorController()
+        saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
+        print("queryByFill",queryByFill)
+        print("type",type(queryByFill))
+        try:
+            rates = controller.runStandalone(
+                oldParser=True, # TMP!!!
+                dbConfig=dbCfg,
+                exportRoot=False,
+                exportJson=True,
+                saveDirectory=saveDirectory,
+                triggerList=[triggerKey],
+                createFit=True,
+                bestFit=True,
+                data_lst=[runNumber],
+                useFills=queryByFill
+            )
+
+        except NoDataError as e:
+            return e.message,400
+        except NoValidTriggersError as e:
+            return e.message,400
+        else:
+            return send_from_directory(
+                saveDirectory,
+                triggerKey + '.json',
+                as_attachment=True # Keep the filename
+            )
+
 def getRunRatesJSON(runNumber: int, triggerKey: str):
         # Initialize the RateMon controller
         controller = ptr.MonitorController()

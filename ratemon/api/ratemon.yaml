@@ -33,6 +33,41 @@ paths:
           description: ROOT binary file of the computed plot
         '400':
           description: Bad request
+
+  /ratesJSON:
+    get:
+      tags: [Trigger Rates]
+      description: |
+        Get a JSON file with raw Rates of the specified Trigger Path and LHC Run or Fill Number
+      operationId: app.getRatesJSON
+      parameters:
+        - name: runNumber
+          in: query
+          description: "Run or fill number, e.g. 305112 or 6303"
+          example: 6303
+          required: true
+          style: form
+          schema:
+            type: integer
+        - name: triggerKey
+          in: query
+          description: "Trigger name key."
+          example: HLT_CaloJet500_NoJetID
+          required: true
+          schema:
+            type: string
+        - name: queryByFill
+          in: query
+          description: "Flag that should be true if querying by fill"
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: JSON file with the raw rates
+        '400':
+          description: Bad request
+
   /runRatesJSON:
     get:
       tags: [Trigger Rates]
