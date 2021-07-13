@@ -497,10 +497,11 @@ class PlotMaker:
         export["runs"]     = sorted(data)
         export["xvar"]     = self.var_X
         export["yvar"]     = self.var_Y
-        for r in sorted(data):
-            export[run] = {}
-            export[run]["xVals"] = data[run][0].tolist()
-            export[run]["yVals"] = data[run][1].tolist()
+        for run_num in sorted(data):
+            run_num = int(run_num)
+            export[run_num] = {}
+            export[run_num]["xVals"] = data[run_num][0].tolist()
+            export[run_num]["yVals"] = data[run_num][1].tolist()
         if self.use_fit and not missing_fit:
             export["fit"] = plot_func_str["user_input"]
             export["fit_mse"] = fit_mse["user_input"]
