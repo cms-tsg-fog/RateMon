@@ -1,4 +1,4 @@
-FROM gitlab-registry.cern.ch/cms-cactus/ops/auto-devops/basics-cc7:tag-0.0.8
+FROM gitlab-registry.cern.ch/cms-cactus/ops/auto-devops/basics-cc7:tag-0.2.3
 # LABEL maintainer="name <email@cern.ch>"
 
 COPY RPMs/oracle-instantclient /oracle-rpms
