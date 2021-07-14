@@ -5,5 +5,4 @@ COPY RPMs/oracle-instantclient /oracle-rpms
 
 RUN yum install -y python3 root python36-root /oracle-rpms/*.rpm && \
     yum clean all && \
-    pip3 install wheel && \
-    pip3 install pipenv pyinstaller
+    pip3 install pipenv pyinstaller==4.3
