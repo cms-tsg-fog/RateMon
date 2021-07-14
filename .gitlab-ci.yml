@@ -1,7 +1,7 @@
-# include all templates in https://gitlab.cern.ch/cms-cactus/ops/auto-devops/-/tree/0.0.3
+# include all templates in https://gitlab.cern.ch/cms-cactus/ops/auto-devops/-/tree/0.2.3
 include:
   - project: cms-cactus/ops/auto-devops
-    ref: 0.0.8
+    ref: 0.2.3
     file: presets/blank-slate.yml
 
 # disable CI checkout of oms/aggregationapi
