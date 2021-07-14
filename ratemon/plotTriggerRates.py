@@ -32,7 +32,6 @@ class MonitorController:
             "triggerList="     : None,
             "saveDirectory="   : None,
             "useFit="          : None,
-            "useFills="        : None,
             "psFilter="        : None,
             "lsVeto="          : None,
             "rootFileName="    : None,
@@ -52,6 +51,7 @@ class MonitorController:
             #"vsInstLumi"      : None,
             "vsLS"             : None,
             #"useCrossSection" : None,
+            "useFills"         : None,
             "useBunches"       : None,
             "compareFits="     : None,
             "showFitRunGroups" : None,
@@ -158,10 +158,6 @@ class MonitorController:
                     self.rate_monitor.root_file_name = op_val
                 elif op_name == "saveDirectory=":
                    self.rate_monitor.save_dir = op_val
-                elif op_name == "useFills=":
-                    if op_val:
-                        self.rate_monitor.use_fills = True
-                        self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
                 elif op_name == "useFit=":
                     self.rate_monitor.plotter.default_fit = op_val
                     self.rate_monitor.make_fits  = True
@@ -288,6 +284,9 @@ class MonitorController:
                     self.rate_monitor.use_pileup = False
                     self.rate_monitor.use_lumi = False
                     self.rate_monitor.use_LS = True
+                elif op_name == "useFills":
+                    self.rate_monitor.use_fills = True
+                    self.rate_monitor.plotter.color_by_fill = True  # Might want to make this an optional switch
                 elif op_name == "useBunches":
                     self.rate_monitor.data_parser.normalize_bunches = False
                 elif op_name == "showFitRunGroups":
@@ -529,8 +528,8 @@ class MonitorController:
             #    self.rate_monitor.data_parser.use_cross_section = True
 
             elif label == "--useFills":
-                # Specify if the data should fetched by fill number
-                self.ops_dict["useFills="] = op
+                # Specify that the data should fetched by fill number
+                self.ops_dict["useFills"] = True
 
             elif label == "--useBunches":
                 # Don't try to normalize the rates by colliding bunches
@@ -718,10 +717,7 @@ class MonitorController:
         for k,v in kwargs.items():
             if k in self.ops_dict:
                 self.ops_dict[k] = v
-                print("in dict:",k)
             # FIXME: bad workaround
-            elif k == "useFills":
-                self.ops_dict["useFills="] = v
             elif k == "dbConfig":
                 self.ops_dict["dbConfigFile="] = v
             elif k == "triggerList":

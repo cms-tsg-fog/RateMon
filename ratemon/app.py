@@ -20,7 +20,6 @@ def getRatesROOT(runNumber: int, triggerKey: str):
                 saveDirectory=saveDirectory,
                 makeTitle=False,
                 triggerList=[triggerKey],
-                createFit=True,
                 bestFit=True,
                 data_lst=[runNumber]
             )
@@ -36,11 +35,14 @@ def getRatesROOT(runNumber: int, triggerKey: str):
             )
 
 def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool):
+
+        # If this flag is false, we want to skip setting this option
+        if not queryByFill:
+            queryByFill = None
+
         # Initialize the RateMon controller
         controller = ptr.MonitorController()
         saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
-        print("queryByFill",queryByFill)
-        print("type",type(queryByFill))
         try:
             rates = controller.runStandalone(
                 oldParser=True, # TMP!!!
@@ -49,7 +51,6 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool):
                 exportJson=True,
                 saveDirectory=saveDirectory,
                 triggerList=[triggerKey],
-                createFit=True,
                 bestFit=True,
                 data_lst=[runNumber],
                 useFills=queryByFill
@@ -78,7 +79,6 @@ def getRunRatesJSON(runNumber: int, triggerKey: str):
                 exportJson=True,
                 saveDirectory=saveDirectory,
                 triggerList=[triggerKey],
-                createFit=True,
                 bestFit=True,
                 data_lst=[runNumber]
             )
@@ -106,7 +106,6 @@ def getFillRatesJSON(fillNumber: int, triggerKey: str):
                 exportJson=True,
                 saveDirectory=saveDirectory,
                 triggerList=[triggerKey],
-                createFit=True,
                 bestFit=True,
                 useFills=True,
                 data_lst=[fillNumber]
