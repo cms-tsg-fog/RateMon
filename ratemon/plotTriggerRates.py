@@ -113,6 +113,8 @@ class MonitorController:
     # Set variables based on options provided
     def setOptions(self,ops_dict,data_lst):
 
+        print("The options dict:",ops_dict)
+
         # Take care of db config file first and set defualts
         if ops_dict["oldParser"]:
             self.parser = OldDBParser.DBParser(ops_dict["dbConfigFile="])
@@ -130,7 +132,7 @@ class MonitorController:
                 if op_name == "dbConfigFile=":
                     pass # DB cfg already implemented
                 elif op_name == "fitFile=":
-                    fit_info = op_val
+                    fit_info = self.readFits(op_val)
                     self.rate_monitor.plotter.set_plotter_fits = True
                     self.rate_monitor.plotter.use_fit     = True
                     self.rate_monitor.plotter.show_errors = True
@@ -425,9 +427,7 @@ class MonitorController:
 
             if label == "--fitFile":
                 # Specify the .pkl file to be used to extract fits from
-                # TODO: Needs to be updated to account for the fact that the plotter is expecting a different input
-                fit_info = self.readFits(str(op))
-                self.ops_dict["fitFile="] = fit_info
+                self.ops_dict["fitFile="] = str(op)
 
             elif label == "--triggerList":
                 # Specify the .list file that determines which triggers will be plotted
@@ -566,8 +566,7 @@ class MonitorController:
                 arg_list.append(int(item))
             self.usr_input_data_lst = arg_list
 
-        print ("\nOptions dictionary:",self.ops_dict)
-        print ("Data list:",self.usr_input_data_lst) 
+        print ("Data list:",self.usr_input_data_lst)
         if not self.setOptions(self.ops_dict,self.usr_input_data_lst):
             print("\nThere was a problem  while setting options. Raising exception.\n")
             raise Exception
@@ -599,6 +598,7 @@ class MonitorController:
                         fits_format = 'nested_dict'
             pkl_file.close()
 
+            # A very deprecated format (probably would break if you tried to process a fit file of this format)
             if fits_format == 'dict_of_lists':
                     tmp_dict = {}                   # {'obj': {'fit_type': fit_params } }
                     for obj in fits:
@@ -613,11 +613,18 @@ class MonitorController:
                     fit_info['triggers'] = fits
                     return fit_info
 
+            # This is the format of the last ref fits from 2018, now deprecated
+            # It's not the format the code currently makes or assumes the fit file is in (which is "multi_info")
+            # So we need to put the dict into the format the code is expecting
             if fits_format == 'nested_dict':
-                    fit_info['fit_runs'] = {}
-                    fit_info['triggers'] = fits
+                    fit_info['run_groups'] = {}
+                    fit_info['triggers'] = {}
+                    for trigger in fits:
+                        fit_info['triggers'][trigger] = {}
+                        fit_info['triggers'][trigger]['user_input'] = fits[trigger]
                     return fit_info
  
+            # Format that the code currently produces
             if fits_format == 'multi_info':
                     return fit_info
 
@@ -724,6 +731,8 @@ class MonitorController:
                 self.ops_dict["triggerList="] = v
             elif k == "saveDirectory":
                 self.ops_dict["saveDirectory="] = v
+            elif k == "fitFile":
+                self.ops_dict["fitFile="] = v
             elif k == "data_lst":
                 self.usr_input_data_lst = v
             else:
