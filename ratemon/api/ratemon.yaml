@@ -5,7 +5,9 @@ info:
   description: API exposing CMS Trigger Rates exported by the RateMon tools
 servers:
   - url: http://ater.cern.ch/api/v1
+
 paths:
+
   /runRatesROOT:
     get:
       tags: [Trigger Rates]
@@ -58,7 +60,15 @@ paths:
             type: string
         - name: queryByFill
           in: query
-          description: "Flag that should be true if querying by fill"
+          description: "Flag that should be true if querying by fill."
+          example: true
+          required: true
+          schema:
+            type: boolean
+        - name: createFit
+          in: query
+          description: "Flag that should be true to create a fit to the data. If false, the ref fit from [ratemon/ratemon/Fits](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tree/master/ratemon/Fits) is used."
+          example: true
           required: true
           schema:
             type: boolean
@@ -95,6 +105,7 @@ paths:
           description: JSON file with the raw rates
         '400':
           description: Bad request
+
   /fillRatesJSON:
     get:
       tags: [Trigger Rates]

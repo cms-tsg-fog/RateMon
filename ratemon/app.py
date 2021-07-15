@@ -34,11 +34,19 @@ def getRatesROOT(runNumber: int, triggerKey: str):
                 as_attachment=True # Keep the filename
             )
 
-def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool):
+def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: bool):
 
         # If this flag is false, we want to skip setting this option
         if not queryByFill:
             queryByFill = None
+
+        # Whether to create a fit or use ref fit
+        bestFitVal = None
+        refFitVal = None
+        if createFit:
+            bestFitVal = True
+        else:
+            refFitVal = "Fits/Monitor_Triggers/FOG.pkl"
 
         # Initialize the RateMon controller
         controller = ptr.MonitorController()
@@ -51,7 +59,8 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool):
                 exportJson=True,
                 saveDirectory=saveDirectory,
                 triggerList=[triggerKey],
-                bestFit=True,
+                bestFit=bestFitVal,
+                fitFile=refFitVal,
                 data_lst=[runNumber],
                 useFills=queryByFill
             )
