@@ -1,5 +1,6 @@
 import plotTriggerRates as ptr
 import yaml
+import os
 
 from flask import send_from_directory
 from Exceptions import *
@@ -36,6 +37,12 @@ def getRatesROOT(runNumber: int, triggerKey: str):
 
 def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: bool):
 
+        # Make sure we start from the RateMon dir (FIXME: TMP workaround!!! Should figure out why we move out of this dir.)
+        os.chdir("/root/ratemon/ratemon")
+
+        # Initialize the RateMon controller
+        controller = ptr.MonitorController()
+
         # If this flag is false, we want to skip setting this option
         if not queryByFill:
             queryByFill = None
@@ -48,9 +55,9 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
         else:
             refFitVal = "Fits/Monitor_Triggers/FOG.pkl"
 
-        # Initialize the RateMon controller
-        controller = ptr.MonitorController()
+        # Specify the save directory
         saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
+
         try:
             rates = controller.runStandalone(
                 oldParser=True, # TMP!!!
