@@ -75,7 +75,7 @@ class RateMonitor:
 
         self.group_map = {}     # {'group_name': [trigger_name] }
 
-        self.fill_list   = []   # Fills to get data from, Currently Unused
+        self.fill_list   = []   # Fills to get data from
         self.run_list    = []   # Runs to get data from
         self.object_list = []   # List of *ALL* objects to plot, except for when using grouping
 

@@ -1,6 +1,5 @@
 import plotTriggerRates as ptr
 import yaml
-import os
 
 from flask import send_from_directory
 from Exceptions import *
@@ -67,61 +66,6 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
                 fitFile=refFitVal,
                 data_lst=[runNumber],
                 useFills=queryByFill
-            )
-
-        except NoDataError as e:
-            return e.message,400
-        except NoValidTriggersError as e:
-            return e.message,400
-        else:
-            return send_from_directory(
-                saveDirectory,
-                triggerKey + '.json',
-                as_attachment=True # Keep the filename
-            )
-
-def getRunRatesJSON(runNumber: int, triggerKey: str):
-        # Initialize the RateMon controller
-        controller = ptr.MonitorController()
-        saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
-        try:
-            rates = controller.runStandalone(
-                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
-                dbConfig=dbCfg,
-                exportRoot=False,
-                exportJson=True,
-                saveDirectory=saveDirectory,
-                triggerList=[triggerKey],
-                bestFit=True,
-                data_lst=[runNumber]
-            )
-
-        except NoDataError as e:
-            return e.message,400
-        except NoValidTriggersError as e:
-            return e.message,400
-        else:
-            return send_from_directory(
-                saveDirectory,
-                triggerKey + '.json',
-                as_attachment=True # Keep the filename
-            )
-
-def getFillRatesJSON(fillNumber: int, triggerKey: str):
-        # Initialize the RateMon controller
-        controller = ptr.MonitorController()
-        saveDirectory = "/rtmdata/" + str(fillNumber) + '/' + triggerKey + '/'
-        try:
-            rates = controller.runStandalone(
-                oldParser=True,  # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
-                dbConfig=dbCfg,
-                exportRoot=False,
-                exportJson=True,
-                saveDirectory=saveDirectory,
-                triggerList=[triggerKey],
-                bestFit=True,
-                useFills=True,
-                data_lst=[fillNumber]
             )
 
         except NoDataError as e:

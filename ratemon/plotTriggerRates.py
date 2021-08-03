@@ -671,10 +671,10 @@ class MonitorController:
         run_list = []
         fill_map = {}   # {run_number: fill_number}
         for fill in sorted(arg_list):
-            print("Getting runs from fill %d..." % fill)
+            print(f"Getting runs from fill {fill}...")
             new_runs = self.parser.getFillRuns(fill)
             if len(new_runs) == 0:
-                print("\tFill %d has no eligible runs!")
+                print(f"\tFill {fill} has no eligible runs!")
                 continue
             for run in new_runs:
                 fill_map[run] = fill
