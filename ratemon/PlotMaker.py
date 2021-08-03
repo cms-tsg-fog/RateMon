@@ -497,6 +497,9 @@ class PlotMaker:
         export["runs"]     = sorted(data)
         export["xvar"]     = self.var_X
         export["yvar"]     = self.var_Y
+        export["min_xaxis_val"] = min_xaxis_val
+        export["max_xaxis_val"] = max_xaxis_val
+        export["max_yaxis_val"] = max_yaxis_val
         for run_num in sorted(data):
             run_num = int(run_num)
             export[run_num] = {}
