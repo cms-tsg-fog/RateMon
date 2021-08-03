@@ -367,7 +367,7 @@ class RateMonitor:
                 for grp_dir in list(self.group_map.keys()):
                     os.mkdir(grp_dir)
                     print("\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir)))
-            os.chdir("../")
+            os.chdir(self.rate_mon_dir)
             return
 
     # Stiching function that interfaces with the plotter object

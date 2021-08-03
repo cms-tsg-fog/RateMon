@@ -15,7 +15,7 @@ def getRatesROOT(runNumber: int, triggerKey: str):
         saveDirectory = "/rtmdata/" + str(runNumber)
         try:
             rates = controller.runStandalone(
-                oldParser=True, # TMP!!!
+                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
                 dbConfig=dbCfg,
                 exportRoot=True,
                 saveDirectory=saveDirectory,
@@ -37,9 +37,6 @@ def getRatesROOT(runNumber: int, triggerKey: str):
 
 def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: bool):
 
-        # Make sure we start from the RateMon dir (FIXME: TMP workaround!!! Should figure out why we move out of this dir.)
-        os.chdir("/root/ratemon/ratemon")
-
         # Initialize the RateMon controller
         controller = ptr.MonitorController()
 
@@ -60,7 +57,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
 
         try:
             rates = controller.runStandalone(
-                oldParser=True, # TMP!!!
+                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
                 dbConfig=dbCfg,
                 exportRoot=False,
                 exportJson=True,
@@ -89,7 +86,7 @@ def getRunRatesJSON(runNumber: int, triggerKey: str):
         saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
         try:
             rates = controller.runStandalone(
-                oldParser=True, # TMP!!!
+                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
                 dbConfig=dbCfg,
                 exportRoot=False,
                 exportJson=True,
@@ -116,7 +113,7 @@ def getFillRatesJSON(fillNumber: int, triggerKey: str):
         saveDirectory = "/rtmdata/" + str(fillNumber) + '/' + triggerKey + '/'
         try:
             rates = controller.runStandalone(
-                oldParser=True, # TMP!!!
+                oldParser=True,  # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
                 dbConfig=dbCfg,
                 exportRoot=False,
                 exportJson=True,
