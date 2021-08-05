@@ -75,7 +75,7 @@ class RateMonitor:
 
         self.group_map = {}     # {'group_name': [trigger_name] }
 
-        self.fill_list   = []   # Fills to get data from, Currently Unused
+        self.fill_list   = []   # Fills to get data from
         self.run_list    = []   # Runs to get data from
         self.object_list = []   # List of *ALL* objects to plot, except for when using grouping
 
@@ -367,7 +367,7 @@ class RateMonitor:
                 for grp_dir in list(self.group_map.keys()):
                     os.mkdir(grp_dir)
                     print("\tCreating directory: %s " % (os.path.join(self.save_dir,grp_dir)))
-            os.chdir("../")
+            os.chdir(self.rate_mon_dir)
             return
 
     # Stiching function that interfaces with the plotter object
@@ -406,6 +406,10 @@ class RateMonitor:
                 plotted_objects.append(_object)
                 counter += 1
                 rundata["plots"][_object] = triggerplotdata
+
+                # Include the fill in the json if querying by fill
+                if self.use_fills:
+                    rundata["plots"][_object]["fills"] = self.fill_list
 
                 if self.exportJSON:
                     filepath = os.path.join(self.save_dir, _object+".json")
