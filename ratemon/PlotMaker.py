@@ -508,6 +508,7 @@ class PlotMaker:
         if self.use_fit and not missing_fit:
             export["fit"] = plot_func_str["user_input"]
             export["fit_mse"] = fit_mse["user_input"]
+            export["sigma_for_errorband"] = self.sigmas
 
         return export
 
