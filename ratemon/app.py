@@ -49,7 +49,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
         if createFit:
             bestFitVal = True
         else:
-            refFitVal = "Fits/Monitor_Triggers/FOG.pkl"
+            refFitVal = "Fits/All_Triggers/FOG.pkl"
 
         # Specify the save directory
         saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
