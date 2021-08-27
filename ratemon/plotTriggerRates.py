@@ -294,7 +294,8 @@ class MonitorController:
                 elif op_name == "showFitRunGroups":
                     self.rate_monitor.plotter.show_fit_run_groups = True
                 elif op_name == "oldParser":
-                    print("Using old parser")
+                    if op_val:
+                        print("Using old parser")
                 else:
                     print("Unimplemented option '%s'." % op_name)
                     return False

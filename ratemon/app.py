@@ -14,7 +14,7 @@ def getRatesROOT(runNumber: int, triggerKey: str):
         saveDirectory = "/rtmdata/" + str(runNumber)
         try:
             rates = controller.runStandalone(
-                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
+                oldParser=False,
                 dbConfig=dbCfg,
                 exportRoot=True,
                 saveDirectory=saveDirectory,
@@ -56,7 +56,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
 
         try:
             rates = controller.runStandalone(
-                oldParser=True, # NOTE: This is temporary, till the issues with the rates with the OMS Parser is figured out
+                oldParser=False,
                 dbConfig=dbCfg,
                 exportRoot=False,
                 exportJson=True,
