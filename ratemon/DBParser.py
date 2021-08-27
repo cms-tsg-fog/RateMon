@@ -19,6 +19,8 @@ import yaml
 
 from omsapi import OMSAPI
 
+PAGE_LIMIT = 10000
+
 #initiate connection to endpoints and authenticate
 hostname = socket.gethostname()
 
@@ -70,7 +72,7 @@ class DBParser:
     def getLSInfo(self, runNumber):
         ls_info = []
         q = omsapi.query("l1algorithmtriggers")
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         q.filter("run_number", runNumber)
         q.filter("bit", 1)
         blockPrint()
@@ -79,6 +81,7 @@ class DBParser:
         except:
             enablePrint()
             print("Unable to get LS list for run %s" % runNumber)
+            return []
         enablePrint()
         for thing in data:
             something = thing['attributes']
@@ -114,7 +117,7 @@ class DBParser:
     def getRunInfo(self, runNumber):
 
         q = omsapi.query("l1algorithmtriggers")
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         q.filter("run_number", runNumber)
         q.filter("bit",1)
         blockPrint()
@@ -142,9 +145,14 @@ class DBParser:
 
         q = omsapi.query("lumisections")
         q.filter("run_number", runNumber)
-        q.per_page = 400
+        q.custom("include", "meta")
+        q.per_page = PAGE_LIMIT
         blockPrint()
         response = q.data().json()
+        if response['data'][0]['meta']['row']['init_lumi']['units']=="10^{34}cm^{-2}s^{-1}":
+            adjust = 10000
+        else:
+            adjust = 1
         q2 = omsapi.query("l1algorithmtriggers")
 
         for item in response['data']:
@@ -153,7 +161,7 @@ class DBParser:
                 continue
             if thing['lumisection_number'] > maxLS:
                 break
-            adjusted_lumi = 10000*thing['init_lumi']
+            adjusted_lumi = adjust*thing['init_lumi']
             q2.clear_filter()
             q2.filter("run_number", runNumber)
             q2.filter("first_lumisection_number", thing['lumisection_number'])
@@ -177,9 +185,15 @@ class DBParser:
 
         q = omsapi.query("lumisections")
         q.filter("run_number", runNumber)
-        q.per_page = 400
+        q.custom("include", "meta")
+        q.per_page = PAGE_LIMIT
         blockPrint()
         response = q.data().json()
+        if response['data'][0]['meta']['row']['init_lumi']['units']=="10^{34}cm^{-2}s^{-1}":
+            adjust = 10000
+        else:
+            adjust = 1
+
         q2 = omsapi.query("l1algorithmtriggers")
 
         for item in response['data']:
@@ -188,7 +202,7 @@ class DBParser:
                 continue
             if thing['lumisection_number'] > maxLS:
                 break
-            adjusted_lumi = 10000*thing['init_lumi']
+            adjusted_lumi = adjust*thing['init_lumi']
             q2.clear_filter()
             q2.filter("run_number", runNumber)
             q2.filter("first_lumisection_number", thing['lumisection_number'])
@@ -287,7 +301,7 @@ class DBParser:
         q = omsapi.query("hltpathrates")
         q.filter("run_number", runNumber)
         q.filter("path_name", name)
-        q.per_page = 400
+        q.per_page = PAGE_LIMIT
         thing = q.data().json()
         data = thing['data']
         trigger_rates = {}
@@ -358,7 +372,7 @@ class DBParser:
         q = omsapi.query("hltpathinfo")
         q.set_validation(False)
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         data = item['data']
@@ -377,7 +391,7 @@ class DBParser:
     def getL1Prescales(self, runNumber):
         
         q = omsapi.query("l1prescalesets")
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         q.filter("run_number", runNumber)
         blockPrint()
         try:
@@ -405,7 +419,7 @@ class DBParser:
         q = omsapi.query("hltconfigdata")
         q.set_validation(False)
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         data = item['data']
@@ -424,7 +438,7 @@ class DBParser:
         q = omsapi.query("l1prescalesets")
         q.filter("run_number", runNumber)
         blockPrint()
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         try:
             data = q.data().json()['data']
         except:
@@ -467,7 +481,7 @@ class DBParser:
         q = omsapi.query("hltprescalesets")
         q.set_validation(False)
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         try:
@@ -522,7 +536,7 @@ class DBParser:
 
         blockPrint()
         q = omsapi.query("deadtimes")
-        q.per_page = 200
+        q.per_page = PAGE_LIMIT
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
         response = q.data()
@@ -546,7 +560,7 @@ class DBParser:
         q = omsapi.query("l1triggerrates")
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
-        q.per_page=200
+        q.per_page=PAGE_LIMIT
         data = q.data().json()
         l1rate = {}
         for item in data['data']:
@@ -566,7 +580,7 @@ class DBParser:
         q = omsapi.query("l1triggerrates")
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
-        q.per_page=200
+        q.per_page=PAGE_LIMIT
         data = q.data().json()
         l1rate = {}
         enablePrint()
@@ -587,7 +601,7 @@ class DBParser:
         q = omsapi.query("l1triggerrates")
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
-        q.per_page=200
+        q.per_page=PAGE_LIMIT
         data = q.data().json()
         l1rate = {}
         enablePrint()
@@ -608,7 +622,7 @@ class DBParser:
         q = omsapi.query("l1triggerrates")
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
-        q.per_page=200
+        q.per_page=PAGE_LIMIT
         data = q.data().json()
         l1rate = {}
         enablePrint()
@@ -629,7 +643,7 @@ class DBParser:
         q = omsapi.query("l1triggerrates")
         q.custom("group[granularity]", "lumisection")
         q.filter("run_number", runNumber)
-        q.per_page=200
+        q.per_page=PAGE_LIMIT
         data = q.data().json()
         l1rate = {}
         enablePrint()
@@ -647,7 +661,7 @@ class DBParser:
         q = omsapi.query("runs")
         q.filter("last_lumisection_number", 1, "GE")
         q.sort("run_number", asc=False)
-        #blockPrint()
+        blockPrint()
         data = q.data().json()
         enablePrint()
         try:
@@ -673,7 +687,7 @@ class DBParser:
         
         q = omsapi.query("runs")
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         blockPrint()
         response = q.data()
         item = response.json()
@@ -689,7 +703,7 @@ class DBParser:
         
         q = omsapi.query("lumisections")
         q.filter("fill_number", fillNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         run_list = []
@@ -723,7 +737,7 @@ class DBParser:
         q = omsapi.query("hltconfigdata")
         q.set_validation(False)
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         data = item['data']
@@ -731,9 +745,9 @@ class DBParser:
         enablePrint()
         for thing in data:
             something = thing['attributes']
-            if something['stream_name'] not in stream_paths2:
+            if something['stream_name'] not in stream_paths:
                 stream_paths[something['stream_name']] = []
-            if something['path_name'] not in stream_paths2[something['stream_name']]:
+            if something['path_name'] not in stream_paths[something['stream_name']]:
                 stream_paths[something['stream_name']].append(something['path_name'])
 
         return stream_paths
@@ -743,7 +757,7 @@ class DBParser:
         
         q = omsapi.query("l1prescalesets")
         q.filter("run_number", runNumber)
-        q.per_page = 4000
+        q.per_page = PAGE_LIMIT
         response = q.data()
         item = response.json()
         data = item['data']
@@ -762,7 +776,7 @@ class DBParser:
         L1Triggers = {}
         blockPrint()
         q = omsapi.query("l1algorithmtriggers")
-        q.per_page=4000
+        q.per_page=PAGE_LIMIT
         q.filter("run_number", runNumber)
         q.custom("group[granularity]", "run")
         try:
@@ -794,7 +808,7 @@ class DBParser:
             minLS = 1
         for LS in range(minLS, maxLS):
             q = omsapi.query("streams")
-            q.per_page=4000
+            q.per_page=PAGE_LIMIT
             q.filter("run_number", runNumber)
             q.filter("last_lumisection_number", LS)
             response = q.data().json()['data']
