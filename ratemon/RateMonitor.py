@@ -218,13 +218,22 @@ class RateMonitor:
             counter += len(plotted_objects["plots"])
 
             # Create index.html files to display specific groups of plots
+            # Also fill a dict that we can dump to a json with all the category and plot names
+            plotted_obj_dict = {}
             for grp in self.group_map:
+                plotted_obj_dict[grp] = []
                 grp_path = os.path.join(self.save_dir,grp)
                 grp_objs = set()
-                for obj in plotted_objects:
+                for obj in plotted_objects["plots"]:
                     if obj in self.group_map[grp]:
                         grp_objs.add(obj)
+                        plotted_obj_dict[grp].append(obj)
                 self.printHtml(png_list=grp_objs,save_dir=self.save_dir,index_dir=grp_path,png_dir="..")
+
+            # Save the dictionary of plotted objects into a json file
+            plotted_obj_json = os.path.join(self.save_dir, "plotted_objects.json")
+            with open (plotted_obj_json,"w") as out_json_file:
+                json.dump(plotted_obj_dict, out_json_file, indent=4)
 
             #for grp in self.group_map:
             #    print "Plotting group: %s..." % grp
@@ -240,8 +249,7 @@ class RateMonitor:
             #    counter += len(plotted_objects)
         else:
             plotted_objects = self.makePlots(self.object_list)
-            #self.printHtml(plotted_objects,self.plotter.save_dir)
-            self.printHtml(png_list=plotted_objects,save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
+            self.printHtml(png_list=plotted_objects["plots"].keys(),save_dir=self.save_dir,index_dir=self.save_dir,png_dir=".")
             counter += len(plotted_objects["plots"])
         print("Total plot count: %d" % counter)
         return plotted_objects
@@ -638,7 +646,7 @@ class RateMonitor:
                 if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
                     print("Plotting %s..." % obj)
                     plotted_objects.append(obj)
-            self.printHtml(png_list=plotted_objects,save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
+            self.printHtml(png_list=plotted_objects["plots"].keys(),save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
 
     # We create a prediction dictionary on a per run basis, which covers all triggers in that run
     # TODO: Should move this to DataParser.py
@@ -769,7 +777,6 @@ class RateMonitor:
             htmlFile.write("<!DOCTYPE html>\n")
             htmlFile.write("<html>\n")
             htmlFile.write("<style>.image { float:left; margin: 5px; clear:justify; font-size: 6px; font-family: Verdana, Arial, sans-serif; text-align: center;}</style>\n")
-            png_list = list(png_list["plots"].keys())
             for path_name in sorted(png_list):  # This controls the order that the images will be displayed in
                 file_name = "%s/png/%s.png" % (save_dir,path_name)
                 if os.access(file_name,os.F_OK):

@@ -44,6 +44,7 @@ class MonitorController:
             "streamBandwidth"  : None,
             "streamSize"       : None,
             "cronJob"          : None,
+            "cronJobCosmics"   : None,
             "updateOnlineFits" : None,
             "createFit"        : None,
             "multiFit"         : None,
@@ -61,12 +62,12 @@ class MonitorController:
             "oldParser"        : None
         }
         self.usr_input_data_lst = None
-        #self.do_cron_job = False # A default option
 
     # Set the default values for variables
     def setDefaults(self):
 
         self.do_cron_job = False
+        self.do_cron_job_cosmics = False
 
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
         self.rate_monitor.object_list = []
@@ -252,6 +253,24 @@ class MonitorController:
                     self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates.root"
                     self.rate_monitor.plotter.name_X  = "< PU >"
                     self.rate_monitor.plotter.label_Y = "< PU >"
+                elif op_name == "cronJobCosmics":
+                    self.do_cron_job_cosmics = True
+                    self.rate_monitor.use_pileup   = False
+                    self.rate_monitor.use_fills    = False
+                    self.rate_monitor.make_fits    = False
+                    self.rate_monitor.use_grouping = True
+                    self.rate_monitor.data_parser.use_L1_triggers  = True
+                    self.rate_monitor.data_parser.use_HLT_triggers = True
+                    self.rate_monitor.data_parser.use_streams      = True
+                    self.rate_monitor.data_parser.use_datasets     = True
+                    self.rate_monitor.data_parser.use_L1A_rate     = True
+                    self.rate_monitor.plotter.color_by_fill = False
+                    self.rate_monitor.plotter.use_fit       = False
+                    self.rate_monitor.plotter.add_testing_label = True
+                    self.rate_monitor.plotter.ls_options['show_bad_ls']  = True
+                    self.rate_monitor.plotter.ls_options['rm_bad_beams'] = True
+                    self.rate_monitor.plotter.ls_options['rm_bad_det']   = False
+                    self.rate_monitor.plotter.root_file_name = "Cron_Job_Rates_Cosmics.root"
                 elif op_name == "updateOnlineFits":
                     self.rate_monitor.update_online_fits = True
                     self.rate_monitor.use_pileup = True
@@ -326,7 +345,7 @@ class MonitorController:
 
         # Cron job stuff:
         # This needs to be done after we have our run_list, otherwise we can't get the run_list!
-        if self.do_cron_job:
+        if self.do_cron_job or self.do_cron_job_cosmics:
             if len(list(self.rate_monitor.plotter.fits.keys())) == 0:
                 print("WARNING: No fit file specified!")
                 self.rate_monitor.plotter.use_fit = False
@@ -347,7 +366,7 @@ class MonitorController:
             try:
                 path_mapping = {}
                 for run in run_list:
-                    tmp_map = self.parser.getPathsInDatasets(run)
+                    tmp_map = self.parser.getPathsInDatasets(run) # This function does not exist for the new DB parser
                     #tmp_map = self.parser.getPathsInStreams(run)
                     for group_name in tmp_map:
                         if group_name not in path_mapping:
@@ -495,6 +514,10 @@ class MonitorController:
                 # NOTE: Still need to specify --triggerList, --saveDirectory, and --fitFile
                 # NEEDS MORE TESTING
                 self.ops_dict["cronJob"] = True
+
+            elif label == "--cronJobCosmics":
+                # Set the code to produce plots for the cron jobs in cosmics (testing!)
+                self.ops_dict["cronJobCosmics"] = True
 
             elif label == "--updateOnlineFits":
                 # Creates fits and saves them to the Fits directory
@@ -672,10 +695,10 @@ class MonitorController:
         run_list = []
         fill_map = {}   # {run_number: fill_number}
         for fill in sorted(arg_list):
-            print(f"Getting runs from fill {fill}...")
+            print("Getting runs from fill %s..." %(fill))
             new_runs = self.parser.getFillRuns(fill)
             if len(new_runs) == 0:
-                print(f"\tFill {fill} has no eligible runs!")
+                print("\tFill %s has no eligible runs!" %(fill))
                 continue
             for run in new_runs:
                 fill_map[run] = fill
@@ -737,7 +760,7 @@ class MonitorController:
             elif k == "data_lst":
                 self.usr_input_data_lst = v
             else:
-                raise Exception(f"\nError: Unknown option \"{k}\". Exiting...")
+                raise Exception("\nError: Unknown option \"%s\". Exiting..." %(k))
         # print (self.usr_input_data_lst, self.ops_dict)
         self.setOptions(self.ops_dict,self.usr_input_data_lst)
         return self.rate_monitor.run()
