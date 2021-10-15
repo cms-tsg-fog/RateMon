@@ -180,7 +180,7 @@ class DataParser:
 
         if trigger_mode is None:
             return None
-        elif trigger_mode.find('cosmics') > 0:
+        elif trigger_mode.find('cosmic') > 0:
             # This is a cosmics menu --> No luminosity info
             if self.verbose:
                 print("\tDetected cosmics run...")

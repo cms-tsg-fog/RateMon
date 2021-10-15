@@ -59,6 +59,7 @@ class PlotMaker:
         self.save_dir = "."
         self.plot_dir = "png"
         self.styleTitle = True
+        self.add_testing_label = False
 
         self.default_fit = "quad"
 
@@ -462,6 +463,12 @@ class PlotMaker:
         # Write the fit runs onto the plot (if using --showFitRuns option)
         if self.show_fit_run_groups and self.run_groups != {}:
             self.writeFitRuns(self.run_groups,0.15,0.65)
+
+        if self.add_testing_label:
+            latex = TLatex()
+            latex.SetNDC()
+            latex.SetTextSize(0.10)
+            latex.DrawLatex(0.3, 0.5, "TESTING!")
 
         #if self.show_fit_runs and self.run_groups != {}:
         #    latex.SetTextSize(0.025)
