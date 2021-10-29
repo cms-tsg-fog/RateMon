@@ -52,7 +52,7 @@ def main():
     # Get the runs from the latest fill with stable beams
     run_lst , fill_num = parser.getRecentRuns()
     #run_lst , fill_num = [324998,324999,325000,325001] , 7324 # Hard code specific runs, for testing
-
+    
     # Some placeholder options for where to save the plots
     # Eventually we'll want to save to /cmsnfsrateplots/rateplots/ or wherever (or mv the plots to there after we create them)
     save_dir_base = os.getcwd() # For testing
@@ -65,7 +65,7 @@ def main():
 
     # Make the plots
     controller.runStandalone(
-        oldParser      = True, # For getting the 
+        oldParser      = True,
         dbConfig       = dbCfg,
         saveDirectory  = out_dir,
         triggerList    = trigger_list,
