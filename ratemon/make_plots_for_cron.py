@@ -73,7 +73,7 @@ def main():
 
     # Make the plots
     controller.runStandalone(
-        oldParser      = True, # For getting the 
+        oldParser      = True,
         dbConfig       = dbCfg,
         saveDirectory  = out_dir,
         triggerList    = trigger_list,

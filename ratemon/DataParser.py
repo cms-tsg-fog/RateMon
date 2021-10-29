@@ -235,7 +235,10 @@ class DataParser:
         if self.use_streams:
             run_data.update(self.getStreamData(run,bunches,lumi_info))
         if self.use_datasets:
-            run_data.update(self.getDatasetData(run,bunches,lumi_info))
+            try:
+                run_data.update(self.getDatasetData(run,bunches,lumi_info))
+            except:
+                print("Failed to get Primary Datasets")
         if self.use_L1A_rate:
             run_data.update(self.getL1AData(run,bunches,lumi_info))
         if self.use_HLT_triggers:
