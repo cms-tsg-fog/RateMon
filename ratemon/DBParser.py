@@ -667,10 +667,12 @@ class DBParser:
         data = q.data().json()['data']
         stream_paths = {}
         for item in data:
+            if item['attributes']['stream_name'] == None:
+                continue
             if item['attributes']['stream_name'] not in stream_paths:
                 stream_paths[item['attributes']['stream_name']] = []
             if item['attributes']['path_name'] not in stream_paths[item['attributes']['stream_name']]:
-                stream_paths[item['attributes']['stream_name']].append(item['attributes']['path_name'])
+                stream_paths[item['attributes']['stream_name']].append(stripVersion(item['attributes']['path_name']))
 
         return stream_paths
 
@@ -730,7 +732,7 @@ class DBParser:
             q.per_page=PAGE_LIMIT
             q.filter("run_number", runNumber)
             q.filter("last_lumisection_number", LS)
-            q.custom("fields", "last_lumisection_number,rate,file_size,bandwidth")
+            q.custom("fields", "last_lumisection_number,rate,file_size,bandwidth,stream_name")
             response = q.data().json()['data']
             if response == []:
                 break

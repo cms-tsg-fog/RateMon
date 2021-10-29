@@ -366,8 +366,8 @@ class MonitorController:
             try:
                 path_mapping = {}
                 for run in run_list:
-                    tmp_map = self.parser.getPathsInDatasets(run) # This function does not exist for the new DB parser
-                    #tmp_map = self.parser.getPathsInStreams(run)
+                    #tmp_map = self.parser.getPathsInDatasets(run) # This function does not exist for the new DB parser
+                    tmp_map = self.parser.getPathsInStreams(run)
                     for group_name in tmp_map:
                         if group_name not in path_mapping:
                             path_mapping[group_name] = set()
