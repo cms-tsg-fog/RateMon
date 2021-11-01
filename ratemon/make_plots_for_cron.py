@@ -17,16 +17,6 @@ from omsapi import OMSAPI
 import plotTriggerRates as ptr
 from DBParser import DBParser
 
-
-# Initiate connection to endpoints and authenticate
-hostname = socket.gethostname()
-if "lxplus" in hostname:
-    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False)
-    omsapi.auth_krb()
-else:
-    omsapi = OMSAPI("http://cmsoms.cms:8080/api")
-
-
 # Read database configuration from file (needed since we use the oldParser option for getPathsInDatasets())
 with open('/data/ratemon/ratemon/dbConfig.yaml', 'r') as stream:
     try:
