@@ -654,7 +654,6 @@ class DBParser:
         last_fill = data['data'][0]['attributes']['fill_number']
         run_list = []
         run_list += self.getFillRuns(last_fill)
-        
         return run_list, last_fill
 
     def getPathsInStreams(self,runNumber):
@@ -690,37 +689,62 @@ class DBParser:
 
         return L1_list
 
-    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, scaler_type=0):
-
+    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, useOldFunction=False):
+        
         L1Triggers = {}
-        q = omsapi.query("l1algorithmtriggers")
-        q.filter("run_number", runNumber)
-        q.custom("fields", "first_lumisection_number,last_lumisection_number")
-        q.custom("group[granularity]", "run")
-        q.per_page = 1
-        try:
-            data = q.data().json()['data'][0]['attributes']
-        except:
-            print("Failed to get L1Prescales")
-            return {}
-        if data['first_lumisection_number'] > minLS:
-            minLS = data['first_lumisection_number']
-        if data['last_lumisection_number'] < maxLS:
-            maxLS = data['last_lumisection_number']
-        q.custom("fields", "name,pre_dt_before_prescale_rate,initial_prescale")
-        for i in range(minLS, maxLS+1):
-            q.clear_filter()
+        #Use the more up to date version of this query
+        if useOldFunction == False:
+            q = omsapi.query("l1algorithmtriggers/ratemon")
             q.filter("run_number", runNumber)
-            q.filter("first_lumisection_number", i)
-            q.per_page = PAGE_LIMIT
-            data = q.data().json()['data']
-            for item in data:
-                if item['attributes']['name'] not in L1Triggers:
-                    L1Triggers[item['attributes']['name']] = {}
-                L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
+            try:
+                data = q.data().json()['data']['attributes']
+            except:
+                print("Failed to get L1Prescales")
+                return {}
+            for lumi, item in enumerate(data['lumisections']):
+                #bypass lumisecion 0, which is empty
+                if item == {}:
+                    continue
+                if lumi < minLS:
+                    continue
+                if lumi > maxLS:
+                    break
+                for (rate, name, prescale) in zip(item['pre_dt_before_prescale_rate'], data['names'], data['prescales']):
+                    if name == None or prescale == None:
+                        continue
+                    if name not in L1Triggers:
+                        L1Triggers[name] = {}
+                    L1Triggers[name][lumi] = [rate, prescale['value']]
+
+        #Use the older version of this query (kept in case of problems)
+        else: 
+            q = omsapi.query("l1algorithmtriggers")
+            q.filter("run_number", runNumber)
+            q.custom("fields", "first_lumisection_number,last_lumisection_number")
+            q.custom("group[granularity]", "run")
+            q.per_page = 1
+            try:
+                data = q.data().json()['data'][0]['attributes']
+            except:
+                print("Failed to get L1Prescales")
+                return {}
+            if data['first_lumisection_number'] > minLS:
+                minLS = data['first_lumisection_number']
+            if data['last_lumisection_number'] < maxLS:
+                maxLS = data['last_lumisection_number']
+            q.custom("fields", "name,pre_dt_before_prescale_rate,initial_prescale")
+            for i in range(minLS, maxLS+1):
+                q.clear_filter()
+                q.filter("run_number", runNumber)
+                q.filter("first_lumisection_number", i)
+                q.per_page = PAGE_LIMIT
+                data = q.data().json()['data']
+                for item in data:
+                    if item['attributes']['name'] not in L1Triggers:
+                        L1Triggers[item['attributes']['name']] = {}
+                    L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
 
         return L1Triggers
-
 
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
 
