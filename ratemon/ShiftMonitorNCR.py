@@ -572,7 +572,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 print("no stream or dataset")
         else:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.LSRange[0],self.LSRange[1])
-            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1],1)
+            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.LSRange[0],self.LSRange[1])
             try:
                 self.streamData = self.parser.getStreamData(self.runNumber, self.LSRange[0], self.LSRange[1])
                 self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.LSRange[0], self.LSRange[1])
