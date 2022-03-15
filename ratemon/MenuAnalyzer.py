@@ -252,6 +252,7 @@ class MenuAnalyzer:
         for trig in sorted(self.NotParkingTriggers):
             if trig.find("LogMonitor") != -1: continue
             if trig.startswith("DST_"): continue
+            if trig.startswith("Dataset_"): continue
             if ('OnlineMonitor' not in self.perPDPathList) or (not trig in self.perPDPathList["OnlineMonitor"]):
                self.Results['checkDQMStream'].append("NotInDQM::%s"%trig)
         if 'OnlineMonitor' in self.perPDPathList:
