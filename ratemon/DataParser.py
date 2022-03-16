@@ -255,7 +255,7 @@ class DataParser:
             return {}
 
         if self.verbose: print("\tGetting L1 rates...")
-        L1_rates = self.parser.getL1Rates(run,minLS=self.min_ls,maxLS=self.max_ls)
+        L1_rates = self.parser.getL1Rates(run,minLS=self.min_ls,maxLS=self.max_ls,trigList=self.l1_triggers)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 

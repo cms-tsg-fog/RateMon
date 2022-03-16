@@ -564,7 +564,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.lastLS = self.currentLS
         if not self.useLSRange:
             self.HLTRates = self.parser.getHLTRates(self.runNumber,[],self.lastLS)
-            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999,1)
+            self.L1Rates = self.parser.getL1Rates(self.runNumber,self.lastLS,99999)
             try:
                 self.streamData = self.parser.getStreamData(self.runNumber, self.lastLS)
                 self.pdData = self.parser.getPrimaryDatasets(self.runNumber, self.lastLS)
