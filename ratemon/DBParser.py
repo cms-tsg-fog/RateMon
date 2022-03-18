@@ -689,11 +689,11 @@ class DBParser:
 
         return L1_list
 
-    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, useOldFunction=False):
+    def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, trigList=[]):
         
         L1Triggers = {}
         #Use the more up to date version of this query
-        if useOldFunction == False:
+        if trigList == []:
             q = omsapi.query("l1algorithmtriggers/ratemon")
             q.filter("run_number", runNumber)
             try:
@@ -719,30 +719,20 @@ class DBParser:
         #Use the older version of this query (kept in case of problems)
         else: 
             q = omsapi.query("l1algorithmtriggers")
-            q.filter("run_number", runNumber)
-            q.custom("fields", "first_lumisection_number,last_lumisection_number")
-            q.custom("group[granularity]", "run")
-            q.per_page = 1
-            try:
-                data = q.data().json()['data'][0]['attributes']
-            except:
-                print("Failed to get L1Prescales")
-                return {}
-            if data['first_lumisection_number'] > minLS:
-                minLS = data['first_lumisection_number']
-            if data['last_lumisection_number'] < maxLS:
-                maxLS = data['last_lumisection_number']
-            q.custom("fields", "name,pre_dt_before_prescale_rate,initial_prescale")
-            for i in range(minLS, maxLS+1):
+            q.custom("fields", "pre_dt_before_prescale_rate,initial_prescale,first_lumisection_number")
+            for name in trigList:
+                L1Triggers[name] = {}
                 q.clear_filter()
                 q.filter("run_number", runNumber)
-                q.filter("first_lumisection_number", i)
+                q.filter("name", name)
                 q.per_page = PAGE_LIMIT
-                data = q.data().json()['data']
-                for item in data:
-                    if item['attributes']['name'] not in L1Triggers:
-                        L1Triggers[item['attributes']['name']] = {}
-                    L1Triggers[item['attributes']['name']][i] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
+                try:
+                    data = q.data().json()['data']
+                except:
+                    print("Failed to get L1Prescales")
+                    return {}
+                for lumi, item in enumerate(data):
+                    L1Triggers[name][lumi] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
 
         return L1Triggers
 
