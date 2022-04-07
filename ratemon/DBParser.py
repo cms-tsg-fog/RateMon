@@ -24,9 +24,11 @@ PAGE_LIMIT = 10000
 #initiate connection to endpoints and authenticate
 hostname = socket.gethostname()
 
+#This option uses a DB authentication only available on lxplus
 if "lxplus" in hostname:
     omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False, verbose=False)
     omsapi.auth_krb()
+#This option uses a token setup for the API VMs
 elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
     stream = open(str('OMSConfig.yaml'), 'r')
     cfg  = yaml.safe_load(stream)
@@ -34,6 +36,7 @@ elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
     my_app_secret = cfg['token_info']['token_secret']
     omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False, verbose=False)
     omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
+#This option is for P5, no authentication necessary
 else:
     omsapi = OMSAPI("http://cmsoms.cms:8080/api", verbose=False)
 
@@ -77,6 +80,7 @@ class DBParser:
             return []
         for item in data:
             ls_info.append([item['attributes']["first_lumisection_number"], item['attributes']['initial_prescale']['prescale_index']])
+
         return ls_info
 
     # Returns the various keys used for the specified run as a 5-tuple
@@ -106,6 +110,8 @@ class DBParser:
         return L1_HLT,HLT,GTRS,TSC,GT
 
     # Returns: True if we succeded, false if the run doesn't exist (probably)
+    # Populates self.PSColumnByLS (which prescale column is used in the LS)
+    # Populates self.L1_HLT_Key, self.HLT_Key, self.GTRS_Key, self.TSC_Key, self.GT_Key via getRunKeys()
     def getRunInfo(self, runNumber):
 
         q = omsapi.query("l1algorithmtriggers")
@@ -172,55 +178,11 @@ class DBParser:
                           thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']])
 
         return _list
-
-    # Returns: A list of of information for each LS: ( { LS, instLumi, physics } )
-    def getQuickLumiInfo(self,runNumber,minLS=-1,maxLS=9999999):
-        
-        _list = []
-        q = omsapi.query("lumisections")
-        q.filter("run_number", runNumber)
-        q.filter("lumisection_number", minLS, operator="GE")
-        q.filter("lumiseciton_number", maxLS, operator="LE")
-        q.custom("include", "meta")
-        q.per_page = PAGE_LIMIT
-        response = q.data().json()
-        if response['data'][0]['meta']['row']['init_lumi']['units']=="10^{34}cm^{-2}s^{-1}":
-            adjust = 10000
-        else:
-            adjust = 1
-        q2 = omsapi.query("prescalechanges")
-        q2.filter("run_number", runNumber)
-        q2.custom("fields", "lumisection_number,new_prescale_index")
-        q2.per_page = PAGE_LIMIT
-        response2 = q2.data().json()
-        ps_counter = 0
-        ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
-        more_ps = True
-        while response2['data'][ps_counter]['attributes']['lumisection_number'] < minLS:
-            ps_counter += 1
-
-        for item in response['data']:
-            thing = item['attributes']
-            if response2['data'][ps_counter]['attributes']['lumisection_number']==thing['lumisection_number'] and more_ps:
-                ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
-                if ps_counter == len(response2['data'])-1:
-                    more_ps=False
-                else:
-                    ps_counter += 1
-            adjusted_lumi = adjust*thing['init_lumi']
-            _list.append([thing['lumisection_number'], adjusted_lumi, ps, thing['physics_flag']*thing['beam1_present'],
-                          thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
-                          thing['eep_ready']*thing['eem_ready']*thing['hbhea_ready']*thing['hbheb_ready']*
-                          thing['hbhec_ready']*thing['hf_ready']*thing['ho_ready']*thing['rpc_ready']*thing['dt0_ready']*
-                          thing['dtp_ready']*thing['dtm_ready']*thing['cscp_ready']*thing['cscm_ready']*thing['tob_ready']*
-                          thing['tibtid_ready']*thing['tecp_ready']*thing['tecm_ready']*thing['bpix_ready']*
-                          thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']])
-
-        return _list
                           
     # Use: Get the prescaled rate as a function 
     # Parameters: runNumber: the number of the run that we want data for
     # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
+    # Depracated: No longer used
     def getPSRates(self, runNumber, minLS=-1, maxLS=9999999):
 
         q = omsapi.query("hltpathrates")
@@ -246,7 +208,11 @@ class DBParser:
 
         return TriggerRates
 
+    # Use: Gets the HLT rates in a run
+    # Parameters: runNumer: the number of tbe run, trigger_list, triggers to get the rate of, minLS, maxLS: LS range
+    # Returns: dictionary [tirgger_name][LS] <rate><prescale>
     def getHLTRates(self, runNumber, trigger_list=[],minLS=-1, maxLS=9999999):
+
         # First we need the HLT and L1 prescale rates and the HLT seed info                                                                                                                                
         if not self.getRunInfo(runNumber):
             print("Failed to get run info ")
@@ -277,6 +243,8 @@ class DBParser:
 
         return trigger_rates
 
+    # Use: Gets the HLT rates of a single trigger
+    # Note: This is only designed to be called within getHLTRates, since it depends on many self variables being populated before calling
     def getSingleHLTRate(self, runNumber, name, minLS=-1, maxLS=9999999):
 
         q = omsapi.query("hltpathrates")
@@ -288,7 +256,6 @@ class DBParser:
         q.per_page = PAGE_LIMIT
         data = q.data().json()['data']
         trigger_rates = {}
-
         for item in data:
             LS = item['attributes']['first_lumisection_number']
             rate = item['attributes']['rate']
@@ -314,12 +281,13 @@ class DBParser:
             except:
                 l1ps = 1
             ps = l1ps*hltps
-
             trigger_rates[LS] = [ps*rate, ps]
+
         return trigger_rates
 
     # Returns: The minimum prescale value                                                                                                                                                                  
     def UnwindORSeed(self,expression,L1Prescales,psi):
+
         """                                                                                                                                                                                                
         Figures out the effective prescale for the OR of several seeds                                                                                                                                     
         we take this to be the *LOWEST* prescale of the included seeds                                                                                                                                     
@@ -341,6 +309,7 @@ class DBParser:
                 continue
             ps = L1Prescales[self.L1IndexNameMap[seed]][psi]
             if ps: minPS = min(ps,minPS)
+
         if minPS == 99999999999: return 0
         else: return minPS
 
@@ -359,9 +328,9 @@ class DBParser:
         
         return name_map
 
-    # Note: This function is from DatabaseParser.py (with moderate modification)
     # Use: Sets the L1 trigger prescales for this class
     # Returns: (void)
+    # Deprecated: No longer used, replaced by getL1Info()
     def getL1Prescales(self, runNumber):
         
         q = omsapi.query("l1prescalesets")
@@ -379,9 +348,9 @@ class DBParser:
             for item in bunch['prescales']:
                 self.L1Prescales[bunch['algo_index']][item['prescale_index']] = item['prescale']
       
-    # Note: This function is from DatabaseParser.py (with slight modifications)
     # Use: Sets the L1 seed that each HLT trigger depends on
     # Returns: (void)
+    # Note: Populates self.HLTSeed
     def getHLTSeeds(self, runNumber):
         
         if self.HLT_Key == "": self.getRunInfo(runNumber)
@@ -395,9 +364,9 @@ class DBParser:
             if item['attributes']['l1_prerequisite'] != None:
                 self.HLTSeed[item['attributes']['path_name']] = item['attributes']['l1_prerequisite'].lstrip('"').rstrip('"')
 
-    # Note: This function is from DatabaseParser.py (with slight modification)
     # Use: Seems to return the algo index that corresponds to each trigger name
     # Returns: (void)
+    # Deprecated: No longer used, replaced by getL1Info()
     def getL1NameIndexAssoc(self, runNumber):
         
         q = omsapi.query("l1prescalesets")
@@ -414,7 +383,6 @@ class DBParser:
             self.L1NameIndexMap[item['attributes']['algo_index']] = item['attributes']['algo_name']
             self.L1Mask[item['attributes']['algo_index']] = item['attributes']['algo_mask']
 
-    # Note: This is a function from DatabaseParser.py (with slight modification)
     # Use: Gets the prescales for the various HLT triggers
     def getHLTPrescales(self, runNumber):
 
@@ -427,10 +395,10 @@ class DBParser:
             row = []
             for a in item['attributes']['prescales']:
                 row.append(a['prescale'])
-            self.HLTPrescales[item['attributes']['path_name']] = row
-            
+            self.HLTPrescales[item['attributes']['path_name']] = row            
 
     # Use: Returns the prescale column names of the HLT menu used for the specified run
+    # Deprecated: No longer used
     def getPrescaleNames(self,runNumber):
 
         q = omsapi.query("hltprescalesets")
@@ -447,8 +415,8 @@ class DBParser:
 
         return ps_names
 
-    # Note: This is a function from DatabaseParser.py (with slight modification)
     # Use: Gets the number of colliding bunches during a run
+    # Returns: list [bunches_colliding, bunches_target]
     def getNumberCollidingBunches(self, runNumber):
         
         q = omsapi.query("runs")
@@ -471,8 +439,11 @@ class DBParser:
             bunches[0] = 0
         if bunches[1] == None:
             bunches[1] = 0
+
         return bunches
 
+    # Use: Get the latest LHC Satus
+    # Returns: string
     def getLHCStatus(self):
 
         q = omsapi.query("diplogger")
@@ -589,6 +560,7 @@ class DBParser:
         return l1rate    
 
     # Use: Returns the number of the latest run to be stored in the DB
+    # Returns: list, [runNumber, isCol, isGood, mode]
     def getLatestRunInfo(self):
         q = omsapi.query("runs")
         q.filter("last_lumisection_number", 1, "GE")
@@ -604,8 +576,7 @@ class DBParser:
 
         mode = self.getTriggerMode(runNumber)
         isCol = 0
-        isGood = 1
-        
+        isGood = 1        
         if mode is None:
             isGood = 0
         elif mode[0].find('l1_hlt_collisions') != -1:
@@ -614,6 +585,7 @@ class DBParser:
         return [runNumber, isCol, isGood, mode]
 
     # Use: Get the trigger mode for the specified run
+    # Returns: string
     def getTriggerMode(self, runNumber):
         
         q = omsapi.query("runs")
@@ -627,6 +599,8 @@ class DBParser:
         
         return mode
 
+    # Use: Get the lastest runs in a fill with stable beam
+    # Returns: list, with run numbers
     def getFillRuns(self, fillNumber):
         
         q = omsapi.query("lumisections")
@@ -654,8 +628,11 @@ class DBParser:
         last_fill = data['data'][0]['attributes']['fill_number']
         run_list = []
         run_list += self.getFillRuns(last_fill)
+
         return run_list, last_fill
 
+    # Use: Get the list of streams and each HLT path in those streams
+    # Returns: dictionary, [Stream]<path>
     def getPathsInStreams(self,runNumber):
         
         q = omsapi.query("hltconfigdata")
@@ -689,10 +666,12 @@ class DBParser:
 
         return L1_list
 
+    # Use: Gets the rates of L1 triggers per lumiseciton
+    # Returns: dictionary <trigger_name><LS>(rate, prescale)
     def getL1Rates(self, runNumber, minLS=-1, maxLS=9999999, trigList=[]):
         
         L1Triggers = {}
-        #Use the more up to date version of this query
+        #Get all the triggers in one query
         if trigList == []:
             q = omsapi.query("l1algorithmtriggers/ratemon")
             q.filter("run_number", runNumber)
@@ -716,7 +695,7 @@ class DBParser:
                         L1Triggers[name] = {}
                     L1Triggers[name][lumi] = [rate, prescale['value']]
 
-        #Use the older version of this query (kept in case of problems)
+        #Get the triggers for a subset of the total list, getting them one at a time
         else: 
             q = omsapi.query("l1algorithmtriggers")
             q.custom("fields", "pre_dt_before_prescale_rate,initial_prescale,first_lumisection_number")
@@ -732,10 +711,16 @@ class DBParser:
                     print("Failed to get L1Prescales")
                     return {}
                 for lumi, item in enumerate(data):
+                    if lumi < minLS:
+                        continue
+                    if lumi > maxLS:
+                        break
                     L1Triggers[name][lumi] = [item['attributes']['pre_dt_before_prescale_rate'], item['attributes']['initial_prescale']['prescale']]
 
         return L1Triggers
 
+    # Use: Get the rates per stream as a function of lumisection
+    # Returns: dictionary, <stream>(LS, rate, size, bandwidth)
     def getStreamData(self, runNumber, minLS=-1, maxLS=9999999):
 
         StreamData = {}
@@ -760,6 +745,9 @@ class DBParser:
                                                 item['attributes']['bandwidth']*1000000])
         return StreamData
 
+    # Use: Get info for L1 prescales and bit trigger relations
+    # Returns: void
+    # Note: populates: self.L1IndexNameMap, self.L1NameIndexMap, self.L1Mask, self.L1Prescales
     def getL1Info(self, runNumber):
         
         q = omsapi.query("l1prescalesets")
@@ -779,6 +767,9 @@ class DBParser:
             for row in item['attributes']['prescales']:
                 self.L1Prescales[item['attributes']['algo_index']][row['prescale_index']] = row['prescale']
 
+    # This is a function for the old DBParser.py that was not able to be transferred to the OMS DB
+    # It is designed to get the list of Datasets and each HLT path within it
+    # Returns: dicitonary <Dataset name>(HLT path)
     def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
         raise NotImplemented()
 
