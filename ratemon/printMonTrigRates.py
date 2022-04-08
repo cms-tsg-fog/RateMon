@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
-import getopt 
-import json
 import sys
-import socket
 import re
+import json
+import socket
 from termcolor import colored
+from omsapi import OMSAPI
 
 sys.argv.pop(0)
 
+reference_run = 349527 # reference run in first column to compare rates to
 cosmics_triggerList = "TriggerLists/monitorlist_COSMICS.list" # default list used when in cosmics mode
-
-from omsapi import OMSAPI
-
 PAGE_LIMIT = 10000
+
+runs = [str(reference_run)] + sys.argv
 
 hostname = socket.gethostname()
 if "lxplus" in hostname:
@@ -29,7 +29,7 @@ def make_inc_subsys_str(inc_subsys):
         colour = 'red'
         if sub_sys in inc_subsys:
             colour = 'green'
-        subsys_str += colored(sub_sys,colour)+" "
+        subsys_str += colored(sub_sys,colour) + " "
 
     return subsys_str
 
@@ -133,21 +133,60 @@ def loadTriggersFromFile(fileName):
 
 triggerList = loadTriggersFromFile(cosmics_triggerList)
 
-for run in sys.argv:
+monTrigRatesDict = {}
+
+# get rates
+for run in runs:
     HLT_Key = getHLTKey(run)
     sub_systems = getSubSystems(runNumber=run)
     included_subsys = make_inc_subsys_str(sub_systems)
     totalRates = getTotalRates(run)
     l1Rates = getL1Rates(run)
     hltRates = getHLTRates(run)
+   
+    hltRatesMon = {} 
+    l1RatesMon = {} 
     
-    print("\n------------------------------------------------------------------\n")
-    print(run, "    ", HLT_Key, "\n")
-    print("Subsystems", included_subsys)
-    print("\nL1T Rate:", totalRates['l1_rate'])
-    print("HLT Rate (Physics):", totalRates['hlt_physics_rate'],"\n")
     for trig in triggerList:
         if trig[0:4] == "HLT_" and trig in hltRates:
-            print("{:35s} {:20f}".format(trig,hltRates[trig]))
+            hltRatesMon[trig] = hltRates[trig]
         elif trig[0:3] == "L1_" and trig in l1Rates:
-            print("{:35s} {:20f}".format(trig,l1Rates[trig]))
+            l1RatesMon[trig] = l1Rates[trig]
+
+    ratesMon = hltRatesMon.copy()
+    ratesMon.update(l1RatesMon)
+    
+    monTrigRatesDict[run] = {'HLT_Key':HLT_Key, 'included_subsys':included_subsys, 'totalRates':totalRates, 'ratesMon':ratesMon}
+
+# prepare print strings
+
+printDict = {} 
+printDict['runs'] = "{:40s}".format("\nRun Number")
+printDict['l1_rate'] = "{:40s}".format("L1T Rate")
+printDict['hlt_physics_rate'] = "{:40s}".format("HLT Physics Rate")
+
+for trig in triggerList: 
+    printDict[trig] = "{:40s}".format(trig) 
+
+for run in runs:
+    if run == str(reference_run):
+        print(colored(run,'cyan'), monTrigRatesDict[run]['HLT_Key'], monTrigRatesDict[run]['included_subsys'])
+        printDict['runs'] += "{:29s}".format(colored(run,'cyan'))
+    else:
+        print(run, monTrigRatesDict[run]['HLT_Key'], monTrigRatesDict[run]['included_subsys'])
+        printDict['runs'] += "{:20s}".format(run)
+
+    for totRate in ['l1_rate', 'hlt_physics_rate']:
+        if monTrigRatesDict[run]['totalRates'][totRate]:
+            printDict[totRate] += "{:20s}".format(str(round(monTrigRatesDict[run]['totalRates'][totRate],2)))
+        else:
+            printDict[totRate] += "{:20s}".format("N/A")
+    for trig in monTrigRatesDict[run]['ratesMon']:
+        printDict[trig] += "{:20s}".format(str(round(monTrigRatesDict[run]['ratesMon'][trig],2)))
+ 
+# print strings
+
+for item in printDict:
+    if item in ['runs', 'l1_rate', 'hlt_physics_rate']:
+        printDict[item] += "\n"
+    print(printDict[item]) 
