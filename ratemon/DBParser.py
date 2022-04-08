@@ -178,35 +178,6 @@ class DBParser:
                           thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']])
 
         return _list
-                          
-    # Use: Get the prescaled rate as a function 
-    # Parameters: runNumber: the number of the run that we want data for
-    # Returns: A dictionary [ triggerName ] [ LS ] <prescaled rate> 
-    # Depracated: No longer used
-    def getPSRates(self, runNumber, minLS=-1, maxLS=9999999):
-
-        q = omsapi.query("hltpathrates")
-        q.filter("run_number", runNumber)
-        q.custom("group[granularity]", "run")
-        data = q.data().json()['data'][0]['attributes']
-        if data['first_lumisection_number'] > minLS:
-            minLS = data['first_lumisection_number']
-        if data['last_lumisection_number'] < maxLS:
-            maxLS = data['last_lumisection_number']
-        TriggerRates = {}
-        for i in range(minLS, maxLS):
-            q.clear_filter()
-            q.filter("run_number", runNumber)
-            q.filter("first_lumisection_number", i)
-            data = q.data().json()['data']
-            for item in data:
-                if item['attributes']['path_name'] not in TriggerRates:
-                    TriggerRates[item['attributes']['path_name']] = {}
-                    TriggerRates[item['attributes']['path_name']][item['attributes']['first_lumisection_number']] = item['attributes']['rate']
-                else:
-                    TriggerRates[item['attributes']['path_name']][item['attributes']['first_lumisection_number']] = item['attributes']['rate']
-
-        return TriggerRates
 
     # Use: Gets the HLT rates in a run
     # Parameters: runNumer: the number of tbe run, trigger_list, triggers to get the rate of, minLS, maxLS: LS range
@@ -328,26 +299,6 @@ class DBParser:
         
         return name_map
 
-    # Use: Sets the L1 trigger prescales for this class
-    # Returns: (void)
-    # Deprecated: No longer used, replaced by getL1Info()
-    def getL1Prescales(self, runNumber):
-        
-        q = omsapi.query("l1prescalesets")
-        q.per_page = PAGE_LIMIT
-        q.filter("run_number", runNumber)
-        try:
-            data = q.data().json()['data']
-        except:
-            print("Get L1 Prescales query failed")
-            return
-        for row in data:
-            bunch = row['attributes']
-            if bunch['algo_index'] not in self.L1Prescales:
-                self.L1Prescales[bunch['algo_index']] = {}
-            for item in bunch['prescales']:
-                self.L1Prescales[bunch['algo_index']][item['prescale_index']] = item['prescale']
-      
     # Use: Sets the L1 seed that each HLT trigger depends on
     # Returns: (void)
     # Note: Populates self.HLTSeed
@@ -364,25 +315,6 @@ class DBParser:
             if item['attributes']['l1_prerequisite'] != None:
                 self.HLTSeed[item['attributes']['path_name']] = item['attributes']['l1_prerequisite'].lstrip('"').rstrip('"')
 
-    # Use: Seems to return the algo index that corresponds to each trigger name
-    # Returns: (void)
-    # Deprecated: No longer used, replaced by getL1Info()
-    def getL1NameIndexAssoc(self, runNumber):
-        
-        q = omsapi.query("l1prescalesets")
-        q.filter("run_number", runNumber)
-        q.custom("fields", "algo_name,algo_index,algo_mask")
-        q.per_page = PAGE_LIMIT
-        try:
-            data = q.data().json()['data']
-        except:
-            print("Get L1 Name Index failed")
-            return
-        for item in data:
-            self.L1IndexNameMap[item['attributes']['algo_name']] = item['attributes']['algo_index']
-            self.L1NameIndexMap[item['attributes']['algo_index']] = item['attributes']['algo_name']
-            self.L1Mask[item['attributes']['algo_index']] = item['attributes']['algo_mask']
-
     # Use: Gets the prescales for the various HLT triggers
     def getHLTPrescales(self, runNumber):
 
@@ -396,24 +328,6 @@ class DBParser:
             for a in item['attributes']['prescales']:
                 row.append(a['prescale'])
             self.HLTPrescales[item['attributes']['path_name']] = row            
-
-    # Use: Returns the prescale column names of the HLT menu used for the specified run
-    # Deprecated: No longer used
-    def getPrescaleNames(self,runNumber):
-
-        q = omsapi.query("hltprescalesets")
-        q.set_validation(False)
-        q.filter("run_number", runNumber)
-        q.per_page = 1
-        try:
-            data = q.data().json()['data'][0]['attributes']['prescales']
-        except:
-            print("Unable to get prescalenames")
-        ps_names = []
-        for item in data:
-            ps_names.append(item['prescale_name'])
-
-        return ps_names
 
     # Use: Gets the number of colliding bunches during a run
     # Returns: list [bunches_colliding, bunches_target]
