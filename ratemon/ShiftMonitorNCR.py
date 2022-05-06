@@ -32,7 +32,7 @@ from audioAlert import audioAlert
 from Alerts import *
 from Logger import *
 from FitFinder import *
-from prometheus_client import Gauge, CollectorRegistry
+from prometheus_client import Gauge, CollectorRegistry, write_to_textfile
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -343,8 +343,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
         self.ratemon_luminosity_test = Gauge('luminosity', 'description: this is a test')
-        self.ratemon_observed_trigger_rate_test = None
-        self.ratemon_predicted_trigger_rate_test = None
+        self.ratemon_observed_trigger_rate_test = {}
+        self.ratemon_predicted_trigger_rate_test = {}
+        self.observed_collector = CollectorRegistry()
+        self.predicted_collector = CollectorRegistry()
         self.madeGauges = False
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
@@ -1070,10 +1072,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         if self.madeGauges == False:
             self.setGauges()
-        self.ratemon_observed_trigger_rate_test.set(row[1])
-        if doPred and expected > 0:
-            self.ratemon_predicted_trigger_rate_test.set(row[2])
-        self.ratemon_luminosity_test.set(aveLumi)
 
         self.tableData.append(row)
 
@@ -1081,6 +1079,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if doPred:
             if expected > 0:
                 self.tableData.append(row)
+                self.ratemon_observed_trigger_rate_test[trigger].set(row[1])
+                if doPred and expected > 0:
+                    self.ratemon_predicted_trigger_rate_test[trigger].set(row[2])
+                self.ratemon_luminosity_test.set(aveLumi)
+                write_to_textfile('./observed_test.prom', self.observed_collector)
+                write_to_textfile('./predicted_test.prom', self.predicted_collector)
         else:
             self.tableData.append(row)
 
@@ -1486,21 +1490,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.__dict__[k] = v
 
     def setGauges(self):
-        observed_collector = CollectorRegistry()
-        predicted_collector = CollectorRegistry()
         for item in self.usableHLTTriggers:
-            print("HERE")
-            self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=observed_collector)
-            self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=predicted_collector)
-        for item in self.otherHLTTriggers:
-            self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=observed_collector)
-            self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=predicted_collector)
+            self.ratemon_observed_trigger_rate_test[item] = Gauge(item, 'description: this is a test', registry=self.observed_collector)
+            self.ratemon_predicted_trigger_rate_test[item] = Gauge(item, 'description: this is a test', registry=self.predicted_collector)
+        #for item in self.otherHLTTriggers:
+        #    self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=self.observed_collector)
+        #    self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=self.predicted_collector)
         for item in self.usableL1Triggers:
-            self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=observed_collector)
-            self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=predicted_collector)
-        for item in self.otherL1Triggers:
-            self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=observed_collector)
-            self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=predicted_collector)
+            self.ratemon_observed_trigger_rate_test[item] = Gauge(item, 'description: this is a test', registry=self.observed_collector)
+            self.ratemon_predicted_trigger_rate_test[item] = Gauge(item, 'description: this is a test', registry=self.predicted_collector)
+        #for item in self.otherL1Triggers:
+        #    self.ratemon_observed_trigger_rate_test = Gauge(item, 'description: this is a test', registry=self.observed_collector)
+        #    self.ratemon_predicted_trigger_rate_test = Gauge(item, 'description: this is a test', registry=self.predicted_collector)
         self.madeGauges = True
 
     # Prints all properties (by catagory)
