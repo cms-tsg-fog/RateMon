@@ -4,7 +4,7 @@ import os
 import sys
 import getopt
 from MenuAnalyzer import MenuAnalyzer
-from termcolor import colored, cprint
+from termcolor import colored
 
 def usage():
     print("Usage: "+sys.argv[0]+" <path to cdaq area>")
@@ -72,8 +72,8 @@ def main():
 
     if len(failed)!=0: print("\nLIST OF FAILED ANALYSES:")
     for analysis in failed:
-        print(analyzer.ProblemDescriptions[analysis]+":  ")
-        for line in analyzer.Results[analysis]: print(line)
+        print(colored(analyzer.ProblemDescriptions[analysis]+":  ",'red'))
+        for line in analyzer.Results[analysis]: print(colored(line,'yellow'))
         print("")
 
 if __name__=='__main__':

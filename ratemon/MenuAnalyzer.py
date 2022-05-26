@@ -76,7 +76,7 @@ class MenuAnalyzer:
             'numberOfEndPaths':'Too many endpaths',
             'reqStreamsAndPDs':'Missing required stream/PD',
             'reqEndPaths':'Missing required endpaths',
-            'checkExpress' : 'Invalid or missing express stream/PD \nNote: This check will fail if a cosmics menu does not contain "cosmic" in its name',
+            'checkExpress' : 'Invalid or missing express stream/PD \n[Note: This check will fail if a cosmics menu does not contain "cosmic" in its name]',
             'checkNameFormats' : 'Invalid stream, PD or path name format',
             'checkReqEventContent' : 'Missing Event Content',
             'checkNotReqEventContent' : 'Extra Event Content',
