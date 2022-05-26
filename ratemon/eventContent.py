@@ -40,6 +40,7 @@ requiredEventContent={
       'keep *_hltPFJetForBtag_*_*',
       'keep *_hltPixelTracks_*_*',
       'keep *_hltPixelVertices_*_*',
+      'keep *_hltMergedTracks_*_*',
       'keep *_hltSelector8CentralJetsL1FastJet_*_*',
       'keep *_hltSiPixelClusters_*_*',
       'keep *_hltSiStripRawToClustersFacility_*_*',
