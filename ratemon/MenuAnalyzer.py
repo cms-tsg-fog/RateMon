@@ -62,7 +62,8 @@ class MenuAnalyzer:
             'reqEndPaths' : self.reqEndPaths,
             'checkExpress' : self.checkExpress,
             'checkNameFormats' :self.checkNameFormats,
-            'checkEventContent':self.checkEventContent,
+            'checkReqEventContent':self.checkReqEventContent,
+            'checkNotReqEventContent':self.checkNotReqEventContent,
             'checkL1Unmask':self.checkL1Unmask,
             'checkDQMStream':self.checkDQMStream,
             'checkStreamB':self.checkStreamB,
@@ -77,7 +78,8 @@ class MenuAnalyzer:
             'reqEndPaths':'Missing required endpaths',
             'checkExpress' : 'Invalid or missing express stream/PD \nNote: This check will fail if a cosmics menu does not contain "cosmic" in its name',
             'checkNameFormats' : 'Invalid stream, PD or path name format',
-            'checkEventContent' : 'Invalid Event Content',
+            'checkReqEventContent' : 'Missing Event Content',
+            'checkNotReqEventContent' : 'Extra Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
             'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
             'checkStreamB' : 'Check all parking triggers in stream B',
@@ -198,12 +200,12 @@ class MenuAnalyzer:
                     if 'part' in str(pd):
                         self.Results['checkNameFormats'].append('WRONG DATASET NAME '+str(pd)+' in stream ' + stream )
 
-    def checkEventContent(self):
-        self.Results['checkEventContent']=[]
+    def checkReqEventContent(self):
+        self.Results['checkReqEventContent']=[]
         for stream,content in self.eventContent.items():
             #first check for a drop statement
             if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
-                self.Results['checkEventContent'].append(stream+'::drop *')
+                self.Results['checkReqEventContent'].append(stream+'::drop *')
             if stream not in eventContent.requiredEventContent:
                 continue
             elif ('Protonion' in self.menuName) and stream == 'DQM':
@@ -212,12 +214,24 @@ class MenuAnalyzer:
             #check to see if stream contains required content
             for entry in requiredContent:
                 if not entry in content:
-                    self.Results['checkEventContent'].append(stream+'::'+entry)
+                    self.Results['checkReqEventContent'].append(stream+'::'+entry)
+    
+    def checkNotReqEventContent(self):
+        self.Results['checkNotReqEventContent']=[]
+        for stream,content in self.eventContent.items():
+            #first check for a drop statement
+            if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
+                self.Results['checkNotReqEventContent'].append(stream+'::drop *')
+            if stream not in eventContent.requiredEventContent:
+                continue
+            elif ('Protonion' in self.menuName) and stream == 'DQM':
+                stream = 'DQM_PA'
+            requiredContent = eventContent.requiredEventContent[stream]
             #check to make sure there is no extra (not-required) content
             for entry in content:
                 if (entry!='drop *' and entry!='drop *_hlt*_*_*'):
                     if not entry in requiredContent:
-                        self.Results['checkEventContent'].append(stream+'::'+entry)
+                        self.Results['checkNotReqEventContent'].append(stream+'::'+entry)
 
     def checkL1Unmask(self):
         self.Results['checkL1Unmask']=[]
