@@ -1307,24 +1307,24 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Parameters:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
-    def sendMail(self,mailTriggers):
-        mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
+    def sendMail(self,messageTriggers):
+        text = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
         try:
-            mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         except:
-            mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
 
         try:
-            mail += "Average PU: %.2f\n \n" % (self.pu_ave)
+            text += "Average PU: %.2f\n \n" % (self.pu_ave)
         except:
-            mail += "Average PU: %s\n \n" % (self.pu_ave)
-        mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
+            text += "Average PU: %s\n \n" % (self.pu_ave)
+        text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
-        for triggerName, rate, expected, dev, ps in mailTriggers:
+        for triggerName, rate, expected, dev, ps in messageTriggers:
             if dev is None:
                 dev = -999
             if self.numBunches[0] == 0:
-                mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
                     try:
@@ -1341,16 +1341,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         tmp_str += " Unprescaled Expected/nBunches: %s Hz," % (expected*ps/self.numBunches[0])
                         tmp_str += " Unprescaled Actual/nBunches: %s Hz," % (rate*ps/self.numBunches[0])
                         tmp_str += " Deviation: %s\n" % (dev)
-                    mail += tmp_str
+                    text += tmp_str
                 else:
                     try:
-                        mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
+                        text += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
                     except:
-                        mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                        text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+        header = 'MATTERMOST MESSAGES DISABLED'
         if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
             header = ' SENDING MESSAGE TO MATTERMOST '
-            mattermostAlert(mail)
-        print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=mail,width=len(header)+6,fill='-'))
+            mattermostAlert(text)
+        print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)

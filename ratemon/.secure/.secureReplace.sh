@@ -42,3 +42,19 @@ if ! [ -z $trg_connect_pass ]
 then
     sed -i "s/$trg_connect_dummy/$trg_connect_pass/" $yaml_file
 fi
+
+hook_file="../mattermost_hook.txt"
+
+if [ -s .$hook_file ]
+then
+    hook=$(cat .$hook_file)
+fi
+
+yaml_file="../mattermostHook.yaml"
+
+hook_dummy='your-mattermost-hook'
+
+if ! [ -z $hook ]
+then
+    sed -i "s/$hook/$hook_dummy" $yaml_file
+fi
