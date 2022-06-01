@@ -63,7 +63,7 @@ requiredEventContent={
       'keep edmTriggerResults_*_*_*'],
     #'HLTMON':HLTMONContent,
     'NanoDST':[
-      'keep *_hltFEDSelector_*_*',
+      'keep *_hltFEDSelectorTCDS_*_*',
       'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'PhysicsDST':[
