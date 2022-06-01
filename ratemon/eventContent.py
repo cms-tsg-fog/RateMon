@@ -49,6 +49,11 @@ requiredEventContent={
       'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_*',
       'keep edmTriggerResults_*_*_*',
       'keep triggerTriggerEvent_*_*_*'],
+    'DQMOnlineBeamspot': [
+      'keep *_hltFEDSelectorTCDS_*_*',
+      'keep edmTriggerResults_*_*_*',
+      'keep recoTracks_hltPFMuonMerging_*_*',
+      'keep recoVertexs_hltVerticesPFFilter_*_*'],
     'DQM_PA': full,
     'EcalCalibration': [
       'keep *_hltEcalCalibrationRaw_*_*',
