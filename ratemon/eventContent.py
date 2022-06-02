@@ -49,6 +49,11 @@ requiredEventContent={
       'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_*',
       'keep edmTriggerResults_*_*_*',
       'keep triggerTriggerEvent_*_*_*'],
+    'DQMOnlineBeamspot': [
+      'keep *_hltFEDSelectorTCDS_*_*',
+      'keep edmTriggerResults_*_*_*',
+      'keep recoTracks_hltPFMuonMerging_*_*',
+      'keep recoVertexs_hltVerticesPFFilter_*_*'],
     'DQM_PA': full,
     'EcalCalibration': [
       'keep *_hltEcalCalibrationRaw_*_*',
@@ -63,7 +68,7 @@ requiredEventContent={
       'keep edmTriggerResults_*_*_*'],
     #'HLTMON':HLTMONContent,
     'NanoDST':[
-      'keep *_hltFEDSelector_*_*',
+      'keep *_hltFEDSelectorTCDS_*_*',
       'keep *_hltGtStage2Digis_*_*',
       'keep edmTriggerResults_*_*_*'],
     'PhysicsDST':[
