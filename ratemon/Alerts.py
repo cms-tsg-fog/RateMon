@@ -3,7 +3,7 @@ import copy
 import datetime
 
 from audioAlert import audioAlert
-from mailAlert  import mailAlert
+from mattermostAlert  import mattermostAlert
 from colors import bcolors
 
 
@@ -287,14 +287,14 @@ class MultipleAlert(BaseAlert):
 
 
 # trigger an email Alert
-def EmailMessage(alert):
+def MattermostMessage(alert):
   message = alert.alert_message()
   details = alert.alert_details()
   level   = alert.alert_level()
   if message is not None:
     if details is not None:
       message = message + '\n\n' + details
-    mailAlert(message)
+    mattermostAlert(message)
 
 
 # trigger an audio Alert

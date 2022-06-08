@@ -159,15 +159,19 @@ class DBParser:
         more_ps = True
         while response2['data'][ps_counter]['attributes']['lumisection_number'] < minLS:
             ps_counter += 1
+            if len(response2['data']) == ps_counter:
+                more_ps = False
+                break
 
         for item in response['data']:
             thing = item['attributes']
-            if response2['data'][ps_counter]['attributes']['lumisection_number']==thing['lumisection_number'] and more_ps:
-                ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
-                if ps_counter == len(response2['data'])-1:
-                    more_ps=False
-                else:
-                    ps_counter += 1
+            if more_ps:
+                if response2['data'][ps_counter]['attributes']['lumisection_number']==thing['lumisection_number']:
+                    ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
+                    if ps_counter == len(response2['data'])-1:
+                        more_ps=False
+                    else:
+                        ps_counter += 1
             adjusted_lumi = adjust*thing['init_lumi']
             _list.append([thing['lumisection_number'], adjusted_lumi, ps, thing['physics_flag']*thing['beam1_present'],
                           thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
