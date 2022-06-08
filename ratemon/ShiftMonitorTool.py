@@ -32,7 +32,7 @@ class CommandLineParser:
         try:
             opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
-                                                       "quiet", "noColors", "alertsOn", "mailAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
+                                                       "quiet", "noColors", "alertsOn", "mattermostAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate=", "oldParser"])
         except:
             print("Error getting options. Exiting.")
@@ -72,14 +72,14 @@ class CommandLineParser:
                 self.monitor.userSpecTrigList = True
                 print("Using Trigger list %s" % (str(op)))
             elif label == "--alertsOn":
-                self.monitor.sendMailAlerts_static = True
+                self.monitor.sendMattermostAlerts_static = True
                 self.monitor.sendAudioAlerts = True
-            elif label == "--mailAlertsOn":
-                self.monitor.sendMailAlerts_static = True
+            elif label == "--mattermostAlertsOn":
+                self.monitor.sendMattermostAlerts_static = True
             elif label == "--audioAlertsOn":
                 self.monitor.sendAudioAlerts = True
             elif label == "--LSRange":
-                self.monitor.sendMailAlerts_static = False
+                self.monitor.sendMattermostAlerts_static = False
                 self.monitor.sendAudioAlerts = False
                 start, end = str(op).split("-")
                 self.monitor.LSRange = [int(start), int(end)]
@@ -92,8 +92,8 @@ class CommandLineParser:
                 #self.monitor.devAccept = float(op)
                 self.monitor.devAcceptDefault = float(op)
             elif label == "--simulate":
-                self.monitor.sendMailAlerts_static = False
-                self.monitor.sendMailAlerts_dynamic = False
+                self.monitor.sendMattermostAlerts_static = False
+                self.monitor.sendMattermostAlerts_dynamic = False
                 self.monitor.sendAudioAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True

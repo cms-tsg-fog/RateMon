@@ -27,7 +27,7 @@ from colors import *
 # For getting command line options
 import getopt
 # For alerts
-from mailAlert import mailAlert
+from mattermostAlert import mattermostAlert
 from audioAlert import audioAlert
 from Alerts import *
 from Logger import *
@@ -63,7 +63,7 @@ class ShiftMonitor:
             'isUpdating',
             'simulate',
             'currentLS',
-            'emailSendTime',
+            'mattermostSendTime',
             'bad',
             'runNumber',
             'totalStreams',
@@ -173,16 +173,16 @@ class ShiftMonitor:
         self.devAcceptDefault = 5       # The default acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         #self.recordAllBadTriggers = {} # A dictionary: [ trigger name ] < total times the trigger was bad > # Apparently never used?
-        self.maxCBR = 5                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
+        self.maxCBR = 1                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
         self.sortRates = True           # Whether we should sort triggers by their rates
         self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
 
-        self.mailTriggers = []          # A list of triggers that we should mail alerts about
-        self.emailPeriod = 5*60         # Lenght of time inbetween emails 
-        self.emailSendTime = 0          # Time at which last email was sent 
+        self.mattermostTriggers = []    # A list of triggers that we should mail alerts about
+        self.mattermostPeriod = 60      # Lenght of time inbetween emails 
+        self.mattermostSendTime = 0     # Time at which last email was sent 
 
         self.configFilePath = ""        # Path to the config file
         self.lastCfgFileAccess = 0      # The last time the configuration file was updated
@@ -200,7 +200,7 @@ Total Level 1 Trigger rate: {total:.1f} kHz
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
           threshold = 200., # kHz
           period    = 120., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         l1_high_rate_alert = RateAlert(
           message   = 'high Level 1 Trigger rate',
@@ -212,7 +212,7 @@ Total Level 1 Trigger rate: {total:.1f} kHz
           measure   = lambda rates: rates['total'] / 1000.,             # convert from Hz to kHz
           threshold = 105., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         l1_total_rate_alert = PriorityAlert(l1_critical_rate_alert, l1_high_rate_alert)
 
@@ -232,7 +232,7 @@ L1_SingleMu22_EMTF:    {L1_SingleMu22_EMTF:.1f} kHz
           measure   = lambda rates: rates['L1_SingleMu22'] / 1000.,     # convert from Hz to kHz
           threshold =  20., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         # from fill 6315, the expected rates for L1_SingleEG40 are
         #   11.7 kHz at 1.52e34 (pileup 58)
@@ -249,7 +249,7 @@ L1_SingleIsoEG40er2p1: {L1_SingleIsoEG40er2p1:.1f} kHz
           measure   = lambda rates: rates['L1_SingleEG40'] / 1000.,     # convert from Hz to kHz
           threshold =  25., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         # from fill 6315, the expected rates for L1_SingleJet200 are
         #    2.3 kHz at 1.52e34 (pileup 58)
@@ -264,7 +264,7 @@ L1_SingleJet200:       {L1_SingleJet200:.1f} kHz
           measure   = lambda rates: rates['L1_SingleJet200'] / 1000.,   # convert from Hz to kHz
           threshold =  10., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         # from fill 6315, the expected rates for L1_ETM120 are
         #    6.2 kHz at 1.52e34 (pileup 58)
@@ -281,7 +281,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
           measure   = lambda rates: rates['L1_ETM120'] / 1000.,         # convert from Hz to kHz
           threshold =  50., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         # from fill 6315, the expected rates for L1_ETMHF120 are
         #    7.0 kHz at 1.52e34 (pileup 58)
@@ -298,7 +298,7 @@ L1_ETMHF120_HTT60er:   {L1_ETMHF120_HTT60er:.1f} kHz
           measure   = lambda rates: rates['L1_ETMHF120'] / 1000.,       # convert from Hz to kHz
           threshold =  50., # kHz
           period    = 600., # s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         # set upper threshold for the L1 bit that monitor Laser Misfires for HCAL
         l1_hcalLaserMisfires_rate_alert = RateAlert(
@@ -310,7 +310,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
           measure   = lambda rates: rates['L1_HCAL_LaserMon_Veto'],     # thresholds are in Hz
           threshold =  100., #Hz
           period    = 600., #s
-          actions   = [EmailMessage, AudioMessage, OnScreenMessage] )
+          actions   = [MattermostMessage, AudioMessage, OnScreenMessage] )
 
         l1_met_rate_alert = PriorityAlert(l1_centralmet_rate_alert, l1_formwardmet_rate_alert)
 
@@ -325,9 +325,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Other options
         self.quiet = False                      # Prints fewer messages in this mode
         self.noColors = False                   # Special formatting for if we want to dump the table to a file
-        #self.sendMailAlerts_static = True      # Whether we should send alert mails
-        self.sendMailAlerts_static = False      # Whether we should send alert mails
-        self.sendMailAlerts_dynamic = self.sendMailAlerts_static
+        self.sendMattermostAlerts_static = True # Whether we should send alert to mattermost
+        self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         self.sendAudioAlerts = False            # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True                  # flag to determine whether or not we're receiving new LS
         self.showStreams = False                # Whether we should print stream information
@@ -447,7 +446,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.normal = 0
         self.bad = 0
 
-        curr_LHC_status = self.parser.getLHCStatus()[1]
+        curr_LHC_status = self.parser.getLHCStatus()
         if curr_LHC_status != self.LHCStatus[0]:
             self.LHCStatus[0] = curr_LHC_status
             self.LHCStatus[1] = 1
@@ -502,22 +501,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
     def setMode(self):
-        self.sendMailAlerts_dynamic = self.sendMailAlerts_static
+        self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         try:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)
         except:
             self.triggerMode = "Other"
         if self.triggerMode.find("cosmics") > -1:
             self.mode = "cosmics"
-        elif self.triggerMode.find("circulate") > -1:
-            self.mode = "circulate"
+        elif self.triggerMode.find("circulating") > -1:
+            self.mode = "circulating"
         elif self.triggerMode.find("collisions") > -1:
             self.mode = "collisions"
         elif self.triggerMode == "MANUAL":
             self.mode = "MANUAL"
         elif self.triggerMode.find("highrate") > -1:
             self.mode = "other"
-            self.sendMailAlerts_dynamic = False
+            self.sendMattermostAlerts_dynamic = False
         else: self.mode = "other"
 
     # Use: Remakes the trigger lists
@@ -1205,22 +1204,19 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if self.badRates[trigger][1]:
                 if self.badRates[trigger][0] >= 1:
                     print("Trigger %s has been out of line for more than %.1f minutes" % (trigger, float(self.badRates[trigger][0])*self.scale_sleeptime))
-                # We want to mail an alert whenever a trigger exits the acceptable threshold envelope
+                # We want to send an alert to mattermost whenever a trigger exits the acceptable threshold envelope
                 inlist = 0
-                for sublist in range(len(self.mailTriggers)):
-                    if trigger == self.mailTriggers[sublist][0]:  
+                for sublist in range(len(self.mattermostTriggers)):
+                    if trigger == self.mattermostTriggers[sublist][0]:  
                         inlist = 1
                         break
                 if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
-                    self.mailTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
-        #print "badRates list: " , self.badRates # For debugging
-        #print "Mail list: " , self.mailTriggers # For debugging
-        # Send mail alerts
-        if len(self.mailTriggers) > 0 and self.isUpdating and (time.time() - self.emailSendTime) > self.emailPeriod:
-            self.sendMail(self.mailTriggers)
-            self.emailSendTime = time.time()
-            self.mailTriggers = []
-            #if self.sendAudioAlerts: pass # audioAlert('PLEASE CHECK TRIGGER RATES') # This line is out of date and should remain commented (or be deleted)
+                    self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+        # Send mattermost alerts
+        if len(self.mattermostTriggers) > 0 and self.isUpdating and (time.time() - self.mattermostSendTime) > self.mattermostPeriod:
+            self.sendMail(self.mattermostTriggers)
+            self.mattermostSendTime = time.time()
+            self.mattermostTriggers = []
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1311,24 +1307,24 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Parameters:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
-    def sendMail(self,mailTriggers):
-        mail = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
+    def sendMail(self,messageTriggers):
+        text = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
         try:
-            mail += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
         except:
-            mail += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
 
         try:
-            mail += "Average PU: %.2f\n \n" % (self.pu_ave)
+            text += "Average PU: %.2f\n \n" % (self.pu_ave)
         except:
-            mail += "Average PU: %s\n \n" % (self.pu_ave)
-        mail += "Trigger rates deviating from acceptable and/or expected values: \n\n"
+            text += "Average PU: %s\n \n" % (self.pu_ave)
+        text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
 
-        for triggerName, rate, expected, dev, ps in mailTriggers:
+        for triggerName, rate, expected, dev, ps in messageTriggers:
             if dev is None:
                 dev = -999
             if self.numBunches[0] == 0:
-                mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
                     try:
@@ -1345,29 +1341,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         tmp_str += " Unprescaled Expected/nBunches: %s Hz," % (expected*ps/self.numBunches[0])
                         tmp_str += " Unprescaled Actual/nBunches: %s Hz," % (rate*ps/self.numBunches[0])
                         tmp_str += " Deviation: %s\n" % (dev)
-                    mail += tmp_str
-                    mail += "  * referenced fit: <https://raw.githubusercontent.com/cms-tsg-fog/RateMon/master/Fits/All_Triggers/plots/%s.png>\n" % (triggerName)
+                    text += tmp_str
                 else:
                     try:
-                        mail += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
+                        text += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
                     except:
-                        mail += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
-            try:
-                wbm_url = self.parser.getWbmUrl(self.runNumber,triggerName,self.currentLS)
-                if not wbm_url == "-": mail += "  *WBM rate: <%s>\n" % (wbm_url)
-            except:
-                print("WBM plot url query failed")
-        mail += "\nWBM Run Summary: <https://cmswbm.web.cern.ch/cmswbm/cmsdb/servlet/RunSummary?RUN=%s> \n\n" % (self.runNumber)
-        mail += "Email warnings triggered when: \n"
-        #mail += "   - L1 or HLT rates deviate by more than %s standard deviations from fit \n" % (self.devAccept)
-        mail += "   - L1 or HLT rates deviate by more than the allowed thresholds"
-        mail += "   - HLT rates > %s Hz \n" % (self.maxHLTRate)
-        mail += "   - L1 rates > %s Hz \n" % (self.maxL1Rate)
-        header = ' MAIL ALERTS DISABLED '
-        if self.sendMailAlerts_static and self.sendMailAlerts_dynamic:
-            header = ' SENDING MAIL '
-            mailAlert(mail)
-        print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=mail,width=len(header)+6,fill='-'))
+                        text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+        header = 'MATTERMOST MESSAGES DISABLED'
+        if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
+            header = ' SENDING MESSAGE TO MATTERMOST '
+            mattermostAlert(text)
+        print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
@@ -1424,9 +1408,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Checks that the specified options do not conflict
     def optionsCheck(self):
         if self.simulate:
-            if self.sendMailAlerts_static==True or self.sendMailAlerts_dynamic==True or self.sendAudioAlerts==True:
-                self.sendMailAlerts_static = False
-                self.sendMailAlerts_dynamic = False
+            if self.sendMattermostAlerts_static==True or self.sendMattermostAlerts_dynamic==True or self.sendAudioAlerts==True:
+                self.sendMattermostAlerts_static = False
+                self.sendMattermostAlerts_dynamic = False
                 self.sendAudioAlerts = False
                 print("\n[WARNING] Alerts should not be on in simulate mode, turning off alerts\n")
                 #self.printProperties()
