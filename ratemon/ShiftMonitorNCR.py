@@ -157,10 +157,11 @@ class ShiftMonitor:
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
         self.ignoreStrings = [          # Triggers which have these strings in the name will not produce any warnings or be printed
-            "Calibration","L1Tech","BPTX","Bptx",
-            "L1_SingleMu7er1p5","AlwaysTrue","AlCa_","DST_", 
-            "Status_OnGPU", "Status_OnCPU", 
-            "HLT_L1RandomTrigType", "HLT_PixelTracks"
+            "AlCa_", "DQM", "DST_", "Status_",
+            "Calibration", "L1Tech", "BPTX", "Bptx",
+            "L1_SingleMu7er1p5", "AlwaysTrue",
+            "HLT_L1RandomTrigType", 
+            "HLT_ECALHT1", "HLT_HCALHT1", "HLT_PixelTracks"
         ]
 
         # Restrictions
