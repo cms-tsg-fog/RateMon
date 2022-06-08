@@ -158,7 +158,9 @@ class ShiftMonitor:
         self.redoTList = True           # Whether we need to update the trigger lists
         self.ignoreStrings = [          # Triggers which have these strings in the name will not produce any warnings or be printed
             "Calibration","L1Tech","BPTX","Bptx",
-            "L1_SingleMu7er1p5","AlwaysTrue","AlCa_","DST_"
+            "L1_SingleMu7er1p5","AlwaysTrue","AlCa_","DST_", 
+            "Status_OnGPU", "Status_OnCPU", 
+            "HLT_L1RandomTrigType", "HLT_PixelTracks"
         ]
 
         # Restrictions
