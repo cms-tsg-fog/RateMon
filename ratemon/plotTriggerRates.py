@@ -395,11 +395,10 @@ class MonitorController:
             self.rate_monitor.data_parser.l1_triggers = list(L1_triggers)
 
             # Add HLT triggers to the group map
-            hlt_triggers = set()
-            for path_owner in path_mapping:
-                group_map[path_owner] = path_mapping[path_owner]
-                for item in path_mapping[path_owner]:
-                    hlt_triggers.add(item)
+            hlt_triggers = []
+            temp_hlt_triggers = self.parser.getHLTNameMap(run)
+            for item in temp_hlt_triggers.keys():
+                hlt_triggers.append(DBParser.stripVersion(item))
 
             # Make a group for all HLT triggers
             group_map["HLT_Triggers"] = list(hlt_triggers)
