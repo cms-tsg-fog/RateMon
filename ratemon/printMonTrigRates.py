@@ -9,8 +9,18 @@ from omsapi import OMSAPI
 
 sys.argv.pop(0)
 
-reference_run = 349527 # reference run in first column to compare rates to
-cosmics_triggerList = "TriggerLists/monitorlist_COSMICS.list" # default list used when in cosmics mode
+run_type = "COSMICS" # "COLLISIONS-900GeV"
+
+# reference run in first column to compare rates to
+if run_type == "COSMICS":
+    reference_run = 349527
+elif run_type == "COLLISIONS-900GeV":
+    reference_run = 353087
+else:
+    print("Run type not recognized. Exiting")
+    sys.exit()
+
+triggerListName = "TriggerLists/monitorlist_%s.list"%run_type
 PAGE_LIMIT = 10000
 
 runs = [str(reference_run)] + sys.argv
@@ -131,7 +141,7 @@ def loadTriggersFromFile(fileName):
             print("Error parsing trigger name in file", fileName)
     return TriggerList
 
-triggerList = loadTriggersFromFile(cosmics_triggerList)
+triggerList = loadTriggersFromFile(triggerListName)
 
 monTrigRatesDict = {}
 
