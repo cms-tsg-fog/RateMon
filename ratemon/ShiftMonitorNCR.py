@@ -1417,8 +1417,8 @@ def sendMail(self,messageTriggers):
     def optionsCheck(self):
         if self.simulate:
             if self.sendMattermostAlerts_static==True or self.sendMattermostAlerts_dynamic==True or self.sendAudioAlerts==True:
-                self.sendMattermostAlerts_static = False
-                self.sendMattermostAlerts_dynamic = False
+                self.sendMattermostAlerts_static = True
+                self.sendMattermostAlerts_dynamic = True
                 self.sendAudioAlerts = False
                 print("\n[WARNING] Alerts should not be on in simulate mode, turning off alerts\n")
                 #self.printProperties()
