@@ -9,36 +9,7 @@ Do any development work on GitLab.
 
 ## Development
 
-Each push to GitLab that introduces new commits will start a CI pipeline.
-The source for that is the `.gitlab-ci.yml` file.
-
-Each pipeline contains a build of an RPM package for the RateMon tools. These packages are automatically uploaded to [a shared EOS folder](https://cernbox.cern.ch/index.php/s/TL7L81EaTE3Z8Zy).
-
-### Python environment
-
-This project uses a python virtual environment.
-The only exception to this is the root packages, which are supplied via yum.
-
-To set things up:
-```bash
-yum install python3 root python36-root
-cd ratemon
-python3 -m venv .
-source bin/activate
-pip3 install -r requirements.txt
-```
-
-## Deployment
-
-GitLab CI can deploy to P5. To do this, perform the following steps:
-
-- [Create a new tag](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tags/new)
-- [Create a new pipeline](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/pipelines/new)
-  - `Run for` must be set to your newly created tag instead of master
-  - Set variables `P5_USER` and `P5_PASS` to your P5 username and password.
-- In this newly created pipeline, press the `deploy:P5` play button
-
-### Installing OMS API
+### Requirements
 
 This code depends on the OMS API client, which can be found [here](https://gitlab.cern.ch/cmsoms/oms-api-client).
 
@@ -49,6 +20,40 @@ cd oms-api-client
 python3 -m pip install -r requirements.txt
 python3 setup.py install --user
 ```
+
+You will also need ROOT and ROOT bindings for Python:
+```
+yum install python3 root python36-root
+```
+
+### Python environment
+
+This project uses a python virtual environment.
+
+To set things up:
+```bash
+cd ratemon
+python3 -m venv .
+source bin/activate
+pip3 install -r requirements.txt
+```
+
+## CI/CD
+
+Each push to GitLab that introduces new commits will start a CI pipeline.
+The source for that is the `.gitlab-ci.yml` file.
+
+Each pipeline contains a build of an RPM package for the RateMon tools. These packages are automatically uploaded to [a shared EOS folder](https://cernbox.cern.ch/index.php/s/TL7L81EaTE3Z8Zy).
+
+### Deployment
+
+GitLab CI can deploy to P5. To do this, perform the following steps:
+
+- [Create a new tag](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tags/new)
+- [Create a new pipeline](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/pipelines/new)
+  - `Run for` must be set to your newly created tag instead of master
+  - Set variables `P5_USER` and `P5_PASS` to your P5 username and password.
+- In this newly created pipeline, press the `deploy:P5` play button
 
 
 ### Running plotTriggerRates
