@@ -9,9 +9,8 @@ def avg(lst): return sum(lst) / len(lst)
 run = 349527
 
 triggerList = myMonCon.readTriggerList("TriggerLists/monitorlist_COSMICS.list")
-L1trig = triggerList[24:]
-HLTtrig = triggerList[:24]
-HLTtrig.remove('HLT_L1SingleEG5')
+L1trig = triggerList[23:]
+HLTtrig = triggerList[:23]
 
 L1Rate = myParser.getL1Rates(run,minLS=-1,maxLS=9999999,trigList=L1trig)
 HLTRate = myParser.getHLTRates(run,trigger_list=HLTtrig,minLS=-1,maxLS=9999999)

@@ -19,7 +19,6 @@ HLT_L2Mu10_NoVertex_NoBPTX
 HLT_L2Mu40_NoVertex_3Sta_NoBPTX3BX
 HLT_L1SingleJet35
 HLT_L1SingleJet200
-HLT_L1SingleEG5
 HLT_L1SingleEG10
 HLT_L1SingleEG15
 L1_SingleMuCosmics
