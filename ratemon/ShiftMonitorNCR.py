@@ -338,6 +338,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
+
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
     # -- fileName: The name of the file that trigger names are contained in
@@ -1307,50 +1308,50 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Parameters:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
-def sendMail(self,messageTriggers):
-        text = "| Run | Lumisections | Average inst. lumi | Average PU | \n"
-        text += "| --- | --- | --- | --- | \n"
-        text = "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
+    def sendMail(self,messageTriggers):
+        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
+        text += "| --- | --- | --- | --- | -- | --| \n"
+        text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
         try:
             text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
         except:
             text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
 
         try:
-            text += "%.2f | \n\n" % (self.pu_ave)
+            text += "%.2f |" % (self.pu_ave)
         except:
-            text += "%s | \n\n" % (self.pu_ave)
+            text += "%s |" % (self.pu_ave)
+
+        text += "%s |" % (self.triggerMode)
+        text += str(self.lumiData[-1][2])+"| \n\n"
+       
         text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
+        text += "| Path | Actual | Expected | Unprescaled Expected/nBunches | Unprescaled Actual/nBunches | Deviation |\n"
+        text += "| --- | --- | --- | --- | --- | --- |\n"
 
         for triggerName, rate, expected, dev, ps in messageTriggers:
             if dev is None:
                 dev = -999
             if self.numBunches[0] == 0:
-                text += "| Path | Actual | \n"
-                text += "| --- | --- | \n"
-                text += "| %s | %s Hz | \n" % (stringSegment(triggerName, 35), rate)
+                text += "| %s | %s Hz |\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
-                   text += "| Path | Expected | Actual | Unprescaled Expected/nBunches | Unprescaled Actual/nBunches | Deviation | \n"
-                   text += "| --- | --- | --- | --- | --- | --- | \n"
-                    try:
+                   try:
                         tmp_str = ""
-                        tmp_str += "| %s | %.1f Hz |" % (stringSegment(triggerName, 35), expected)
-                        tmp_str += "%.1f Hz | " % (rate)
+                        tmp_str += "| %s | %.1f Hz |" % (stringSegment(triggerName, 35), rate)
+                        tmp_str += "%.1f Hz | " % (expected)
                         tmp_str += "%.5f Hz |" % (expected*ps/self.numBunches[0])
                         tmp_str += "%.5f Hz |" % (rate*ps/self.numBunches[0])
                         tmp_str += "%.1f | \n" % (dev)
-                    except:
+                   except:
                         tmp_str = ""
-                        tmp_str += "| %s | %s Hz |" % (stringSegment(triggerName, 35), expected)
-                        tmp_str += "%s Hz |" % (rate)
+                        tmp_str += "| %s | %s Hz |" % (stringSegment(triggerName, 35), rate)
+                        tmp_str += "%s Hz |" % (expected)
                         tmp_str += "%s Hz |" % (expected*ps/self.numBunches[0])
                         tmp_str += "%s Hz|" % (rate*ps/self.numBunches[0])
                         tmp_str += "%s | \n" % (dev)
-                    text += tmp_str
+                   text += tmp_str
                 else:
-                    text += "| Path | Actual | \n"
-                    text += "| --- | --- | \n"
                     try:
                         text += "| %s | %.1f Hz | \n" % (stringSegment(triggerName, 35), rate)
                     except:
@@ -1417,8 +1418,8 @@ def sendMail(self,messageTriggers):
     def optionsCheck(self):
         if self.simulate:
             if self.sendMattermostAlerts_static==True or self.sendMattermostAlerts_dynamic==True or self.sendAudioAlerts==True:
-                self.sendMattermostAlerts_static = True
-                self.sendMattermostAlerts_dynamic = True
+                self.sendMattermostAlerts_static = False
+                self.sendMattermostAlerts_dynamic = False
                 self.sendAudioAlerts = False
                 print("\n[WARNING] Alerts should not be on in simulate mode, turning off alerts\n")
                 #self.printProperties()
@@ -1523,3 +1524,4 @@ def sendMail(self,messageTriggers):
         print(' ')
 
 ## ----------- End of class ShiftMonitor ------------ ##
+
