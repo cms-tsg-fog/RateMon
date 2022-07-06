@@ -1264,6 +1264,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Calculates the expected rate for a trigger at a given ilumi based on our input fit
     def calculateRate(self, triggerName, ilum):
+        # Return single numerical value for cosmic ref. rates
+        if self.mode == 'cosmics':
+            InputFit = loadFit('Fits/Cosmics/COSMICS_Rates.pkl')
+            return InputFit[triggerName]
         # Make sure we have a fit for the trigger
         paramlist = []
         if not self.InputFitHLT is None and triggerName in self.InputFitHLT:
