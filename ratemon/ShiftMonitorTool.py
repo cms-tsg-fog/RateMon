@@ -92,9 +92,9 @@ class CommandLineParser:
                 #self.monitor.devAccept = float(op)
                 self.monitor.devAcceptDefault = float(op)
             elif label == "--simulate":
-                self.monitor.sendMattermostAlerts_static = True
-                self.monitor.sendMattermostAlerts_dynamic = True
-                self.monitor.sendAudioAlerts = True
+                self.monitor.sendMattermostAlerts_static = False
+                self.monitor.sendMattermostAlerts_dynamic = False
+                self.monitor.sendAudioAlerts = False
                 self.monitor.runNumber = int(op)
                 self.monitor.simulate = True
                 self.monitor.useLSRange = True
