@@ -145,7 +145,9 @@ class DBParser:
         q.custom("include", "meta")
         q.per_page = PAGE_LIMIT
         response = q.data().json()
-        if response['data'][0]['meta']['row']['init_lumi']['units']=="10^{34}cm^{-2}s^{-1}":
+        if response['data'][0]['meta']['row']['init_lumi']['units']=="10^{33}cm^{-2}s^{-1}":
+            adjust = 1000
+        elif response['data'][0]['meta']['row']['init_lumi']['units']=="10^{34}cm^{-2}s^{-1}":
             adjust = 10000
         else:
             adjust = 1
