@@ -140,12 +140,12 @@ class MenuAnalyzer:
         
     def checkNumPaths(self):
         if len(self.perPathModuleList) > self.maxPaths:
-            self.Results['numberOfPaths'] = len(self.perPathModuleList)
+            self.Results['numberOfPaths'] = self.perPathModuleList
         else:
             self.Results['numberOfPaths'] = 0
     def checkNumEndPaths(self):
         if len(self.endPathList) > self.maxEndPaths:
-            self.Results['numberOfEndPaths'] = len(self.endPathList)
+            self.Results['numberOfEndPaths'] = self.endPathList
         else:
             self.Results['numberOfEndPaths'] = 0
     def reqStreamsAndPDs(self):
