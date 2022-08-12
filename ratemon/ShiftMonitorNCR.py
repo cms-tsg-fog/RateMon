@@ -179,7 +179,7 @@ class ShiftMonitor:
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
 
         self.mattermostTriggers = []    # A list of triggers that we should mail alerts about
-        self.mattermostPeriod = 60      # Lenght of time inbetween emails
+        self.mattermostPeriod = 5*60      # Lenght of time inbetween emails
         self.mattermostSendTime = 0     # Time at which last email was sent
 
         self.configFilePath = ""        # Path to the config file
