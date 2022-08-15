@@ -20,7 +20,7 @@ from ROOT import TF1
 import pickle as pickle
 import sys
 import time
-import json 
+import json
 # For colors
 from termcolor import *
 from colors import *
@@ -136,7 +136,7 @@ class ShiftMonitor:
         self.currentLS = 1              # The latest LS written to the DB
         self.slidingLS = -1             # The number of LS to average over, use -1 for no sliding LS
         self.useLSRange = False         # Only look at LS in a certain range
-        self.LS_increment = 3 
+        self.LS_increment = 3
 
         # Mode
         self.triggerMode = None         # The trigger mode
@@ -179,14 +179,14 @@ class ShiftMonitor:
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
 
         self.mattermostTriggers = []    # A list of triggers that we should mail alerts about
-        self.mattermostPeriod = 60      # Lenght of time inbetween emails 
-        self.mattermostSendTime = 0     # Time at which last email was sent 
+        self.mattermostPeriod = 5*60      # Lenght of time inbetween emails
+        self.mattermostSendTime = 0     # Time at which last email was sent
 
         self.configFilePath = ""        # Path to the config file
         self.lastCfgFileAccess = 0      # The last time the configuration file was updated
 
-        self.l1rateData = {} 
-        self.lumiData= [] 
+        self.l1rateData = {}
+        self.lumiData= []
 
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
@@ -338,6 +338,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
+
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
     # -- fileName: The name of the file that trigger names are contained in
@@ -409,7 +410,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
             if fits_format == 'nested_dict':
                 for triggerName in list(inputFit.keys()):
-                    best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc] 
+                    best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc]
                     if triggerName[0:3] == "L1_":
                         if self.InputFitL1 is None: self.InputFitL1 = {}
                         self.InputFitL1[stripVersion(triggerName)] = best_fit
@@ -427,7 +428,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             try:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
-                if not self.simulate: 
+                if not self.simulate:
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 self.runLoop()
                 self.runMail()
@@ -451,8 +452,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             self.LHCStatus[1] += 1
 
-        if self.simulate: 
-            self.LHCStatus[0] = 'Stable' 
+        if self.simulate:
+            self.LHCStatus[0] = 'Stable'
             self.LSRange[0] = self.currentLS
             self.LSRange[1] = self.currentLS + self.LS_increment
 
@@ -463,7 +464,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.queryDatabase()
 
-        self.checkForBadTriggers() 
+        self.checkForBadTriggers()
         self.checkTriggers()
 
         if self.mode == "collisions" and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
@@ -495,7 +496,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             raise KeyboardInterrupt
         else:
             print("Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS))
-    
+
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
     def setMode(self):
@@ -593,7 +594,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
         lslist = []
-        #get ignored list                                                                                                                                                                                  
+        #get ignored list
         self.ignoreStrings = self.loadTriggersFromFile(self.ignoreFile)
         for trig in list(self.Rates.keys()):
             isVetoed = False
@@ -610,7 +611,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Update current LS
         if len(lslist) > 0: self.currentLS = max(lslist)
 
-        self.isUpdating = (self.currentLS > self.lastLS) 
+        self.isUpdating = (self.currentLS > self.lastLS)
 
         try:
             self.deadTimeData = self.parser.getDeadTime(self.runNumber)
@@ -620,9 +621,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         try:
             self.l1rateData = self.parser.getL1rate(self.runNumber)
-        except: 
+        except:
             self.l1rateData = {}
-            print("Error getting total L1 rate data")            
+            print("Error getting total L1 rate data")
 
         self.lumiData = self.parser.getLumiInfo(self.runNumber, self.lastLS, self.currentLS)
         self.numBunches = self.parser.getNumberCollidingBunches(self.runNumber)
@@ -632,8 +633,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         aveLumi = 0
         if self.mode != "cosmics":
             # Find the average lumi since we last checked
-            count = 0 
-            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData: 
+            count = 0
+            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
@@ -641,7 +642,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     aveLumi += instLumi
                     count += 1
             if count == 0:
-                aveLumi = 0 
+                aveLumi = 0
             else:
                 aveLumi /= float(count)
         self.lumi_ave = aveLumi
@@ -870,7 +871,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         for trigger in triggerList: self.getTriggerData(trigger, doPred, aveLumi)
 
         # Sort
-        # Note: Since tup[4] can be a float or an empty str, avoid TypeError by creating tuple where first element 
+        # Note: Since tup[4] can be a float or an empty str, avoid TypeError by creating tuple where first element
         # is True of False (based on whether or not tup[4] is a str), second is 0 or tup[4] and sort that tuple instead
         if doPred:
             # [4] is % diff, [6] is deviation
@@ -1044,9 +1045,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 else:
                     dev = "INF"
                 # perc can be a str, in python2 "str">0 is True, for python3 we get a TypeError, so check if str before checking if >0
-                if type(perc) is str: 
+                if type(perc) is str:
                     sign=1
-                else: 
+                else:
                     if perc>0:
                         sign=1
                     else:
@@ -1077,15 +1078,15 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             self.tableData.append(row)
 
-    # Use: Checks for bad triggers 
+    # Use: Checks for bad triggers
     def checkForBadTriggers(self):
-        # Check is physActive is true or false 
-        physActive = False 
+        # Check is physActive is true or false
+        physActive = False
         for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
             if not instLumi is None and physics:
-                physActive = True 
+                physActive = True
                 break
-        for trigger, data in self.Rates.items(): 
+        for trigger, data in self.Rates.items():
 
             # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
             trgAcceptThreshold = self.findTrgThreshold(trigger)
@@ -1203,10 +1204,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         #if self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
         if self.sendAudioAlerts and self.LHCStatus[0] == "Stable" and self.LHCStatus[1] >= 3 and self.isUpdating:
             if not self.l1t_rate_alert.check(rates):
-                #pass 
+                #pass
                 self.l1t_rate_alert.alert()
 
-    # Use: Prints warnings and sends mail 
+    # Use: Prints warnings and sends mail
     def runMail(self):
         # Print warnings for triggers that have been repeatedly misbehaving
         for trigger in self.badRates:
@@ -1216,7 +1217,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 # We want to send an alert to mattermost whenever a trigger exits the acceptable threshold envelope
                 inlist = 0
                 for sublist in range(len(self.mattermostTriggers)):
-                    if trigger == self.mattermostTriggers[sublist][0]:  
+                    if trigger == self.mattermostTriggers[sublist][0]:
                         inlist = 1
                         break
                 if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
@@ -1266,7 +1267,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             #InputFit = InputFit['triggers']
             FormattedFit = {}
             for trg in InputFit['triggers']:
-                FormattedFit[trg] = InputFit['triggers'][trg]['user_input'] 
+                FormattedFit[trg] = InputFit['triggers'][trg]['user_input']
             return FormattedFit
         else:
             return InputFit
@@ -1305,11 +1306,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
     # Use: Gets the MSE of the fit
     def getMSE(self, triggerName):
-        paramlist = [] 
+        paramlist = []
         if not self.InputFitHLT is None and triggerName in self.InputFitHLT:
             paramlist = self.InputFitHLT[triggerName]
         elif not self.InputFitL1 is None and triggerName in self.InputFitL1:
-            paramlist = self.InputFitL1[triggerName] 
+            paramlist = self.InputFitL1[triggerName]
         else:
             return 0
         if self.pileUp:
@@ -1321,45 +1322,53 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
     def sendMail(self,messageTriggers):
-        text = "Run: %d, Lumisections: %s - %s \n" % (self.runNumber, self.lastLS, self.currentLS)
+        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
+        text += "| --- | --- | --- | --- | -- | --| \n"
+        text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
         try:
-            text += "Average inst. lumi: %.0f x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
         except:
-            text += "Average inst. lumi: %s x 10^30 cm-2 s-1\n" % (self.lumi_ave)
+            text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
 
         try:
-            text += "Average PU: %.2f\n \n" % (self.pu_ave)
+            text += "%.2f |" % (self.pu_ave)
         except:
-            text += "Average PU: %s\n \n" % (self.pu_ave)
+            text += "%s |" % (self.pu_ave)
+
+        text += "%s |" % (self.triggerMode)
+        text += str(self.lumiData[-1][2])+"| \n\n"
+       
         text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
+        text += "| Path | Actual | Expected | Unprescaled Expected/nBunches | Unprescaled Actual/nBunches | Deviation |\n"
+        text += "| --- | --- | --- | --- | --- | --- |\n"
 
         for triggerName, rate, expected, dev, ps in messageTriggers:
             if dev is None:
                 dev = -999
             if self.numBunches[0] == 0:
-                text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                text += "| %s | %s Hz |\n" % (stringSegment(triggerName, 35), rate)
             else:
                 if expected > 0:
-                    try:
+                   try:
                         tmp_str = ""
-                        tmp_str += "\n %s: Expected: %.1f Hz," % (stringSegment(triggerName, 35), expected)
-                        tmp_str += " Actual: %.1f Hz," % (rate)
-                        tmp_str += " Unprescaled Expected/nBunches: %.5f Hz," % (expected*ps/self.numBunches[0])
-                        tmp_str += " Unprescaled Actual/nBunches: %.5f Hz," % (rate*ps/self.numBunches[0])
-                        tmp_str += " Deviation: %.1f\n" % (dev)
-                    except:
+                        tmp_str += "| %s | %.1f Hz |" % (stringSegment(triggerName, 35), rate)
+                        tmp_str += "%.1f Hz | " % (expected)
+                        tmp_str += "%.5f Hz |" % (expected*ps/self.numBunches[0])
+                        tmp_str += "%.5f Hz |" % (rate*ps/self.numBunches[0])
+                        tmp_str += "%.1f | \n" % (dev)
+                   except:
                         tmp_str = ""
-                        tmp_str += "\n %s: Expected: %s Hz," % (stringSegment(triggerName, 35), expected)
-                        tmp_str += " Actual: %s Hz," % (rate)
-                        tmp_str += " Unprescaled Expected/nBunches: %s Hz," % (expected*ps/self.numBunches[0])
-                        tmp_str += " Unprescaled Actual/nBunches: %s Hz," % (rate*ps/self.numBunches[0])
-                        tmp_str += " Deviation: %s\n" % (dev)
-                    text += tmp_str
+                        tmp_str += "| %s | %s Hz |" % (stringSegment(triggerName, 35), rate)
+                        tmp_str += "%s Hz |" % (expected)
+                        tmp_str += "%s Hz |" % (expected*ps/self.numBunches[0])
+                        tmp_str += "%s Hz|" % (rate*ps/self.numBunches[0])
+                        tmp_str += "%s | \n" % (dev)
+                   text += tmp_str
                 else:
                     try:
-                        text += "\n %s: Actual: %.1f Hz\n" % (stringSegment(triggerName, 35), rate)
+                        text += "| %s | %.1f Hz | \n" % (stringSegment(triggerName, 35), rate)
                     except:
-                        text += "\n %s: Actual: %s Hz\n" % (stringSegment(triggerName, 35), rate)
+                        text += "| %s | %s Hz | \n" % (stringSegment(triggerName, 35), rate)
         header = 'MATTERMOST MESSAGES DISABLED'
         if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
             header = ' SENDING MESSAGE TO MATTERMOST '
@@ -1371,7 +1380,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def dumpTriggerThresholds(self,triggers,ilum,fp_name):
         # Format: {'trigger_name': [central_value,one_sigma_variance]}
         thresholds = {}
-        for t in triggers: 
+        for t in triggers:
             rate = self.calculateRate(t,ilum)
             mse = self.getMSE(t)
             if rate == 0 or mse == 0:
@@ -1528,3 +1537,4 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print(' ')
 
 ## ----------- End of class ShiftMonitor ------------ ##
+

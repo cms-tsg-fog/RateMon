@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --createFit --bestFit --lsVeto=ls_veto_map.json --updateOnlineFits 324980 324293 
+python plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list --updateOnlineFits 357271 

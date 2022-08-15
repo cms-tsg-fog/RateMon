@@ -275,6 +275,7 @@ class MonitorController:
                     self.rate_monitor.update_online_fits = True
                     self.rate_monitor.use_pileup = True
                     self.rate_monitor.make_fits  = False    # We make this false, since we need to make more then one fit file
+                    self.rate_monitor.fitter.use_best_fit = True
                     self.rate_monitor.data_parser.use_L1_triggers  = True
                     self.rate_monitor.data_parser.use_HLT_triggers = True
                     self.rate_monitor.data_parser.use_streams  = False
@@ -284,7 +285,6 @@ class MonitorController:
                     self.rate_monitor.plotter.show_errors = True
                     self.rate_monitor.plotter.show_eq     = True
                     self.rate_monitor.plotter.save_root_file = False
-                    self.rate_monitor.object_list = self.readTriggerList("TriggerLists/monitorlist_COLLISIONS.list")
                 elif op_name == "createFit":
                     self.rate_monitor.make_fits = True
                     self.rate_monitor.plotter.use_fit     = True
