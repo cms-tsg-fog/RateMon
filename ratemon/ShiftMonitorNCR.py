@@ -528,7 +528,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.otherL1Triggers = []
         # Reset bad rate records
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
-
         # Set trigger lists automatically based on mode
         if not self.userSpecTrigList:
             if self.mode == "cosmics" or self.mode == "circulate":
@@ -542,20 +541,31 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 print("No lists to monitor: trigger mode not recognized")
 
         # Re-make trigger lists
-        for trigger in list(self.Rates.keys()):
-            if trigger[0:4] == "HLT_":
-                if trigger in self.InputFitHLT:
+        if self.mode == "cosmics":
+           for trigger in list(self.triggerList):
+                if trigger[0:4] == "HLT_":
+                    #if trigger in self.InputFitHLT:
                     self.usableHLTTriggers.append(trigger)
-                else:
-                    self.otherHLTTriggers.append(trigger)
-            if trigger[0:3] == "L1_":
-                if trigger in self.InputFitL1:
+                    #else:    
+                        #self.otherHLTTriggers.append(trigger)
+                if trigger[0:3] == "L1_":
+                    #if trigger in self.InputFitL1:
                     self.usableL1Triggers.append(trigger)
-                else:
-                    self.otherL1Triggers.append(trigger)
-
+                    #else:
+                        #self.otherL1Triggers.append(trigger)
+        else:
+            for trigger in list(self.Rates.keys()):
+                if trigger[0:4] == "HLT_":
+                    if trigger in self.InputFitHLT:
+                        self.usableHLTTriggers.append(trigger)
+                    else:
+                        self.otherHLTTriggers.append(trigger)
+                if trigger[0:3] == "L1_":
+                    if trigger in self.InputFitL1:
+                        self.usableL1Triggers.append(trigger)
+                    else:
+                        self.otherL1Triggers.append(trigger)
         self.getHeader()
-
     # Use: Gets the rates for the lumisections we want
     def queryDatabase(self):
         # Update lastLS
@@ -583,7 +593,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.Rates = {}
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
-
         lslist = []
         #get ignored list
         self.ignoreStrings = self.loadTriggersFromFile(self.ignoreFile)
@@ -688,7 +697,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:
             self.pu_ave = 0
         # We only do predictions when there were physics active LS in a collisions run
-        doPred = physicsActive and self.mode == "collisions"
+        doPred = (physicsActive and self.mode == "collisions") or self.mode == "cosmics"
         # Print the header
         self.printHeader()
         if self.mode == "collisions":
@@ -955,7 +964,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if trigger not in self.Rates: return
 
         # If cosmics, don't do predictions
-        if self.mode == "cosmics": doPred = False
+        # if self.mode == "cosmics": doPred = False
         # Calculate rate
         if doPred:
             if not aveLumi is None:
@@ -1082,12 +1091,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
             trgAcceptThreshold = self.findTrgThreshold(trigger)
 
-            isMonitored = trigger in self.triggerList
-            hasFit = trigger in self.InputFitHLT or trigger in self.InputFitL1
-            hasLSRate = len(list(self.Rates[trigger].keys())) > 0
-            isNonZeroPS = sum([ v[1] for k,v in data.items() ]) > 0
-
-            doPred = hasFit and isMonitored and self.mode=="collisions"
+            isMonitored = trigger in self.triggerList       
+            hasFit = trigger in self.InputFitHLT or trigger in self.InputFitL1 
+            hasLSRate = len(list(self.Rates[trigger].keys())) > 0 
+            isNonZeroPS = sum([ v[1] for k,v in data.items() ]) > 0  
+ 
+            doPred = hasFit and isMonitored and (self.mode=="cosmics" or self.mode=="collisions")
             doPred = doPred and isNonZeroPS
             doPred = doPred and hasLSRate
 
@@ -1267,7 +1276,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def calculateRate(self, triggerName, ilum):
         # Return single numerical value for cosmic ref. rates
         if self.mode == 'cosmics':
-            InputFit = loadFit('Fits/Cosmics/COSMICS_Rates.pkl')
+            InputFit = self.loadFit('Fits/Cosmics/COSMICS_Rates.pkl')
             return InputFit[triggerName]
         # Make sure we have a fit for the trigger
         paramlist = []
