@@ -750,8 +750,8 @@ class PlotMaker:
         legend.Draw() 
         canvas.Update()
 
-        if self.save_root_file:
-            self.saveRootFile(canvas)
+        #if self.save_root_file:
+        #    self.saveRootFile("Name", canvas)
 
         if self.save_png:
             self.savePlot(trigger,canvas)
@@ -923,7 +923,6 @@ class PlotMaker:
         canvas.SetName("Certification Summary of Run %s" % run)
         canvas.SetGridx(1)
         canvas.SetGridy(1)
-
         summary_hist = TH1D("Certification_Summary_of_Run%s" % (run), "Run %s" % (run), (tot_ls+2), (min_ls-1), (max_ls+1))
         summary_hist.GetXaxis().SetTitle("LS")
         summary_hist.GetYaxis().SetTitle("Number of bad paths")
@@ -965,8 +964,8 @@ class PlotMaker:
         #canvas.Modified()
         #canvas.Write()
         
-        if self.save_root_file:
-            self.saveRootFile(canvas)
+        #if self.save_root_file:
+        #    self.saveRootFile(self.save_dir + "/" + "CertificationSummary_run%d" % run, canvas)
 
         if self.save_png:
             canvas.Print(self.save_dir + "/" + "CertificationSummary_run%d" % run + ".png","png")
