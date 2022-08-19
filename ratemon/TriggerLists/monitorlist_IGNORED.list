@@ -15,3 +15,4 @@ HLT_L1RandomTrigType
 HLT_ECALHT1
 HLT_HCALHT1
 HLT_PixelTracks
+HLT_Mu0_L1DoubleMu
