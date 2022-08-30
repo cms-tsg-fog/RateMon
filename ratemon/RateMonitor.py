@@ -99,11 +99,6 @@ class RateMonitor:
         print("Using runs:",self.run_list)
         print("Using Prescaled rates:",self.data_parser.use_prescaled_rate)
 
-        if self.update_online_fits:
-            # Ensures that DataParser gets all triggers
-            self.data_parser.hlt_triggers = []
-            self.data_parser.l1_triggers = []
-
         ### THIS IS WHERE WE GET ALL OF THE DATA ###
         self.data_parser.parseRuns(self.run_list,self.all_triggers)
 
@@ -324,22 +319,16 @@ class RateMonitor:
         print("Setting up directories...")
 
         if self.update_online_fits:
-            mon_trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")   # $rate_mon_dir/Fits/Monitor_Triggers
-            all_trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")         # $rate_mon_dir/Fits/All_Triggers
-            if os.path.exists(mon_trg_dir):
-                shutil.rmtree(mon_trg_dir)
-                print("\tRemoving existing directory: %s " % (mon_trg_dir))
-            if os.path.exists(all_trg_dir):
-                shutil.rmtree(all_trg_dir)
-                print("\tRemoving existing directory: %s " % (all_trg_dir))
-            print("\tCreating directory: %s " % (mon_trg_dir))
-            os.mkdir(mon_trg_dir)
-            os.chdir(mon_trg_dir)
-            os.mkdir("plots")
-            os.chdir(self.rate_mon_dir)
-            print("\tCreating directory: %s " % (all_trg_dir))
-            os.mkdir(all_trg_dir)
-            os.chdir(all_trg_dir)
+            if self.all_triggers:
+                trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
+            else:
+                trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
+            if os.path.exists(trg_dir):
+                shutil.rmtree(trg_dir)
+                print("\tRemoving existing directory: %s " % (trg_dir))
+            print("\tCreating directory: %s " % (trg_dir))
+            os.mkdir(trg_dir)
+            os.chdir(trg_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
             return
@@ -520,20 +509,16 @@ class RateMonitor:
         # type: (Dict[str,Dict[int,object]]) -> None
 
         # NOTE: self.object_list, contains *ONLY* the list of triggers from 'monitorlist_COLLISIONS.list'
-        mon_trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
-        all_trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
-
-        all_triggers = set()
-        for obj in self.data_parser.getNameList():
-            all_triggers.add(obj)
-        all_triggers = list(all_triggers)
+        if self.all_triggers:
+            trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
+        else:
+            trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
 
         self.plotter.plot_dir = "plots"
 
-        # Plots the monitored paths
-        print("Updating monitored trigger fits...")
+        print("Updating trigger fits...")
         print("Total Triggers: %d" % (len(self.object_list)))
-        self.plotter.save_dir = mon_trg_dir
+        self.plotter.save_dir = trg_dir
         #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         #self.plotter.setFits(fits)
         #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
@@ -543,24 +528,8 @@ class RateMonitor:
             'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
         }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",mon_trg_dir)
+        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",trg_dir)
         plotted_objects = self.makePlots(self.object_list)
-
-        # Plots all trigger paths
-        print("Updating all trigger fits...")
-        print("Total Triggers: %d" % (len(all_triggers)))
-        self.plotter.save_dir = all_trg_dir
-        #fits = self.fitter.makeFits(plot_data,all_triggers,normalization)
-        #self.plotter.setFits(fits)
-        #self.fitter.saveFits(fits,"FOG.pkl",all_trg_dir)
-        #fit_info = self.fitter.makeFits(plot_data,all_triggers,normalization)
-        fit_info = {
-            'run_groups': copy.deepcopy(self.fitter.data_dict),
-            'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
-         }
-        self.plotter.setFits(fit_info)
-        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",all_trg_dir)
-        plotted_objects = self.makePlots(all_triggers)
 
         command_line_str  = "Results produced with:\n"
         command_line_str += "python plotTriggerRates.py "
@@ -578,15 +547,10 @@ class RateMonitor:
             command_line_str += "%d " % (run)
         command_line_str +="\n"
         
-        command_line_file_name = os.path.join(mon_trg_dir,"command_line.txt")
+        command_line_file_name = os.path.join(trg_dir,"command_line.txt")
         log_file_mon = open(command_line_file_name, "w")
         log_file_mon.write(command_line_str)
         log_file_mon.close()
-
-        command_line_file_name = os.path.join(all_trg_dir,"command_line.txt")
-        log_file_all = open(command_line_file_name, "w")
-        log_file_all.write(command_line_str)
-        log_file_all.close()
 
     def certifyRuns(self,plot_data):
         # type: (Dict[str,Dict[int,object]]) -> None
@@ -646,7 +610,7 @@ class RateMonitor:
                 if self.plotter.makeCertifyPlot(obj,run,lumi_info[run]):
                     print("Plotting %s..." % obj)
                     plotted_objects.append(obj)
-            self.printHtml(png_list=plotted_objects["plots"].keys(),save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
+            self.printHtml(png_list=plotted_objects,save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
 
     # We create a prediction dictionary on a per run basis, which covers all triggers in that run
     # TODO: Should move this to DataParser.py
