@@ -181,7 +181,7 @@ class DBParser:
                           thing['hbhec_ready']*thing['hf_ready']*thing['ho_ready']*thing['rpc_ready']*thing['dt0_ready']*
                           thing['dtp_ready']*thing['dtm_ready']*thing['cscp_ready']*thing['cscm_ready']*thing['tob_ready']*
                           thing['tibtid_ready']*thing['tecp_ready']*thing['tecm_ready']*thing['bpix_ready']*
-                          thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']*thing['pileup']])
+                          thing['fpix_ready']*thing['esp_ready']*thing['esm_ready']])
 
         return _list
 
