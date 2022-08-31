@@ -259,7 +259,7 @@ class RateMonitor:
         #    return False
 
         # Have to specify triggers to plot data for
-        if self.object_list == [] and not self.all_triggers:
+        if self.object_list == [] and not self.all_triggers and self.data_parser.use_L1_triggers and self.data_parser.use_HLT_triggers:
             print("ERROR SETUP: A trigger list must be specified.")
             return False
 
