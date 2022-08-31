@@ -425,6 +425,24 @@ class DBParser:
 
         return l1rate
 
+    # Use: Gets the total L1 rate before DT
+    # Returns: A dictionary: [ LS ] <rate>
+    def getL1TotalPreDT(self, runNumber,minLS=-1,maxLS=9999999):
+
+        q = omsapi.query("l1triggerrates")
+        q.custom("group[granularity]", "lumisection")
+        q.filter("run_number", runNumber)
+        q.filter("first_lumisection_number", minLS, "GE")
+        q.filter("last_lumisection_number", maxLS, "LE")
+        q.custom("fields", "first_lumisection_number,total_before_deadtime")
+        q.per_page=PAGE_LIMIT
+        data = q.data().json()['data']
+        l1rate = {}
+        for item in data:
+            l1rate[item['attributes']["first_lumisection_number"]] = item['attributes']["total_before_deadtime"]["rate"]
+
+        return l1rate
+
     # Use: Gets the total L1A calibration rate as a function of lumisection
     # Returns: A dictionary: [ LS ] <rate>
     def getL1ACalib(self, runNumber,minLS=-1,maxLS=9999999):
@@ -687,10 +705,37 @@ class DBParser:
             for row in item['attributes']['prescales']:
                 self.L1Prescales[item['attributes']['algo_index']][row['prescale_index']] = row['prescale']
 
-    # This is a function for the old DBParser.py that was not able to be transferred to the OMS DB
-    # It is designed to get the list of Datasets and each HLT path within it
-    # Returns: dicitonary <Dataset name>(HLT path)
+    # Use: Get the rate for each dataset in a run
+    # Returns: dicitonary <Dataset name>[lumiseciton, rate]
     def getPrimaryDatasets(self, runNumber, minLS=-1, maxLS=9999999):
+
+        q = omsapi.query("datasetrates")
+        q.per_page = PAGE_LIMIT
+        q.filter("run_number", runNumber)
+        q.filter("first_lumisection_number", 1)
+        q.custom("fields", "rate,dataset_name,first_lumisection_number,last_lumisection_number")
+        try:
+            data = q.data().json()['data']
+        except:
+            print("Error: Unable to retrieve PD data.")
+        PrimaryDatasets = {}
+        for item in data:
+            PrimaryDatasets[item['attributes']['dataset_name']] = []
+            q.clear_filter()
+            q.filter("run_number", runNumber)
+            q.filter("dataset_name", item['attributes']['dataset_name'])
+            q.filter("first_lumisection_number", minLS, "GE")
+            q.filter("last_lumisection_number", maxLS, "LE")
+            rates = q.data().json()['data']
+            for rate in rates:
+                PrimaryDatasets[item['attributes']['dataset_name']].append([rate['attributes']['first_lumisection_number'], rate['attributes']['rate']])
+
+        return PrimaryDatasets
+        
+    # This is a function for the old DBParser.py that was not able to be transferred to the OMS DB                                                                                                                                                                                                                                                                         
+    # It is designed to get the list of Datasets and each HLT path within it                                                                                                                                                                                                                                                                                               
+    # Returns: dicitonary <Dataset name>(HLT path) 
+    def getPathsInDatastes(self, runNumber):
         raise NotImplemented()
 
 # -------------------- End of class DBParsing -------------------- #

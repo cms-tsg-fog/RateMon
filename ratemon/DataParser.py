@@ -107,7 +107,7 @@ class DataParser:
             if len(self.l1_triggers) == 0:
                 self.skip_l1_triggers = True
 
-        if self.skip_hlt_triggers and self.skip_l1_triggers:
+        if self.skip_hlt_triggers and self.skip_l1_triggers and (self.use_L1_triggers or self.use_HLT_triggers):
             raise NoValidTriggersError
 
         counter = 1
@@ -516,6 +516,8 @@ class DataParser:
         L1A_rates["L1APhysics"] = self.parser.getL1APhysics(run)
         if self.verbose: print("\tGetting L1APhysicsLost rates...")
         L1A_rates["L1APhysicsLost"] = self.parser.getL1APhysicsLost(run)
+        if self.verbose: print("\tGetting L1ATotalPreDT rates...")
+        L1A_rates["L1ATotalPreDT"] = self.parser.getL1TotalPreDT(run)
 
         run_data = {}   # {'object': {"LS": list, "rate": {...}, ... } }
 
