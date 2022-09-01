@@ -634,7 +634,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.mode != "cosmics":
             # Find the average lumi since we last checked
             count = 0
-            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
+            for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
@@ -662,7 +662,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
+            for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
@@ -1082,7 +1082,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def checkForBadTriggers(self):
         # Check is physActive is true or false
         physActive = False
-        for LS, instLumi, psi, physics, all_subSys_good in self.lumiData:
+        for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
             if not instLumi is None and physics:
                 physActive = True
                 break
