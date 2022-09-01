@@ -634,18 +634,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.mode != "cosmics":
             # Find the average lumi since we last checked
             count = 0
-            for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
+            for LS, psi, physics, all_subSys_good, pileup in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
-                if not instLumi is None and physics:
-                    aveLumi += instLumi
-                    count += 1
-            if count == 0:
-                aveLumi = 0
-            else:
-                aveLumi /= float(count)
-        self.lumi_ave = aveLumi
+#                if not instLumi is None and physics:
+#                    aveLumi += instLumi
+#                    count += 1
+#            if count == 0:
+#                aveLumi = 0
+#            else:
+#                aveLumi /= float(count)
+#       self.lumi_ave = aveLumi
 
     # Use: Retrieves information and prints it in table form
     def printTable(self):
@@ -662,18 +662,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
-            for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
+            for LS, psi, physics, all_subSys_good, pileup in self.lumiData:
                 # If we are watching a certain range, throw out other LS
                 if self.useLSRange and (LS < self.LSRange[0] or LS > self.LSRange[1]): continue
                 # Average our instLumi
-                if not instLumi is None:
-                    physicsActive = physicsActive or physics
-                    PScol = psi
-                    if LS in self.deadTimeData: aveDeadTime += self.deadTimeData[LS]
-                    else: aveDeadTime = 0
-                    if LS in self.l1rateData: aveL1rate += self.l1rateData[LS]
-                    else: aveL1rate = 0
-                    count += 1
+#                if not instLumi is None:
+#                    physicsActive = physicsActive or physics
+#                    PScol = psi
+#                    if LS in self.deadTimeData: aveDeadTime += self.deadTimeData[LS]
+#                    else: aveDeadTime = 0
+#                    if LS in self.l1rateData: aveL1rate += self.l1rateData[LS]
+#                    else: aveL1rate = 0
+#                    count += 1
             if count == 0:
                 expected = "NONE"
             else:
@@ -1082,10 +1082,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def checkForBadTriggers(self):
         # Check is physActive is true or false
         physActive = False
-        for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
-            if not instLumi is None and physics:
-                physActive = True
-                break
+#        for LS, psi, physics, all_subSys_good, pileup in self.lumiData:
+#            if not instLumi is None and physics:
+#                physActive = True
+#                break
         for trigger, data in self.Rates.items():
 
             # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
