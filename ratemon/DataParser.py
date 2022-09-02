@@ -261,7 +261,7 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
-            for LS,ilum,psi,phys,cms_ready in lumi_info:
+            for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
@@ -333,7 +333,7 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
-            for LS,ilum,psi,phys,cms_ready in lumi_info:
+            for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
 
