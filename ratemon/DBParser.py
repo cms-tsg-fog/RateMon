@@ -174,7 +174,8 @@ class DBParser:
                         more_ps=False
                     else:
                         ps_counter += 1
-            _list.append([thing['lumisection_number'], ps, thing['physics_flag']*thing['beam1_present'],
+            adjusted_lumi = adjust*thing['init_lumi']
+            _list.append([thing['lumisection_number'], adjusted_lumi, ps, thing['physics_flag']*thing['beam1_present'],
                           thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
                           thing['eep_ready']*thing['eem_ready']*thing['hbhea_ready']*thing['hbheb_ready']*
                           thing['hbhec_ready']*thing['hf_ready']*thing['ho_ready']*thing['rpc_ready']*thing['dt0_ready']*
