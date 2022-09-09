@@ -1,6 +1,6 @@
 # RateMon
 
-Repository with various tools to monitor HLT and L1 rates. More details on the [twiki](https://twiki.cern.ch/twiki/bin/viewauth/CMS/RateMonitoringScriptWithReferenceComparison).
+Repository with various tools to monitor HLT and L1 rates. More details on the [training repository](https://gitlab.cern.ch/cms-tsg-fog/training/-/tree/master/).
 
 ## GitHub & GitLab
 
@@ -21,23 +21,6 @@ python3 -m pip install -r requirements.txt
 python3 setup.py install --user
 ```
 
-You will also need ROOT and ROOT bindings for Python:
-```
-yum install python3 root python36-root
-```
-
-### Python environment
-
-This project uses a python virtual environment.
-
-To set things up:
-```bash
-cd ratemon
-python3 -m venv .
-source bin/activate
-pip3 install -r requirements.txt
-```
-
 ## CI/CD
 
 Each push to GitLab that introduces new commits will start a CI pipeline.
@@ -55,20 +38,20 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
   - Set variables `P5_USER` and `P5_PASS` to your P5 username and password.
 - In this newly created pipeline, press the `deploy:P5` play button
 
-
-### Running plotTriggerRates
-
-```bash
-python3 plotTriggerRates.py --useFills --createFit --bestFit --triggerList=TriggerLists/monitorlist_COLLISIONS.list 6303
-```
-
 ### Running ShiftMonitorTool
 
-At P5, ratemon is installed for you and available as the `ratemon` Systemd service.
+At P5, ratemon is installed for you and available as the `ratemon` Systemd service. This is on the VM `kvm-s3562-1-ip151-84`, which can be accessed from `cmsusr`.
 
 To view logs:
 ```bash
 journalctl -fu ratemon
+```
+
+To restart the Systemd service (done if there is an error or after new deployment) it can be done with:
+
+```bash
+sudo systemctl stop ratemon.service
+sudo systemctl start ratemon.service
 ```
 
 To run outside P5:
@@ -76,27 +59,4 @@ To run outside P5:
 cd ratemon
 source venv/bin/activate
 python3 ShiftMonitorTool.py
-```
-
-### Database Parser
-
-The ShiftMonitorTool has been updated to use the OMS databate parser via the OMS API. 
-
-To switch back to the old database parser run (requires `sudo` access from maintainers):
-```bash
-sudo systemctl stop ratemon.service
-sudo systemctl start ratemon2.service
-```
-
-> Note: Other `systemctl` commands are also available, such as: `status`, `restart`, `reload` or `reload-or-restart`.
-
-To view logs:
-```bash
-journalctl -fu ratemon2
-```
-
-### Run the API server
-
-```bash
-python3 app.py
 ```
