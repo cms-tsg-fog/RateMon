@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list --updateOnlineFits 357611 357612 357613 
+python plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list --updateOnlineFits 357898 357899 357900 
