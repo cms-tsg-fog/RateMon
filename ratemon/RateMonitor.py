@@ -650,7 +650,7 @@ class RateMonitor:
 
                 lsVals = []
                 puVals = []
-                for LS, ilum, psi, phys, cms_ready in lumi_info[run]:
+                for LS, ilum, psi, phys, cms_ready, pu in lumi_info[run]:
                     if not ilum is None and phys:
                         if LS not in pu_data[obj][run]:
                             continue

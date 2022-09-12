@@ -187,7 +187,7 @@ class DataParser:
                 print("\tGetting lumi info...")
             for LS,psi in self.parser.getLSInfo(run):
                 # We hard code phys and cms_ready to both be true for all LS in the run
-                lumi_info.append([LS,0.0,psi,1,1])
+                lumi_info.append([LS,0.0,psi,1,1,0])
         elif trigger_mode.find('collisions') > 0:
             # This is a collisions menu
             if self.verbose:

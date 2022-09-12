@@ -564,7 +564,7 @@ class PlotMaker:
 
         lsVals = []
         puVals = []
-        for LS, ilum, psi, phys, cms_ready in lumi_info:
+        for LS, ilum, psi, phys, cms_ready, pu in lumi_info:
             if not ilum is None and phys:
                 lsVals.append(LS)
                 puVals.append( (ilum * ppInelXsec) / ( self.bunch_map[run] * orbitsPerSec ) )
@@ -902,7 +902,7 @@ class PlotMaker:
         bad_count = len(list(bad_ls.keys()))
         total_count = len(ls_set)
 
-        log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 3 sigma from prediction )\n" % bad_count)
+        log_file.write("---- Total bad LS: %d ( bad LS: >= 1 trigger(s) deviating more than 5 sigma from prediction )\n" % bad_count)
         log_file.write("---- Total LS: %d\n" % total_count)
         log_file.write("---- Fraction bad LS: %.2f\n" % (100.*float(bad_count)/float(total_count)))
 

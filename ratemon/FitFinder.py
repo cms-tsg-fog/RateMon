@@ -408,7 +408,7 @@ class FitFinder:
             ls_arr.append(ls)
             pred_arr.append(rr)
             ls_err.append(0)
-            pred_err.append(bunches*3*sigma)
+            pred_err.append(bunches*5*sigma)
             idx = idx+1
 
         return ls_arr,pred_arr,ls_err,pred_err
