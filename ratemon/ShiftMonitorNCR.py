@@ -1150,11 +1150,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 if self.isBadTrigger(perc,dev,properAvePSRate,trigger[0:3]=="L1_",trgAcceptThreshold):
                     self.bad += 1
                     if trigger not in self.badRates:
-                        self.badRates[trigger] = [1,True,properAvePSRate,avePSExpected,dev,avePS]
+                        self.badRates[trigger] = [1,True,properAvePSRate,avePSExpected,dev,avePS,True]
                     else:
                         # Record consecutive bad rates
                         last = self.badRates[trigger]
-                        self.badRates[trigger] = [last[0]+1,True,properAvePSRate,avePSExpected,dev,avePS]
+                        self.badRates[trigger] = [last[0]+1,True,properAvePSRate,avePSExpected,dev,avePS,True]
                 else:
                     self.normal += 1
                     # Remove warning from badRates
@@ -1166,12 +1166,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     self.bad += 1
                     if trigger not in self.badRates:
                         #self.badRates[trigger] = [ 1, True, properAvePSRate, -999, -999, -999 ]
-                        self.badRates[trigger] = [1,True,properAvePSRate,avePSExpected,dev,avePS]
+                        self.badRates[trigger] = [1,True,properAvePSRate,avePSExpected,dev,avePS,False]
                     else:
                         # Record consecutive bad rates
                         last = self.badRates[trigger]
                         #self.badRates[trigger] = [ last[0]+1, True, properAvePSRate, -999, -999, -999 ]
-                        self.badRates[trigger] = [last[0]+1,True,properAvePSRate,avePSExpected,dev,avePS]
+                        self.badRates[trigger] = [last[0]+1,True,properAvePSRate,avePSExpected,dev,avePS,False]
                 else:
                     self.normal += 1
                     # Remove warning from badRates
@@ -1221,7 +1221,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         inlist = 1
                         break
                 if inlist == 0 and self.badRates[trigger][0] == self.maxCBR:
-                    self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+                    if self.badRates[trigger][6]:
+                        if self.LHCStatus[0] == "Stable":
+                            self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
+                    else:
+                        self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
         # Send mattermost alerts
         if len(self.mattermostTriggers) > 0 and self.isUpdating and (time.time() - self.mattermostSendTime) > self.mattermostPeriod:
             self.sendMail(self.mattermostTriggers)
