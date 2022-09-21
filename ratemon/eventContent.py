@@ -33,8 +33,6 @@ requiredEventContent={
       'keep edmTriggerResults_*_*_*',
       'keep triggerTriggerEvent_*_*_*'],
     'DQM': [
-      'keep *_hltCombinedSecondaryVertexBJetTagsCalo_*_*',
-      'keep *_hltCombinedSecondaryVertexBJetTagsPF_*_*',
       'keep *_hltL3NoFiltersNoVtxMuonCandidates_*_*',
       'keep *_hltOnlineBeamSpot_*_*',
       'keep *_hltPFJetForBtag_*_*',
