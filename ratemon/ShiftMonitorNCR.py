@@ -32,6 +32,8 @@ from audioAlert import audioAlert
 from Alerts import *
 from Logger import *
 from FitFinder import *
+# For summary report
+from mattermostReport import mattermostReport
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -700,6 +702,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         doPred = (physicsActive and self.mode == "collisions") or self.mode == "cosmics"
         # Print the header
         self.printHeader()
+#        self.sendReport()
         if self.mode == "collisions":
             # Print triggers from self.usableHLTTriggers, self.usableL1Triggers
             anytriggers = False
@@ -865,6 +868,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0, maxRows=25):
         # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+
         self.tableData = []
 
         # Get the trigger data
@@ -1231,7 +1235,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.sendMail(self.mattermostTriggers)
             self.mattermostSendTime = time.time()
             self.mattermostTriggers = []
-
+        self.sendReport()
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
         if not self.quiet:
@@ -1378,6 +1382,34 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             header = ' SENDING MESSAGE TO MATTERMOST '
             mattermostAlert(text)
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
+
+
+    # Use: Send summary report to mattermost
+    def sendReport(self):
+
+        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Prescale Column | \n"
+        text += "| --- | --- | --- | --- | -- | --| --| \n"
+        text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
+
+        try:
+            text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
+        except:
+            text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
+
+        try:
+            text += "%.2f |" % (self.pu_ave)
+        except:
+            text += "%s |" % (self.pu_ave)
+
+
+        text += "%s |" % (self.triggerMode)
+        text += "%s |" % (len(self.mattermostTriggers))
+
+        text += str(self.lumiData[-1][2])+"| \n\n"
+
+        mattermostReport(text)
+        print("sending mattermost report")
+
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
@@ -1539,6 +1571,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print(' ')
         print('------------------------------------------')
         print(' ')
+
 
 ## ----------- End of class ShiftMonitor ------------ ##
 
