@@ -16,11 +16,3 @@ def mattermostReport(text):
     except:
         print("Unable to send message to mattermost")
 
-#payload={"text": "Hello, this is some text\nThis is more text. :tada:"}
-
-#POST /hooks/{hook} HTTP/1.1
-#Host: marttermost.web.cern.ch
-#Content-Type: application/json
-#Content-Length: 63
-
-#{"text": "Hello, this is some text\nThis is more text. :tada:"}
