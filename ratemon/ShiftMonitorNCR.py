@@ -1385,7 +1385,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Send summary report to mattermost
     def sendReport(self):
 
-        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Prescale Column | \n"
+        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Last Prescale Column | \n"
         text += "| --- | --- | --- | --- | -- | --| --| \n"
         text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
 
