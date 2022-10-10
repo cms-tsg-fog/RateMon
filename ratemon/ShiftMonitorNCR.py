@@ -702,7 +702,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         doPred = (physicsActive and self.mode == "collisions") or self.mode == "cosmics"
         # Print the header
         self.printHeader()
-#        self.sendReport()
         if self.mode == "collisions":
             # Print triggers from self.usableHLTTriggers, self.usableL1Triggers
             anytriggers = False
