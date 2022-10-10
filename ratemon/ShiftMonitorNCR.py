@@ -33,7 +33,6 @@ from Alerts import *
 from Logger import *
 from FitFinder import *
 # For summary report
-from mattermostReport import mattermostReport
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -1406,7 +1405,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         text += str(self.lumiData[-1][2])+"| \n\n"
 
-        mattermostReport(text)
+        mattermostAlert(text)
         print("sending mattermost report")
 
 
