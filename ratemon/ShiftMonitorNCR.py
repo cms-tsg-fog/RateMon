@@ -435,8 +435,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.runMail()
                 self.sleepWait()
             except KeyboardInterrupt:
+                self.sendReport()  # Send mattermost report for interrupted run
                 print("Quitting. Bye.")
                 break
+        # Send mattermost report at the end of run
+        self.sendReport()
+        print("End of run")
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
@@ -1233,7 +1237,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.sendMail(self.mattermostTriggers)
             self.mattermostSendTime = time.time()
             self.mattermostTriggers = []
-        self.sendReport()
+
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
         if not self.quiet:
@@ -1382,12 +1386,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
 
 
-    # Use: Send summary report to mattermost
+    # Use: Send summary report to mattermost, and print out the same report on CLI
     def sendReport(self):
 
-        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Last Prescale Column | \n"
+        text = "| Run | Last Lumisection | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
         text += "| --- | --- | --- | --- | -- | --| --| \n"
-        text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
+        text += "| %d | %s |" % (self.runNumber, self.currentLS)
 
         try:
             text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
@@ -1406,8 +1410,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         text += str(self.lumiData[-1][2])+"| \n\n"
 
         mattermostAlert(text)
-        print("sending mattermost report")
-
+        print("Sending mattermost report...")
+        print("Mattermost Summary report")
+        print(text)
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
@@ -1569,7 +1574,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print(' ')
         print('------------------------------------------')
         print(' ')
-
 
 ## ----------- End of class ShiftMonitor ------------ ##
 
