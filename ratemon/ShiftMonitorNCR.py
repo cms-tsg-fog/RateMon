@@ -435,12 +435,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.runMail()
                 self.sleepWait()
             except KeyboardInterrupt:
-                self.sendReport()  # Send mattermost report for interrupted run
                 print("Quitting. Bye.")
                 break
-        # Send mattermost report at the end of run
-        self.sendReport()
-        print("End of run")
+            else:
+                # Check when the run ends, and send run report to mattermost
+                self.lastRunNumber != self.runNumber
+                print("End of current run")
+                self.sendReport()
+                print("Starting next run...")
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
