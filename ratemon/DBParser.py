@@ -24,21 +24,12 @@ PAGE_LIMIT = 10000
 #initiate connection to endpoints and authenticate
 hostname = socket.gethostname()
 
-#This option uses a DB authentication only available on lxplus
-if "lxplus" in hostname:
-    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False, verbose=False)
-    omsapi.auth_krb()
-#This option uses a token setup for the API VMs
-elif "ruber" in hostname or "ater" in hostname or "caer" in hostname:
-    stream = open(str('OMSConfig.yaml'), 'r')
-    cfg  = yaml.safe_load(stream)
-    my_app_id = cfg['token_info']['token_name']
-    my_app_secret = cfg['token_info']['token_secret']
-    omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False, verbose=False)
-    omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
-#This option is for P5, no authentication necessary
-else:
-    omsapi = OMSAPI("http://cmsoms.cms:8080/api", verbose=False)
+stream = open(str('OMSConfig.yaml'), 'r')
+cfg  = yaml.safe_load(stream)
+my_app_id = cfg['token_info']['token_name']
+my_app_secret = cfg['token_info']['token_secret']
+omsapi = OMSAPI("https://cmsoms.cern.ch/agg/api", "v1", cert_verify=False, verbose=False)
+omsapi.auth_oidc(my_app_id, my_app_secret, audience="cmsoms-prod")
 
 # Key version stripper
 def stripVersion(name):

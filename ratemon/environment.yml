@@ -1,0 +1,7 @@
+name: RateMon
+channels:
+  - conda-forge
+dependencies:
+  - conda-forge::python=3.9
+  - root
+  - pyyaml

@@ -19,7 +19,6 @@ import yaml
 import sys
 
 import DBParser
-import OldDBParser
 from RateMonitor import *
 from Exceptions import *
 
@@ -117,12 +116,8 @@ class MonitorController:
         print("The options dict:",ops_dict)
 
         # Take care of db config file first and set defualts
-        if ops_dict["oldParser"]:
-            self.parser = OldDBParser.DBParser(ops_dict["dbConfigFile="])
-            self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
-        else:
-            self.parser = DBParser.DBParser()
-            self.rate_monitor = RateMonitor()
+        self.parser = DBParser.DBParser()
+        self.rate_monitor = RateMonitor()
         self.setDefaults()
 
         # Loop over options and set class variables

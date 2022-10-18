@@ -15,7 +15,6 @@
 import array
 
 import DBParser
-import OldDBParser
 from Exceptions import *
 
 # --- 13 TeV constant values ---
@@ -35,10 +34,7 @@ class DataParser:
     # This is an interface for DBParser() to select and manage the data returned by DBParser()
     def __init__(self, cfg=None):
         # type: () -> None
-        if cfg==None:
-            self.parser = DBParser.DBParser()
-        else:
-            self.parser = OldDBParser.DBParser(cfg)
+        self.parser = DBParser.DBParser()
 
         # The lists all have the same number of elements, e.g.: len(self.lumi_data[trg][run]) == len(self.pu_data[trg][run])
         self.ls_data   = {}    # {'name': { run_number: [LS] } }

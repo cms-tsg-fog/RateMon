@@ -13,7 +13,6 @@
 
 # Imports
 import DBParser
-import OldDBParser
 from DBParser import stripVersion
 import ROOT
 from ROOT import TF1
