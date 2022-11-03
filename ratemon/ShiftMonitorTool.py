@@ -23,6 +23,7 @@ import sys
 import yaml
 # For getting command line options
 import getopt
+import array
 # For the ShiftMonitor tool
 from ShiftMonitorNCR import *
 
@@ -95,9 +96,21 @@ class CommandLineParser:
                 self.monitor.sendMattermostAlerts_static = False
                 self.monitor.sendMattermostAlerts_dynamic = False
                 self.monitor.sendAudioAlerts = False
-                self.monitor.runNumber = int(op)
-                self.monitor.simulate = True
-                self.monitor.useLSRange = True
+            #    self.monitor.runNumber = int(op)
+            #    self.monitor.simulate = True
+            #    self.monitor.useLSRange = True
+                r = op.split(',')
+                r = [int(i) for i in r]
+                print(r)
+                i = 0
+                for i in range(len(r)):
+                    print(r[i]) 
+                    self.monitor.runNumber = r[i]
+                    self.monitor.simulate = True
+                    self.monitor.useLSRange = True
+                    self.monitor.run()
+                    i += 1
+                
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--keepZeros":
@@ -169,8 +182,9 @@ class CommandLineParser:
 
     # Use: Runs the shift monitor
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
-    def run(self):
-        self.monitor.run()
+
+#-->    def run(self):
+#-->        self.monitor.run()
 
     ## Use: Parser options from a cfg file
     #def parseCFGFile(self):
@@ -244,5 +258,4 @@ class CommandLineParser:
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.run()
-
 

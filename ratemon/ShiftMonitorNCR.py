@@ -434,15 +434,15 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
-            except KeyboardInterrupt:
-                print("Quitting. Bye.")
-                break
-            else:
+            except:
                 # Check when the run ends, and send run report to mattermost
                 self.lastRunNumber != self.runNumber
-                print("End of current run")
+                print("End of the current run")
                 self.sendReport()
-                print("Starting next run...")
+                break
+           # except KeyboardInterrupt:
+           #     print("Quitting. Bye.")
+           #     break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
@@ -500,7 +500,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.currentLS > self.lastLS:
             self.printTable()
         elif self.simulate:
-            raise KeyboardInterrupt
+            self.printTable()
+            #raise KeyboardInterrupt
         else:
             print("Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS))
 
