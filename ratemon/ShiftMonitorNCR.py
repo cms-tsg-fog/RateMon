@@ -434,18 +434,44 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
-            except:
-                # Check when the run ends, and send run report to mattermost
-                self.lastRunNumber != self.runNumber
-                print("End of the current run")
-                self.sendReport()
+            except KeyboardInterrupt:
+                print("Quitting. Bye.")
                 break
-           # except KeyboardInterrupt:
-           #     print("Quitting. Bye.")
-           #     break
-
+            finally:
+                # Check if the run has changed to send end-of-run report to mattermost
+                if not self.simulate:
+                    if self.lastRunNumber != self.runNumber:
+                        self.sendReport()
+                elif self.simulate:
+                    if self.currentLS - self.lastLS < 3:
+                        self.lastRunNumber = self.runNumber
+                        self.sendReport()
+                        break
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
+
+    # Activate a list of simulation runs
+    def simulation_runData(self):
+        self.simulate = True
+        self.useLSRange = True
+        i = 0
+        r = [317288,317295] # Input simulation runs
+        self.lastRunNumber = r[0]
+        for i in range(len(r)):
+            self.runNumber = r[i]
+            # if we have started a new run then run LS from 0.
+            if self.runNumber != self.lastRunNumber:
+                print("Starting a new run: Run %s" % (self.runNumber))
+                self.lastLS = 1
+                self.currentLS = 0
+                # Check what mode we are in
+                self.setMode()
+                self.redoTList = True
+            self.run()
+            self.lastRunNumber = r[i]
+            #print("self.lastRunNumber:",self.lastRunNumber)
+            i += 1
+            continue
 
     def runLoop(self):
         # Reset counting variable
@@ -463,7 +489,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[0] = 'Stable'
             self.LSRange[0] = self.currentLS
             self.LSRange[1] = self.currentLS + self.LS_increment
-
         # If we are using a configuration file to update options
         if self.configFilePath != "":
             self.updateOptions()
@@ -500,7 +525,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.currentLS > self.lastLS:
             self.printTable()
         elif self.simulate:
-            self.printTable()
+            self.lastRunNumber == self.runNumber
+            print(self.runNumber)
+            return
+
             #raise KeyboardInterrupt
         else:
             print("Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS))

@@ -96,21 +96,10 @@ class CommandLineParser:
                 self.monitor.sendMattermostAlerts_static = False
                 self.monitor.sendMattermostAlerts_dynamic = False
                 self.monitor.sendAudioAlerts = False
+                self.monitor.simulation_runData() # running multiple simulation runs in script NCR
+            # below are for only 1 simulation run through command line, "--simulate=op"
             #    self.monitor.runNumber = int(op)
-            #    self.monitor.simulate = True
-            #    self.monitor.useLSRange = True
-                r = op.split(',')
-                r = [int(i) for i in r]
-                print(r)
-                i = 0
-                for i in range(len(r)):
-                    print(r[i]) 
-                    self.monitor.runNumber = r[i]
-                    self.monitor.simulate = True
-                    self.monitor.useLSRange = True
-                    self.monitor.run()
-                    i += 1
-                
+            #    self.monitor.run()
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--keepZeros":
@@ -183,8 +172,9 @@ class CommandLineParser:
     # Use: Runs the shift monitor
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
 
-#-->    def run(self):
-#-->        self.monitor.run()
+    def run(self):
+        if not self.monitor.simulate:
+            self.monitor.run()
 
     ## Use: Parser options from a cfg file
     #def parseCFGFile(self):
