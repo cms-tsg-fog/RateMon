@@ -96,10 +96,10 @@ class CommandLineParser:
                 self.monitor.sendMattermostAlerts_static = False
                 self.monitor.sendMattermostAlerts_dynamic = False
                 self.monitor.sendAudioAlerts = False
-                self.monitor.simulation_runData() # running multiple simulation runs in script NCR
-            # below are for only 1 simulation run through command line, "--simulate=op"
-            #    self.monitor.runNumber = int(op)
-            #    self.monitor.run()
+                self.monitor.simulation_runNumber = op.split(',')
+                self.monitor.simulation_runNumber = [int(r) for r in self.monitor.simulation_runNumber]
+                self.monitor.simulate = True
+                self.monitor.useLSRange = True
             elif label == "--displayBad":
                 self.monitor.displayBadRates = int(op)
             elif label == "--keepZeros":
@@ -173,8 +173,7 @@ class CommandLineParser:
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
 
     def run(self):
-        if not self.monitor.simulate:
-            self.monitor.run()
+        self.monitor.run()
 
     ## Use: Parser options from a cfg file
     #def parseCFGFile(self):

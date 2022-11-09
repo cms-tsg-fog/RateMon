@@ -127,6 +127,8 @@ class ShiftMonitor:
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
         self.LHCStatus = ["",0]         # First element is the status string, second is the number of consecutive queries in this status
+        self.simulation_runNumber = []  # Define a list of simulation runs
+        self.runIndex = 0               # Run index used in simulation mode
 
         # Running over a previouly done run
         self.LSRange = [0,0]            # If we want to only look at a range of LS from the run
@@ -418,8 +420,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[stripVersion(triggerName)] = best_fit
+        print(self.simulate)
         if not self.simulate:
             self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        if self.simulate:
+            self.runNumber = self.simulation_runNumber[self.runIndex]
         # Info message
         print("The current run number is %s." % (self.runNumber))
         # Run as long as we can
@@ -431,6 +436,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.lastRunNumber = self.runNumber
                 if not self.simulate:
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+                if self.simulate:
+                    self.runNumber = self.simulation_runNumber[self.runIndex]
+                    print(self.runIndex)
+                    print(len(self.simulation_runNumber),self.runIndex)
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
@@ -443,36 +452,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     if self.lastRunNumber != self.runNumber:
                         self.sendReport()
                 elif self.simulate:
-                    if self.currentLS - self.lastLS < 3:
+                    if self.currentLS - self.lastLS == 0:
                         self.lastRunNumber = self.runNumber
                         self.sendReport()
-                        break
+                        if len(self.simulation_runNumber) - self.runIndex > 1:
+                            self.runIndex += 1
+
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
-
-    # Activate a list of simulation runs
-    def simulation_runData(self):
-        self.simulate = True
-        self.useLSRange = True
-        i = 0
-        r = [317288,317295] # Input simulation runs
-        self.lastRunNumber = r[0]
-        for i in range(len(r)):
-            self.runNumber = r[i]
-            # if we have started a new run then run LS from 0.
-            if self.runNumber != self.lastRunNumber:
-                print("Starting a new run: Run %s" % (self.runNumber))
-                self.lastLS = 1
-                self.currentLS = 0
-                # Check what mode we are in
-                self.setMode()
-                self.redoTList = True
-            self.run()
-            self.lastRunNumber = r[i]
-            #print("self.lastRunNumber:",self.lastRunNumber)
-            i += 1
-            continue
-
     def runLoop(self):
         # Reset counting variable
         self.normal = 0
@@ -506,11 +493,16 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print("Starting a new run: Run %s" % (self.runNumber))
-            self.lastLS = 1
-            self.currentLS = 0
+            self.lastLS = 0
+            self.currentLS = 1
             # Check what mode we are in
             self.setMode()
             self.redoTList = True
+
+        #if self.simulate:
+        #    self.LHCStatus[0] = 'Stable'
+        #    self.LSRange[0] = self.currentLS
+        #    self.LSRange[1] = self.currentLS + self.LS_increment
 
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
@@ -525,8 +517,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.currentLS > self.lastLS:
             self.printTable()
         elif self.simulate:
-            self.lastRunNumber == self.runNumber
             print(self.runNumber)
+            self.printTable()
             return
 
             #raise KeyboardInterrupt
