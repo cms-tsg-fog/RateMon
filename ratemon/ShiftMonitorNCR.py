@@ -438,8 +438,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 if self.simulate:
                     self.runNumber = self.simulation_runNumber[self.runIndex]
-                    print(self.runIndex)
-                    print(len(self.simulation_runNumber),self.runIndex)
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
