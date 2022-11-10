@@ -420,7 +420,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[stripVersion(triggerName)] = best_fit
-        print(self.simulate)
         if not self.simulate:
             self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
         if self.simulate:
