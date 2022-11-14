@@ -1,0 +1,14 @@
+{
+    "trgDevThresholds": {
+    },
+    "devAcceptDefault":5,
+    "sendAudioAlerts":false,
+    "maxCBR": 5,
+    "mattermostPeriod": 300,
+    "maxL1Rate": 50000, 
+    "maxHLTRate": 1000, 
+    "maxStreamRate": 1500,              
+    "maxPDRate": 400,
+    "scale_sleeptime": 0.5,
+    "scale_sleeptime_simulate": 0.05
+}

@@ -10,7 +10,6 @@
 #    [ key ] <object>  -- denotes a dictionary of keys associated with objects
 #    ( object )          -- denotes a list of objects
 #######################################################
-
 # Imports
 import DBParser
 import OldDBParser
@@ -171,6 +170,8 @@ class ShiftMonitor:
         self.devAcceptDefault = 5       # The default acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
         #self.recordAllBadTriggers = {} # A dictionary: [ trigger name ] < total times the trigger was bad > # Apparently never used?
+        self.badStreams = {}            # A dictionary: [stream name] {LS, rate, size, bandwidth}
+        self.badDatasets = {}           # A dictionary: [dataset name] {LS, rate}
         self.maxCBR = 5                 # The maximum consecutive db queries a trigger is allowed to deviate from prediction by specified amount before it's printed out
         self.displayBadRates = -1       # The number of bad rates we should show in the summary. We use -1 for all
         self.usePerDiff = False         # Whether we should identify bad triggers by perc diff or deviatoin
@@ -330,13 +331,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.showStreams = False                # Whether we should print stream information
         self.showPDs = False                    # Whether we should print pd information
         self.totalStreams = 0                   # The total number of streams
-        self.maxStreamRate = 1000000            # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 250                    # The maximum rate we allow a "good" pd to have
+        self.maxStreamRate = 1500                # The maximum rate we allow a "good" stream to have
+        self.maxPDRate = 650                    # The maximum rate we allow a "good" pd to have
         self.lumi_ave = 0
         self.pu_ave = 0
         #self.deadTimeCorrection = True         # correct the rates for dead time
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
-        self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
+        self.scale_sleeptime_simulate = 0.5    # Shorter sleep period if in simulate mode
 
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
@@ -464,7 +465,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.queryDatabase()
 
+        self.checkForBadStreams()
+        self.checkForBadDatasets()
         self.checkForBadTriggers()
+        
         self.checkTriggers()
 
         if self.mode == "collisions" and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
@@ -1178,6 +1182,45 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     if trigger in self.badRates and avePS > 0:
                         del self.badRates[trigger]
 
+    # Use: Checks for bad streams
+    def checkForBadStreams(self):
+        physActive = False
+        for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
+            if not instLumi is None and physics:
+                physActive = True
+                break
+        
+        # loop through streams and if the rate is exceeding the threshold, add to the badDatasets dictionary
+        for name in self.streamData.keys():
+            self.badStreams[name]=[]
+            for entry in self.streamData[name]:
+                # if entry[1]>streamThreshold[name][index of alert (middle threshold)]:     
+                if entry[1]>self.maxStreamRate:
+                    self.badStreams[name].append(entry)
+            # remove dictionary entries where none of the LS were bad
+            if len(self.badStreams[name])==0:
+                self.badStreams.pop(name)
+        #print("Bad Streams: \n", self.badStreams, '\n')
+        
+    # Use: Checks for bad streams
+    def checkForBadDatasets(self):
+        physActive = False
+        for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
+            if not instLumi is None and physics:
+                physActive = True
+                break
+
+        # loop through datasets and if the rate is exceeding the threshold, add to the badDatasets dictionary
+        for name in self.pdData.keys():
+            self.badDatasets[name]=[]
+            for entry in self.pdData[name]:
+                #if entry[1]>datasetThreshold[name][index of alert (middle threshold)]
+                if entry[1]>self.maxPDRate:
+                    self.badDatasets[name].append(entry)
+            # remove dictionary entries where none of the LS were bad
+            if len(self.badDatasets[name])==0:
+                self.badDatasets.pop(name)
+
     # Use: Checks triggers to make sure none have been bad for to long
     def checkTriggers(self):
         # check what is the latest lumisection for which we have monitoring data
@@ -1226,11 +1269,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                             self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
                     else:
                         self.mattermostTriggers.append( [ trigger, self.badRates[trigger][2], self.badRates[trigger][3], self.badRates[trigger][4], self.badRates[trigger][5] ] )
-        # Send mattermost alerts
-        if len(self.mattermostTriggers) > 0 and self.isUpdating and (time.time() - self.mattermostSendTime) > self.mattermostPeriod:
-            self.sendMail(self.mattermostTriggers)
-            self.mattermostSendTime = time.time()
-            self.mattermostTriggers = []
+
+        # if any streams or datasets are bad, send mattermost alert
+        # if triggers are bad for longer than the chosen mattermostPeriod, send mattermost alert
+        if ((len(self.badStreams) > 0 and self.isUpdating) 
+                or (len(self.badDatasets) > 0 and self.isUpdating) 
+                or (len(self.mattermostTriggers) > 0 and self.isUpdating and ((time.time() - self.mattermostSendTime) > self.mattermostPeriod))
+           ):
+            self.sendMail(self.mattermostTriggers, self.badStreams, self.badDatasets)
+            
+            # if a trigger alert has been sent, reset time and reset mattermost triggers list
+            if len(self.mattermostTriggers) > 0 and self.isUpdating and ((time.time() - self.mattermostSendTime) > self.mattermostPeriod):
+                self.mattermostSendTime = time.time()
+                self.mattermostTriggers = []
+
+            self.badStreams = {}
+            self.badDatasets = {}
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1320,28 +1374,57 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.pileUp:
             return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
+    
+    # Use: create text for mattermost alerts for bad streams
+    def streamAlerts(self, badStreams):
+        # Stream alert title
+        text = "Streams exceeding threshold: \n"
+        text += "| Stream | LS | Max Rate (Hz) | Alert Threshold (Hz) | Critical Alert Threshold (Hz) |\n"
+        text += "| --- | --- | --- | --- | --- | \n"
 
-    # Use: Sends an email alert
-    # Parameters:
-    # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
-    # Returns: (void)
-    def sendMail(self,messageTriggers):
-        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
-        text += "| --- | --- | --- | --- | -- | --| \n"
-        text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
-        try:
-            text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
-        except:
-            text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
+        # loop through bad streams, creates one row for each bad stream and summarizes the LS currently queried 
+        for name in badStreams.keys():
+            LS_str = ''
+            streamRates = []
+            for item in badStreams[name]:
+                LS_str += str(item[0]) + ', '
+                streamRates.append(item[1])
 
-        try:
-            text += "%.2f |" % (self.pu_ave)
-        except:
-            text += "%s |" % (self.pu_ave)
+            text += f"| {name} | {LS_str} | "
+            try: 
+                text += f"{max(streamRates):.2f} | "
+            except: 
+                text += f"{str(streamRates)} | "
+            # TODO: Change values of alert and critical alert thresholds
+            text += f" {self.maxStreamRate} | {self.maxStreamRate} |\n"
+        return text
 
-        text += "%s |" % (self.triggerMode)
-        text += str(self.lumiData[-1][2])+"| \n\n"
-       
+    # Use: create text for mattermost alerts for bad datasets
+    def datasetAlerts(self, badDatasets):
+        # Dataset alert title
+        text = "Datasets exceeding threshold: \n"
+        text += "| Dataset | LS | Max Rate (Hz) | Alert Threshold (Hz) | Critical Alert Threshold (Hz) | \n"
+        text += "| --- | --- | --- | --- | --- | \n"
+
+        # loop through bad datasets, creates one row for each bad dataset and summarizes the LS currently queried
+        for name in badDatasets.keys():
+            LS_str = ''
+            datasetRates = []
+            for item in badDatasets[name]:
+                LS_str += str(item[0]) + ', '
+                datasetRates.append(item[1])
+
+            text += f"| {name} | {LS_str} | " 
+            try: 
+                text += f" {max(datasetRates):.2f} | " 
+            except: 
+                text += f" {str(datasetRates)} | "
+                        
+            # TODO: Change values of alert and critical alert thresholds
+            text += f" {self.maxPDRate} | {self.maxPDRate} | \n"
+        return text
+
+    def triggerAlerts(self, messageTriggers):  
         text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
         text += "| Path | Actual | Expected | Unprescaled Expected/nBunches | Unprescaled Actual/nBunches | Deviation |\n"
         text += "| --- | --- | --- | --- | --- | --- |\n"
@@ -1350,29 +1433,60 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if dev is None:
                 dev = -999
             if self.numBunches[0] == 0:
-                text += "| %s | %s Hz |\n" % (stringSegment(triggerName, 35), rate)
+                text += f"| {stringSegment(triggerName, 35)} | {rate} Hz |\n"
             else:
                 if expected > 0:
-                   try:
+                    try: 
                         tmp_str = ""
-                        tmp_str += "| %s | %.1f Hz |" % (stringSegment(triggerName, 35), rate)
-                        tmp_str += "%.1f Hz | " % (expected)
-                        tmp_str += "%.5f Hz |" % (expected*ps/self.numBunches[0])
-                        tmp_str += "%.5f Hz |" % (rate*ps/self.numBunches[0])
-                        tmp_str += "%.1f | \n" % (dev)
-                   except:
+                        tmp_str += f"| {stringSegment(triggerName, 35)} | {rate:.1f} Hz |"
+                        tmp_str += f"{expected:.1f} Hz | " 
+                        tmp_str += f"{expected*ps/self.numBunches[0]:.5f} Hz |"
+                        tmp_str += f"{rate*ps/self.numBunches[0]:.5f} Hz |" 
+                        tmp_str += f"{dev:.1f} | \n"
+                        text += tmp_str
+                    except: 
                         tmp_str = ""
-                        tmp_str += "| %s | %s Hz |" % (stringSegment(triggerName, 35), rate)
-                        tmp_str += "%s Hz |" % (expected)
-                        tmp_str += "%s Hz |" % (expected*ps/self.numBunches[0])
-                        tmp_str += "%s Hz|" % (rate*ps/self.numBunches[0])
-                        tmp_str += "%s | \n" % (dev)
-                   text += tmp_str
+                        tmp_str += f"| {stringSegment(triggerName, 35)} | {str(rate)} Hz |"
+                        tmp_str += f"{str(expected)} Hz | " 
+                        tmp_str += f"{str(expected*ps/self.numBunches[0])} Hz |"
+                        tmp_str += f"{str(rate*ps/self.numBunches[0])} Hz |" 
+                        tmp_str += f"{str(dev)} | \n"
+                        text += tmp_str
                 else:
-                    try:
-                        text += "| %s | %.1f Hz | \n" % (stringSegment(triggerName, 35), rate)
+                    try: 
+                        text += f"| {stringSegment(triggerName, 35)} | {rate:.1f} Hz |\n"
                     except:
-                        text += "| %s | %s Hz | \n" % (stringSegment(triggerName, 35), rate)
+                        text += f"| {stringSegment(triggerName, 35)} | {str(rate)} Hz |\n"
+        return text
+    
+    # Use: Sends an email alert
+    # Parameters:
+    # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
+    # Returns: (void)
+    def sendMail(self,messageTriggers, badStreams, badDatasets):
+        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
+        text += "| --- | --- | --- | --- | --- | --- | \n"
+        text += f"| {self.runNumber} | {self.lastLS} - {self.currentLS} | " 
+        
+        try: 
+            text += f" {self.lumi_ave:.0f} x 10^30 cm-2 s-1 |"
+        except: 
+            text += f" {str(self.lumi_ave)} x 10^30 cm-2 s-1 |"
+        
+        try: 
+            text += f" {self.pu_ave:.2f} |"
+        except: 
+            text += f" {str(self.pu_ave)} |"
+        
+        text += f" {self.triggerMode} | {str(self.lumiData[-1][2])} | \n\n"
+
+        if len(badStreams) > 0:
+            text += self.streamAlerts(badStreams)
+        if len(badDatasets) > 0: 
+            text += self.datasetAlerts(badDatasets)
+        if len(self.mattermostTriggers) > 0 and self.isUpdating and ((time.time() - self.mattermostSendTime) > self.mattermostPeriod): 
+            text += self.triggerAlerts(messageTriggers)
+
         header = 'MATTERMOST MESSAGES DISABLED'
         if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
             header = ' SENDING MESSAGE TO MATTERMOST '
