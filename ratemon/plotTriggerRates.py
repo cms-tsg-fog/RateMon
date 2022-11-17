@@ -214,6 +214,11 @@ class MonitorController:
                     self.rate_monitor.data_parser.use_datasets = False
                     self.rate_monitor.data_parser.use_L1A_rate = False
                     self.rate_monitor.plotter.root_file_name   = "Stream_Rates.root"
+                #elif label == "--useCrossSection":
+                #    # Plot the (rate/inst. lumi) vs. <PU>
+                    self.rate_monitor.data_parser.normalize_bunches = False
+                    self.rate_monitor.data_parser.use_cross_section = True
+
                 elif op_name == "streamBandwidth":
                     self.rate_monitor.use_stream_bandwidth = True
                     self.rate_monitor.data_parser.use_L1_triggers  = False

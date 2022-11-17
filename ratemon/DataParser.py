@@ -422,6 +422,12 @@ class DataParser:
                     if self.normalize_bunches:
                         rate = rate/bunches
 
+                    if self.use_cross_section:
+                        if ilum>0:
+                            rate = rate*1E3/ilum #get nB. ilum*E33 / 1E28 /1E9
+                        else:
+                            rate = 0.
+
                     ls_array.append(LS)
                     rate_dict[LS] = rate
                     ps_dict[LS] = None
