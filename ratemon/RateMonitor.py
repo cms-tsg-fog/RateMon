@@ -491,11 +491,10 @@ class RateMonitor:
             y_axis_label += " / (num bx*iLumi)"
         elif self.data_parser.normalize_bunches:
             y_axis_label += " / num colliding bx"
+        elif self.data_parser.use_cross_section:
+            y_axis_label += " / iLumi"
 
         y_axis_label += " " + y_units
-
-        if self.data_parser.use_cross_section:
-            y_axis_label = "trigger cross section [nb or 10^{-33}cm^{2}]"
 
         self.plotter.var_X = x_axis_var
         self.plotter.var_Y = y_axis_var
