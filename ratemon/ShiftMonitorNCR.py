@@ -32,6 +32,7 @@ from audioAlert import audioAlert
 from Alerts import *
 from Logger import *
 from FitFinder import *
+# For summary report
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -126,6 +127,8 @@ class ShiftMonitor:
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
         self.LHCStatus = ["",0]         # First element is the status string, second is the number of consecutive queries in this status
+        self.simulation_runNumber = []  # Define a list of simulation runs
+        self.runIndex = 0               # Run index used in simulation mode
 
         # Running over a previouly done run
         self.LSRange = [0,0]            # If we want to only look at a range of LS from the run
@@ -419,6 +422,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.InputFitHLT[stripVersion(triggerName)] = best_fit
         if not self.simulate:
             self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        if self.simulate:
+            self.runNumber = self.simulation_runNumber[self.runIndex]
         # Info message
         print("The current run number is %s." % (self.runNumber))
         # Run as long as we can
@@ -430,16 +435,30 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.lastRunNumber = self.runNumber
                 if not self.simulate:
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+                if self.simulate:
+                    self.runNumber = self.simulation_runNumber[self.runIndex]
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
             except KeyboardInterrupt:
                 print("Quitting. Bye.")
                 break
+            finally:
+                # Check if the run has changed to send end-of-run report to mattermost
+                if not self.simulate:
+                    if self.lastRunNumber != self.runNumber:
+                        self.sendReport()
+                elif self.simulate:
+                    if self.currentLS - self.lastLS == 0:
+                        self.lastRunNumber = self.runNumber
+                        self.sendReport()
+                        if len(self.simulation_runNumber) - self.runIndex > 1:
+                            self.runIndex += 1
+                        elif len(self.simulation_runNumber) - self.runIndex == 1:
+                            break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
-
     def runLoop(self):
         # Reset counting variable
         self.normal = 0
@@ -456,7 +475,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[0] = 'Stable'
             self.LSRange[0] = self.currentLS
             self.LSRange[1] = self.currentLS + self.LS_increment
-
         # If we are using a configuration file to update options
         if self.configFilePath != "":
             self.updateOptions()
@@ -474,11 +492,16 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
             print("Starting a new run: Run %s" % (self.runNumber))
-            self.lastLS = 1
-            self.currentLS = 0
+            self.lastLS = 0
+            self.currentLS = 1
             # Check what mode we are in
             self.setMode()
             self.redoTList = True
+
+        #if self.simulate:
+        #    self.LHCStatus[0] = 'Stable'
+        #    self.LSRange[0] = self.currentLS
+        #    self.LSRange[1] = self.currentLS + self.LS_increment
 
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
@@ -493,7 +516,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.currentLS > self.lastLS:
             self.printTable()
         elif self.simulate:
-            raise KeyboardInterrupt
+            print(self.runNumber)
+            self.printTable()
+            return
+
+            #raise KeyboardInterrupt
         else:
             print("Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS))
 
@@ -865,6 +892,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0, maxRows=25):
         # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+
         self.tableData = []
 
         # Get the trigger data
@@ -1378,6 +1406,35 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             header = ' SENDING MESSAGE TO MATTERMOST '
             mattermostAlert(text)
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
+
+
+    # Use: Send summary report to mattermost, and print out the same report on CLI
+    def sendReport(self):
+
+        text = "| Run | Last Lumisection | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
+        text += "| --- | --- | --- | --- | -- | --| --| \n"
+        text += "| %d | %s |" % (self.runNumber, self.currentLS)
+
+        try:
+            text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
+        except:
+            text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
+
+        try:
+            text += "%.2f |" % (self.pu_ave)
+        except:
+            text += "%s |" % (self.pu_ave)
+
+
+        text += "%s |" % (self.triggerMode)
+        text += "%s |" % (len(self.mattermostTriggers))
+
+        text += str(self.lumiData[-1][2])+"| \n\n"
+
+        mattermostAlert(text)
+        print("Sending mattermost report...")
+        print("Mattermost Summary report")
+        print(text)
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
