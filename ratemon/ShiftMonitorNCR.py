@@ -454,6 +454,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.sendReport()
                         if len(self.simulation_runNumber) - self.runIndex > 1:
                             self.runIndex += 1
+                        elif len(self.simulation_runNumber) - self.runIndex == 1:
+                            break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
