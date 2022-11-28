@@ -184,6 +184,7 @@ class ShiftMonitor:
         self.mattermostTriggers = []    # A list of triggers that we should mail alerts about
         self.mattermostPeriod = 5*60      # Lenght of time inbetween emails
         self.mattermostSendTime = 0     # Time at which last email was sent
+        self.mattermostTriggersSum = 0
 
         self.configFilePath = ""        # Path to the config file
         self.lastCfgFileAccess = 0      # The last time the configuration file was updated
@@ -447,10 +448,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 # Check if the run has changed to send end-of-run report to mattermost
                 if not self.simulate:
                     if self.lastRunNumber != self.runNumber:
+                        self.runNumber = self.lastRunNumber
                         self.sendReport()
                 elif self.simulate:
                     if self.currentLS - self.lastLS == 0:
-                        self.lastRunNumber = self.runNumber
                         self.sendReport()
                         if len(self.simulation_runNumber) - self.runIndex > 1:
                             self.runIndex += 1
@@ -1259,6 +1260,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.sendMail(self.mattermostTriggers)
             self.mattermostSendTime = time.time()
             self.mattermostTriggers = []
+            self.mattermostTriggersSum = self.mattermostTriggersSum + 1
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1354,8 +1356,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
     def sendMail(self,messageTriggers):
-        text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
-        text += "| --- | --- | --- | --- | -- | --| \n"
+        text = "| Run Alert |\n"
+        text += "| -- |\n"
+        text += "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
+        #text += "| --- | --- | --- | --- | -- | --| \n"
         text += "| %d | %s - %s |" % (self.runNumber, self.lastLS, self.currentLS)
         try:
             text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
@@ -1411,23 +1415,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Send summary report to mattermost, and print out the same report on CLI
     def sendReport(self):
 
-        text = "| Run | Last Lumisection | Average inst. lumi | Average PU | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
-        text += "| --- | --- | --- | --- | -- | --| --| \n"
+        text = "| Run Report |\n"
+        text += "| -- | \n"
+        text += "| Run | Last Lumisection | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
+        #text += "| --- | --- | -- | --| --| \n"
         text += "| %d | %s |" % (self.runNumber, self.currentLS)
 
-        try:
-            text += "%.0f x 10^30 cm-2 s-1 |" % (self.lumi_ave)
-        except:
-            text += "%s x 10^30 cm-2 s-1 |" % (self.lumi_ave)
-
-        try:
-            text += "%.2f |" % (self.pu_ave)
-        except:
-            text += "%s |" % (self.pu_ave)
-
-
         text += "%s |" % (self.triggerMode)
-        text += "%s |" % (len(self.mattermostTriggers))
+        text += "%s |" % (self.mattermostTriggersSum)
 
         text += str(self.lumiData[-1][2])+"| \n\n"
 
