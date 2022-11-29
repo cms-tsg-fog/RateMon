@@ -523,7 +523,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 # Check if the run has changed to send end-of-run report to mattermost
                 if not self.simulate:
                     if self.lastRunNumber != self.runNumber:
-                        self.runNumber = self.lastRunNumber
                         self.sendReport()
                 elif self.simulate:
                     if self.currentLS - self.lastLS == 0:
@@ -1524,6 +1523,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.pileUp:
             return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
+<<<<<<< HEAD
     
     # Use: create text for mattermost alerts for bad streams
     # Return: text for stream alert
@@ -1670,29 +1670,21 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             mattermostAlert(text)
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
 
-<<<<<<< HEAD
     # Use: save variables at the end of run to send run report
     # Return: (void), updates relevant variables
-=======
-    # save variables at the end of run to send run report
->>>>>>> edit to save report info
     def saveRunInfo(self):
         self.saveRunNumber = self.runNumber
         self.saveLS = self.currentLS
         self.saveTriggerMode = self.triggerMode
-<<<<<<< HEAD
         self.saveLumi_ave = self.runLumi_ave
         self.savePu_ave = self.runPu_ave
-=======
         self.saveLumi_ave = self.lumi_ave
         self.savePu_ave = self.pu_ave
->>>>>>> edit to save report info
         self.saveLumiData = self.lumiData
 
     # Use: Send summary report to mattermost, and print out the same report on CLI
     def sendReport(self):
 
-<<<<<<< HEAD
         text = "Run Report: \n\n"
         text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Trigger Alerts | Last Used Prescale Column | \n"
         text += "| --- | --- | --- | --- | --- | --- | --- | \n"
@@ -1707,26 +1699,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             text += f"{self.savePu_ave:.2f} |" 
         except:
             text += f"{str(self.savePu_ave)} |" 
-=======
-        text = "| Run Report |\n"
-        text += "| -- | \n"
-        text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
-        #text += "| --- | --- | -- | --| --| \n"
-        text += "| %d | %s |" % (self.saveRunNumber, self.saveLS)
-
-        try:
-            text += "%.0f x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
-        except:
-            text += "%s x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
-
-        try:
-            text += "%.2f |" % (self.savePu_ave)
-        except:
-            text += "%s |" % (self.savePu_ave)
-
-        text += "%s |" % (self.saveTriggerMode)
-        text += "%s |" % (self.mattermostTriggersSum)
->>>>>>> edit to save report info
 
         text += f"{str(self.saveTriggerMode)} |" 
         text += f"{str(self.mattermostTriggersSum)} |"
