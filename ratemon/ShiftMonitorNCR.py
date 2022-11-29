@@ -192,6 +192,14 @@ class ShiftMonitor:
         self.l1rateData = {}
         self.lumiData= []
 
+        # Save run info for report
+        self.saveRunNumber = 1
+        self.saveLS = 1
+        self.saveTriggerMode = None
+        self.saveLumi_ave = 0
+        self.savePu_ave = 0
+        self.saveLumiData = []
+
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
           details   = '''
@@ -434,6 +442,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             try:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
+                self.saveRunInfo()
                 if not self.simulate:
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
                 if self.simulate:
@@ -1411,17 +1420,35 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             mattermostAlert(text)
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
 
+    # save variables at the end of run to send run report
+    def saveRunInfo(self):
+        self.saveRunNumber = self.runNumber
+        self.saveLS = self.currentLS
+        self.saveTriggerMode = self.triggerMode
+        self.saveLumi_ave = self.lumi_ave
+        self.savePu_ave = self.pu_ave
+        self.saveLumiData = self.lumiData
 
     # Use: Send summary report to mattermost, and print out the same report on CLI
     def sendReport(self):
 
         text = "| Run Report |\n"
         text += "| -- | \n"
-        text += "| Run | Last Lumisection | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
+        text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
         #text += "| --- | --- | -- | --| --| \n"
-        text += "| %d | %s |" % (self.runNumber, self.currentLS)
+        text += "| %d | %s |" % (self.saveRunNumber, self.saveLS)
 
-        text += "%s |" % (self.triggerMode)
+        try:
+            text += "%.0f x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
+        except:
+            text += "%s x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
+
+        try:
+            text += "%.2f |" % (self.savePu_ave)
+        except:
+            text += "%s |" % (self.savePu_ave)
+
+        text += "%s |" % (self.saveTriggerMode)
         text += "%s |" % (self.mattermostTriggersSum)
 
         text += str(self.lumiData[-1][2])+"| \n\n"
