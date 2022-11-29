@@ -457,7 +457,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 # Check if the run has changed to send end-of-run report to mattermost
                 if not self.simulate:
                     if self.lastRunNumber != self.runNumber:
-                        self.runNumber = self.lastRunNumber
                         self.sendReport()
                 elif self.simulate:
                     if self.currentLS - self.lastLS == 0:
@@ -1268,8 +1267,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if len(self.mattermostTriggers) > 0 and self.isUpdating and (time.time() - self.mattermostSendTime) > self.mattermostPeriod:
             self.sendMail(self.mattermostTriggers)
             self.mattermostSendTime = time.time()
+            self.mattermostTriggersSum += len(self.mattermostTriggers)
             self.mattermostTriggers = []
-            self.mattermostTriggersSum = self.mattermostTriggersSum + 1
 
     # Use: Sleeps and prints out waiting dots
     def sleepWait(self):
@@ -1365,7 +1364,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
     def sendMail(self,messageTriggers):
-        text = "| Run Alert |\n"
+        text = "| Run Trigger Alert |\n"
         text += "| -- |\n"
         text += "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
         #text += "| --- | --- | --- | --- | -- | --| \n"
@@ -1434,7 +1433,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         text = "| Run Report |\n"
         text += "| -- | \n"
-        text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Alerts | Last Used Prescale Column | \n"
+        text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Trigger Alerts | Last Used Prescale Column | \n"
         #text += "| --- | --- | -- | --| --| \n"
         text += "| %d | %s |" % (self.saveRunNumber, self.saveLS)
 
@@ -1451,7 +1450,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         text += "%s |" % (self.saveTriggerMode)
         text += "%s |" % (self.mattermostTriggersSum)
 
-        text += str(self.lumiData[-1][2])+"| \n\n"
+        text += str(self.saveLumiData[-1][2])+"| \n\n"
 
         mattermostAlert(text)
         print("Sending mattermost report...")
