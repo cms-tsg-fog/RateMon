@@ -526,11 +526,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.sendReport()
                 elif self.simulate:
                     if self.currentLS - self.lastLS == 0:
-                        self.sendReport()
                         if len(self.simulation_runNumber) - self.runIndex > 1:
                             self.runIndex += 1
                         elif len(self.simulation_runNumber) - self.runIndex == 1:
+                            self.sendReport()
                             break
+            except KeyboardInterrupt:
+                print("Quitting. Bye.")
+                break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
@@ -1523,7 +1526,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.pileUp:
             return self.numBunches[0]*paramlist[5]
         return paramlist[5] # The MSE
-<<<<<<< HEAD
     
     # Use: create text for mattermost alerts for bad streams
     # Return: text for stream alert
