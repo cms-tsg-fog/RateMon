@@ -450,21 +450,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
-            except KeyboardInterrupt:
-                print("Quitting. Bye.")
-                break
-            finally:
-                # Check if the run has changed to send end-of-run report to mattermost
-                if not self.simulate:
-                    if self.lastRunNumber != self.runNumber:
-                        self.sendReport()
-                elif self.simulate:
+                if self.simulate:
+                    # In simulate, go to the next run number when there are no more LS to print out
                     if self.currentLS - self.lastLS == 0:
-                        self.sendReport()
                         if len(self.simulation_runNumber) - self.runIndex > 1:
                             self.runIndex += 1
                         elif len(self.simulation_runNumber) - self.runIndex == 1:
+                            self.sendReport()
                             break
+            except KeyboardInterrupt:
+                print("Quitting. Bye.")
+                break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
@@ -500,6 +496,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
+            # Send report for the last run
+            self.sendReport()
             print("Starting a new run: Run %s" % (self.runNumber))
             self.lastLS = 0
             self.currentLS = 1
