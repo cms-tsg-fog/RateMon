@@ -504,6 +504,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Check what mode we are in
             self.setMode()
             self.redoTList = True
+            self.mattermostTriggersSum = 0
 
         #if self.simulate:
         #    self.LHCStatus[0] = 'Stable'
@@ -1450,7 +1451,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         text += str(self.saveLumiData[-1][2])+"| \n\n"
 
-        mattermostAlert(text)
+        if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
+            mattermostAlert(text)
         print("Sending mattermost report...")
         print("Mattermost Summary report")
         print(text)
@@ -1511,8 +1513,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     def optionsCheck(self):
         if self.simulate:
             if self.sendMattermostAlerts_static==True or self.sendMattermostAlerts_dynamic==True or self.sendAudioAlerts==True:
-                self.sendMattermostAlerts_static = False
-                self.sendMattermostAlerts_dynamic = False
+                self.sendMattermostAlerts_static = True
+                self.sendMattermostAlerts_dynamic = True
                 self.sendAudioAlerts = False
                 print("\n[WARNING] Alerts should not be on in simulate mode, turning off alerts\n")
                 #self.printProperties()
