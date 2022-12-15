@@ -9,4 +9,4 @@ export http_proxy=http://cmsproxy.cms:3128/
 $*
 
 source ./set.sh
-exec python3 ShiftMonitorTool.py --configFile=/cmsnfsratemon/ratemon/ShiftMonitor_config.json
+exec python3 ShiftMonitorTool.py --configFile=/cmsnfsratemon/ratemon/.ShiftMonitor_config.json
