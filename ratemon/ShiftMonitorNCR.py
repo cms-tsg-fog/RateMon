@@ -10,6 +10,7 @@
 #    [ key ] <object>  -- denotes a dictionary of keys associated with objects
 #    ( object )          -- denotes a list of objects
 #######################################################
+
 # Imports
 import DBParser
 import OldDBParser
@@ -20,6 +21,8 @@ import pickle as pickle
 import sys
 import time
 import json
+import requests
+import yaml
 # For colors
 from termcolor import *
 from colors import *
@@ -31,6 +34,8 @@ from audioAlert import audioAlert
 from Alerts import *
 from Logger import *
 from FitFinder import *
+from OIDCAuth import *
+# For summary report
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -125,6 +130,8 @@ class ShiftMonitor:
         self.runNumber = -1             # The number of the current run
         self.numBunches = [-1, -1]      # Number of [target, colliding] bunches
         self.LHCStatus = ["",0]         # First element is the status string, second is the number of consecutive queries in this status
+        self.simulation_runNumber = []  # Define a list of simulation runs
+        self.runIndex = 0               # Run index used in simulation mode
 
         # Running over a previouly done run
         self.LSRange = [0,0]            # If we want to only look at a range of LS from the run
@@ -156,7 +163,7 @@ class ShiftMonitor:
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
         self.ignoreFile = "TriggerLists/monitorlist_IGNORED.list"
-        self.ignoreStrings = []
+        self.ignoreStrings = []         # List of ignored triggers, filled from the config file, alternative filling method in queryDatabase()
 
         # Restrictions
         self.removeZeros = False        # If true, we don't show triggers that have zero rate
@@ -166,6 +173,8 @@ class ShiftMonitor:
         self.trgPerDiffThresholds = {}  # Dictionary of trigger percent diff thresholds (can be modified using the config file)
         #self.percAccept = 50.0         # The acceptence for % diff
         #self.devAccept = 5             # The acceptance for deviation
+        self.streamThresholds = {}      # Dictionary of stream thresholds [stream name] { threshold 0 (critical), threshold 1 (alert), threshold 2 (warning)}
+        self.datasetThresholds = {}     # Dictionary of dataset thresholds [dataset name] { threshold 0 (critical), threshold 1 (alert), threshold 2 (warning)}
         self.percAcceptDefault = 50.0   # The default acceptence for % diff
         self.devAcceptDefault = 5       # The default acceptance for deviation
         self.badRates = {}              # A dictionary: [ trigger name ] { num consecutive bad , whether the trigger was bad last time we checked, rate, expected, dev }
@@ -178,16 +187,36 @@ class ShiftMonitor:
         self.sortRates = True           # Whether we should sort triggers by their rates
         self.maxHLTRate = 5000          # The maximum prescaled rate we allow an HLT Trigger to have (for heavy-ions)
         self.maxL1Rate = 50000          # The maximum prescaled rate we allow an L1 Trigger to have (for heavy-ions)
+       
+        # Streams and Datasets
+        auth_file = open(str('OMSConfig.yaml'), 'r')
+        self.auth_cfg = yaml.safe_load(auth_file)
+        self.thresholdURL = "https://hltsupervisor-test.app.cern.ch/api/v0/thresholds"
+        self.missingStreamThresholds = []  # List of streams (if any) that don't have a threshold in self.streamThresholds 
+        self.missingDatasetThresholds = [] # List of datasets (if any) that don't have a threshold in self.datasetThresholds
+        self.query_error = False        # If there is a query error, this is set to true and a message is sent during the next Mattermost alert
+        self.dataset_error = False      # If there is a dataset error, this is set to true and a message is sent during the next Mattermost alert
+        self.streams_error = False      # If there is a stream error, this is set to true and a message is sent during the next Mattermost alert
 
+        # Mattermost Options
         self.mattermostTriggers = []    # A list of triggers that we should mail alerts about
         self.mattermostPeriod = 5*60      # Lenght of time inbetween emails
         self.mattermostSendTime = 0     # Time at which last email was sent
+        self.mattermostTriggersSum = 0  # Number of trigger alerts sent to MM during current run
 
         self.configFilePath = ""        # Path to the config file
         self.lastCfgFileAccess = 0      # The last time the configuration file was updated
 
         self.l1rateData = {}
-        self.lumiData= []
+        self.lumiData = []
+
+        # Save run info for report
+        self.saveRunNumber = 1
+        self.saveLS = 1
+        self.saveTriggerMode = None
+        self.saveLumi_ave = 0
+        self.savePu_ave = 0
+        self.saveLumiData = []
 
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
@@ -331,13 +360,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.showStreams = False                # Whether we should print stream information
         self.showPDs = False                    # Whether we should print pd information
         self.totalStreams = 0                   # The total number of streams
-        self.maxStreamRate = 1500                # The maximum rate we allow a "good" stream to have
-        self.maxPDRate = 650                    # The maximum rate we allow a "good" pd to have
+        self.maxStreamRate = 1000000            # The maximum rate we allow a "good" stream to have
+        self.maxPDRate = 250                    # The maximum rate we allow a "good" pd to have
         self.lumi_ave = 0
         self.pu_ave = 0
         #self.deadTimeCorrection = True         # correct the rates for dead time
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
-        self.scale_sleeptime_simulate = 0.5    # Shorter sleep period if in simulate mode
+        self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
@@ -361,6 +390,35 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             except:
                 print("Error parsing trigger name in file", fileName)
         return TriggerList
+
+
+    # Use: Get thresholds for streams and datasets from hltsupervisor, which is updated 
+    # by HLTDocs. If the authentication and query are successful, the stream and dataset
+    # threshold dictionaries are updated. If unsuccessful, they are left at their previous value
+    # Returns: (void)
+    def getThresholds(self):
+        try: 
+            # CERN authentication needed to query hltsupervisor
+            hltsuperauth = OIDCAuth(
+                client_id = self.auth_cfg['token_info']['token_name'],
+                client_secret = self.auth_cfg['token_info']['token_secret'],
+                audience="cms-tsg-frontend-client",    
+                auth_url='https://auth.cern.ch/auth/realms/cern/api-access/token',
+                cert_verify=True
+            )
+        
+            # query to get dictionary of thresholds, update the thresholds dictionaries 
+            url = self.thresholdURL
+            rep = requests.get(url,headers=hltsuperauth.headers())
+            if rep.status_code==200: 
+                thresholds_json = rep.json()
+                self.streamThresholds = thresholds_json['streams']
+                self.datasetThresholds = thresholds_json['datasets']
+            else: 
+                self.query_error = True
+        except: 
+            self.query_error = True
+
 
     # Use: Formats the header string
     # Returns: (void)
@@ -420,6 +478,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.InputFitHLT[stripVersion(triggerName)] = best_fit
         if not self.simulate:
             self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        if self.simulate:
+            self.runNumber = self.simulation_runNumber[self.runIndex]
         # Info message
         print("The current run number is %s." % (self.runNumber))
         # Run as long as we can
@@ -429,18 +489,28 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             try:
                 # Check if we are still in the same run, get trigger mode
                 self.lastRunNumber = self.runNumber
+                self.saveRunInfo()
                 if not self.simulate:
                     self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+                if self.simulate:
+                    self.runNumber = self.simulation_runNumber[self.runIndex]
                 self.runLoop()
                 self.runMail()
                 self.sleepWait()
+                if self.simulate:
+                    # In simulate, go to the next run number when there are no more LS to print out
+                    if self.currentLS - self.lastLS == 0:
+                        if len(self.simulation_runNumber) - self.runIndex > 1:
+                            self.runIndex += 1
+                        elif len(self.simulation_runNumber) - self.runIndex == 1:
+                            self.sendReport()
+                            break
             except KeyboardInterrupt:
                 print("Quitting. Bye.")
                 break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
-
     def runLoop(self):
         # Reset counting variable
         self.normal = 0
@@ -457,7 +527,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.LHCStatus[0] = 'Stable'
             self.LSRange[0] = self.currentLS
             self.LSRange[1] = self.currentLS + self.LS_increment
-
         # If we are using a configuration file to update options
         if self.configFilePath != "":
             self.updateOptions()
@@ -465,10 +534,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Get Rates: [triggerName][LS] { raw rate, prescale }
         self.queryDatabase()
 
+        self.getThresholds()
         self.checkForBadStreams()
         self.checkForBadDatasets()
         self.checkForBadTriggers()
-        
         self.checkTriggers()
 
         if self.mode == "collisions" and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
@@ -477,12 +546,20 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # If we have started a new run
         if self.lastRunNumber != self.runNumber:
+            # Send report for the last run
+            self.sendReport()
             print("Starting a new run: Run %s" % (self.runNumber))
-            self.lastLS = 1
-            self.currentLS = 0
+            self.lastLS = 0
+            self.currentLS = 1
             # Check what mode we are in
             self.setMode()
             self.redoTList = True
+            self.mattermostTriggersSum = 0
+
+        #if self.simulate:
+        #    self.LHCStatus[0] = 'Stable'
+        #    self.LSRange[0] = self.currentLS
+        #    self.LSRange[1] = self.currentLS + self.LS_increment
 
         # Construct (or reconstruct) trigger lists
         if self.redoTList:
@@ -497,7 +574,11 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if self.currentLS > self.lastLS:
             self.printTable()
         elif self.simulate:
-            raise KeyboardInterrupt
+            print(self.runNumber)
+            self.printTable()
+            return
+
+            #raise KeyboardInterrupt
         else:
             print("Not enough lumisections. Last LS was %s, current LS is %s. Waiting." % (self.lastLS, self.currentLS))
 
@@ -570,6 +651,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     else:
                         self.otherL1Triggers.append(trigger)
         self.getHeader()
+    
     # Use: Gets the rates for the lumisections we want
     def queryDatabase(self):
         # Update lastLS
@@ -598,8 +680,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.Rates.update(self.HLTRates)
         self.Rates.update(self.L1Rates)
         lslist = []
-        #get ignored list
-        self.ignoreStrings = self.loadTriggersFromFile(self.ignoreFile)
+        
+        # Remove ignored triggers from list
+        # Alternative way to fill self.ignoreStrings, by reading file 
+        # self.ignoreStrings = self.loadTriggersFromFile(self.ignoreFile)
         for trig in list(self.Rates.keys()):
             isVetoed = False
             for vetoString in self.ignoreStrings:
@@ -869,6 +953,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Prints a section of a table, ie all the triggers in a trigger list (like usableHLTTriggers, otherHLTTriggers, etc)
     def printTableSection(self, triggerList, doPred, aveLumi=0, maxRows=25):
         # A list of tuples, each a row in the table: ( { trigger, rate, predicted rate, sign of % diff, abs % diff, sign of sigma, abs sigma, ave PS, comment } )
+        
         self.tableData = []
 
         # Get the trigger data
@@ -1192,15 +1277,22 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         
         # loop through streams and if the rate is exceeding the threshold, add to the badDatasets dictionary
         for name in self.streamData.keys():
+            empty_threshold = False
+            
             self.badStreams[name]=[]
             for entry in self.streamData[name]:
-                # if entry[1]>streamThreshold[name][index of alert (middle threshold)]:     
-                if entry[1]>self.maxStreamRate:
-                    self.badStreams[name].append(entry)
+                try: 
+                    if entry[1]>self.streamThresholds[name][1]:
+                        self.badStreams[name].append(entry)
+                except:  
+                    empty_threshold = True
+            
+            # if any of the streams don't have a threshold, add to the list of missing thresholds
+            if empty_threshold == True: 
+                self.missingStreamThresholds.append(name)
             # remove dictionary entries where none of the LS were bad
             if len(self.badStreams[name])==0:
                 self.badStreams.pop(name)
-        #print("Bad Streams: \n", self.badStreams, '\n')
         
     # Use: Checks for bad streams
     def checkForBadDatasets(self):
@@ -1212,11 +1304,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # loop through datasets and if the rate is exceeding the threshold, add to the badDatasets dictionary
         for name in self.pdData.keys():
+            empty_threshold = False
+
             self.badDatasets[name]=[]
             for entry in self.pdData[name]:
-                #if entry[1]>datasetThreshold[name][index of alert (middle threshold)]
-                if entry[1]>self.maxPDRate:
-                    self.badDatasets[name].append(entry)
+                try: 
+                    if entry[1]>self.datasetThresholds[name][1]:
+                        self.badDatasets[name].append(entry)
+                except: 
+                    empty_threshold = True
+            # if any of the datasets don't have a threshold, add to the list of missing thresholds
+            if empty_threshold == True: 
+                self.missingDatasetThresholds.append(name)
             # remove dictionary entries where none of the LS were bad
             if len(self.badDatasets[name])==0:
                 self.badDatasets.pop(name)
@@ -1281,6 +1380,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # if a trigger alert has been sent, reset time and reset mattermost triggers list
             if len(self.mattermostTriggers) > 0 and self.isUpdating and ((time.time() - self.mattermostSendTime) > self.mattermostPeriod):
                 self.mattermostSendTime = time.time()
+                self.mattermostTriggersSum += len(self.mattermostTriggers)
                 self.mattermostTriggers = []
 
             self.badStreams = {}
@@ -1376,6 +1476,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         return paramlist[5] # The MSE
     
     # Use: create text for mattermost alerts for bad streams
+    # Return: text for stream alert
     def streamAlerts(self, badStreams):
         # Stream alert title
         text = "Streams exceeding threshold: \n"
@@ -1384,22 +1485,27 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # loop through bad streams, creates one row for each bad stream and summarizes the LS currently queried 
         for name in badStreams.keys():
-            LS_str = ''
+            LS = []
             streamRates = []
             for item in badStreams[name]:
-                LS_str += str(item[0]) + ', '
+                LS.append(item[0])
                 streamRates.append(item[1])
 
-            text += f"| {name} | {LS_str} | "
+            text += f"| {name} | {str(LS)[1:-1]} | "
             try: 
                 text += f"{max(streamRates):.2f} | "
             except: 
                 text += f"{str(streamRates)} | "
-            # TODO: Change values of alert and critical alert thresholds
-            text += f" {self.maxStreamRate} | {self.maxStreamRate} |\n"
+            
+            try: 
+                text += f" {self.streamThresholds[name][1]} | {self.streamThresholds[name][0]} |\n"
+            except: 
+                text += f" |  | \n"
+        
         return text
 
     # Use: create text for mattermost alerts for bad datasets
+    # Return: text for dataset alert
     def datasetAlerts(self, badDatasets):
         # Dataset alert title
         text = "Datasets exceeding threshold: \n"
@@ -1408,24 +1514,29 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         # loop through bad datasets, creates one row for each bad dataset and summarizes the LS currently queried
         for name in badDatasets.keys():
-            LS_str = ''
+            LS = []
             datasetRates = []
             for item in badDatasets[name]:
-                LS_str += str(item[0]) + ', '
+                LS.append(item[0])
                 datasetRates.append(item[1])
 
-            text += f"| {name} | {LS_str} | " 
+            text += f"| {name} | {str(LS)[1:-1]} | " 
             try: 
                 text += f" {max(datasetRates):.2f} | " 
             except: 
                 text += f" {str(datasetRates)} | "
                         
-            # TODO: Change values of alert and critical alert thresholds
-            text += f" {self.maxPDRate} | {self.maxPDRate} | \n"
+            try: 
+                text += f" {self.datasetThresholds[name][1]} | {self.datasetThresholds[name][0]} | \n"
+            except: 
+                text += f" |  | \n"
+
         return text
 
+    # Use: create text for mattermost alerts for bad triggers
+    # Return: text for trigger alert
     def triggerAlerts(self, messageTriggers):  
-        text += "Trigger rates deviating from acceptable and/or expected values: \n\n"
+        text = "Trigger rates deviating from acceptable and/or expected values: \n\n"
         text += "| Path | Actual | Expected | Unprescaled Expected/nBunches | Unprescaled Actual/nBunches | Deviation |\n"
         text += "| --- | --- | --- | --- | --- | --- |\n"
 
@@ -1463,7 +1574,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Parameters:
     # -- mailTriggers: A list of triggers that we should include in the mail, ( { triggerName, aveRate, expected rate, standard dev } )
     # Returns: (void)
-    def sendMail(self,messageTriggers, badStreams, badDatasets):
+    def sendMail(self,messageTriggers, badStreams, badDatasets):        
         text = "| Run | Lumisections | Average inst. lumi | Average PU | Trigger Mode | Prescale Column |\n"
         text += "| --- | --- | --- | --- | --- | --- | \n"
         text += f"| {self.runNumber} | {self.lastLS} - {self.currentLS} | " 
@@ -1480,10 +1591,26 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         
         text += f" {self.triggerMode} | {str(self.lumiData[-1][2])} | \n\n"
 
+        # Print alerts if the query fails or if any of the streams/dataset don't have provided thresholds from the query
+        if self.query_error == True: 
+            text += "Warning: Authentication and/or query of hltsupervisor failed, stream and dataset thresholds not udpated. \n\n"
+            self.query_error = False
+
+        if len(self.missingStreamThresholds) > 0: 
+            text += "Warning: The following streams are missing thresholds: \n"
+            text += f"{str(self.missingStreamThresholds)[1:-1]} \n\n "
+
+        if len(self.missingDatasetThresholds) > 0: 
+            text += "Warning: The following datasets are missing thresholds: \n"
+            text += f"{str(self.missingDatasetThresholds)} \n\n "
+
+        # If there are streams or datasets above their threshold, send an alert
         if len(badStreams) > 0:
             text += self.streamAlerts(badStreams)
+            text += '\n'
         if len(badDatasets) > 0: 
             text += self.datasetAlerts(badDatasets)
+            text += '\n'
         if len(self.mattermostTriggers) > 0 and self.isUpdating and ((time.time() - self.mattermostSendTime) > self.mattermostPeriod): 
             text += self.triggerAlerts(messageTriggers)
 
@@ -1492,6 +1619,45 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             header = ' SENDING MESSAGE TO MATTERMOST '
             mattermostAlert(text)
         print("\n{header:{fill}^{width}}\n{body}\n{footer:{fill}^{width}}".format(header=header,footer='',body=text,width=len(header)+6,fill='-'))
+
+    # Use: save variables at the end of run to send run report
+    # Return: (void), updates relevant variables
+    def saveRunInfo(self):
+        self.saveRunNumber = self.runNumber
+        self.saveLS = self.currentLS
+        self.saveTriggerMode = self.triggerMode
+        self.saveLumi_ave = self.lumi_ave
+        self.savePu_ave = self.pu_ave
+        self.saveLumiData = self.lumiData
+
+    # Use: Send summary report to mattermost, and print out the same report on CLI
+    def sendReport(self):
+
+        text = "Run Report: \n\n"
+        text += "| Run | Last Lumisection | Average inst. lumi | Average PU  | Trigger Mode | No. Trigger Alerts | Last Used Prescale Column | \n"
+        text += "| --- | --- | --- | --- | --- | --- | --- | \n"
+        text += f"| {self.saveRunNumber} | {self.saveLS} |"
+
+        try:
+            text += f"{self.saveLumi_ave:.0f} x 10^30 cm-2 s-1 |"
+        except:
+            text += f"{str(self.saveLumi_ave)} 10^30 cm-2 s-1 |"
+
+        try:
+            text += f"{self.savePu_ave:.2f} |" 
+        except:
+            text += f"{str(self.savePu_ave)} |" 
+
+        text += f"{str(self.saveTriggerMode)} |" 
+        text += f"{str(self.mattermostTriggersSum)} |"
+
+        text += str(self.saveLumiData[-1][2])+ "| \n\n"
+
+        if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
+            mattermostAlert(text)
+        print("Sending mattermost report...")
+        print("Mattermost Summary report")
+        print(text)
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)

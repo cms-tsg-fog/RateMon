@@ -1,0 +1,27 @@
+{   "ignoreStrings": [
+        "AlCa_",
+        "DQM",
+        "DST_",
+        "Status_",
+        "Calibration",
+        "L1Tech",
+        "BPTX",
+        "Bptx",
+        "L1_SingleMu7er1p5",
+        "L1_FirstBunchBeforeTrain",
+        "AlwaysTrue",
+        "ZeroBias",
+        "Dataset",
+        "HLT_L1PhysicsTrigType",
+        "HLT_L1RandomTrigType",
+        "HLT_ECALHT1",
+        "HLT_HCALHT1",
+        "HLT_PixelTracks",
+        "HLT_Mu0_L1DoubleMu"
+        ],
+    "devAcceptDefault":5,
+    "maxL1Rate": 50000, 
+    "maxHLTRate": 5000, 
+    "maxStreamRate": 1000000,
+    "maxPDRate": 250       
+}

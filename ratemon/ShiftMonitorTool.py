@@ -23,6 +23,7 @@ import sys
 import yaml
 # For getting command line options
 import getopt
+import array
 # For the ShiftMonitor tool
 from ShiftMonitorNCR import *
 
@@ -95,7 +96,8 @@ class CommandLineParser:
                 self.monitor.sendMattermostAlerts_static = False
                 self.monitor.sendMattermostAlerts_dynamic = False
                 self.monitor.sendAudioAlerts = False
-                self.monitor.runNumber = int(op)
+                self.monitor.simulation_runNumber = op.split(',')
+                self.monitor.simulation_runNumber = [int(r) for r in self.monitor.simulation_runNumber]
                 self.monitor.simulate = True
                 self.monitor.useLSRange = True
             elif label == "--displayBad":
