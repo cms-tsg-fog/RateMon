@@ -346,8 +346,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.maxPDRate = 250                    # The maximum rate we allow a "good" pd to have
         self.lumi_ave = 0
         self.pu_ave = 0
-        self.run_lumi_ave = []
-        self.run_pu_ave = []
+        self.runPu_ave = 0
+        self.runLumi_ave = 0
+        #self.count_list = []
         #self.deadTimeCorrection = True         # correct the rates for dead time
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
@@ -508,7 +509,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.redoTList = True
             self.mattermostTriggersSum = 0
             self.run_lumi_ave = []
-            self.run_pu_ave = []
+            #self.run_pu_ave = []
 
         #if self.simulate:
         #    self.LHCStatus[0] = 'Stable'
@@ -527,13 +528,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
             self.printTable()
-            self.run_lumi_ave.append(self.lumi_ave)
-            self.run_pu_ave.append(self.pu_ave)
         elif self.simulate:
             print(self.runNumber)
             self.printTable()
-            self.run_lumi_ave.append(self.lumi_ave)
-            self.run_pu_ave.append(self.pu_ave)
             return
 
             #raise KeyboardInterrupt
@@ -674,6 +671,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Calculate self.lumi_ave
         # TODO: Add avg deadtime and avg l1 rate calculations here
         aveLumi = 0
+        runLumi_list = []
+        self.count_list = []
         if self.mode != "cosmics":
             # Find the average lumi since we last checked
             count = 0
@@ -684,11 +683,23 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 if not instLumi is None and physics:
                     aveLumi += instLumi
                     count += 1
+                    # Append all instLumi for overall run instLumi average calculation
+                    if self.currentLS - self.lastLS == 3:
+                        if count < 4:
+                            runLumi_list.append(instLumi)
+                    if self.currentLS - self.lastLS < 3 and self.currentLS - self.lastLS != 0 and self.lastLS != 0:
+                        lumiLS_diff = self.currentLS - self.lastLS + 1
+                        if count < lumiLS_diff:
+                            runLumi_list.append(instLumi)
+                    if self.currentLS == self.lastLS and self.lastLS != 0:
+                        if count == 1:
+                            runLumi_list.append(instLumi)
             if count == 0:
                 aveLumi = 0
             else:
-                aveLumi /= float(count)
+                aveLumi /= float(count)        
         self.lumi_ave = aveLumi
+        self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
 
     # Use: Retrieves information and prints it in table form
     def printTable(self):
@@ -737,8 +748,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         if self.numBunches[0] > 0 and not self.lumi_ave == 0:
             self.pu_ave = self.lumi_ave/self.numBunches[0]*ppInelXsec/orbitsPerSec
+            self.runPu_ave = self.runLumi_ave/self.numBunches[0]*ppInelXsec/orbitsPerSec
         else:
             self.pu_ave = 0
+            self.runPu_ave = 0
         # We only do predictions when there were physics active LS in a collisions run
         doPred = (physicsActive and self.mode == "collisions") or self.mode == "cosmics"
         # Print the header
@@ -1431,8 +1444,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.saveRunNumber = self.runNumber
         self.saveLS = self.currentLS
         self.saveTriggerMode = self.triggerMode
-        #self.saveLumi_ave = self.lumi_ave
-        #self.savePu_ave = self.pu_ave
+        self.saveLumi_ave = self.runLumi_ave
+        self.savePu_ave = self.runPu_ave
         self.saveLumiData = self.lumiData
 
     # Use: Send summary report to mattermost, and print out the same report on CLI
@@ -1445,14 +1458,14 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         text += "| %d | %s |" % (self.saveRunNumber, self.saveLS)
 
         try:
-            text += "%.0f x 10^30 cm-2 s-1 |" % (sum(self.run_lumi_ave)/len(self.run_lumi_ave))
+            text += "%.0f x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
         except:
-            text += "%s x 10^30 cm-2 s-1 |" % (sum(self.run_lumi_ave)/len(self.run_lumi_ave))
+            text += "%s x 10^30 cm-2 s-1 |" % (self.saveLumi_ave)
 
         try:
-            text += "%.2f |" % (sum(self.run_pu_ave)/len(self.run_pu_ave))
+            text += "%.2f |" % (self.savePu_ave)
         except:
-            text += "%s |" % (sum(self.run_pu_ave)/len(self.run_pu_ave))
+            text += "%s |" % (self.savePu_ave)
 
         text += "%s |" % (self.saveTriggerMode)
         text += "%s |" % (self.mattermostTriggersSum)
