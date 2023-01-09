@@ -606,13 +606,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # If there are lumisection to show, print info for them
         if self.currentLS > self.lastLS:
             self.printTable()
-            self.run_lumi_ave.append(self.lumi_ave)
-            self.run_pu_ave.append(self.pu_ave)
         elif self.simulate:
             print(self.runNumber)
             self.printTable()
-            self.run_lumi_ave.append(self.lumi_ave)
-            self.run_pu_ave.append(self.pu_ave)
             return
 
             #raise KeyboardInterrupt
@@ -782,7 +778,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if count == 0:
                 aveLumi = 0
             else:
-                aveLumi /= float(count)
+                aveLumi /= float(count)        
         self.lumi_ave = aveLumi
         if len(runLumi_list) != 0:
             self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
