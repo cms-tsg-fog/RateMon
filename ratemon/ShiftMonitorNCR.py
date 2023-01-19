@@ -191,7 +191,7 @@ class ShiftMonitor:
         # Streams and Datasets
         auth_file = open(str('OMSConfig.yaml'), 'r')
         self.auth_cfg = yaml.safe_load(auth_file)
-        self.thresholdURL = "https://hltsupervisor-test.app.cern.ch/api/v0/thresholds"
+        self.thresholdURL = "https://hltsupervisor.app.cern.ch/api/v0/thresholds"
         self.missingStreamThresholds = []  # List of streams (if any) that don't have a threshold in self.streamThresholds 
         self.missingDatasetThresholds = [] # List of datasets (if any) that don't have a threshold in self.datasetThresholds
         self.query_error = False        # If there is a query error, this is set to true and a message is sent during the next Mattermost alert
