@@ -699,8 +699,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             else:
                 aveLumi /= float(count)        
         self.lumi_ave = aveLumi
-        self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
-
+        if len(runLumi_list) != 0:
+            self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
+        elif len(runLumi_list) == 0:
+            self.runLumi_ave = 0
     # Use: Retrieves information and prints it in table form
     def printTable(self):
         if self.slidingLS == -1:
