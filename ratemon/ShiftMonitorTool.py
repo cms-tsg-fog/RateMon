@@ -171,6 +171,7 @@ class CommandLineParser:
 
     # Use: Runs the shift monitor
     # Returns: (void) (Never returns, monitor.run() has an infinite loop)
+
     def run(self):
         self.monitor.run()
 
@@ -246,5 +247,4 @@ class CommandLineParser:
 if __name__ == "__main__":
     parser = CommandLineParser()
     parser.run()
-
 
