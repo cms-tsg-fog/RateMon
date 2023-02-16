@@ -24,5 +24,5 @@ six==1.15.0
 swagger-ui-bundle==0.0.8
 tornado==6.0.4
 urllib3==1.25.10
-Werkzeug==1.0.1
+Werkzeug==2.2.3
 zipp==3.1.0
