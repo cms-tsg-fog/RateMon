@@ -36,6 +36,7 @@ class PlotMaker:
         self.fill_map = {}          # {run_number: fill_number }
 
         self.fitFinder = FitFinder()
+        self.run_list = []
 
         self.sigmas = 3.0
         # Fix: [8,9,10,12]
@@ -60,6 +61,7 @@ class PlotMaker:
         self.plot_dir = "png"
         self.styleTitle = True
         self.add_testing_label = False
+        self.use_cross_section = False
 
         self.default_fit = "quad"
 
@@ -190,6 +192,29 @@ class PlotMaker:
                         xVals.append(x)
                         yVals.append(y)
         return xVals,yVals
+
+    # Convert array format for cross section vs. run number plotting
+    def ConvertToFloatArray(self,value):
+        if value == list:
+            value_array = array.array('f',value)
+        elif value == float or int:
+            value_list = []
+            value_list.append(value)
+            value_array = array.array('f',value_list)
+        return value_array
+
+    # Add adjustments to the plot format of cross section vs. run number
+    def crossSectionPlot(self, graph, run_list, min_xaxis_val, max_xaxis_val, max_yaxis_val):
+        graph[-1].SetMarkerStyle(20)
+        graph[-1].GetXaxis().SetLimits(min_xaxis_val - 1, max_xaxis_val + 1)
+        graph[-1].SetMaximum(1.1*max_yaxis_val)
+
+        # Set run number string label on x-axis for each data point
+        xAxis = graph[-1].GetXaxis()
+        run_list = [str(x) for x in run_list]
+        for i in range(0, len(run_list)):
+            bin_index = xAxis.FindBin(i)
+            xAxis.SetBinLabel(bin_index, run_list[i])
 
     # plots all the data for a given trigger
     def plotAllData(self,trigger):
@@ -355,7 +380,13 @@ class PlotMaker:
             #data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1])
             num_LS = len(data[run][0])
             if num_LS == 0: continue
-            graphList.append(TGraph(num_LS, data[run][0], data[run][1]))
+
+            if self.use_cross_section:
+                run_No = self.ConvertToFloatArray(sum(data[run][0])/len(data[run][0]))
+                avg_val = self.ConvertToFloatArray(sum(data[run][1])/len(data[run][1]))
+                graphList.append(TGraph(1, run_No, avg_val))
+            else:
+                graphList.append(TGraph(num_LS, data[run][0], data[run][1]))
 
             graphColor = color_map[run]
 
@@ -373,6 +404,9 @@ class PlotMaker:
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*max_yaxis_val)
             graphList[-1].SetTitle(trigger)
+
+            if self.use_cross_section:
+                self.crossSectionPlot(graphList, self.run_list, min_xaxis_val, max_xaxis_val, max_yaxis_val)
 
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
