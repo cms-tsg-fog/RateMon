@@ -80,16 +80,17 @@ class MonitorController:
         self.rate_monitor.use_lumi           = False
         self.rate_monitor.make_fits          = False
         self.rate_monitor.update_online_fits = False
+        self.rate_monitor.use_cross_section  = False
 
         self.rate_monitor.data_parser.normalize_bunches  = True
         self.rate_monitor.data_parser.use_prescaled_rate = False
-        self.rate_monitor.data_parser.use_cross_section  = False
 
         self.rate_monitor.data_parser.use_L1_triggers  = True
         self.rate_monitor.data_parser.use_HLT_triggers = True
         self.rate_monitor.data_parser.use_streams  = False 
         self.rate_monitor.data_parser.use_datasets = False
         self.rate_monitor.data_parser.use_L1A_rate = False
+        self.rate_monitor.data_parser.use_cross_section  = self.rate_monitor.use_cross_section
 
         self.rate_monitor.fitter.use_best_fit = False
 
@@ -101,6 +102,7 @@ class MonitorController:
         self.rate_monitor.plotter.save_png       = True
         self.rate_monitor.plotter.save_root_file = False
         self.rate_monitor.plotter.show_fit_runs  = False
+        self.rate_monitor.plotter.use_cross_section = self.rate_monitor.use_cross_section
 
         self.rate_monitor.plotter.root_file_name   = "rate_plots.root"
         self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
@@ -594,6 +596,12 @@ class MonitorController:
             print("\nThere was a problem  while setting options. Raising exception.\n")
             raise Exception
         self.rate_monitor.ops = opt 
+
+        # Set up run list for cross section plot
+        self.rate_monitor.data_parser.run_dict = self.usr_input_data_lst
+        self.rate_monitor.run_list = self.usr_input_data_lst
+        self.rate_monitor.plotter.run_list = self.usr_input_data_lst
+
         return True
 
     def readFits(self,fit_file):
