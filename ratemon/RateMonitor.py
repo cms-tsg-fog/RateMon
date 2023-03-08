@@ -625,7 +625,6 @@ class RateMonitor:
                     plotted_objects.append(obj)
             self.printHtml(png_list=plotted_objects,save_dir=run_dir,index_dir=self.save_dir,png_dir=".")
 
-
     # We create a prediction dictionary on a per run basis, which covers all triggers in that run
     # TODO: Should move this to DataParser.py
     def getPredictionData(self,run):
