@@ -560,12 +560,25 @@ class RateMonitor:
 
         # {'name': {run: [ (LS,pred,err) ] } }
 
-
         lumi_info = self.data_parser.getLumiInfo()
         sorted_run_list = sorted(self.run_list)
 
         log_file_name = "CertificationSummary_run"+str(sorted_run_list[0])+"_run"+str(sorted_run_list[-1])+".txt"
         log_file = open(self.certify_dir+"/"+log_file_name,'w')
+
+        ls_emergency = {}
+
+        log_file.write("LUMISECTIONS IN EMERGENCY PRESCALE COLUMN \n{run number : [LS], ...} \n")
+        for run in self.run_list:
+            ls_emergency[run]=[]
+            # loop through all lumisections for the run
+            # the format of lumi_info[run] = [LS number, instant lumi, PS column, ..., ...]
+            # if the value for the PS column is 0, add the LS number to the ls_emergency dictionary
+            for LS in lumi_info[run]: 
+                if LS[2] == 0: 
+                    ls_emergency[run].append(LS[0])
+        log_file.write(str(ls_emergency))
+        log_file.write(" \n\n")
 
         for run in self.run_list:
             log_file.write("Run Number: %s\n" % (run))
