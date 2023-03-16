@@ -226,6 +226,14 @@ class ShiftMonitor:
         self.savePu_ave = 0
         self.saveLumiData = []
 
+        # Save run info for report
+        self.saveRunNumber = 1
+        self.saveLS = 1
+        self.saveTriggerMode = None
+        self.saveLumi_ave = 0
+        self.savePu_ave = 0
+        self.saveLumiData = []
+
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
           details   = '''
@@ -582,6 +590,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.redoTList = True
             self.mattermostTriggersSum = 0
             self.run_lumi_ave = []
+	    #self.run_pu_ave = []
 	    #self.run_pu_ave = []
 
         #if self.simulate:
