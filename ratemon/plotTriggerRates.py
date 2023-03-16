@@ -59,7 +59,8 @@ class MonitorController:
             "makeTitle"        : None,
             "exportJson"       : None,
             "allTriggers"      : None,
-            "oldParser"        : None
+            "oldParser"        : None,
+            "plot_avgCS"       : None
         }
         self.usr_input_data_lst = None
 
@@ -150,6 +151,11 @@ class MonitorController:
                             self.rate_monitor.data_parser.hlt_triggers.append(name)
                         elif name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
+                elif op_name == "plot_avgCS":
+                    self.rate_monitor.use_cross_section  = True
+                    self.rate_monitor.use_pileup         = False
+                    self.rate_monitor.data_parser.use_cross_section  = self.rate_monitor.use_cross_section
+                    self.rate_monitor.plotter.use_cross_section = self.rate_monitor.use_cross_section
                 elif op_name == "allTriggers":
                     self.rate_monitor.all_triggers = True
                 elif op_name == "exportRoot":
@@ -575,6 +581,9 @@ class MonitorController:
 
             elif label == "--allTriggers":
                 self.ops_dict["allTriggers"] = True
+
+            elif label == "--plot_avgCS":
+                self.ops_dict["plot_avgCS"] = True
 
             elif label == "--dbConfigFile":
                 # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
