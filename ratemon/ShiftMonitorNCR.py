@@ -768,7 +768,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if count == 0:
                 aveLumi = 0
             else:
-                aveLumi /= float(count) 
+                aveLumi /= float(count)
         self.lumi_ave = aveLumi
         if len(runLumi_list) != 0:
             self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
