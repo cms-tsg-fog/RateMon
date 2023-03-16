@@ -260,7 +260,10 @@ class PlotMaker:
                 run_count += 1
 
         if num_pts < self.min_plot_pts:
-            print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
+            if self.use_cross_section:
+                print("\tTrigger %s has zero average cross section in this run" %(trigger))
+            else:
+                print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
             return False
 
         if self.use_fit and trigger not in self.fits:
@@ -284,18 +287,21 @@ class PlotMaker:
         # NOTE: This leverages the assumption that trigger rates increase with PU
         # TODO: Only use the x_cut when we have some minimum number of plot points
         xVals,yVals = self.combinePoints(data)
-        xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
-        x_cut = (max(xVals) - min(xVals))/2
-        xVals,yVals = self.combinePoints(data,x_cut)
         avg_y,std_y = self.fitFinder.getSD(yVals)
 
-        # Remove points that are extremely far outside of the avg.
-        for run in data:
-            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,cut_sigma)
+        if not self.use_cross_section:
+            xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
+            x_cut = (max(xVals) - min(xVals))/2
+            xVals,yVals = self.combinePoints(data,x_cut)
+            avg_y,std_y = self.fitFinder.getSD(yVals)
 
-        # Recalculate the avg and std dev
-        xVals,yVals = self.combinePoints(data)
-        avg_y,std_y = self.fitFinder.getSD(yVals)
+            # Remove points that are extremely far outside of the avg.
+            for run in data:
+                data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,cut_sigma)
+
+            # Recalculate the avg and std dev
+            xVals,yVals = self.combinePoints(data)
+            avg_y,std_y = self.fitFinder.getSD(yVals)
 
         # Find minima and maxima so we create graphs of the right size
         for run in data:
@@ -328,9 +334,10 @@ class PlotMaker:
             print("\tERROR: Invalid boundary for plot axis: no maximumVals. Skipping trigger.." + trigger)
             return False
 
-        if max_xaxis_val == 0 or max_yaxis_val == 0:
-            print("\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger)
-            return False
+        if not self.use_cross_section:
+            if max_xaxis_val == 0 or max_yaxis_val == 0:
+                print("\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger)
+                return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
