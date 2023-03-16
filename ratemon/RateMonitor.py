@@ -139,8 +139,6 @@ class RateMonitor:
             y_vals = self.data_parser.getSizeData()
         elif self.use_stream_bandwidth:
             y_vals = self.data_parser.getBandwidthData()
-        elif self.use_cross_section:
-            y_vals = self.data_parser.getRateData()
         else:
             y_vals = self.data_parser.getRateData()     
 
