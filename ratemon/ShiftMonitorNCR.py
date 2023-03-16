@@ -218,22 +218,6 @@ class ShiftMonitor:
         self.savePu_ave = 0
         self.saveLumiData = []
 
-        # Save run info for report
-        self.saveRunNumber = 1
-        self.saveLS = 1
-        self.saveTriggerMode = None
-        self.saveLumi_ave = 0
-        self.savePu_ave = 0
-        self.saveLumiData = []
-
-        # Save run info for report
-        self.saveRunNumber = 1
-        self.saveLS = 1
-        self.saveTriggerMode = None
-        self.saveLumi_ave = 0
-        self.savePu_ave = 0
-        self.saveLumiData = []
-
         l1_critical_rate_alert = RateAlert(
           message   = 'critical Level 1 Trigger rate',
           details   = '''
@@ -534,14 +518,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         self.sendReport()
                 elif self.simulate:
                     if self.currentLS - self.lastLS == 0:
+                        self.lastRunNumber = self.runNumber
+                        self.sendReport()
                         if len(self.simulation_runNumber) - self.runIndex > 1:
                             self.runIndex += 1
                         elif len(self.simulation_runNumber) - self.runIndex == 1:
-                            self.sendReport()
                             break
-            except KeyboardInterrupt:
-                print("Quitting. Bye.")
-                break
 
     # Use: The main body of the main loop, checks the mode, creates trigger lists, prints table
     # Returns: (void)
@@ -590,7 +572,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.redoTList = True
             self.mattermostTriggersSum = 0
             self.run_lumi_ave = []
-	    #self.run_pu_ave = []
 	    #self.run_pu_ave = []
 
         #if self.simulate:
@@ -787,7 +768,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if count == 0:
                 aveLumi = 0
             else:
-                aveLumi /= float(count)        
+                aveLumi /= float(count) 
         self.lumi_ave = aveLumi
         if len(runLumi_list) != 0:
             self.runLumi_ave = sum(runLumi_list)/len(runLumi_list)
@@ -1689,8 +1670,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.saveTriggerMode = self.triggerMode
         self.saveLumi_ave = self.runLumi_ave
         self.savePu_ave = self.runPu_ave
-        self.saveLumi_ave = self.lumi_ave
-        self.savePu_ave = self.pu_ave
         self.saveLumiData = self.lumiData
 
     # Use: Send summary report to mattermost, and print out the same report on CLI
