@@ -43,6 +43,7 @@ class DataParser:
         # The lists all have the same number of elements, e.g.: len(self.lumi_data[trg][run]) == len(self.pu_data[trg][run])
         self.ls_data   = {}    # {'name': { run_number: [LS] } }
         self.rate_data = {}    # {'name': { run_number: { LS: raw_rates } } }
+        self.cs_data   = {}    # {'name': { run_number: { LS: cross_section } } }
         self.ps_data   = {}    # {'name': { run_number: { LS: prescale  } } }
         self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
         self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
@@ -140,6 +141,7 @@ class DataParser:
 
                 ls_array   = run_data[name]["LS"]
                 rate       = run_data[name]["rate"]
+                cross_section = run_data[name]["cross_section"]
                 prescale   = run_data[name]["prescale"]
                 pu         = run_data[name]["PU"]
                 lumi       = run_data[name]["ilumi"]
@@ -154,6 +156,7 @@ class DataParser:
 
                     self.ls_data[name]   = {}
                     self.rate_data[name] = {}
+                    self.cs_data[name]   = {}
                     self.ps_data[name]   = {}
                     self.pu_data[name]   = {}
                     self.lumi_data[name] = {}
@@ -165,6 +168,7 @@ class DataParser:
 
                 self.ls_data[name][run]   = ls_array
                 self.rate_data[name][run] = rate
+                self.cs_data[name][run]   = cross_section
                 self.ps_data[name][run]   = prescale
                 self.pu_data[name][run]   = pu
                 self.lumi_data[name][run] = lumi
@@ -259,6 +263,7 @@ class DataParser:
             run_data[trigger] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            cs_dict    = {}
             ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
@@ -289,14 +294,14 @@ class DataParser:
                         #else:
                         #    rate = 0
 
-                    if self.use_cross_section:
-                        if ilum != 0:
-                            rate = rate/ilum
-                        elif ilum == 0:
-                            rate = 0
+                    if ilum != 0:
+                        cross_section = rate/ilum
+                    elif ilum == 0:
+                        cross_section = 0
                     
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    cs_dict[LS] = cross_section
                     ps_dict[LS] = prescale
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
@@ -308,6 +313,7 @@ class DataParser:
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
+            run_data[trigger]["cross_section"] = cs_dict
             run_data[trigger]["prescale"] = ps_dict
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
@@ -338,6 +344,7 @@ class DataParser:
             run_data[trigger] = {}
             ls_array   = array.array('f')
             rate_dict  = {}
+            cs_dict    = {}
             ps_dict    = {}
             pu_dict    = {}
             lumi_dict  = {}
@@ -365,14 +372,14 @@ class DataParser:
                         #else:
                         #    rate = 0
 
-                    if self.use_cross_section:
-                        if ilum != 0:
-                            rate = rate/ilum
-                        elif ilum == 0:
-                            rate = 0
+                    if ilum != 0:
+                        cross_section = rate/ilum
+                    elif ilum == 0:
+                        cross_section = 0
 
                     ls_array.append(LS)
                     rate_dict[LS] = rate
+                    cs_dict[LS] = cross_section
                     ps_dict[LS] = prescale
                     pu_dict[LS] = pu
                     lumi_dict[LS] = ilum
@@ -384,6 +391,7 @@ class DataParser:
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
+            run_data[trigger]["cross_section"] = cs_dict
             run_data[trigger]["prescale"] = ps_dict
             run_data[trigger]["PU"] = pu_dict
             run_data[trigger]["ilumi"] = lumi_dict
@@ -675,6 +683,7 @@ class DataParser:
         self.ls_data   = {}    # {'name': { run_number: [LS] } }
         self.rate_data = {}    # {'name': { run_number: { LS: raw_rates } } }
         self.ps_data   = {}    # {'name': { run_number: { LS: prescale } } }
+        self.cs_data   = {}    # {'name': { run_number: { LS: cross_section } } }
         self.pu_data   = {}    # {'name': { run_number: { LS: PU } } }
         self.lumi_data = {}    # {'name': { run_number: { LS: iLumi } } }
         self.det_data  = {}    # {'name': { run_number: { LS: detecotr_ready } } }
@@ -703,6 +712,14 @@ class DataParser:
             output = self.convertOutput(self.rate_data)
         else:
             output = self.rate_data
+        return output
+
+    def getCSData(self):
+        # type: () -> Dict[str,object]
+        if self.convert_output:
+            output = self.convertOutput(self.cs_data)
+        else:
+            output = self.cs_data
         return output
 
     def getPSData(self):
