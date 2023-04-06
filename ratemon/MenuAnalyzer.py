@@ -66,7 +66,6 @@ class MenuAnalyzer:
             'checkNotReqEventContent':self.checkNotReqEventContent,
             'checkL1Unmask':self.checkL1Unmask,
             'checkDQMStream':self.checkDQMStream,
-            'checkStreamB':self.checkStreamB,
             'checkProcessName':self.checkProcessName
             }
 
@@ -82,7 +81,6 @@ class MenuAnalyzer:
             'checkNotReqEventContent' : 'Extra Event Content',
             'checkL1Unmask' : 'L1 Unmask Module in Menu',
             'checkDQMStream' : 'Check that the DQM stream contains correct trigger',
-            'checkStreamB' : 'Check all parking triggers in stream B',
             'checkProcessName' : 'Check that process name is "HLT"'
             }
 
@@ -272,11 +270,6 @@ class MenuAnalyzer:
         if 'OnlineMonitor' in self.perPDPathList:
            for trig in sorted(self.ParkingTriggers):
                if trig in self.perPDPathList["OnlineMonitor"]: self.Results['checkDQMStream'].append("ParkingTriggerInDQM::%s"%trig)
-
-    def checkStreamB(self):
-        self.Results['checkStreamB']=[]
-        for trig in self.ParkingTriggers:
-            if not trig in self.perPDPathList["ParkingMonitor"]: self.Results['checkStreamB'].append("ParkingTriggerNotInStreamB::%s" %trig)
 
     def checkProcessName(self):
         self.Results['checkProcessName']=[]
