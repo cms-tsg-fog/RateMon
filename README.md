@@ -35,8 +35,9 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
 - [Create a new tag](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tags/new)
 - [Create a new pipeline](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/pipelines/new)
   - `Run for` must be set to your newly created tag instead of master
-  - Set variables `P5_USER` and `P5_PASS` to your P5 username and password.
+  - Set variables `P5_USER` and `P5_PASS` to your P5 username and password (note that P5 username is the same as CERN username, but P5 password is cmsusr password).
 - In this newly created pipeline, press the `deploy:P5` play button
+  - In order to manually deploy successfully, you also need to be on the cms ratemon librarian group.
 
 ### Running ShiftMonitorTool
 
