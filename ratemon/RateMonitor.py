@@ -464,6 +464,7 @@ class RateMonitor:
         elif self.use_cross_section: # cross section vs. run number
             x_axis_var = "run number"
             x_axis_var_simple = "ls"
+            y_units = "[femtobarns]"
         else:               # plot LS vs. rate
             x_axis_var = "lumisection"
             x_axis_var_simple = "ls"

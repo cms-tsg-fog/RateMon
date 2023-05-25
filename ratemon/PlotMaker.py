@@ -207,7 +207,6 @@ class PlotMaker:
     def crossSectionPlot(self, graph, run_list, min_xaxis_val, max_xaxis_val, max_yaxis_val):
         graph[-1].SetMarkerStyle(20)
         graph[-1].GetXaxis().SetLimits(min_xaxis_val - 1, max_xaxis_val + 1)
-        graph[-1].SetMaximum(1.1*max_yaxis_val)
 
         # Set run number string label on x-axis for each data point
         xAxis = graph[-1].GetXaxis()
