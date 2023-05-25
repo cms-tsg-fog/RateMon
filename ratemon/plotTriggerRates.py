@@ -599,11 +599,6 @@ class MonitorController:
             for item in args:
                 arg_list.append(int(item))
             self.usr_input_data_lst = arg_list
-        
-            # Set up run list for cross section plot
-            #self.rate_monitor.data_parser.run_dict = self.usr_input_data_lst
-            #self.rate_monitor.run_list = self.usr_input_data_lst
-            #self.rate_monitor.plotter.run_list = self.usr_input_data_lst
 
         print ("Data list:",self.usr_input_data_lst)
         if not self.setOptions(self.ops_dict,self.usr_input_data_lst):
@@ -611,8 +606,8 @@ class MonitorController:
             raise Exception
         self.rate_monitor.ops = opt 
 
-        if self.rate_monitor.use_cross_section:
         # Set up run list for cross section plot
+        if self.rate_monitor.use_cross_section:
             self.rate_monitor.data_parser.run_dict = self.usr_input_data_lst
             self.rate_monitor.run_list = self.usr_input_data_lst
             self.rate_monitor.plotter.run_list = self.usr_input_data_lst
