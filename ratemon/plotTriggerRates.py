@@ -594,6 +594,13 @@ class MonitorController:
             print("\nThere was a problem  while setting options. Raising exception.\n")
             raise Exception
         self.rate_monitor.ops = opt 
+
+        # Set up run list for cross section plot
+        if self.rate_monitor.use_cross_section:
+            self.rate_monitor.data_parser.run_dict = self.usr_input_data_lst
+            self.rate_monitor.run_list = self.usr_input_data_lst
+            self.rate_monitor.plotter.run_list = self.usr_input_data_lst
+
         return True
 
     def readFits(self,fit_file):

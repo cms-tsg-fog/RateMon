@@ -191,6 +191,28 @@ class PlotMaker:
                         yVals.append(y)
         return xVals,yVals
 
+    # Convert array format for cross section vs. run number plotting
+    def ConvertToFloatArray(self,value):
+        if value == list:
+            value_array = array.array('f',value)
+        elif value == float or int:
+            value_list = []
+            value_list.append(value)
+            value_array = array.array('f',value_list)
+        return value_array
+
+    # Add adjustments to the plot format of cross section vs. run number
+    def crossSectionPlot(self, graph, run_list, min_xaxis_val, max_xaxis_val, max_yaxis_val):
+        graph[-1].SetMarkerStyle(20)
+        graph[-1].GetXaxis().SetLimits(min_xaxis_val - 1, max_xaxis_val + 1)
+
+        # Set run number string label on x-axis for each data point
+        xAxis = graph[-1].GetXaxis()
+        run_list = [str(x) for x in run_list]
+        for i in range(0, len(run_list)):
+            bin_index = xAxis.FindBin(i)
+            xAxis.SetBinLabel(bin_index, run_list[i])
+
     # plots all the data for a given trigger
     def plotAllData(self,trigger):
         # paramlist == fits

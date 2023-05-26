@@ -145,6 +145,8 @@ class DataParser:
                 phys       = run_data[name]["phys"]
                 bw         = run_data[name]["bandwidth"]
                 size       = run_data[name]["size"]
+                if self.use_cross_section:
+                    runcount   = run_data[name]["runcount"]
 
                 if not name in self.name_list:
                     self.name_list.append(name)
@@ -158,6 +160,8 @@ class DataParser:
                     self.phys_data[name] = {}
                     self.bw_data[name]   = {}
                     self.size_data[name] = {}
+                    if self.use_cross_section:
+                        self.runcount_data[name] = {}
 
                 self.ls_data[name][run]   = ls_array
                 self.rate_data[name][run] = rate
@@ -168,6 +172,8 @@ class DataParser:
                 self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
+                if self.use_cross_section:
+                    self.runcount_data[name][run] = runcount
             n_runs_usable += 1
         if n_runs_usable == 0:
             raise NoDataError(run_list)
@@ -261,6 +267,9 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
+            if self.use_cross_section:
+                runcount_dict = {}
+                runcount = self.run_dict.index(run)
             for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
@@ -294,7 +303,8 @@ class DataParser:
                     phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
-
+                    if self.use_cross_section:
+                        runcount_dict[LS] = runcount
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
             run_data[trigger]["prescale"] = ps_dict
@@ -304,6 +314,8 @@ class DataParser:
             run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
+            if self.use_cross_section:
+                run_data[trigger]["runcount"] = runcount_dict
         return run_data
 
     # Returns information related to HLT triggers 
@@ -333,6 +345,9 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
+            if self.use_cross_section:
+                runcount_dict = {}
+                runcount = self.run_dict.index(run) 
             for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
@@ -363,6 +378,8 @@ class DataParser:
                     phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
+                    if self.use_cross_section:
+                        runcount_dict[LS] = runcount
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
@@ -373,6 +390,8 @@ class DataParser:
             run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
+            if self.use_cross_section:
+                run_data[trigger]["runcount"] = runcount_dict
         return run_data
 
     def getStreamData(self,run,bunches,lumi_info):
