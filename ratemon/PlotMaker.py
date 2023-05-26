@@ -36,6 +36,7 @@ class PlotMaker:
         self.fill_map = {}          # {run_number: fill_number }
 
         self.fitFinder = FitFinder()
+        self.run_list = []
 
         self.sigmas = 3.0
         # Fix: [8,9,10,12]
@@ -60,6 +61,7 @@ class PlotMaker:
         self.plot_dir = "png"
         self.styleTitle = True
         self.add_testing_label = False
+        self.use_cross_section = False
 
         self.default_fit = "quad"
 
@@ -257,7 +259,10 @@ class PlotMaker:
                 run_count += 1
 
         if num_pts < self.min_plot_pts:
-            print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
+            if self.use_cross_section:
+                print("\tTrigger %s has zero average cross section in this run" %(trigger))
+            else:
+                print("\tSkipping %s: Not enough plot points, %d" % (trigger,num_pts))
             return False
 
         if self.use_fit and trigger not in self.fits:
@@ -281,18 +286,21 @@ class PlotMaker:
         # NOTE: This leverages the assumption that trigger rates increase with PU
         # TODO: Only use the x_cut when we have some minimum number of plot points
         xVals,yVals = self.combinePoints(data)
-        xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
-        x_cut = (max(xVals) - min(xVals))/2
-        xVals,yVals = self.combinePoints(data,x_cut)
         avg_y,std_y = self.fitFinder.getSD(yVals)
 
-        # Remove points that are extremely far outside of the avg.
-        for run in data:
-            data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,cut_sigma)
+        if not self.use_cross_section:
+            xVals,yVals = self.fitFinder.removePoints(xVals,yVals,0)
+            x_cut = (max(xVals) - min(xVals))/2
+            xVals,yVals = self.combinePoints(data,x_cut)
+            avg_y,std_y = self.fitFinder.getSD(yVals)
 
-        # Recalculate the avg and std dev
-        xVals,yVals = self.combinePoints(data)
-        avg_y,std_y = self.fitFinder.getSD(yVals)
+            # Remove points that are extremely far outside of the avg.
+            for run in data:
+                data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1],avg_y,std_y,cut_sigma)
+
+            # Recalculate the avg and std dev
+            xVals,yVals = self.combinePoints(data)
+            avg_y,std_y = self.fitFinder.getSD(yVals)
 
         # Find minima and maxima so we create graphs of the right size
         for run in data:
@@ -325,9 +333,10 @@ class PlotMaker:
             print("\tERROR: Invalid boundary for plot axis: no maximumVals. Skipping trigger.." + trigger)
             return False
 
-        if max_xaxis_val == 0 or max_yaxis_val == 0:
-            print("\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger)
-            return False
+        if not self.use_cross_section:
+            if max_xaxis_val == 0 or max_yaxis_val == 0:
+                print("\tERROR: Invalid boundary for plot axis: An upper bound is 0. Skipping trigger.." + trigger)
+                return False
 
         canvas = TCanvas(self.var_X, self.var_Y, 1000, 600)
         canvas.SetName(trigger+"_"+self.var_X+"_vs_"+self.var_Y)
@@ -377,7 +386,13 @@ class PlotMaker:
             #data[run][0],data[run][1] = self.fitFinder.getGoodPoints(data[run][0],data[run][1])
             num_LS = len(data[run][0])
             if num_LS == 0: continue
-            graphList.append(TGraph(num_LS, data[run][0], data[run][1]))
+
+            if self.use_cross_section:
+                run_No = self.ConvertToFloatArray(sum(data[run][0])/len(data[run][0]))
+                avg_val = self.ConvertToFloatArray(sum(data[run][1])/len(data[run][1]))
+                graphList.append(TGraph(1, run_No, avg_val))
+            else:
+                graphList.append(TGraph(num_LS, data[run][0], data[run][1]))
 
             graphColor = color_map[run]
 
@@ -395,6 +410,9 @@ class PlotMaker:
             graphList[-1].SetMinimum(0)
             graphList[-1].SetMaximum(1.2*max_yaxis_val)
             graphList[-1].SetTitle(trigger)
+
+            if self.use_cross_section:
+                self.crossSectionPlot(graphList, self.run_list, min_xaxis_val, max_xaxis_val, max_yaxis_val)
 
             if counter == 0: graphList[-1].Draw("AP")
             else: graphList[-1].Draw("P")
@@ -1030,5 +1048,4 @@ class PlotMaker:
                 i=i+1
                 for run in sorted(runs):
                     latex.DrawLatex(x, y-0.025*i, "%i" %(run))
-                    i=i+1 
-
+                    i=i+1

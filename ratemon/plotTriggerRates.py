@@ -59,7 +59,8 @@ class MonitorController:
             "makeTitle"        : None,
             "exportJson"       : None,
             "allTriggers"      : None,
-            "oldParser"        : None
+            "oldParser"        : None,
+            "plot_avgCS"       : None
         }
         self.usr_input_data_lst = None
 
@@ -80,16 +81,17 @@ class MonitorController:
         self.rate_monitor.use_lumi           = False
         self.rate_monitor.make_fits          = False
         self.rate_monitor.update_online_fits = False
+        self.rate_monitor.use_cross_section  = False
 
         self.rate_monitor.data_parser.normalize_bunches  = True
         self.rate_monitor.data_parser.use_prescaled_rate = False
-        self.rate_monitor.data_parser.use_cross_section  = False
 
         self.rate_monitor.data_parser.use_L1_triggers  = True
         self.rate_monitor.data_parser.use_HLT_triggers = True
         self.rate_monitor.data_parser.use_streams  = False 
         self.rate_monitor.data_parser.use_datasets = False
         self.rate_monitor.data_parser.use_L1A_rate = False
+        self.rate_monitor.data_parser.use_cross_section  = self.rate_monitor.use_cross_section
 
         self.rate_monitor.fitter.use_best_fit = False
 
@@ -101,6 +103,7 @@ class MonitorController:
         self.rate_monitor.plotter.save_png       = True
         self.rate_monitor.plotter.save_root_file = False
         self.rate_monitor.plotter.show_fit_runs  = False
+        self.rate_monitor.plotter.use_cross_section = self.rate_monitor.use_cross_section
 
         self.rate_monitor.plotter.root_file_name   = "rate_plots.root"
         self.rate_monitor.plotter.label_Y = "pre-deadtime unprescaled rate / num colliding bx [Hz]"
@@ -148,6 +151,11 @@ class MonitorController:
                             self.rate_monitor.data_parser.hlt_triggers.append(name)
                         elif name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
+                elif op_name == "plot_avgCS":
+                    self.rate_monitor.use_cross_section  = True
+                    self.rate_monitor.use_pileup         = False
+                    self.rate_monitor.data_parser.use_cross_section  = self.rate_monitor.use_cross_section
+                    self.rate_monitor.plotter.use_cross_section = self.rate_monitor.use_cross_section
                 elif op_name == "allTriggers":
                     self.rate_monitor.all_triggers = True
                 elif op_name == "exportRoot":
@@ -574,6 +582,9 @@ class MonitorController:
             elif label == "--allTriggers":
                 self.ops_dict["allTriggers"] = True
 
+            elif label == "--plot_avgCS":
+                self.ops_dict["plot_avgCS"] = True
+
             elif label == "--dbConfigFile":
                 # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
                 print("DB Configuration file loaded")
@@ -778,4 +789,3 @@ class MonitorController:
 if __name__ == "__main__":
     controller = MonitorController()
     controller.run()
-

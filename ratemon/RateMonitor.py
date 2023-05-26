@@ -56,9 +56,10 @@ class RateMonitor:
         self.update_online_fits = False
         self.plotter.compare_fits = False   # Compare fits to multiple groups of runs
 
-        self.use_pileup = True      # plot <PU> vs. rate
+        self.use_pileup = False     # plot <PU> vs. rate
         self.use_lumi   = False     # plot iLumi vs. rate
         self.use_LS     = False     # plot LS vs. rate
+        self.use_cross_section  = False      # plot cross section vs. run number
 
         self.exportJSON = False
 
@@ -131,13 +132,17 @@ class RateMonitor:
             x_vals = self.data_parser.getLumiData()
         elif self.use_LS:   # plot LS vs. rate
             x_vals = self.data_parser.getLSData()
+        elif self.use_cross_section:   # plot cross section vs. run number
+            x_vals = self.data_parser.getRunCountData()
 
         if self.use_stream_size:
             y_vals = self.data_parser.getSizeData()
         elif self.use_stream_bandwidth:
             y_vals = self.data_parser.getBandwidthData()
+        elif self.use_cross_section:
+            y_vals = self.data_parser.getCSData()
         else:
-            y_vals = self.data_parser.getRateData()
+            y_vals = self.data_parser.getRateData()     
 
         # Now we fill plot_data with *ALL* the objects we have data for
         
@@ -464,7 +469,10 @@ class RateMonitor:
             x_axis_var = "lumisection"
             x_axis_var_simple = "ls"
 
-        if self.data_parser.type_map[_object] == "trigger":
+        if self.use_cross_section:
+            y_axis_var = "average cross section"
+            y_axis_var_simple = " rate / ilum "
+        elif self.data_parser.type_map[_object] == "trigger":
             if self.data_parser.correct_for_DT == True:
                 y_axis_var = "pre-deadtime "
                 y_axis_var_simple = "pre-dt-"
@@ -789,4 +797,3 @@ class RateMonitor:
 
         
 # --- End --- #
-
