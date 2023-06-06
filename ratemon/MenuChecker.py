@@ -3,7 +3,7 @@
 import os
 import sys
 import getopt
-from MenuAnalyzer import MenuAnalyzer
+from MenuAnalyzer import *
 from termcolor import colored
 
 def usage():
@@ -14,8 +14,7 @@ def usage():
 
 def main():
     try:
-        opt, args = getopt.getopt(sys.argv[1:],"v",["doAnalysis="])
-
+        opt, args = getopt.getopt(sys.argv[1:],"v",["doAnalysis=","collision","circulating","cosmic"])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -28,17 +27,28 @@ def main():
     menu = args[0]
     verbose = False
     toDo = []
-    for o,a in opt: # get options passed on the command line
-        if o=="-v":
+    analyzer = MenuAnalyzer(menu)
+    useCommandOption = False
+    if len(args) == 2: # get options passed on the command line
+        useCommandOption = True
+        label = args[1]
+        if label == "-v":
             Verbose = True
-        elif o=="--doAnalysis":
-            toDo.append(a)
+        elif label == "--doAnalysis":
+            toDo.append(args)
+        elif label == "collision":
+            analyzer.requiredContent_collision()
+            analyzer.menuMode = 'collision'
+        elif label == "circulating":
+            analyzer.requiredContent_circulating()
+            analyzer.menuMode = 'circulating'
+        elif label == "cosmic":
+            analyzer.requiredContent_cosmic()
+            analyzer.menuMode = 'cosmic'
         else:
-            print("\nUnknown option "+o)
+            print("\nUnknown option "+label)
             sys.exit()
 
-    
-    analyzer = MenuAnalyzer(menu)
     if len(toDo)==0: analyzer.AddAllAnalyses()
     else:
         for a in toDo: analyzer.AddAnalysis(a)
@@ -69,12 +79,18 @@ def main():
                 print(format % (analysis,fail_txt,))
                 failed.append(analysis)
 
-
     if len(failed)!=0: print("\nLIST OF FAILED ANALYSES:")
     for analysis in failed:
         print(colored(analyzer.ProblemDescriptions[analysis]+":  ",'red'))
         for line in analyzer.Results[analysis]: print(colored(line,'yellow'))
         print("")
-
+    # Check menu mode
+    print("Using menu mode:", analyzer.menuMode)
+    if useCommandOption == False and analyzer.useMenuName == False:
+        note1_txt = colored("Default collision mode: Menu mode not detected from menu name (usually contains 'physics', 'circulating' or 'cosmic'), and no menu mode specified from command line",'yellow')
+        print(note1_txt)
+    if useCommandOption == False:
+        note2_txt = colored("To manually set a certain menu mode for Event Content check: add to the command line --mode collision / circulating / cosmic",'yellow')
+        print(note2_txt)
 if __name__=='__main__':
     main()
