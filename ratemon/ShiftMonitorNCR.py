@@ -353,7 +353,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Other options
         self.quiet = False                      # Prints fewer messages in this mode
         self.noColors = False                   # Special formatting for if we want to dump the table to a file
-        self.sendMattermostAlerts_static = False# Whether we should send alert to mattermost
+        self.sendMattermostAlerts_static = True# Whether we should send alert to mattermost
         self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         self.sendAudioAlerts = False            # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True                  # flag to determine whether or not we're receiving new LS
@@ -1695,11 +1695,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         text += str(self.saveLumiData[-1][2])+ "| \n\n"
 
+        header = 'MATTERMOST MESSAGES DISABLED'
         if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
+            header = ' SENDING MESSAGE TO MATTERMOST '
             mattermostAlert(text)
-        print("Sending mattermost report...")
-        print("Mattermost Summary report")
-        print(text)
+            print("SENDING MESSAGE TO MATTERMOST")
+            print("Mattermost Summary report")
+            print(text)
 
     # Use: Dumps trigger thresholds to a JSON file
     # Returns: (void)
