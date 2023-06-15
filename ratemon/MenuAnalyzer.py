@@ -19,18 +19,39 @@ class MenuAnalyzer:
         self.maxModulesPerPath   = 50
         self.maxPaths = 1000
         self.maxEndPaths = 100 # arbitrary maximum number of EndPaths, increased to 100 end of Run 2 
-
+        self.requiredContent = {}
+ 
         ##required streams
         self.requiredStreamsAndPDs = { 'Calibration' : ['TestEnablesEcalHcal'],
                                        'EcalCalibration' : ['EcalLaser'],
                                        'DQMCalibration' : ['TestEnablesEcalHcalDQM'],
                                        'DQM' : ['OnlineMonitor']}
         self.requiredEndPaths = ['DQMHistograms']
-        self.ExpressStreamName = 'Express'
-        if ('Protonion' in name):
+
+        self.useMenuName = True
+        ##eventContent for different menus
+        if ('physics' in name):
+            self.requiredContent_collision()
+            self.menuMode = 'collision'
+        elif ('circulating' in name):
+            self.requiredContent_circulating()
+            self.menuMode = 'circulating'
+        elif ('cosmic' in name):
+            self.requiredContent_cosmic()
+            self.menuMode = 'cosmic'
+        else:
+            self.requiredContent_collision()
+            self.menuMode = 'collision'
+            self.useMenuName = False
+
+        ##express stream name for different menus
+        if ('physics' in name):
+            self.ExpressStreamName = 'Express'
+        elif ('Protonion' in name):
             self.ExpressStreamName = 'ExpressPA'
-        if ('cosmic' in name):
+        else:
             self.ExpressStreamName = 'ExpressCosmics'
+
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
                                  'ExpressCosmics' : 'Cosmics', 
                                  'ExpressPhysicsPA' : 'pPb Collisions' }
@@ -50,7 +71,6 @@ class MenuAnalyzer:
         self.eventContent={}
         self.ParkingTriggers=[]
         self.NotParkingTriggers=[]
-
         self.AnalysisList=[]
 
         ## statically define the analysis map: new analyses must be registered here
@@ -204,11 +224,11 @@ class MenuAnalyzer:
             #first check for a drop statement
             if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
                 self.Results['checkReqEventContent'].append(stream+'::drop *')
-            if stream not in eventContent.requiredEventContent:
+            if stream not in self.requiredContent:
                 continue
             elif ('Protonion' in self.menuName) and stream == 'DQM':
                 stream = 'DQM_PA'
-            requiredContent = eventContent.requiredEventContent[stream]
+            requiredContent = self.requiredContent[stream]
             #check to see if stream contains required content
             for entry in requiredContent:
                 if not entry in content:
@@ -220,11 +240,11 @@ class MenuAnalyzer:
             #first check for a drop statement
             if not ('drop *' in content or 'drop *_hlt*_*_*' in content):
                 self.Results['checkNotReqEventContent'].append(stream+'::drop *')
-            if stream not in eventContent.requiredEventContent:
+            if stream not in self.requiredContent:
                 continue
             elif ('Protonion' in self.menuName) and stream == 'DQM':
                 stream = 'DQM_PA'
-            requiredContent = eventContent.requiredEventContent[stream]
+            requiredContent = self.requiredContent[stream]
             #check to make sure there is no extra (not-required) content
             for entry in content:
                 if (entry!='drop *' and entry!='drop *_hlt*_*_*'):
@@ -425,3 +445,15 @@ class MenuAnalyzer:
         cursor.execute(sqlquery)
         # should be exactly 1 entry and that will have a tuple with one entry "processName"
         self.processName = cursor.fetchall()[0][0]
+
+    def requiredContent_collision(self):
+        self.requiredContent = eventContent.requiredEventContent_collision
+        return self.requiredContent
+
+    def requiredContent_circulating(self):
+        self.requiredContent = eventContent.requiredEventContent_circulating
+        return self.requiredContent
+
+    def requiredContent_cosmic(self):
+        self.requiredContent = eventContent.requiredEventContent_cosmic
+        return self.requiredContent

@@ -41,7 +41,7 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
 
 ### Running ShiftMonitorTool
 
-At P5, ratemon is installed for you and available as the `ratemon` Systemd service. This is on the VM `kvm-s3562-1-ip151-84`, which can be accessed from `cmsusr`.
+At P5, ratemon is installed for you and available as the `ratemon` Systemd service. This is on the VMs `kvm-s3562-1-ip151-84` (production) and `kvm-s3562-1-ip149-08` (development), which can be accessed from `cmsusr`.
 
 To view logs:
 ```bash
