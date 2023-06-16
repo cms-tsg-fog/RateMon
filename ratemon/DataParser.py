@@ -69,7 +69,6 @@ class DataParser:
         self.name_veto = []   # List of paths/objects to remove from consideration
 
         self.use_prescaled_rate = False # If true, then rates are not un-prescaled
-        self.use_cross_section  = False # If true, then divide the rate by inst. lumi (only for L1 and HLT trigger data)
         self.normalize_bunches  = True  # Normalize by the number of colliding bunches
         self.correct_for_DT = True
         self.convert_output = True      # Flag to convert data from { LS: data } to [ data ], used in the data getters
@@ -97,7 +96,6 @@ class DataParser:
 
         self.verbose = True
 
-        self.run_dict = []
     def parseRuns(self,run_list,get_all_rates):
         # type: (List[int]) -> None
 
@@ -126,7 +124,8 @@ class DataParser:
             lumi_info = self.parseLumiInfo(run)     # [( LS,ilum,psi,phys,cms_ready ) ]
             if lumi_info is None:
                 continue
-            run_data = self.getRunData(run,bunches,lumi_info)
+            run_list_sorted = sorted(run_list)
+            run_data = self.getRunData(run_list_sorted,run,bunches,lumi_info)
             if len(list(run_data.keys())) == 0:   # i.e. no triggers/streams/datasets had enough valid rates
                 self.runs_skipped.append(run)
                 continue
@@ -149,8 +148,7 @@ class DataParser:
                 phys       = run_data[name]["phys"]
                 bw         = run_data[name]["bandwidth"]
                 size       = run_data[name]["size"]
-                if self.use_cross_section:
-                    runcount   = run_data[name]["runcount"]
+                runcount   = run_data[name]["runcount"]
 
                 if not name in self.name_list:
                     self.name_list.append(name)
@@ -165,8 +163,7 @@ class DataParser:
                     self.phys_data[name] = {}
                     self.bw_data[name]   = {}
                     self.size_data[name] = {}
-                    if self.use_cross_section:
-                        self.runcount_data[name] = {}
+                    self.runcount_data[name] = {}
 
                 self.ls_data[name][run]   = ls_array
                 self.rate_data[name][run] = rate
@@ -178,8 +175,7 @@ class DataParser:
                 self.phys_data[name][run] = phys
                 self.bw_data[name][run]   = bw
                 self.size_data[name][run] = size
-                if self.use_cross_section:
-                    self.runcount_data[name][run] = runcount
+                self.runcount_data[name][run] = runcount
             n_runs_usable += 1
         if n_runs_usable == 0:
             raise NoDataError(run_list)
@@ -227,7 +223,7 @@ class DataParser:
     # ------
     # TODO: We need to ensure that none of the object names overlap with one another
     # (i.e. dataset names that overlap with stream names) for the rate data.
-    def getRunData(self,run,bunches,lumi_info):
+    def getRunData(self,run_list,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         run_data = {}
         if bunches is None or bunches is 0:
@@ -244,14 +240,14 @@ class DataParser:
         if self.use_L1A_rate:
             run_data.update(self.getL1AData(run,bunches,lumi_info))
         if self.use_HLT_triggers:
-            run_data.update(self.getHLTTriggerData(run,bunches,lumi_info))
+            run_data.update(self.getHLTTriggerData(run_list,run,bunches,lumi_info))
         if self.use_L1_triggers:
-            run_data.update(self.getL1TriggerData(run,bunches,lumi_info))
+            run_data.update(self.getL1TriggerData(run_list,run,bunches,lumi_info))
 
         return run_data
 
     # Returns information related to L1 triggers 
-    def getL1TriggerData(self,run,bunches,lumi_info):
+    def getL1TriggerData(self,run_list,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         if self.skip_l1_triggers:
             return {}
@@ -274,9 +270,8 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
-            if self.use_cross_section:
-                runcount_dict = {}
-                runcount = self.run_dict.index(run)
+            runcount_dict = {}
+            runcount = run_list.index(run)
             for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
@@ -313,8 +308,7 @@ class DataParser:
                     phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
-                    if self.use_cross_section:
-                        runcount_dict[LS] = runcount
+                    runcount_dict[LS] = runcount
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
@@ -326,12 +320,11 @@ class DataParser:
             run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
-            if self.use_cross_section:
-                run_data[trigger]["runcount"] = runcount_dict
+            run_data[trigger]["runcount"] = runcount_dict
         return run_data
 
     # Returns information related to HLT triggers 
-    def getHLTTriggerData(self,run,bunches,lumi_info):
+    def getHLTTriggerData(self,run_list,run,bunches,lumi_info):
         # type: (int,int,List[Tuple[int,float,int,bool,bool]]) -> Dict[str: object]
         if self.skip_hlt_triggers:
             return {}
@@ -358,9 +351,8 @@ class DataParser:
             phys_dict  = {}
             bw_dict    = {}
             size_dict  = {}
-            if self.use_cross_section:
-                runcount_dict = {}
-                runcount = self.run_dict.index(run) 
+            runcount_dict = {}
+            runcount = run_list.index(run) 
             for LS,ilum,psi,phys,cms_ready,pileup in lumi_info:
                 if psi not in self.psi_filter and self.use_ps_mask:
                     continue
@@ -394,8 +386,7 @@ class DataParser:
                     phys_dict[LS] = phys
                     bw_dict[LS] = None
                     size_dict[LS] = None
-                    if self.use_cross_section:
-                        runcount_dict[LS] = runcount
+                    runcount_dict[LS] = runcount
 
             run_data[trigger]["LS"] = ls_array
             run_data[trigger]["rate"] = rate_dict
@@ -407,8 +398,7 @@ class DataParser:
             run_data[trigger]["phys"] = phys_dict
             run_data[trigger]["bandwidth"] = bw_dict
             run_data[trigger]["size"] = size_dict
-            if self.use_cross_section:
-                run_data[trigger]["runcount"] = runcount_dict
+            run_data[trigger]["runcount"] = runcount_dict
         return run_data
 
     def getStreamData(self,run,bunches,lumi_info):
