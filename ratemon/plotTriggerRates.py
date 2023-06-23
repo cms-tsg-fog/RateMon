@@ -147,10 +147,10 @@ class MonitorController:
                     self.rate_monitor.data_parser.hlt_triggers = []
                     self.rate_monitor.data_parser.l1_triggers = []
                     for name in trigger_list:
-                        if name[0:4] == "HLT_":
-                            self.rate_monitor.data_parser.hlt_triggers.append(name)
-                        elif name[0:3] == "L1_":
+                        if name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
+                        else: 
+                            self.rate_monitor.data_parser.hlt_triggers.append(name)
                 elif op_name == "plot_avgCS":
                     self.rate_monitor.use_cross_section  = True
                     self.rate_monitor.use_pileup         = False
