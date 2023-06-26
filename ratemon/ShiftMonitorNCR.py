@@ -1638,13 +1638,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             text += "Warning: Authentication and/or query of hltsupervisor failed, stream and dataset thresholds not udpated. \n\n"
             self.query_error = False
 
-        if len(self.missingStreamThresholds) > 0: 
-            text += "Warning: The following streams are missing thresholds: \n"
-            text += f"{str(self.missingStreamThresholds)[1:-1]} \n\n "
+        # if len(self.missingStreamThresholds) > 0: 
+        #     text += "Warning: The following streams are missing thresholds: \n"
+        #     text += f"{str(self.missingStreamThresholds)[1:-1]} \n\n "
 
-        if len(self.missingDatasetThresholds) > 0: 
-            text += "Warning: The following datasets are missing thresholds: \n"
-            text += f"{str(self.missingDatasetThresholds)} \n\n "
+        # if len(self.missingDatasetThresholds) > 0: 
+        #     text += "Warning: The following datasets are missing thresholds: \n"
+        #     text += f"{str(self.missingDatasetThresholds)} \n\n "
 
         # If there are streams or datasets above their threshold, send an alert
         if len(badStreams) > 0:
