@@ -49,8 +49,12 @@ class MenuAnalyzer:
             self.ExpressStreamName = 'Express'
         elif ('Protonion' in name):
             self.ExpressStreamName = 'ExpressPA'
-        else:
+        elif ('circulating' in name):
             self.ExpressStreamName = 'ExpressCosmics'
+        elif ('cosmic' in name):
+            self.ExpressStreamName = 'ExpressCosmics'
+        else:
+            self.ExpressStreamName = 'Express'
 
         self.expressPDs      = { 'ExpressPhysics' : 'Collisions',
                                  'ExpressCosmics' : 'Cosmics', 

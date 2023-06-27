@@ -39,12 +39,15 @@ def main():
         elif label == "collision":
             analyzer.requiredContent_collision()
             analyzer.menuMode = 'collision'
+            analyzer.ExpressStreamName = 'Express'
         elif label == "circulating":
             analyzer.requiredContent_circulating()
             analyzer.menuMode = 'circulating'
+            analyzer.ExpressStreamName = 'ExpressCosmics'
         elif label == "cosmic":
             analyzer.requiredContent_cosmic()
             analyzer.menuMode = 'cosmic'
+            analyzer.ExpressStreamName = 'ExpressCosmics'
         else:
             print("\nUnknown option "+label)
             sys.exit()
