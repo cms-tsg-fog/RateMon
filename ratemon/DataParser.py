@@ -140,7 +140,12 @@ class DataParser:
 
                 ls_array   = run_data[name]["LS"]
                 rate       = run_data[name]["rate"]
-                cross_section = run_data[name]["cross_section"]
+                
+                try: 
+                    cross_section = run_data[name]["cross_section"]
+                except: 
+                    cross_section = 0
+
                 prescale   = run_data[name]["prescale"]
                 pu         = run_data[name]["PU"]
                 lumi       = run_data[name]["ilumi"]
@@ -148,7 +153,11 @@ class DataParser:
                 phys       = run_data[name]["phys"]
                 bw         = run_data[name]["bandwidth"]
                 size       = run_data[name]["size"]
-                runcount   = run_data[name]["runcount"]
+
+                try: 
+                    runcount   = run_data[name]["runcount"]
+                except: 
+                    runcount = 0
 
                 if not name in self.name_list:
                     self.name_list.append(name)
