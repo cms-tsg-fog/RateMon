@@ -93,13 +93,9 @@ core_content = {
           'keep edmTriggerResults_*_*_*',
           'keep triggerTriggerEvent_*_*_*'],
         'DQM': [
-          'keep *_hltL3NoFiltersNoVtxMuonCandidates_*_*',
           'keep *_hltOnlineBeamSpot_*_*',
-          'keep *_hltPFJetForBtag_*_*',
           'keep *_hltPixelTracks_*_*',
-          'keep *_hltSelector8CentralJetsL1FastJet_*_*',
           'keep *_hltSiPixelClusters_*_*',
-          'keep *_hltSiStripRawToClustersFacility_*_*',
           'keep FEDRawDataCollection_rawDataCollector_*_*',
           'keep FEDRawDataCollection_source_*_*',
           'keep GlobalObjectMapRecord_hltGtStage2ObjectMap_*_*',
@@ -109,6 +105,10 @@ core_content = {
 
 collision_extra_content = {
         'DQM':[
+          'keep *_hltL3NoFiltersNoVtxMuonCandidates_*_*',
+          'keep *_hltPFJetForBtag_*_*',
+          'keep *_hltSelector8CentralJetsL1FastJet_*_*',
+          'keep *_hltSiStripRawToClustersFacility_*_*',
           'keep *_hltHoreco_*_*',
           'keep *_hltSiPixelClustersCache_*_*',
           'keep *_hltDeepCombinedSecondaryVertexBJetTagsPF_*_*',
