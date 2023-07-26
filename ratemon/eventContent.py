@@ -83,11 +83,7 @@ core_content = {
           'keep edmTriggerResults_*_*_*',
           'keep triggerTriggerEvent_*_*_*',
           'keep *_hltFEDSelectorTCDS_*_*',
-          'keep *_hltGemRecHits_*_*',
-          'keep *_hltMuonGEMDigis_AMC13Status_*',
-          'keep *_hltMuonGEMDigis_AMCStatus_*',
-          'keep *_hltMuonGEMDigis_OHStatus_*',
-          'keep *_hltMuonGEMDigis_VFATStatus_*'],
+          'keep *_hltFEDSelectorGEM_*_*'],
         'TrackerCalibration':[
           'keep *_hltTrackerCalibrationRaw_*_*',
           'keep edmTriggerResults_*_*_*',
