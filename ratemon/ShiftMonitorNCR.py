@@ -12,30 +12,29 @@
 #######################################################
 
 # Imports
-import DBParser
-import OldDBParser
-from DBParser import stripVersion
 import ROOT
-from ROOT import TF1
-import pickle as pickle
-import sys
+import sys, os
+import copy
 import time
+import datetime
+import pickle
 import json
 import requests
 import yaml
-# For colors
-from termcolor import *
-from colors import *
-# For getting command line options
-import getopt
+import getopt # command line options
+from colors import bcolors # colors
+
+# Database parser
+import DBParser
+import OldDBParser
+
 # For alerts
+from Alerts import AlertLevel, PriorityAlert, MultipleAlert, MattermostMessage, AudioMessage, OnScreenMessage, RateAlert 
+from Logger import Logger
+from FitFinder import FitFinder
+from OIDCAuth import OIDCAuth
 from mattermostAlert import mattermostAlert
 from audioAlert import audioAlert
-from Alerts import *
-from Logger import *
-from FitFinder import *
-from OIDCAuth import *
-# For summary report
 
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
@@ -389,7 +388,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             if triggerName[0] == '#': continue
             try:
                 if not str(triggerName) in TriggerList:
-                    TriggerList.append(stripVersion(str(triggerName)))
+                    TriggerList.append(DBParser.stripVersion(str(triggerName)))
             except:
                 print("Error parsing trigger name in file", fileName)
         return TriggerList
@@ -466,19 +465,19 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                 for triggerName in list(inputFit.keys()):
                     if triggerName[0:3] == "L1_":
                         if self.InputFitL1 is None: self.InputFitL1 = {}
-                        self.InputFitL1[stripVersion(triggerName)] = inputFit[triggerName]
+                        self.InputFitL1[DBParser.stripVersion(triggerName)] = inputFit[triggerName]
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
-                        self.InputFitHLT[stripVersion(triggerName)] = inputFit[triggerName]
+                        self.InputFitHLT[DBParser.stripVersion(triggerName)] = inputFit[triggerName]
             if fits_format == 'nested_dict':
                 for triggerName in list(inputFit.keys()):
                     best_fit_type, best_fit = self.FitFinder.getBestFit(inputFit[triggerName]) #best_fit=['best_fit_type',#,#,etc]
                     if triggerName[0:3] == "L1_":
                         if self.InputFitL1 is None: self.InputFitL1 = {}
-                        self.InputFitL1[stripVersion(triggerName)] = best_fit
+                        self.InputFitL1[DBParser.stripVersion(triggerName)] = best_fit
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
-                        self.InputFitHLT[stripVersion(triggerName)] = best_fit
+                        self.InputFitHLT[DBParser.stripVersion(triggerName)] = best_fit
         if not self.simulate:
             self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
         if self.simulate:
@@ -1496,7 +1495,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         else:                               # Polynomial
             funcStr = "%.15f+x*(%.15f+ x*(%.15f+x*%.15f))" % (paramlist[1], paramlist[2], paramlist[3], paramlist[4])
 
-        fitFunc = TF1("Fit_"+triggerName, funcStr)
+        fitFunc = ROOT.TF1("Fit_"+triggerName, funcStr)
         if self.pileUp:
             if self.numBunches[0] > 0:
                 return self.numBunches[0]*fitFunc.Eval(ilum/self.numBunches[0]*ppInelXsec/orbitsPerSec)
