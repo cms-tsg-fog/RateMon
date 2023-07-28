@@ -101,12 +101,13 @@ class ShiftMonitor:
             'tableData',
             'pdData',
             'mode',
-            'streamData'
+            'streamData',
             'ratemon_luminosity',
             'ratemon_observed_trigger_rate',
             'ratemon_predicted_trigger_rate',
             'observed_collector',
-            'predicted_collector']
+            'predicted_collector',
+            'madeGauges']
 
     def __init__(self, dbCfg=None, oldParser=False):
         self.FitFinder = FitFinder()
