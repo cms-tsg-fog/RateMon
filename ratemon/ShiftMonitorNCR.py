@@ -216,7 +216,6 @@ class ShiftMonitor:
 
         self.l1rateData = {}
         self.lumiData = []
-
         # Save run info for report
         self.saveRunNumber = 1
         self.saveLS = 1
@@ -1719,7 +1718,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         text += f"{str(self.saveTriggerMode)} |" 
         text += f"{str(self.mattermostTriggersSum)} |"
 
-        text += str(self.saveLumiData[-1][2])+ "| \n\n"
+        text += str(self.saveLumiData[-1][2])+ " |\n\n "
 
         header = 'MATTERMOST MESSAGES DISABLED'
         if self.sendMattermostAlerts_static and self.sendMattermostAlerts_dynamic:
