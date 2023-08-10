@@ -63,7 +63,7 @@ class DBParser:
         self.L1IndexNameMap = {}
         self.L1NameIndexMap = {}
         self.PSColumnByLS = {}
-        
+
     #returns the lumisection number with prescale index
     def getLSInfo(self, runNumber):
 
@@ -156,24 +156,12 @@ class DBParser:
         q2.custom("fields", "lumisection_number,new_prescale_index")
         q2.per_page = PAGE_LIMIT
         response2 = q2.data().json()
-        ps_counter = 0
         ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
-        more_ps = True
-        while response2['data'][ps_counter]['attributes']['lumisection_number'] < minLS:
-            ps_counter += 1
-            if len(response2['data']) == ps_counter:
-                more_ps = False
-                break
-
         for item in response['data']:
             thing = item['attributes']
-            if more_ps:
-                if response2['data'][ps_counter]['attributes']['lumisection_number']==thing['lumisection_number']:
-                    ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
-                    if ps_counter == len(response2['data'])-1:
-                        more_ps=False
-                    else:
-                        ps_counter += 1
+            for ps_index in response2['data']:
+                if thing['lumisection_number'] >= ps_index['attributes']['lumisection_number']:
+                    ps = ps_index['attributes']['new_prescale_index'] 
             adjusted_lumi = adjust*thing['init_lumi']
             _list.append([thing['lumisection_number'], adjusted_lumi, ps, thing['physics_flag']*thing['beam1_present'],
                           thing['physics_flag']*thing['beam1_present']*thing['ebp_ready']*thing['ebm_ready']*
@@ -182,7 +170,8 @@ class DBParser:
                           thing['dtp_ready']*thing['dtm_ready']*thing['cscp_ready']*thing['cscm_ready']*thing['tob_ready']*
                           thing['tibtid_ready']*thing['tecp_ready']*thing['tecm_ready']*thing['bpix_ready']*
                           thing['fpix_ready']*thing['esp_ready']*thing['esm_ready'],thing['pileup']])
-
+            if thing['lumisection_number'] == maxLS:
+                break
         return _list
 
     # Use: Gets the HLT rates in a run
