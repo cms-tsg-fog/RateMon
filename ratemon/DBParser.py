@@ -156,7 +156,6 @@ class DBParser:
         q2.custom("fields", "lumisection_number,new_prescale_index")
         q2.per_page = PAGE_LIMIT
         response2 = q2.data().json()
-        ps = response2['data'][ps_counter]['attributes']['new_prescale_index']
         for item in response['data']:
             thing = item['attributes']
             for ps_index in response2['data']:
