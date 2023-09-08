@@ -61,3 +61,36 @@ cd ratemon
 source venv/bin/activate
 python3 ShiftMonitorTool.py
 ```
+
+
+# Tests to complete before creating a RateMon MR
+Before creating a MR, thoroughly test the new code with the following tests. 
+All of these tests should be done **after** a `git pull` and a `git checkout` of the new branch has been done on the machine so that the test runs on the new code. 
+
+## Miscellaneous checks
+1. Check that in [ShiftMonitorNCR.py](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/master/ratemon/ShiftMonitorNCR.py#L356), `self.sendMattermostAlerts_static` is set to `True`. If this is false, then alerts will not be sent to the RateMon alerts channel on Mattermost. 
+
+## Tests on lxplus
+1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
+2. Run ShiftMonitorTool.py without the config file: `python3 ShiftMonitorTool.py --simulate=370725`
+3. Run ShiftMonitorTool.py with the config file: `python3 ShiftMonitorTool.py --simulate=370725 --configFile=ShiftMonitor_config.json`
+
+## Tests on VM (caer)
+1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
+2. Run a test query from the web interface and make sure the expected output is produced while monitoring the output on the VM (for example, query via http://caer.cern.ch/api/v1/ui using Fill 9068, HLT_CaloJet500_NoJetID)
+
+## Tests on P5 dev VM (kvm-s3562-1-ip149-08)
+Login to machine: 
+```
+ssh lxplus
+ssh cmsusr
+ssh kvm-s3562-1-ip149-08
+```
+Here, you should be in the RateMon directory where you can do a `git pull` and `git checkout`. From here run the following two tests: 
+1. Test `make_plots_for_cron_manual.py` using a test fill (**This is not available yet. In the meantime manually edit make_plots_for_cron.py to run over a specified fill by commenting out the line `run_lst , fill_num = parser.getRecentRuns()` and replacing it with two lines: `fill_num = 9068` and `run_lst = parser.getFillRuns(fill_num)`**).
+2. Test ShiftMonitorTool on the dev machine via a systemctl process: 
+```
+sudo systemctl start ratemon.service
+sudo journalctl -fu ratemon
+sudo systemctl stop ratemon.service
+```
