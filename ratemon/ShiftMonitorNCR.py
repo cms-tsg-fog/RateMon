@@ -36,8 +36,13 @@ from OIDCAuth import OIDCAuth
 from mattermostAlert import mattermostAlert
 from audioAlert import audioAlert
 
-from prometheus_client import Gauge, CollectorRegistry, write_to_textfile
-
+accessPrometheus_ = False
+try:
+    from prometheus_client import Gauge, CollectorRegistry, write_to_textfile
+    accessPrometheus_ = True
+except ModuleNotFoundError:
+    print("No Prometheus client found. Skipping import.")
+    
 # --- 13 TeV constant values ---
 ppInelXsec   = 80000.   # 80 mb
 orbitsPerSec = 11245.8  # Hz
@@ -102,14 +107,11 @@ class ShiftMonitor:
             'pdData',
             'mode',
             'streamData',
-            'ratemon_luminosity',
-            'ratemon_observed_trigger_rate',
-            'ratemon_predicted_trigger_rate',
-            'observed_collector',
-            'predicted_collector',
-            'madeGauges']
+            'gauge_luminosity',
+            'gauge_observed_trigger_rate',
+            'gauge_predicted_trigger_rate']
 
-    def __init__(self, dbCfg=None, oldParser=False):
+    def __init__(self, dbCfg=None, oldParser=False, accessPrometheus=accessPrometheus_):
         self.FitFinder = FitFinder()
 
         # Suppress root warnings
@@ -359,7 +361,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         # Other options
         self.quiet = False                      # Prints fewer messages in this mode
         self.noColors = False                   # Special formatting for if we want to dump the table to a file
-        self.sendMattermostAlerts_static = True# Whether we should send alert to mattermost
+        self.sendMattermostAlerts_static = True # Whether we should send alert to mattermost
         self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         self.sendAudioAlerts = False            # Whether we should send audio warning messages in the control room (CAUTION)
         self.isUpdating = True                  # flag to determine whether or not we're receiving new LS
@@ -377,13 +379,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.scale_sleeptime = 0.5              # Scales the length of time to wait before sending another query (1.0 = 60sec, 2.0 = 120sec, etc)
         self.scale_sleeptime_simulate = 0.05    # Shorter sleep period if in simulate mode
 
-        # Options for prometheus client
-        self.ratemon_luminosity = Gauge('luminosity', 'luminosity avg')
-        self.ratemon_observed_trigger_rate = {}
-        self.ratemon_predicted_trigger_rate = {}
-        self.observed_collector = CollectorRegistry()
-        self.predicted_collector = CollectorRegistry()
-        self.madeGauges = False
+        # Gauges for prometheus client
+        self.accessPrometheus = accessPrometheus
+        if self.accessPrometheus:
+            self.gauge_luminosity = Gauge('luminosity', 'Luminosity')
+            self.gauge_observed_trigger_rate  = Gauge('ratemon_observed_trigger_rate',  'Observed trigger rate',  ["trigger"])
+            self.gauge_predicted_trigger_rate = Gauge('ratemon_predicted_trigger_rate', 'Predicted trigger rate', ["trigger"])
 
     # Use: Opens a file containing a list of trigger names and adds them to the RateMonitor class's trigger list
     # Note: We do not clear the trigger list, this way we could add triggers from multiple files to the trigger list
@@ -1215,22 +1216,16 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         row.append(avePS)
         row.append(comment)
 
-        if self.madeGauges == False:
-            self.setGauges()
-        
         self.tableData.append(row)
 
         # Add row to the table data
         if doPred:
             if expected > 0:
                 self.tableData.append(row)
-                self.ratemon_observed_trigger_rate[trigger].set(row[1])
-                if doPred and expected > 0:
-                    self.ratemon_predicted_trigger_rate[trigger].set(row[2])
-                self.ratemon_luminosity.set(aveLumi)
-                write_to_textfile('./luminosity.prom', self.ratemon_luminosity)
-                write_to_textfile('./rate_observed.prom', self.observed_collector)
-                write_to_textfile('./rate_predicted.prom', self.predicted_collector)
+                if self.accessPrometheus:
+                    self.gauge_observed_trigger_rate.labels(trigger=trigger).set(row[1])
+                    self.gauge_predicted_trigger_rate.labels(trigger=trigger).set(row[2])
+                    self.gauge_luminosity.set(aveLumi)
         else:
             self.tableData.append(row)
 
@@ -1828,16 +1823,6 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     self.__dict__[k][k2] = v2
             else:
                 self.__dict__[k] = v
-
-    # Sets gauges for prometheus client 
-    def setGauges(self):
-        for item in self.usableHLTTriggers:
-            self.ratemon_observed_trigger_rate[item] = Gauge(item, 'HLT observed trigger rate', registry=self.observed_collector)
-            self.ratemon_predicted_trigger_rate[item] = Gauge(item, 'HLT predicted trigger rate', registry=self.predicted_collector)
-        for item in self.usableL1Triggers:
-            self.ratemon_observed_trigger_rate[item] = Gauge(item, 'L1 observed trigger rate', registry=self.observed_collector)
-            self.ratemon_predicted_trigger_rate[item] = Gauge(item, 'L1 predicted trigger rate', registry=self.predicted_collector)
-        self.madeGauges = True
 
     # Prints all properties (by catagory)
     def printProperties(self):
