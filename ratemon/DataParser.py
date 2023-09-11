@@ -286,7 +286,7 @@ class DataParser:
                     continue
 
                 if not ilum is None and LS in L1_rates[trigger]:
-                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    pu = pileup
                     rate = L1_rates[trigger][LS][0]
                     prescale = L1_rates[trigger][LS][1]
 
@@ -367,7 +367,7 @@ class DataParser:
                     continue
 
                 if not ilum is None and LS in HLT_rates[trigger]:
-                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    pu = pileup
                     rate = HLT_rates[trigger][LS][0]
                     prescale = HLT_rates[trigger][LS][1]
 
@@ -449,7 +449,7 @@ class DataParser:
                     continue
 
                 if not ilum is None and LS in stream_rates[_object]:
-                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    pu = pileup
                     rate = stream_rates[_object][LS][0]
                     size = stream_rates[_object][LS][1]
                     bandwidth = stream_rates[_object][LS][2]
@@ -513,7 +513,7 @@ class DataParser:
                     continue
 
                 if not ilum is None and LS in dataset_rates[_object]:
-                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    pu = pileup
                     rate = dataset_rates[_object][LS][0]
 
                     if self.normalize_bunches:
@@ -573,7 +573,7 @@ class DataParser:
                     continue
 
                 if not ilum is None and LS in L1A_rates[_object]:
-                    pu = (ilum/bunches*ppInelXsec/orbitsPerSec)
+                    pu = pileup
                     rate = L1A_rates[_object][LS]
 
                     if self.normalize_bunches:
