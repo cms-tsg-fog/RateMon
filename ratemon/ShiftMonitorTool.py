@@ -27,6 +27,13 @@ import array
 # For the ShiftMonitor tool
 from ShiftMonitorNCR import *
 
+accessPrometheus_ = False
+try:
+    from prometheus_client import start_http_server
+    accessPrometheus_ = True
+except ModuleNotFoundError:
+    print("No Prometheus client found. Skipping import.")
+
 # Class CommandLineParser
 class CommandLineParser:
     def __init__(self):
@@ -56,12 +63,12 @@ class CommandLineParser:
                         print("Unable to read the given YAML database configuration file. Error:", exc)
                         # Exit with error, we can't continue without connecting to the DB
                         sys.exit(1)
-                self.monitor = ShiftMonitor(dbCfg, oldParser)
+                self.monitor = ShiftMonitor(dbCfg, oldParser, accessPrometheus_)
             else:
                 pass
 
         if not dbConfigLoaded:
-            self.monitor = ShiftMonitor()
+            self.monitor = ShiftMonitor(accessPrometheus=accessPrometheus_)
 
         for label, op in opt:
             if label == "--fitFile":
@@ -245,6 +252,8 @@ class CommandLineParser:
 ## ----------- End of class CommandLineParser ------------ ##
 
 if __name__ == "__main__":
+    if accessPrometheus_:
+        start_http_server(8000) # Start up the server to expose the metrics
+
     parser = CommandLineParser()
     parser.run()
-
