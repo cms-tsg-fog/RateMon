@@ -86,7 +86,11 @@ ssh lxplus
 ssh cmsusr
 ssh kvm-s3562-1-ip149-08
 ```
-Here, you should be in the RateMon directory where you can do a `git pull` and `git checkout`. From here run the following two tests: 
+
+This should put you into the directory `/nsfhome0/USERNAME`. 
+If it is your first time using the machine, setup the ratemon repository here using `git clone https://gitlab.cern.ch/cms-tsg-fog/ratemon.git`. 
+
+Navigate to the ratemon directory and do a `git pull` and `git checkout` for the branch you want to test. Then run the following two tests: 
 1. Test `make_plots_for_cron_manual.py` using a test fill (**This is not available yet. In the meantime manually edit make_plots_for_cron.py to run over a specified fill by commenting out the line `run_lst , fill_num = parser.getRecentRuns()` and replacing it with two lines: `fill_num = 9068` and `run_lst = parser.getFillRuns(fill_num)`**).
 2. Test ShiftMonitorTool on the dev machine via a systemctl process: 
 ```
