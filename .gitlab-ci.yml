@@ -27,6 +27,8 @@ builder image:
 build:RPMs:
   image: $CI_REGISTRY_IMAGE/builder:$CI_COMMIT_REF_NAME-latest
   stage: 🏗️ build
+  variables:
+    FF_KUBERNETES_HONOR_ENTRYPOINT: 1
   script:
   - make
   artifacts:
