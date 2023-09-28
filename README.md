@@ -28,7 +28,45 @@ The source for that is the `.gitlab-ci.yml` file.
 
 Each pipeline contains a build of an RPM package for the RateMon tools. These packages are automatically uploaded to [a shared EOS folder](https://cernbox.cern.ch/index.php/s/TL7L81EaTE3Z8Zy).
 
-### Deployment
+# Testing and Deploying Changes to RateMon
+
+## Tests to complete before creating a RateMon MR
+Before creating a MR, thoroughly test the new code with the following tests. 
+All of these tests should be done **after** a `git pull` and a `git checkout` of the new branch has been done on the machine so that the test runs on the new code. 
+
+### Miscellaneous checks
+1. Check that in [ShiftMonitorNCR.py](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/master/ratemon/ShiftMonitorNCR.py#L356), `self.sendMattermostAlerts_static` is set to `True`. If this is false, then alerts will not be sent to the RateMon alerts channel on Mattermost. 
+
+### Tests on lxplus
+1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
+2. Run ShiftMonitorTool.py without the config file: `python3 ShiftMonitorTool.py --simulate=370725`
+3. Run ShiftMonitorTool.py with the config file: `python3 ShiftMonitorTool.py --simulate=370725 --configFile=ShiftMonitor_config.json`
+
+### Tests on VM (caer)
+1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
+2. Run a test query from the web interface and make sure the expected output is produced while monitoring the output on the VM (for example, query via http://caer.cern.ch/api/v1/ui using Fill 9068, HLT_CaloJet500_NoJetID)
+
+### Tests on P5 dev VM (kvm-s3562-1-ip149-08)
+Login to machine: 
+```
+ssh lxplus
+ssh cmsusr
+ssh kvm-s3562-1-ip149-08
+```
+
+This should put you into the directory `/nsfhome0/USERNAME`. 
+If it is your first time using the machine, setup the ratemon repository here using `git clone https://gitlab.cern.ch/cms-tsg-fog/ratemon.git`. 
+
+Navigate to the ratemon directory and do a `git pull` and `git checkout` for the branch you want to test. Then run the following two tests: 
+1. Test `make_plots_for_cron_manual.py` using a test fill (**This is not available yet. In the meantime manually edit make_plots_for_cron.py to run over a specified fill by commenting out the line `run_lst , fill_num = parser.getRecentRuns()` and replacing it with two lines: `fill_num = 9068` and `run_lst = parser.getFillRuns(fill_num)`**).
+2. Test ShiftMonitorTool on the dev machine via a systemctl process: 
+```bash
+sudo systemctl start ratemon.service
+sudo journalctl -fu ratemon
+sudo systemctl stop ratemon.service
+```
+
+## Deployment
 
 GitLab CI can deploy to P5. To do this, perform the following steps:
 
@@ -39,7 +77,15 @@ GitLab CI can deploy to P5. To do this, perform the following steps:
 - In this newly created pipeline, press the `deploy:P5` play button
   - In order to manually deploy successfully, you also need to be on the cms ratemon librarian group.
 
-### Running ShiftMonitorTool
+## After Deploying Changes
+After deploying changes to the P5 machine, do the following to update the `ater` machine and confirm everything is running as expected. 
+
+1. Check that the P5 machine cron job is running correctly. First, login to the P5 prod machine (`kvm-s3562-1-ip151-84`) and then view the cron job logs with the command `sudo vim /var/spool/mail/hltpro` (with your text editor of choice). The cron job only runs once an hour so this needs to be checked once the cron job for the new RateMon tag is running. 
+2. Check the ShiftMonitorTool output logs. On the P5 prod machine, run this command to monitor the logs and confirm there are no errors: `sudo journalctl -fu ratemon`. 
+3. Update the `ater` VM. Login to the `ater` machine and connect to the tmux session with `tmux a -t 0`. Then do `CTRL+C` to quit the current server. Next, do a `git pull` and checkout the new tag. Restart the API with `python3 server.py`. Then open https://cmsoms.cern.ch/ratemon/rate_vs_pu/ and click on a rate vs pu plot. If the API is working correctly, there will then be a corresponding interactive "live" plot. 
+
+
+# Running ShiftMonitorTool
 
 At P5, ratemon is installed for you and available as the `ratemon` Systemd service. This is on the VMs `kvm-s3562-1-ip151-84` (production) and `kvm-s3562-1-ip149-08` (development), which can be accessed from `cmsusr`.
 
@@ -60,41 +106,4 @@ To run outside P5:
 cd ratemon
 source venv/bin/activate
 python3 ShiftMonitorTool.py
-```
-
-
-# Tests to complete before creating a RateMon MR
-Before creating a MR, thoroughly test the new code with the following tests. 
-All of these tests should be done **after** a `git pull` and a `git checkout` of the new branch has been done on the machine so that the test runs on the new code. 
-
-## Miscellaneous checks
-1. Check that in [ShiftMonitorNCR.py](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/master/ratemon/ShiftMonitorNCR.py#L356), `self.sendMattermostAlerts_static` is set to `True`. If this is false, then alerts will not be sent to the RateMon alerts channel on Mattermost. 
-
-## Tests on lxplus
-1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
-2. Run ShiftMonitorTool.py without the config file: `python3 ShiftMonitorTool.py --simulate=370725`
-3. Run ShiftMonitorTool.py with the config file: `python3 ShiftMonitorTool.py --simulate=370725 --configFile=ShiftMonitor_config.json`
-
-## Tests on VM (caer)
-1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
-2. Run a test query from the web interface and make sure the expected output is produced while monitoring the output on the VM (for example, query via http://caer.cern.ch/api/v1/ui using Fill 9068, HLT_CaloJet500_NoJetID)
-
-## Tests on P5 dev VM (kvm-s3562-1-ip149-08)
-Login to machine: 
-```
-ssh lxplus
-ssh cmsusr
-ssh kvm-s3562-1-ip149-08
-```
-
-This should put you into the directory `/nsfhome0/USERNAME`. 
-If it is your first time using the machine, setup the ratemon repository here using `git clone https://gitlab.cern.ch/cms-tsg-fog/ratemon.git`. 
-
-Navigate to the ratemon directory and do a `git pull` and `git checkout` for the branch you want to test. Then run the following two tests: 
-1. Test `make_plots_for_cron_manual.py` using a test fill (**This is not available yet. In the meantime manually edit make_plots_for_cron.py to run over a specified fill by commenting out the line `run_lst , fill_num = parser.getRecentRuns()` and replacing it with two lines: `fill_num = 9068` and `run_lst = parser.getFillRuns(fill_num)`**).
-2. Test ShiftMonitorTool on the dev machine via a systemctl process: 
-```
-sudo systemctl start ratemon.service
-sudo journalctl -fu ratemon
-sudo systemctl stop ratemon.service
 ```
