@@ -1,2 +1,2 @@
 Results produced with:
-python plotTriggerRates.py --allTriggers --updateOnlineFits 370580 370772 370774 370775 370776 
+python plotTriggerRates.py --allTriggers --updateOnlineFits 374666 374667 374668 
