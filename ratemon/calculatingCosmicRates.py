@@ -1,10 +1,10 @@
+import pickle
 from DBParser import *
 from plotTriggerRates import *
-import pickle
+from referenceRuns import referenceRuns
 
 myMonCon = MonitorController()
 myParser = DBParser.DBParser()
-
 
 #d = open("Fits/Cosmics/COSMICS_Rates.pkl", "rb")
 #loaded_dictionary = pickle.load(d)
@@ -16,10 +16,8 @@ listPickle = ['L1_SingleMuCosmics', 'L1_SingleMuOpen', 'L1_SingleMu3', 'L1_Singl
 print(list(set(listLoadTriggers).difference(set(listPickle))))
 
 
-
-
 def avg(lst): return sum(lst) / len(lst)
-run = 349527
+run = referenceRuns['cosmics'][0] # picking only first run
 
 triggerList = myMonCon.readTriggerList("TriggerLists/monitorlist_COSMICS.list")
 L1trig = triggerList[23:]
