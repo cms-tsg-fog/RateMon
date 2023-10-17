@@ -6,24 +6,23 @@ import json
 import socket
 from termcolor import colored
 from omsapi import OMSAPI
+from referenceRuns import referenceRuns
 
 sys.argv.pop(0)
 
-run_type = "COSMICS" # "COLLISIONS-900GeV"
+run_type = "cosmics" # "collisions", "collisionsHI", "collisions900GeV"
 
 # reference run in first column to compare rates to
-if run_type == "COSMICS":
-    reference_run = 349527
-elif run_type == "COLLISIONS-900GeV":
-    reference_run = 353087
+if run_type in ["collisions", "collisionsHI", "collisions900GeV", "cosmics"]:
+    reference_runs = referenceRuns[run_type]
 else:
     print("Run type not recognized. Exiting")
     sys.exit()
 
-triggerListName = "TriggerLists/monitorlist_%s.list"%run_type
+triggerListName = "TriggerLists/monitorlist_%s.list"%run_type.upper()
 PAGE_LIMIT = 10000
 
-runs = [str(reference_run)] + sys.argv
+runs = reference_runs + sys.argv
 
 hostname = socket.gethostname()
 if "lxplus" in hostname:
@@ -179,7 +178,7 @@ for trig in triggerList:
     printDict[trig] = "{:40s}".format(trig) 
 
 for run in runs:
-    if run == str(reference_run):
+    if run in reference_runs:
         print(colored(run,'cyan'), monTrigRatesDict[run]['HLT_Key'], monTrigRatesDict[run]['included_subsys'])
         printDict['runs'] += "{:29s}".format(colored(run,'cyan'))
     else:
