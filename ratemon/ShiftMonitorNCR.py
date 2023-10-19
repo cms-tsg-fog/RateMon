@@ -677,12 +677,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         #self.otherL1Triggers.append(trigger)
         else:
             for trigger in list(self.Rates.keys()):
-                if trigger[0:4] == "HLT_":
+                if trigger[0:4] == "HLT_" and self.InputFitHLT:
                     if trigger in self.InputFitHLT:
                         self.usableHLTTriggers.append(trigger)
                     else:
                         self.otherHLTTriggers.append(trigger)
-                if trigger[0:3] == "L1_":
+                if trigger[0:3] == "L1_" and self.InputFitL1:
                     if trigger in self.InputFitL1:
                         self.usableL1Triggers.append(trigger)
                     else:
@@ -1242,8 +1242,13 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
             trgAcceptThreshold = self.findTrgThreshold(trigger)
 
-            isMonitored = trigger in self.triggerList       
-            hasFit = trigger in self.InputFitHLT or trigger in self.InputFitL1 
+            isMonitored = trigger in self.triggerList
+            if self.InputFitHLT:
+                hasFit = trigger in self.InputFitHLT
+            elif self.InputFitL1:
+                hasFit = trigger in self.InputFitL1
+            else:
+                hasFit = False
             hasLSRate = len(list(self.Rates[trigger].keys())) > 0 
             isNonZeroPS = sum([ v[1] for k,v in data.items() ]) > 0  
  
