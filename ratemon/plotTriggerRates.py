@@ -142,10 +142,18 @@ class MonitorController:
                     self.rate_monitor.plotter.show_errors = True
                     self.rate_monitor.plotter.show_eq     = True
                 elif op_name == "triggerList=":
-                    trigger_list = op_val
+                    trigger_list_ = op_val
+                    if type(trigger_list_) == str and trigger_list_.endswith(".list"): # assuming the trigger list is specified as a .list file 
+                        trigger_list = self.readTriggerList(str(trigger_list_))
+                    elif type(trigger_list_) == list: # otherwise assumed to be specified directly as a list
+                        trigger_list = trigger_list_
+                    else:
+                        raise NoValidTriggersError
+                    
                     self.rate_monitor.object_list = trigger_list
                     self.rate_monitor.data_parser.hlt_triggers = []
                     self.rate_monitor.data_parser.l1_triggers = []
+                    
                     for name in trigger_list:
                         if name[0:3] == "L1_":
                             self.rate_monitor.data_parser.l1_triggers.append(name)
@@ -460,9 +468,7 @@ class MonitorController:
                 self.ops_dict["fitFile="] = str(op)
 
             elif label == "--triggerList":
-                # Specify the .list file that determines which triggers will be plotted
-                trigger_list = self.readTriggerList(str(op))
-                self.ops_dict["triggerList="] = trigger_list
+                self.ops_dict["triggerList="] = op
 
             elif label == "--oldParser":
                 self.ops_dict["oldParser"] = True
