@@ -692,7 +692,7 @@ class MonitorController:
         output_list = []
         for line in f:
             line = line.strip() # Remove whitespace/EOL chars
-            if line[0] == "#":
+            if not line or line[0] == "#":
                 continue
             output_list.append(line)
         f.close()
