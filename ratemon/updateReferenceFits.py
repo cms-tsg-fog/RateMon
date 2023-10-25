@@ -13,4 +13,5 @@ for run_type in referenceRuns.keys(): # ["collisions", "collisionsHI", "collisio
     controller.run()
 
     controller.ops_dict["allTriggers"] = True
+    controller.ops_dict["triggerList="] = None
     controller.run()
