@@ -543,8 +543,8 @@ class RateMonitor:
         self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",trg_dir)
         plotted_objects = self.makePlots(self.object_list)
 
-        command_line_str  = "Results produced with:\n"
-        command_line_str += "python plotTriggerRates.py "
+        command_line_str  = "# Results produced with:\n"
+        command_line_str += "python3 plotTriggerRates.py "
         for tup in self.ops:
             #if tup[0].find('--updateOnlineFits') > -1:
             #    # never record when we update online fits
@@ -559,7 +559,7 @@ class RateMonitor:
             command_line_str += "%d " % (run)
         command_line_str +="\n"
         
-        command_line_file_name = os.path.join(trg_dir,"command_line.txt")
+        command_line_file_name = os.path.join(trg_dir,"command_line.sh")
         log_file_mon = open(command_line_file_name, "w")
         log_file_mon.write(command_line_str)
         log_file_mon.close()
