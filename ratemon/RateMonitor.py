@@ -50,6 +50,8 @@ class RateMonitor:
         else:
             self.data_parser = DataParser(cfg)
 
+        self.run_type           = None
+
         self.use_fills          = False
         self.make_fits          = False
         self.use_fit_file       = False     # Currently unused outside of setupCheck
@@ -324,16 +326,13 @@ class RateMonitor:
         print("Setting up directories...")
 
         if self.update_online_fits:
-            if self.all_triggers:
-                trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
-            else:
-                trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
-            if os.path.exists(trg_dir):
-                shutil.rmtree(trg_dir)
-                print("\tRemoving existing directory: %s " % (trg_dir))
-            print("\tCreating directory: %s " % (trg_dir))
-            os.mkdir(trg_dir)
-            os.chdir(trg_dir)
+            fits_dir = os.path.join(self.online_fits_dir, self.run_type)
+            if os.path.exists(fits_dir):
+                shutil.rmtree(fits_dir)
+                print("\tRemoving existing directory: %s " % (fits_dir))
+            print("\tCreating directory: %s " % (fits_dir))
+            os.mkdir(fits_dir)
+            os.chdir(fits_dir)
             os.mkdir("plots")
             os.chdir(self.rate_mon_dir)
             return
@@ -520,17 +519,13 @@ class RateMonitor:
     def updateOnlineFits(self,plot_data,normalization):
         # type: (Dict[str,Dict[int,object]]) -> None
 
-        # NOTE: self.object_list, contains *ONLY* the list of triggers from 'monitorlist_COLLISIONS.list'
-        if self.all_triggers:
-            trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
-        else:
-            trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
+        fits_dir = os.path.join(self.online_fits_dir, self.run_type)
 
         self.plotter.plot_dir = "plots"
 
         print("Updating trigger fits...")
         print("Total Triggers: %d" % (len(self.object_list)))
-        self.plotter.save_dir = trg_dir
+        self.plotter.save_dir = fits_dir
         #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
         #self.plotter.setFits(fits)
         #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
@@ -540,7 +535,14 @@ class RateMonitor:
             'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
         }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",trg_dir)
+
+        fitFileNameSuffix = self.run_type 
+        if self.all_triggers:
+            fitFileNameSuffix += "_all"
+        else:
+            fitFileNameSuffix += "_monitored"
+
+        self.fitter.saveFits(self.plotter.fit_info, "referenceFits_%s.pkl"%fitFileNameSuffix, fits_dir)
         plotted_objects = self.makePlots(self.object_list)
 
         command_line_str  = "# Results produced with:\n"
@@ -559,7 +561,7 @@ class RateMonitor:
             command_line_str += "%d " % (run)
         command_line_str +="\n"
         
-        command_line_file_name = os.path.join(trg_dir,"command_line.sh")
+        command_line_file_name = os.path.join(fits_dir,"command_line.sh")
         log_file_mon = open(command_line_file_name, "w")
         log_file_mon.write(command_line_str)
         log_file_mon.close()
