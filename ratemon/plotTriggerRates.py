@@ -68,12 +68,11 @@ class MonitorController:
     # Set the default values for variables
     def setDefaults(self):
         
-        self.run_type = "collisions"
-
         self.do_cron_job = False
         self.do_cron_job_cosmics = False
 
         # Set the default state for the rate_monitor and plotter to produce plots for triggers
+        self.rate_monitor.run_type = "collisions"
         self.rate_monitor.object_list = []
 
         self.rate_monitor.plotter.set_plotter_fits = False
@@ -120,16 +119,16 @@ class MonitorController:
     # Set variables based on options provided
     def setOptions(self,ops_dict,data_lst):
 
-        # Set defaults and initialise RateMonitor
+        # Initialise RateMonitor and set defaults
         
-        self.setDefaults()
-
         if ops_dict["oldParser"]:
             self.parser = OldDBParser.DBParser(ops_dict["dbConfigFile="])
             self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
         else:
             self.parser = DBParser.DBParser()
             self.rate_monitor = RateMonitor()
+        
+        self.setDefaults()
         
         # Loop over options and set class variables
 
@@ -143,7 +142,7 @@ class MonitorController:
                     pass # DB cfg already implemented
 
                 elif op_name == "runType=":
-                    self.run_type = op_val
+                    self.rate_monitor.run_type = op_val
 
                 elif op_name == "fitFile=":
                     fit_info = self.readFits(op_val)
