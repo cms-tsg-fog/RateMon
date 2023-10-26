@@ -327,14 +327,12 @@ class RateMonitor:
 
         if self.update_online_fits:
             fits_dir = os.path.join(self.online_fits_dir, self.run_type)
-            if os.path.exists(fits_dir):
-                shutil.rmtree(fits_dir)
-                print("\tRemoving existing directory: %s " % (fits_dir))
-            print("\tCreating directory: %s " % (fits_dir))
-            os.mkdir(fits_dir)
-            os.chdir(fits_dir)
-            os.mkdir("plots")
-            os.chdir(self.rate_mon_dir)
+            if not os.path.exists(fits_dir):
+                print("\tCreating directory: %s " % (fits_dir))
+                os.mkdir(fits_dir)
+                os.chdir(fits_dir)
+                os.mkdir("plots")
+                os.chdir(self.rate_mon_dir)
             return
         elif self.certify_mode:
             # Ex: Certification_1runs_2016-11-02_13_27
