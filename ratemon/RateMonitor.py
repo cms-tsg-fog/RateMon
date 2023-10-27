@@ -50,7 +50,7 @@ class RateMonitor:
         else:
             self.data_parser = DataParser(cfg)
 
-        self.run_type           = None
+        self.run_type           = "collisions"
 
         self.use_fills          = False
         self.make_fits          = False
