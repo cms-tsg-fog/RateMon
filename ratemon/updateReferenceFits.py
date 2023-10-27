@@ -7,7 +7,7 @@ controller = MonitorController()
 
 controller.ops_dict["updateOnlineFits"] = True
 
-for run_type in referenceRuns.keys(): # ["collisions", "collisionsHI", "collisions900GeV"]
+for run_type in referenceRuns.keys(): # ["collisions", "collisionsHI"]
     if run_type == "cosmics": continue # cosmics naturally do not have PU-dependence, so are calculated differently as averages in updateReferenceFits_cosmics.py
 
     controller.ops_dict["runType="] = run_type
