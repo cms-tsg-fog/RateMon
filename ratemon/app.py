@@ -49,7 +49,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
         if createFit:
             bestFitVal = True
         else:
-            refFitVal = "Fits/All_Triggers/FOG.pkl"
+            refFitVal = "Fits/collisions/referenceFits_collisions_all.pkl" # FIXME: hard-coded to p-p collisions
 
         # Specify the save directory
         saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'

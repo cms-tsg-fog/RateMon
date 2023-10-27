@@ -33,18 +33,12 @@ def main():
 
     # Get the runs from the latest fill with stable beams
     run_lst , fill_num = parser.getRecentRuns()
-    #run_lst , fill_num = [324998,324999,325000,325001] , 7324 # Hard code specific runs, for testing
+    
     print(f"Making plots for fill {fill_num}, runs: {run_lst}")
     if len(run_lst) == 0: raise Exception("Error: No runs specified. Exiting.")
 
     # Some placeholder options for where to save the plots
-    #save_dir_base = os.getcwd() # For testing
-    #save_dir_base = "/eos/user/k/kmohrman/www/rate_vs_PU_plots/checks_for_oms/" # For testing on lxplus (if you are kelci)
-    #save_dir_base = "/cmsnfsrateplots/rateplots/testing/" # For testing on kvm-s3562-1-ip151-84
-    save_dir_base = "/cmsnfsrateplots/rateplots/LS2/" # For LS2 tests on kvm-s3562-1-ip151-84
-
-    # Can prepend "testing_ratemon" if we want
-    #out_dir = make_output_dir_str(save_dir_base,"testing_ratemon_"+str(fill_num),append_timestamp=True)
+    save_dir_base = "/cmsnfsrateplots/rateplots/LS2/" # For LS2 tests on kvm-s3562-1-ip151-84 # FIXME: needs to be update to Run3 for OMS to pick up
     out_dir = make_output_dir_str(save_dir_base,str(fill_num))
     print("Saving plots to:",out_dir)
 
@@ -57,7 +51,7 @@ def main():
         triggerList    = trigger_list,
         data_lst       = run_lst,
         cronJob        = True, 
-        fitFile        = "/opt/ratemon/Fits/All_Triggers/FOG.pkl"
+        fitFile        = "/opt/ratemon/Fits/collisions/referenceFits_collisions_all.pkl" # FIXME: hard-coded to p-p collisions
     )
 
 

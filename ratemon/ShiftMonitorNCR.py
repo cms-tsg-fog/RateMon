@@ -118,7 +118,7 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
 
         # Fits and fit files
-        self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"  # The fit file, can contain both HLT and L1 triggers
+        self.fitFile = "Fits/collisions/referenceFits_collisions_all.pkl" # The fit file, can contain both HLT and L1 triggers # FIXME: hard-coded to p-p collisions
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
