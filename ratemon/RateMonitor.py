@@ -524,10 +524,7 @@ class RateMonitor:
         print("Updating trigger fits...")
         print("Total Triggers: %d" % (len(self.object_list)))
         self.plotter.save_dir = fits_dir
-        #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
-        #self.plotter.setFits(fits)
-        #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
-        #fit_info = self.fitter.makeFits(plot_data,self.object_list,normalization)
+        
         fit_info = {
             'run_groups': copy.deepcopy(self.fitter.data_dict),
             'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
@@ -542,27 +539,6 @@ class RateMonitor:
 
         self.fitter.saveFits(self.plotter.fit_info, "referenceFits_%s.pkl"%fitFileNameSuffix, fits_dir)
         plotted_objects = self.makePlots(self.object_list)
-
-        command_line_str  = "# Results produced with:\n"
-        command_line_str += "python3 plotTriggerRates.py "
-        for tup in self.ops:
-            #if tup[0].find('--updateOnlineFits') > -1:
-            #    # never record when we update online fits
-            #    continue
-            #elif tup[0].find('--lsVeto') > -1:
-            #    continue
-            if len(tup[1]) == 0:
-                command_line_str += "%s " % (tup[0])
-            else:
-                command_line_str += "%s=%s " % (tup[0],tup[1])
-        for run in self.run_list:
-            command_line_str += "%d " % (run)
-        command_line_str +="\n"
-        
-        command_line_file_name = os.path.join(fits_dir,"command_line.sh")
-        log_file_mon = open(command_line_file_name, "w")
-        log_file_mon.write(command_line_str)
-        log_file_mon.close()
 
     def certifyRuns(self,plot_data):
         # type: (Dict[str,Dict[int,object]]) -> None

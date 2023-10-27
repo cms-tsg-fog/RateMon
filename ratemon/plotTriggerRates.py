@@ -578,7 +578,6 @@ class MonitorController:
 
             elif label == "--updateOnlineFits":
                 # Creates fits and saves them to the Fits directory
-                # NEEDS TO BE IMPLEMENTED/TESTED
                 self.ops_dict["updateOnlineFits"] = True
 
             elif label == "--createFit":
