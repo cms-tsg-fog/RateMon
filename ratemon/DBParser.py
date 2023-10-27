@@ -365,7 +365,7 @@ class DBParser:
         try:
             fill_type = data2['data'][0]['attributes']['fill_type_runtime']
         except:
-            print("Failed to get run info")
+            print("Failed to get fill type info")
             return None 
         return fill_type
 

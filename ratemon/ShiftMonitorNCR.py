@@ -118,7 +118,7 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
 
         # Fits and fit files
-        self.fitFile =                  "Fits/collisions/referenceFits_{runType}_monitored.pkl" # The fit file, can contain both HLT and L1 triggers
+        self.fitFile =                  "Fits/{runType}/referenceFits_{runType}_monitored.pkl" # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
@@ -467,7 +467,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Runs the program
     # Returns: (void)
     def run(self):
-        self.setMode()
+
+        # Run number
+        if not self.simulate:
+            self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        if self.simulate:
+            self.runNumber = self.simulation_runNumber[self.runIndex]
+
+        print("The current run number is %s." % (self.runNumber))
+
+        self.setRunType()
+
         # Load the fit and trigger list
         if self.fitFile != "":
             inputFit = self.loadFit(self.fitFile.format(runType = self.run_type))
@@ -496,12 +506,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[DBParser.stripVersion(triggerName)] = best_fit
-        if not self.simulate:
-            self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
-        if self.simulate:
-            self.runNumber = self.simulation_runNumber[self.runIndex]
-        # Info message
-        print("The current run number is %s." % (self.runNumber))
+
         # Run as long as we can
         self.redoTList = True
         while True:
@@ -584,7 +589,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.lastLS = 0
             self.currentLS = 1
             # Check what mode we are in
-            self.setMode()
+            self.setRunType()
             self.redoTList = True
             self.mattermostTriggersSum = 0
             self.run_lumi_ave = []
@@ -623,7 +628,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
-    def setMode(self):
+    def setRunType(self):
         self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         try:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)
