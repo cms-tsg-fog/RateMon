@@ -349,6 +349,25 @@ class DBParser:
             bunches[1] = 0
 
         return bunches
+    
+    def getFillType(self, runNumber):
+        
+        q = omsapi.query("runs")
+        q.filter("run_number", runNumber)
+        q.custom("fields", "fill_number")
+        q.per_page = 1
+        data = q.data().json()
+        q2 = omsapi.query("fills")
+        q2.filter("fill_number", data['data'][0]['attributes']['fill_number'])
+        q2.custom("fields", "fill_type_runtime")
+        q2.per_page = 1
+        data2 = q2.data().json()
+        try:
+            fill_type = data2['data'][0]['attributes']['fill_type_runtime']
+        except:
+            print("Failed to get run info")
+            return None 
+        return fill_type
 
     # Use: Get the latest LHC Satus
     # Returns: string
