@@ -265,6 +265,11 @@ class RateMonitor:
         #    print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
         #    return False
 
+        # Supported run types
+        if self.run_type not in ["collisions", "collisionsHI", "cosmics"]:
+            print("ERROR SETUP: Run type not one of: collisions, collisionsHI, cosmics")
+            return False
+
         # Have to specify triggers to plot data for
         if self.object_list == [] and not self.all_triggers and self.data_parser.use_L1_triggers and self.data_parser.use_HLT_triggers:
             print("ERROR SETUP: A trigger list must be specified.")
