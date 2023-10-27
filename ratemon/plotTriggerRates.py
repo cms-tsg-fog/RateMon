@@ -179,7 +179,7 @@ class MonitorController:
                     self.rate_monitor.plotter.use_cross_section = self.rate_monitor.use_cross_section
 
                 elif op_name == "allTriggers":
-                    self.rate_monitor.all_triggers = True
+                    self.rate_monitor.all_triggers = op_val
 
                 elif op_name == "exportRoot":
                     self.rate_monitor.plotter.save_root_file = True

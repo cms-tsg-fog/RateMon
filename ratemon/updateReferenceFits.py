@@ -12,8 +12,9 @@ for run_type in referenceRuns.keys(): # ["collisions", "collisionsHI", "collisio
 
     controller.ops_dict["runType="] = run_type
     controller.usr_input_data_lst = referenceRuns[run_type] 
-   
+    
     # monitored triggers 
+    controller.ops_dict["allTriggers"] = False
     controller.ops_dict["triggerList="] = "TriggerLists/monitorlist_%s.list"%run_type.upper()
     controller.run()
     
