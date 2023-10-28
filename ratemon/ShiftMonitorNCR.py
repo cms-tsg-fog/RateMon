@@ -628,28 +628,40 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
+    def getRunType(self, runNumber):
+        try:
+            triggerMode = self.parser.getTriggerMode(runNumber)
+        except:
+            triggerMode = "other"
+
+        if triggerMode.find("cosmics") > -1:
+            runType = "cosmics"
+        elif triggerMode.find("circulating") > -1:
+            runType = "circulating"
+        elif triggerMode.find("collisions") > -1:
+            if self.parser.getFillType(runNumber).find("IONS") > -1:
+                runType = "collisionsHI" # heavy-ion collisions
+            else:
+                runType = "collisions" # p-p collisions
+        elif triggerMode == "MANUAL":
+            runType = "MANUAL"
+        elif triggerMode.find("highrate") > -1:
+            runType = "other"
+        else: runType = "other"
+
+        return runType
+
     def setRunType(self):
         self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         try:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)
         except:
             self.triggerMode = "other"
+        
+        self.run_type = self.getRunType(self.runNumber)
 
-        if self.triggerMode.find("cosmics") > -1:
-            self.run_type = "cosmics"
-        elif self.triggerMode.find("circulating") > -1:
-            self.run_type = "circulating"
-        elif self.triggerMode.find("collisions") > -1:
-            if self.parser.getFillType(self.runNumber).find("IONS") > -1:
-                self.run_type = "collisionsHI" # heavy-ion collisions
-            else:
-                self.run_type = "collisions" # p-p collisions
-        elif self.triggerMode == "MANUAL":
-            self.run_type = "MANUAL"
-        elif self.triggerMode.find("highrate") > -1:
-            self.run_type = "other"
+        if self.run_type == "other":
             self.sendMattermostAlerts_dynamic = False
-        else: self.run_type = "other"
 
     # Use: Remakes the trigger lists
     def redoTriggerLists(self):
