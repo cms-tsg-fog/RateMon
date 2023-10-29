@@ -802,6 +802,29 @@ class MonitorController:
         f.close()
         return dict1
 
+    #def getRunType(self, runNumber): # FIXME: should be added when oldParser is removed
+    #    try:
+    #        triggerMode = self.parser.getTriggerMode(runNumber)
+    #    except:
+    #        triggerMode = "other"
+    #
+    #    if triggerMode.find("cosmics") > -1:
+    #        runType = "cosmics"
+    #    elif triggerMode.find("circulating") > -1:
+    #        runType = "circulating"
+    #    elif triggerMode.find("collisions") > -1:
+    #        if self.parser.getFillType(runNumber).find("IONS") > -1:
+    #            runType = "collisionsHI" # heavy-ion collisions
+    #        else:
+    #            runType = "collisions" # p-p collisions
+    #    elif triggerMode == "MANUAL":
+    #        runType = "MANUAL"
+    #    elif triggerMode.find("highrate") > -1:
+    #        runType = "other"
+    #    else: runType = "other"
+    #
+    #    return runType
+
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     def run(self):
         if self.parseArgs():
@@ -821,6 +844,8 @@ class MonitorController:
                 self.ops_dict["saveDirectory="] = v
             elif k == "fitFile":
                 self.ops_dict["fitFile="] = v
+            elif k == "runType":
+                self.ops_dict["runType="] = v
             elif k == "data_lst":
                 self.usr_input_data_lst = v
             else:
