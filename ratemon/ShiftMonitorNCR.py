@@ -105,7 +105,7 @@ class ShiftMonitor:
             'spacing',
             'tableData',
             'pdData',
-            'mode',
+            'run_type',
             'streamData',
             'gauge_luminosity',
             'gauge_observed_trigger_rate',
@@ -118,7 +118,7 @@ class ShiftMonitor:
         ROOT.gErrorIgnoreLevel = 7000
 
         # Fits and fit files
-        self.fitFile = "Fits/Monitor_Triggers/FOG.pkl"  # The fit file, can contain both HLT and L1 triggers
+        self.fitFile =                  "Fits/{runType}/referenceFits_{runType}_monitored.pkl" # The fit file, can contain both HLT and L1 triggers
         self.InputFitHLT = None         # The fit information for the HLT triggers
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
@@ -155,15 +155,14 @@ class ShiftMonitor:
 
         # Mode
         self.triggerMode = None         # The trigger mode
-        self.mode = None                # Mode: cosmics, circulate, physics
+        self.run_type = None            # Run type: collisions, collisionsHI, cosmics, circulating
 
         # Columns header
         self.displayRawRates = False    # display raw rates, to display raw rates, set = True
         self.pileUp = True              # derive expected rate as a function of the pileUp, and not the luminosity
 
         # Triggers
-        self.cosmics_triggerList = "TriggerLists/monitorlist_COSMICS.list" #default list used when in cosmics mode
-        self.collisions_triggerList = "TriggerLists/monitorlist_COLLISIONS.list" #default list used when in collision mode
+        self.triggerList_file =         "TriggerLists/monitorlist_{runType}.list" # Monitored trigger list placeholder 
         self.triggerList = []           # A list of all the L1 and HLT triggers we want to monitor
         self.userSpecTrigList = False   # User specified trigger list
         self.usableHLTTriggers = []     # HLT Triggers active during the run that we have fits for (and are in the HLT trigger list if it exists)
@@ -171,7 +170,7 @@ class ShiftMonitor:
         self.usableL1Triggers = []      # L1 Triggers active during the run that have fits for (and are in the L1 trigger list if it exists)
         self.otherL1Triggers = []       # L1 Triggers active during that run that are not usable triggers
         self.redoTList = True           # Whether we need to update the trigger lists
-        self.ignoreFile = "TriggerLists/monitorlist_IGNORED.list"
+        self.ignoreFile =               "TriggerLists/monitorlist_IGNORED.list"
         self.ignoreStrings = []         # List of ignored triggers, filled from the config file, alternative filling method in queryDatabase()
 
         # Restrictions
@@ -468,14 +467,28 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Runs the program
     # Returns: (void)
     def run(self):
+
+        # Run number
+        if not self.simulate:
+            self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
+        if self.simulate:
+            self.runNumber = self.simulation_runNumber[self.runIndex]
+
+        print("The current run number is %s." % (self.runNumber))
+
+        self.setRunType()
+
         # Load the fit and trigger list
         if self.fitFile != "":
-            inputFit = self.loadFit(self.fitFile)
+            inputFit = self.loadFit(self.fitFile.format(runType = self.run_type))
+            fits_format = None
             for triggerName in list(inputFit.keys()):
                 if type(inputFit[triggerName]) is list:
                     fits_format = 'dict_of_lists'
-                if type(inputFit[triggerName]) is dict:
+                elif type(inputFit[triggerName]) is dict:
                     fits_format = 'nested_dict'
+                else:
+                    fits_format = None
             if fits_format == 'dict_of_lists':
                 for triggerName in list(inputFit.keys()):
                     if triggerName[0:3] == "L1_":
@@ -493,14 +506,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     elif triggerName[0:4] == "HLT_":
                         if self.InputFitHLT is None: self.InputFitHLT = {}
                         self.InputFitHLT[DBParser.stripVersion(triggerName)] = best_fit
-        if not self.simulate:
-            self.runNumber, _, _, _ = self.parser.getLatestRunInfo()
-        if self.simulate:
-            self.runNumber = self.simulation_runNumber[self.runIndex]
-        # Info message
-        print("The current run number is %s." % (self.runNumber))
+
         # Run as long as we can
-        self.setMode()
         self.redoTList = True
         while True:
             try:
@@ -570,7 +577,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.checkForBadTriggers()
         self.checkTriggers()
 
-        if self.mode == "collisions" and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
+        if "collisions" in self.run_type and (len(self.usableHLTTriggers) == 0 or len(self.usableL1Triggers) == 0):
             # On a new run start, not always able to get the full list of triggers --> Re-try until we have some
             self.redoTList = True
 
@@ -582,7 +589,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.lastLS = 0
             self.currentLS = 1
             # Check what mode we are in
-            self.setMode()
+            self.setRunType()
             self.redoTList = True
             self.mattermostTriggersSum = 0
             self.run_lumi_ave = []
@@ -621,24 +628,40 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
 
         #self.dumpTriggerThresholds(self.triggerList, self.lumi_ave, 'test_json.json')
 
-    def setMode(self):
+    def getRunType(self, runNumber):
+        try:
+            triggerMode = self.parser.getTriggerMode(runNumber)
+        except:
+            triggerMode = "other"
+
+        if triggerMode.find("cosmics") > -1:
+            runType = "cosmics"
+        elif triggerMode.find("circulating") > -1:
+            runType = "circulating"
+        elif triggerMode.find("collisions") > -1:
+            if self.parser.getFillType(runNumber).find("IONS") > -1:
+                runType = "collisionsHI" # heavy-ion collisions
+            else:
+                runType = "collisions" # p-p collisions
+        elif triggerMode == "MANUAL":
+            runType = "MANUAL"
+        elif triggerMode.find("highrate") > -1:
+            runType = "other"
+        else: runType = "other"
+
+        return runType
+
+    def setRunType(self):
         self.sendMattermostAlerts_dynamic = self.sendMattermostAlerts_static
         try:
             self.triggerMode = self.parser.getTriggerMode(self.runNumber)
         except:
-            self.triggerMode = "Other"
-        if self.triggerMode.find("cosmics") > -1:
-            self.mode = "cosmics"
-        elif self.triggerMode.find("circulating") > -1:
-            self.mode = "circulating"
-        elif self.triggerMode.find("collisions") > -1:
-            self.mode = "collisions"
-        elif self.triggerMode == "MANUAL":
-            self.mode = "MANUAL"
-        elif self.triggerMode.find("highrate") > -1:
-            self.mode = "other"
+            self.triggerMode = "other"
+        
+        self.run_type = self.getRunType(self.runNumber)
+
+        if self.run_type == "other":
             self.sendMattermostAlerts_dynamic = False
-        else: self.mode = "other"
 
     # Use: Remakes the trigger lists
     def redoTriggerLists(self):
@@ -652,18 +675,18 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         self.badRates = {}           # A dictionary: [ trigger name ] { num consecutive bad, trigger bad last check, rate, expected, dev }
         # Set trigger lists automatically based on mode
         if not self.userSpecTrigList:
-            if self.mode == "cosmics" or self.mode == "circulate":
-                self.triggerList = self.loadTriggersFromFile(self.cosmics_triggerList)
-                print("monitoring triggers in: ", self.cosmics_triggerList)
-            elif self.mode == "collisions":
-                self.triggerList = self.loadTriggersFromFile(self.collisions_triggerList)
-                print("monitoring triggers in: ", self.collisions_triggerList)
+            if self.run_type in ["collisions", "collisionsHI", "cosmics"]:
+                self.triggerList = self.loadTriggersFromFile(self.triggerList_file.format(runType = self.run_type.upper()))
+                print("Monitoring triggers in: ", self.triggerList)
+            elif self.run_type == "circulating":
+                self.triggerList = self.loadTriggersFromFile(self.triggerList_file.format(runType = "COSMICS")) # circulating ~ cosmics 
+                print("Monitoring triggers in: ", self.triggerList)
             else:
                 self.triggerList = []
                 print("No lists to monitor: trigger mode not recognized")
 
         # Re-make trigger lists
-        if self.mode == "cosmics":
+        if self.run_type == "cosmics":
            for trigger in list(self.triggerList):
                 if trigger[0:4] == "HLT_":
                     #if trigger in self.InputFitHLT:
@@ -677,12 +700,12 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                         #self.otherL1Triggers.append(trigger)
         else:
             for trigger in list(self.Rates.keys()):
-                if trigger[0:4] == "HLT_":
+                if trigger[0:4] == "HLT_" and self.InputFitHLT:
                     if trigger in self.InputFitHLT:
                         self.usableHLTTriggers.append(trigger)
                     else:
                         self.otherHLTTriggers.append(trigger)
-                if trigger[0:3] == "L1_":
+                if trigger[0:3] == "L1_" and self.InputFitL1:
                     if trigger in self.InputFitL1:
                         self.usableL1Triggers.append(trigger)
                     else:
@@ -758,7 +781,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         aveLumi = 0
         runLumi_list = []
         self.count_list = []
-        if self.mode != "cosmics":
+        if self.run_type != "cosmics":
             # Find the average lumi since we last checked
             count = 0
             for LS, instLumi, psi, physics, all_subSys_good, pileup in self.lumiData:
@@ -800,7 +823,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         PScol = -1
 
         physicsActive = False # True if we have at least 1 LS with lumi and physics bit true
-        if self.mode != "cosmics":
+        if self.run_type != "cosmics":
             # Find the average lumi since we last checked
             count = 0
             # Get luminosity (only for non-cosmic runs)
@@ -841,10 +864,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             self.pu_ave = 0
             self.runPu_ave = 0
         # We only do predictions when there were physics active LS in a collisions run
-        doPred = (physicsActive and self.mode == "collisions") or self.mode == "cosmics"
+        doPred = (physicsActive and "collisions" in self.run_type) or self.run_type == "cosmics"
         # Print the header
         self.printHeader()
-        if self.mode == "collisions":
+        if "collisions" in self.run_type:
             # Print triggers from self.usableHLTTriggers, self.usableL1Triggers
             anytriggers = False
             if len(self.usableHLTTriggers) > 0:
@@ -921,9 +944,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), streamSpacing[3])
                     row += stringSegment("* "+"{0:.2f}".format(streamsize), streamSpacing[4])
                     row += stringSegment("* "+"{0:.5f}".format(aveBandwidth), streamSpacing[5])
-                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
+                    if not self.noColors and aveRate > self.maxStreamRate and self.run_type != "other": write(bcolors.WARNING) # Write colored text
                     print(row)
-                    if not self.noColors and aveRate > self.maxStreamRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
+                    if not self.noColors and aveRate > self.maxStreamRate and self.run_type != "other": write(bcolors.ENDC)    # Stop writing colored text
                 else: pass
         # Print PD data
         if self.showPDs:
@@ -947,21 +970,21 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
                     row += stringSegment("* "+str(int(count)), pdSpacing[1])
                     row += stringSegment("* "+str(int(aveRate*23.3*count)), pdSpacing[2])
                     row += stringSegment("* "+"{0:.2f}".format(aveRate), pdSpacing[3])
-                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.WARNING) # Write colored text
+                    if not self.noColors and aveRate > self.maxPDRate and self.run_type != "other": write(bcolors.WARNING) # Write colored text
                     print(row)
-                    if not self.noColors and aveRate > self.maxPDRate and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
+                    if not self.noColors and aveRate > self.maxPDRate and self.run_type != "other": write(bcolors.ENDC)    # Stop writing colored text
                 else: pass
 
         # Closing information
         print('*' * self.hlength)
         print("SUMMARY:")
-        if self.mode=="collisions": print("Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad))
-        if self.mode=="collisions":
+        if "collisions" in self.run_type: print("Triggers in Normal Range: %s   |   Triggers outside Normal Range: %s" % (self.normal, self.bad))
+        if "collisions" in self.run_type:
             print("Prescale column index:", end=' ')
             if PScol == 0:
-                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.WARNING) # Write colored text
+                if not self.noColors and PScol == 0 and self.run_type != "other": write(bcolors.WARNING) # Write colored text
                 print(PScol, "\t0 - Column 0 is an emergency column in collision mode, please select the proper column")
-                if not self.noColors and PScol == 0 and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
+                if not self.noColors and PScol == 0 and self.run_type != "other": write(bcolors.ENDC)    # Stop writing colored text
             else:
                 print(PScol)
         try:
@@ -999,10 +1022,10 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         print("Run Number: %s" % (self.runNumber))
         print("LS Range: %s - %s" % (self.startLS, self.currentLS))
         print("Latest LHC Status: %s" % (self.LHCStatus[0]))
-        print("Number of colliding bunches: %s" % self.numBunches[0])
-        print("Trigger Mode: %s (%s)" % (self.triggerMode, self.mode))
+        print("Number of Colliding Bunches: %s" % self.numBunches[0])
+        print("Trigger Mode (Run Type): %s (%s)" % (self.triggerMode, self.run_type))
         print("Number of HLT Triggers: %s \nNumber of L1 Triggers: %s" % (len(list(self.HLTRates.keys())) , len(list(self.L1Rates.keys()))))
-        print("Number of streams:", self.totalStreams)
+        print("Number of Streams:", self.totalStreams)
         print('*' * self.hlength)
         print(self.header)
 
@@ -1034,7 +1057,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         for trigger, rate, pred, sign, perdiff, dsign, dev, avePS, comment in self.tableData:
             if nRows > maxRows:
                 break
-            if self.mode != "collisions" and rate == 0:
+            if "collisions" not in self.run_type and rate == 0:
                 # When not in collisions mode, ignore triggers with 0 rate
                 continue
 
@@ -1070,9 +1093,9 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             trgAcceptThreshold = self.findTrgThreshold(trigger) # Check for non default thresholds
             if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_",trgAcceptThreshold):
             #if avePS != 0 and self.isBadTrigger(perdiff, dev, rate, trigger[0:3]=="L1_"):
-                if not self.noColors and self.mode != "other": write(bcolors.WARNING) # Write colored text
+                if not self.noColors and self.run_type != "other": write(bcolors.WARNING) # Write colored text
                 print(info)
-                if not self.noColors and self.mode != "other": write(bcolors.ENDC)    # Stop writing colored text
+                if not self.noColors and self.run_type != "other": write(bcolors.ENDC)    # Stop writing colored text
             # Don't color normal triggers
             else:
                 print(info)
@@ -1083,7 +1106,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     #def isBadTrigger(self, perdiff, dev, psrate, isL1):
     def isBadTrigger(self, perdiff, dev, psrate, isL1, trgAcceptThreshold):
         if psrate == 0: return False
-        if self.mode == "other": return False
+        if self.run_type == "other": return False
         if self.usePerDiff:
             #if perdiff != "INF" and perdiff != "" and perdiff != None and abs(perdiff) > self.percAccept:
             if perdiff != "INF" and perdiff != "" and perdiff != None and abs(perdiff) > trgAcceptThreshold:
@@ -1109,7 +1132,7 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
         if trigger not in self.Rates: return
 
         # If cosmics, don't do predictions
-        # if self.mode == "cosmics": doPred = False
+        # if self.run_type == "cosmics": doPred = False
         # Calculate rate
         if doPred:
             if not aveLumi is None:
@@ -1242,12 +1265,17 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
             # Check if there is a non-default value for trigger threshold in the configuration file and set thresholds accordingly
             trgAcceptThreshold = self.findTrgThreshold(trigger)
 
-            isMonitored = trigger in self.triggerList       
-            hasFit = trigger in self.InputFitHLT or trigger in self.InputFitL1 
+            isMonitored = trigger in self.triggerList
+            if self.InputFitHLT:
+                hasFit = trigger in self.InputFitHLT
+            elif self.InputFitL1:
+                hasFit = trigger in self.InputFitL1
+            else:
+                hasFit = False
             hasLSRate = len(list(self.Rates[trigger].keys())) > 0 
             isNonZeroPS = sum([ v[1] for k,v in data.items() ]) > 0  
  
-            doPred = hasFit and isMonitored and (self.mode=="cosmics" or self.mode=="collisions")
+            doPred = hasFit and isMonitored and (self.run_type=="cosmics" or "collisions" in self.run_type)
             doPred = doPred and isNonZeroPS
             doPred = doPred and hasLSRate
 
@@ -1495,8 +1523,8 @@ Plase check the rate of L1_HCAL_LaserMon_Veto and contact the HCAL DoC
     # Use: Calculates the expected rate for a trigger at a given ilumi based on our input fit
     def calculateRate(self, triggerName, ilum):
         # Return single numerical value for cosmic ref. rates
-        if self.mode == 'cosmics':
-            InputFit = self.loadFit('Fits/Cosmics/COSMICS_Rates.pkl')
+        if self.run_type == 'cosmics':
+            InputFit = self.loadFit('Fits/cosmics/referenceFits_cosmics_monitored.pkl')
             return InputFit[triggerName]
         # Make sure we have a fit for the trigger
         paramlist = []

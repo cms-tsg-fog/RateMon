@@ -50,6 +50,8 @@ class RateMonitor:
         else:
             self.data_parser = DataParser(cfg)
 
+        self.run_type           = "collisions"
+
         self.use_fills          = False
         self.make_fits          = False
         self.use_fit_file       = False     # Currently unused outside of setupCheck
@@ -263,6 +265,11 @@ class RateMonitor:
         #    print "ERROR SETUP: Improper selection for self.use_pileup and self.use_lumi"
         #    return False
 
+        # Supported run types
+        if self.run_type not in ["collisions", "collisionsHI", "cosmics"]:
+            print("ERROR SETUP: Run type not one of: collisions, collisionsHI, cosmics")
+            return False
+
         # Have to specify triggers to plot data for
         if self.object_list == [] and not self.all_triggers and self.data_parser.use_L1_triggers and self.data_parser.use_HLT_triggers:
             print("ERROR SETUP: A trigger list must be specified.")
@@ -324,18 +331,13 @@ class RateMonitor:
         print("Setting up directories...")
 
         if self.update_online_fits:
-            if self.all_triggers:
-                trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
-            else:
-                trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
-            if os.path.exists(trg_dir):
-                shutil.rmtree(trg_dir)
-                print("\tRemoving existing directory: %s " % (trg_dir))
-            print("\tCreating directory: %s " % (trg_dir))
-            os.mkdir(trg_dir)
-            os.chdir(trg_dir)
-            os.mkdir("plots")
-            os.chdir(self.rate_mon_dir)
+            fits_dir = os.path.join(self.online_fits_dir, self.run_type)
+            if not os.path.exists(fits_dir):
+                print("\tCreating directory: %s " % (fits_dir))
+                os.mkdir(fits_dir)
+                os.chdir(fits_dir)
+                os.mkdir("plots")
+                os.chdir(self.rate_mon_dir)
             return
         elif self.certify_mode:
             # Ex: Certification_1runs_2016-11-02_13_27
@@ -520,49 +522,28 @@ class RateMonitor:
     def updateOnlineFits(self,plot_data,normalization):
         # type: (Dict[str,Dict[int,object]]) -> None
 
-        # NOTE: self.object_list, contains *ONLY* the list of triggers from 'monitorlist_COLLISIONS.list'
-        if self.all_triggers:
-            trg_dir = os.path.join(self.online_fits_dir,"All_Triggers")
-        else:
-            trg_dir = os.path.join(self.online_fits_dir,"Monitor_Triggers")
+        fits_dir = os.path.join(self.online_fits_dir, self.run_type)
 
         self.plotter.plot_dir = "plots"
 
         print("Updating trigger fits...")
         print("Total Triggers: %d" % (len(self.object_list)))
-        self.plotter.save_dir = trg_dir
-        #fits = self.fitter.makeFits(plot_data,self.object_list,normalization)
-        #self.plotter.setFits(fits)
-        #self.fitter.saveFits(fits,"FOG.pkl",mon_trg_dir)
-        #fit_info = self.fitter.makeFits(plot_data,self.object_list,normalization)
+        self.plotter.save_dir = fits_dir
+        
         fit_info = {
             'run_groups': copy.deepcopy(self.fitter.data_dict),
             'triggers': self.fitter.makeFits(plot_data,list(plot_data.keys()),normalization)
         }
         self.plotter.setFits(fit_info)
-        self.fitter.saveFits(self.plotter.fit_info,"FOG.pkl",trg_dir)
-        plotted_objects = self.makePlots(self.object_list)
 
-        command_line_str  = "Results produced with:\n"
-        command_line_str += "python plotTriggerRates.py "
-        for tup in self.ops:
-            #if tup[0].find('--updateOnlineFits') > -1:
-            #    # never record when we update online fits
-            #    continue
-            #elif tup[0].find('--lsVeto') > -1:
-            #    continue
-            if len(tup[1]) == 0:
-                command_line_str += "%s " % (tup[0])
-            else:
-                command_line_str += "%s=%s " % (tup[0],tup[1])
-        for run in self.run_list:
-            command_line_str += "%d " % (run)
-        command_line_str +="\n"
-        
-        command_line_file_name = os.path.join(trg_dir,"command_line.txt")
-        log_file_mon = open(command_line_file_name, "w")
-        log_file_mon.write(command_line_str)
-        log_file_mon.close()
+        fitFileNameSuffix = self.run_type 
+        if self.all_triggers:
+            fitFileNameSuffix += "_all"
+        else:
+            fitFileNameSuffix += "_monitored"
+
+        self.fitter.saveFits(self.plotter.fit_info, "referenceFits_%s.pkl"%fitFileNameSuffix, fits_dir)
+        plotted_objects = self.makePlots(self.object_list)
 
     def certifyRuns(self,plot_data):
         # type: (Dict[str,Dict[int,object]]) -> None
