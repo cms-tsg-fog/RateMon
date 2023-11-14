@@ -44,9 +44,11 @@ All of these tests should be done **after** a `git pull` and a `git checkout` of
 
 ### Tests on VM (caer)
 1. Run plotTriggerRates.py: `python3 plotTriggerRates.py --triggerList=TriggerLists/monitorlist_COLLISIONS.list 370725`
-2. Run a test query from the web interface and make sure the expected output is produced while monitoring the output on the VM (for example, query via http://caer.cern.ch/api/v1/ui using Fill 9068, HLT_CaloJet500_NoJetID)
+2. Run test queries from the web interface (http://caer.cern.ch/api/v1/ui), with all different combintations of `queryByFill` and `createFit`, while setting the `runNumber` to the corresponding run/fill number for a given `triggerKey`. Preferably, use a recent run/fill and a standard trigger. Make sure the expected output (JSON, ROOT) is produced while monitoring the output on the VM.
 
 ### Tests on P5 dev VM (kvm-s3562-1-ip149-08)
+**NOTE:** These instructions need to be updated as per [Issue #120](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/issues/120)
+
 Login to machine: 
 ```
 ssh lxplus
