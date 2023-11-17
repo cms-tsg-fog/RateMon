@@ -10,5 +10,5 @@ if [[ -f "$(pwd)/venv/bin/python3" ]]; then
     export PYTHONPATH="$(pwd)/venv/lib/python3.6/site-packages:$(pwd)/venv/lib64/python3.6/site-packages"
 fi
 
-alias rateMon='python3 ShiftMonitorTool.py --dbConfigFile=dbConfig.yaml'
-alias plotRates='python3 plotTriggerRates.py --dbConfigFile=dbConfig.yaml'
+alias rateMon='python3 ShiftMonitorTool.py'
+alias plotRates='python3 plotTriggerRates.py'

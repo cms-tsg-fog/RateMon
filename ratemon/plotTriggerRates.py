@@ -19,7 +19,6 @@ import yaml
 import sys
 
 import DBParser
-import OldDBParser
 from RateMonitor import *
 from Exceptions import *
 
@@ -27,7 +26,6 @@ class MonitorController:
     def __init__(self):
 
         self.ops_dict = {
-            "dbConfigFile="    : None,
             "runType="         : None,
             "fitFile="         : None,
             "triggerList="     : None,
@@ -60,7 +58,6 @@ class MonitorController:
             "makeTitle"        : None,
             "exportJson"       : None,
             "allTriggers"      : None,
-            "oldParser"        : None,
             "plot_avgCS"       : None
         }
         self.usr_input_data_lst = None
@@ -119,29 +116,19 @@ class MonitorController:
     # Set variables based on options provided
     def setOptions(self,ops_dict,data_lst):
 
-        # Initialise RateMonitor and set defaults
-        
-        if ops_dict["oldParser"]:
-            self.parser = OldDBParser.DBParser(ops_dict["dbConfigFile="])
-            self.rate_monitor = RateMonitor(ops_dict["dbConfigFile="])
-        else:
-            self.parser = DBParser.DBParser()
-            self.rate_monitor = RateMonitor()
-        
+        print("The options dict:",ops_dict)
+
+        # Set defualts
+        self.parser = DBParser.DBParser()
+        self.rate_monitor = RateMonitor()
         self.setDefaults()
         
         # Loop over options and set class variables
-
         print("The options dict:",ops_dict)
 
         for op_name, op_val in ops_dict.items():
             if op_val is not None: # Should think more about this if statement and edge cases...
-            #if op_val or op_val is 0:
-                #print ("\tk,v:",op_name, op_val)
-                if op_name == "dbConfigFile=":
-                    pass # DB cfg already implemented
-
-                elif op_name == "runType=":
+                if op_name == "runType=":
                     self.rate_monitor.run_type = op_val
 
                 elif op_name == "fitFile=":
@@ -369,9 +356,6 @@ class MonitorController:
                 elif op_name == "showFitRunGroups":
                     self.rate_monitor.plotter.show_fit_run_groups = True
 
-                elif op_name == "oldParser":
-                    if op_val:
-                        print("Using old parser")
                 else:
                     print("Unimplemented option '%s'." % op_name)
                     return False
@@ -480,25 +464,6 @@ class MonitorController:
             print("Error getting options: command unrecognized. Exiting.")
             return False
 
-        # Load the db config file
-        dbConfigLoaded = False;
-        for label, op in opt:
-            #print(label)
-            if label == "--dbConfigFile":
-                dbConfigLoaded = True;
-                with open(str(op), 'r') as stream:
-                    try:
-                        dbCfg = yaml.safe_load(stream)
-                    except yaml.YAMLError as exc:
-                        print("Unable to read the given YAML database configuration file. Error:", exc)
-                        # Exit with error, we can't continue without connecting to the DB
-                        sys.exit(1)
-                #self.parser = DBParser(dbCfg)
-                #self.rate_monitor = RateMonitor(dbCfg)
-                self.ops_dict["dbConfigFile="] = dbCfg
-            else:
-                pass
-
         for label,op in opt:
 
             if label == "--fitFile":
@@ -510,9 +475,6 @@ class MonitorController:
 
             elif label == "--triggerList":
                 self.ops_dict["triggerList="] = op
-
-            elif label == "--oldParser":
-                self.ops_dict["oldParser"] = True
 
             elif label == "--saveDirectory":
                 # Specify the directory that the plots will be saved to
@@ -633,10 +595,6 @@ class MonitorController:
 
             elif label == "--plot_avgCS":
                 self.ops_dict["plot_avgCS"] = True
-
-            elif label == "--dbConfigFile":
-                # Already processed in init(), this line is here just to not trigger the 'unimplemented option' fatal error below
-                print("DB Configuration file loaded")
 
             else:
                 print("Unimplemented option '%s'." % label)
@@ -836,8 +794,6 @@ class MonitorController:
             if k in self.ops_dict:
                 self.ops_dict[k] = v
             # FIXME: bad workaround
-            elif k == "dbConfig":
-                self.ops_dict["dbConfigFile="] = v
             elif k == "triggerList":
                 self.ops_dict["triggerList="] = v
             elif k == "saveDirectory":

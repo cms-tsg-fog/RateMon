@@ -1,1 +1,0 @@
-../aggregationapi/src/main/resources/python/updatePomForSubsystem.py

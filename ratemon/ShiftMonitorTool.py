@@ -4,7 +4,6 @@
 # File: ShiftMonitorTool.py
 # Author: Nathaniel Carl Rupprecht
 # Date Created: July 13, 2015
-# Last Modified: August 14, 2015 by Nathaniel Rupprecht
 #
 # Dependencies: ShiftMonitorNCR.py
 #
@@ -38,7 +37,7 @@ except ModuleNotFoundError:
 class CommandLineParser:
     def __init__(self):
         try:
-            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "dbConfigFile=", "configFile=", "triggerList=",
+            opt, args = getopt.getopt(sys.argv[1:],"",["Help", "fitFile=", "configFile=", "triggerList=",
                                                        "LSRange=", "displayBad=", "allowedPercDiff=", "allowedDev=", "window=","keepZeros",
                                                        "quiet", "noColors", "alertsOn", "mattermostAlertsOn", "audioAlertsOn", "usePerDiff", "hideStreams",
                                                        "maxStream=", "maxHLTRate=", "maxL1Rate=","simulate=", "oldParser"])
@@ -48,27 +47,8 @@ class CommandLineParser:
 
         # Remember if we were told to use all triggers
         #usingAll = False
-        oldParser = False
-        dbConfigLoaded = False;
-        # First, we need to init and connect to the database
-        for label, op in opt:
-            if label == "--oldParser":
-                oldParser = True
-            if label == "--dbConfigFile":
-                dbConfigLoaded = True;
-                with open(str(op), 'r') as stream:
-                    try:
-                        dbCfg = yaml.safe_load(stream)
-                    except yaml.YAMLError as exc:
-                        print("Unable to read the given YAML database configuration file. Error:", exc)
-                        # Exit with error, we can't continue without connecting to the DB
-                        sys.exit(1)
-                self.monitor = ShiftMonitor(dbCfg, oldParser, accessPrometheus_)
-            else:
-                pass
 
-        if not dbConfigLoaded:
-            self.monitor = ShiftMonitor(accessPrometheus=accessPrometheus_)
+        self.monitor = ShiftMonitor()
 
         for label, op in opt:
             if label == "--fitFile":

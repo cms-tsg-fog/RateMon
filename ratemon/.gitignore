@@ -4,5 +4,4 @@
 /build
 /dist
 /*.dat
-dbConfig.yaml
 OMSConfig.yaml
