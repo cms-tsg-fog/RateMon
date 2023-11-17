@@ -4,7 +4,6 @@ chardet==3.0.4
 click==7.1.2
 clickclick==1.2.2
 connexion==2.7.0
-cx-Oracle==7.3.0
 Flask==1.1.2
 Flask-Cors==3.0.8
 idna==2.10

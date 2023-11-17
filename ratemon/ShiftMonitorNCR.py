@@ -26,7 +26,6 @@ from colors import bcolors # colors
 
 # Database parser
 import DBParser
-import OldDBParser
 
 # For alerts
 from Alerts import AlertLevel, PriorityAlert, MultipleAlert, MattermostMessage, AudioMessage, OnScreenMessage, RateAlert 
@@ -111,7 +110,8 @@ class ShiftMonitor:
             'gauge_observed_trigger_rate',
             'gauge_predicted_trigger_rate']
 
-    def __init__(self, dbCfg=None, oldParser=False, accessPrometheus=accessPrometheus_):
+
+    def __init__(self, accessPrometheus=accessPrometheus_):
         self.FitFinder = FitFinder()
 
         # Suppress root warnings
@@ -123,10 +123,7 @@ class ShiftMonitor:
         self.InputFitL1 = None          # The fit information for the L1 triggers
 
         # DBParser
-        if oldParser:
-            self.parser = OldDBParser.DBParser(dbCfg)
-        else:
-            self.parser = DBParser.DBParser()   # A database parser
+        self.parser = DBParser.DBParser()   # A database parser
 
         # Rates
         self.HLTRates = None            # HLT rates

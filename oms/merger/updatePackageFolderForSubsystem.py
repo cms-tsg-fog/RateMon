@@ -1,1 +1,0 @@
-../aggregationapi/src/main/resources/python/updatePackageFolderForSubsystem.py
