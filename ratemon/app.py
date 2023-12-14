@@ -37,15 +37,16 @@ def getRatesROOT(runNumber: int, triggerKey: str):
             as_attachment = True # Keep the filename
         )
 
-def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: bool):
+def getRatesJSON(runOrFillNumber: int, triggerKey: str, queryByFill: bool, createFit: bool):
     # Initialize the RateMon controller
     controller = ptr.MonitorController()
     
-    run_type = controller.getRunType(runNumber)
-    
-    # If this flag is false, we want to skip setting this option
-    if not queryByFill:
-        queryByFill = None
+    if queryByFill:
+        fill_runs = controller.getRuns([runOrFillNumber])
+        run_type = controller.getRunType(fill_runs[0]) # choose first run of fill to define run type
+    else:
+        queryByFill = None # If this flag is false, we want to skip setting this option
+        run_type = controller.getRunType(runOrFillNumber)
     
     # Whether to create a fit or use ref fit
     bestFitVal = None
@@ -56,7 +57,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
         refFitVal = "Fits/{runType}/referenceFits_{runType}_all.pkl".format(runType = run_type)
     
     # Specify the save directory
-    saveDirectory = "/rtmdata/" + str(runNumber) + '/' + triggerKey + '/'
+    saveDirectory = "/rtmdata/" + str(runOrFillNumber) + '/' + triggerKey + '/'
     
     try:
         rates = controller.runStandalone(
@@ -66,7 +67,7 @@ def getRatesJSON(runNumber: int, triggerKey: str, queryByFill: bool, createFit: 
             triggerList = [triggerKey],
             bestFit = bestFitVal,
             fitFile = refFitVal,
-            data_lst = [runNumber],
+            data_lst = [runOrFillNumber],
             runType = run_type,
             useFills = queryByFill
         )
