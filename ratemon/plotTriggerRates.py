@@ -24,6 +24,11 @@ from Exceptions import *
 
 class MonitorController:
     def __init__(self):
+        
+        # initialise database parser and rate monitor
+        self.parser = DBParser.DBParser()
+        self.rate_monitor = RateMonitor()
+        self.usr_input_data_lst = None
 
         self.ops_dict = {
             "runType="         : None,
@@ -60,7 +65,6 @@ class MonitorController:
             "allTriggers"      : None,
             "plot_avgCS"       : None
         }
-        self.usr_input_data_lst = None
 
     # Set the default values for variables
     def setDefaults(self):
@@ -116,11 +120,7 @@ class MonitorController:
     # Set variables based on options provided
     def setOptions(self,ops_dict,data_lst):
 
-        print("The options dict:",ops_dict)
-
-        # Set defualts
-        self.parser = DBParser.DBParser()
-        self.rate_monitor = RateMonitor()
+        # Set defaults
         self.setDefaults()
         
         # Loop over options and set class variables
@@ -760,28 +760,28 @@ class MonitorController:
         f.close()
         return dict1
 
-    #def getRunType(self, runNumber): # FIXME: should be added when oldParser is removed
-    #    try:
-    #        triggerMode = self.parser.getTriggerMode(runNumber)
-    #    except:
-    #        triggerMode = "other"
-    #
-    #    if triggerMode.find("cosmics") > -1:
-    #        runType = "cosmics"
-    #    elif triggerMode.find("circulating") > -1:
-    #        runType = "circulating"
-    #    elif triggerMode.find("collisions") > -1:
-    #        if self.parser.getFillType(runNumber).find("IONS") > -1:
-    #            runType = "collisionsHI" # heavy-ion collisions
-    #        else:
-    #            runType = "collisions" # p-p collisions
-    #    elif triggerMode == "MANUAL":
-    #        runType = "MANUAL"
-    #    elif triggerMode.find("highrate") > -1:
-    #        runType = "other"
-    #    else: runType = "other"
-    #
-    #    return runType
+    def getRunType(self, runNumber):
+        try:
+            triggerMode = self.parser.getTriggerMode(runNumber)
+        except:
+            triggerMode = "other"
+    
+        if triggerMode.find("cosmics") > -1:
+            runType = "cosmics"
+        elif triggerMode.find("circulating") > -1:
+            runType = "circulating"
+        elif triggerMode.find("collisions") > -1:
+            if self.parser.getFillType(runNumber).find("IONS") > -1:
+                runType = "collisionsHI" # heavy-ion collisions
+            else:
+                runType = "collisions" # p-p collisions
+        elif triggerMode == "MANUAL":
+            runType = "MANUAL"
+        elif triggerMode.find("highrate") > -1:
+            runType = "other"
+        else: runType = "other"
+    
+        return runType
 
     # Use: Runs the rateMonitor object using parameters supplied as command line arguments
     def run(self):

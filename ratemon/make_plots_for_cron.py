@@ -27,29 +27,6 @@ def make_output_dir_str(base_dir,subdir_str,append_timestamp=False):
     out_dir_path_name = os.path.join(base_dir,sub_dir_name)
     return out_dir_path_name
 
-def getRunType(runNumber): # FIXME: should be replaced by version in plotTriggerRates.py when oldParser is removed
-    try:
-        triggerMode = parser.getTriggerMode(runNumber)
-    except:
-        triggerMode = "other"
-    
-    if triggerMode.find("cosmics") > -1:
-        runType = "cosmics"
-    elif triggerMode.find("circulating") > -1:
-        runType = "circulating"
-    elif triggerMode.find("collisions") > -1:
-        if parser.getFillType(runNumber).find("IONS") > -1:
-            runType = "collisionsHI" # heavy-ion collisions
-        else:
-            runType = "collisions" # p-p collisions
-    elif triggerMode == "MANUAL":
-        runType = "MANUAL"
-    elif triggerMode.find("highrate") > -1:
-        runType = "other"
-    else: runType = "other"
-    
-    return runType
-
 # Make the plots
 def main():
 
@@ -68,7 +45,7 @@ def main():
 
     # Define run type
     for run in run_lst:
-        run_type = getRunType(run)
+        run_type = controller.getRunType(run)
         if run_type != getRunType(run_lst[0]): # sanity check
             print("WARNING: Run type has changed across the list of runs.")
             break
