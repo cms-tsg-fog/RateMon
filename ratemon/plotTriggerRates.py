@@ -120,8 +120,6 @@ class MonitorController:
     # Set variables based on options provided
     def setOptions(self,ops_dict,data_lst):
 
-        print("The options dict:",ops_dict)
-
         # Set defaults
         self.setDefaults()
         
