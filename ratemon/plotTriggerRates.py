@@ -741,7 +741,7 @@ class MonitorController:
                 for word in line.split():
                     if n  == 0:
                         for character in word:
-                            if character is not ':':
+                            if character != ':':
                                 key = key + character
                     else:
                         data1.append(int(word))
