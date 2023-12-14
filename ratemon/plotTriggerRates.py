@@ -24,6 +24,11 @@ from Exceptions import *
 
 class MonitorController:
     def __init__(self):
+        
+        # initialise database parser and rate monitor
+        self.parser = DBParser.DBParser()
+        self.rate_monitor = RateMonitor()
+        self.usr_input_data_lst = None
 
         self.ops_dict = {
             "runType="         : None,
@@ -60,7 +65,6 @@ class MonitorController:
             "allTriggers"      : None,
             "plot_avgCS"       : None
         }
-        self.usr_input_data_lst = None
 
     # Set the default values for variables
     def setDefaults(self):
@@ -118,9 +122,7 @@ class MonitorController:
 
         print("The options dict:",ops_dict)
 
-        # Set defualts
-        self.parser = DBParser.DBParser()
-        self.rate_monitor = RateMonitor()
+        # Set defaults
         self.setDefaults()
         
         # Loop over options and set class variables
