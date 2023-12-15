@@ -1,8 +1,8 @@
 openapi: "3.0.0"
 info:
-  version: 0.0.2
+  version: 0.0.3
   title: RateMon API
-  description: API exposing CMS Trigger Rates exported by the RateMon tools
+  description: API exposing CMS trigger rates exported by the RateMon tools
 servers:
   - url: http://ater.cern.ch/api/v1
 
@@ -12,21 +12,21 @@ paths:
     get:
       tags: [Trigger Rates]
       description: |
-        Get ROOT plot of the Rates of the specified Trigger Path and LHC Run Number
+        Get ROOT plot of the rates of the specified trigger for a given CMS run number
       operationId: app.getRatesROOT
       parameters:
         - name: runNumber
           in: query
           description: "Run number"
-          example: 305112
+          example: 370772
           required: true
           style: form
           schema:
             type: integer
         - name: triggerKey
           in: query
-          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/api/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list"
-          example: HLT_CaloJet500_NoJetID
+          description: "Trigger name key. Must be part of the [monitorlist_COLLISIONS](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/blob/api/ratemon/TriggerLists/monitorlist_COLLISIONS.list) list."
+          example: HLT_IsoMu24
           required: true
           schema:
             type: string
@@ -34,46 +34,46 @@ paths:
         '200':
           description: ROOT binary file of the computed plot
         '400':
-          description: Bad request
+          description: Bad Request
 
   /ratesJSON:
     get:
       tags: [Trigger Rates]
       description: |
-        Get a JSON file with raw Rates of the specified Trigger Path and LHC Run or Fill Number
+        Get a JSON file with raw rates of the specified trigger for a given CMS run or LHC fill number
       operationId: app.getRatesJSON
       parameters:
-        - name: runNumber
+        - name: runOrFillNumber
           in: query
-          description: "Run or fill number, e.g. 305112 or 6303"
-          example: 6303
+          description: "Run or fill number"
+          example: 9072
           required: true
           style: form
           schema:
             type: integer
         - name: triggerKey
           in: query
-          description: "Trigger name key."
-          example: HLT_CaloJet500_NoJetID
+          description: "Trigger name key"
+          example: HLT_IsoMu24
           required: true
           schema:
             type: string
         - name: queryByFill
           in: query
-          description: "Flag that should be true if querying by fill."
+          description: "Flag for querying by fill"
           example: true
           required: true
           schema:
             type: boolean
         - name: createFit
           in: query
-          description: "Flag that should be true to create a fit to the data. If false, the ref fit from [ratemon/ratemon/Fits](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tree/master/ratemon/Fits) is used."
+          description: "Flag to create a fit to the data. [If false, the reference fit from [ratemon/ratemon/Fits](https://gitlab.cern.ch/cms-tsg-fog/ratemon/-/tree/master/ratemon/Fits) is used.]"
           example: true
           required: true
           schema:
             type: boolean
       responses:
         '200':
-          description: JSON file with the raw rates
+          description: JSON file with the raw trigger rates
         '400':
-          description: Bad request
+          description: Bad Request

@@ -5,9 +5,6 @@ from DBParser import DBParser
 from flask import send_from_directory
 from Exceptions import *
 
-# Read database parser 
-parser = DBParser()
-
 def getRatesROOT(runNumber: int, triggerKey: str):
     # Initialize the RateMon controller
     controller = ptr.MonitorController()
