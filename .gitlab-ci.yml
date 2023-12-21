@@ -25,7 +25,7 @@ builder image:
     NAME: builder
 
 build:RPMs:
-  image: $CI_REGISTRY_IMAGE/builder:$CI_COMMIT_REF_NAME-latest
+  image: $CI_REGISTRY_IMAGE/alma9:latest
   stage: 🏗️ build
   variables:
     FF_KUBERNETES_HONOR_ENTRYPOINT: 1
