@@ -26,3 +26,4 @@ urllib3==1.25.10
 Werkzeug==1.0.1
 zipp==3.1.0
 prometheus-client==0.17.0
+omsapi==0.9.7

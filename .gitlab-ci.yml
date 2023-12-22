@@ -46,8 +46,8 @@ publish:RPMs:
   stage: 📦 publish
   extends: .auto_devops_upload_yum_repo_eos_template
   variables:
-    LOCAL_FOLDER: rpms/python36
-    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/python36/$CI_COMMIT_SHA/centos7_gcc8_x86_64/
+    LOCAL_FOLDER: rpms/python39
+    CERNBOX_FOLDER: /eos/user/c/cactus/www/cactus/release/cms-tsg-fog/ratemon/$CI_COMMIT_REF_SLUG/python39/$CI_COMMIT_SHA/alma9_x86_64/
 
 # deploy:test:
 #   stage: 🚀 deploy
@@ -76,7 +76,7 @@ deploy:P5:
     allow_failure: false
   - when: never
   variables:
-    LOCAL_FOLDER: rpms/python36
+    LOCAL_FOLDER: rpms/python39
     DROPBOX_OS: cc7
     DROPBOX_ZONE: cms
     DROPBOX_NAME: ratemon
