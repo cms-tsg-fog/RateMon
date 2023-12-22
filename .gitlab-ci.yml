@@ -77,7 +77,7 @@ deploy:P5:
   - when: never
   variables:
     LOCAL_FOLDER: rpms/python39
-    DROPBOX_OS: cc7
+    DROPBOX_OS: el9
     DROPBOX_ZONE: cms
     DROPBOX_NAME: ratemon
     SSH_USERNAME: $P5_USER
