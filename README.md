@@ -11,14 +11,13 @@ Do any development work on GitLab.
 
 ### Requirements
 
-This code depends on the OMS API client, which can be found [here](https://gitlab.cern.ch/cmsoms/oms-api-client).
+This code depends on the OMS API client, which can be found under [cmsoms/oms-api-client](https://gitlab.cern.ch/cmsoms/oms-api-client). It is published on PyPI and has been added as a dependency in `requirements.txt`.
 
-To install:
+You can run the following commands in an virtual environment:
 ```bash
-git clone ssh://git@gitlab.cern.ch:7999/cmsoms/oms-api-client.git
-cd oms-api-client
+python3 -m venv venv
+source venv/bin/activate
 python3 -m pip install -r requirements.txt
-python3 setup.py install --user
 ```
 
 ## CI/CD
@@ -109,3 +108,4 @@ cd ratemon
 source venv/bin/activate
 python3 ShiftMonitorTool.py
 ```
+
