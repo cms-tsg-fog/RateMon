@@ -25,7 +25,7 @@ builder image:
     NAME: builder
 
 build:RPMs:
-  image: $CI_REGISTRY_IMAGE/alma9:latest
+  image: $CI_REGISTRY_IMAGE/builder:$CI_COMMIT_REF_NAME-latest
   stage: 🏗️ build
   variables:
     FF_KUBERNETES_HONOR_ENTRYPOINT: 1
@@ -76,7 +76,7 @@ deploy:P5:
     allow_failure: false
   - when: never
   variables:
-    LOCAL_FOLDER: rpms/python36
+    LOCAL_FOLDER: rpms/python39
     DROPBOX_OS: cc7
     DROPBOX_ZONE: cms
     DROPBOX_NAME: ratemon
